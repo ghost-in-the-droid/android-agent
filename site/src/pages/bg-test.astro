@@ -1,0 +1,605 @@
+---
+// Background Effect Test Page — 3 approaches side by side
+---
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Background Effects Test</title>
+	<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+	<style>
+		*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+		body { font-family: 'Outfit', sans-serif; background: #050505; color: #e8e8e8; }
+		a { color: #00e5a0; }
+
+		.tabs { display: flex; gap: 0; border-bottom: 1px solid #1a1a1a; position: sticky; top: 0; z-index: 100; background: #050505; }
+		.tab { padding: 1rem 2rem; font-size: 0.9rem; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; color: #777; transition: all 0.2s; }
+		.tab:hover { color: #e8e8e8; }
+		.tab.active { color: #00e5a0; border-bottom-color: #00e5a0; }
+
+		.panel { display: none; position: relative; height: calc(100vh - 54px); overflow: hidden; }
+		.panel.active { display: block; }
+
+		canvas { width: 100%; height: 100%; }
+
+		.overlay-text {
+			position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+			text-align: center; z-index: 10; pointer-events: none;
+		}
+		.overlay-text h1 {
+			font-size: 3.5rem; font-weight: 800; letter-spacing: -2px; color: #e8e8e8;
+			text-shadow: 0 0 60px rgba(0,229,160,0.15);
+		}
+		.overlay-text h1 span {
+			background: linear-gradient(135deg, #00e5a0 0%, #00b4d8 50%, #7b68ee 100%);
+			-webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+		}
+		.overlay-text p { font-size: 1.1rem; color: #777; margin-top: 0.75rem; font-weight: 300; }
+
+		.label {
+			position: absolute; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+			font-size: 0.75rem; color: #555; font-family: 'JetBrains Mono', monospace;
+			background: #0a0a0a; padding: 0.4rem 1rem; border-radius: 6px; border: 1px solid #1a1a1a;
+		}
+	</style>
+</head>
+<body>
+	<div class="tabs">
+		<div class="tab active" data-tab="0">1. Phone + Ghost</div>
+		<div class="tab" data-tab="1">2. Ghost Emojis</div>
+		<div class="tab" data-tab="2">3. Waves on Sphere</div>
+	</div>
+
+	<!-- PANEL 1: Phone + Ghost (now first) -->
+	<div class="panel active" id="panel-0">
+		<canvas id="c1"></canvas>
+		<div class="overlay-text">
+			<h1>Ghost in the <span>Droid</span></h1>
+			<p>Open-source Android automation framework</p>
+		</div>
+		<div class="label">Phone + Ghost Vapor — quadruple helix swirl</div>
+	</div>
+
+	<!-- PANEL 2: Ghost Emoji Sphere -->
+	<div class="panel" id="panel-1">
+		<canvas id="c0"></canvas>
+		<div class="overlay-text">
+			<h1>Ghost in the <span>Droid</span></h1>
+			<p>Open-source Android automation framework</p>
+		</div>
+		<div class="label">Approach 2: ASCII phone outline with ghost emerging from screen</div>
+	</div>
+
+	<!-- PANEL 3: Wavy Sphere -->
+	<div class="panel" id="panel-2">
+		<canvas id="c2"></canvas>
+		<div class="overlay-text">
+			<h1>Ghost in the <span>Droid</span></h1>
+			<p>Open-source Android automation framework</p>
+		</div>
+		<div class="label">Approach 3: Sphere with wave deformations rippling across surface</div>
+	</div>
+
+	<script>
+	document.querySelectorAll('.tab').forEach(t => {
+		t.addEventListener('click', () => {
+			const idx = parseInt(t.dataset.tab);
+			document.querySelectorAll('.tab').forEach((t2, i) => t2.classList.toggle('active', i === idx));
+			document.querySelectorAll('.panel').forEach((p, i) => p.classList.toggle('active', i === idx));
+		});
+	});
+
+	let mx = 0.5, my = 0.5;
+	document.addEventListener('mousemove', e => {
+		mx = e.clientX / window.innerWidth;
+		my = e.clientY / window.innerHeight;
+	});
+
+	/* ═══════════════════════════════════════════════════════════════
+	   APPROACH 1: Ghost Emoji Sphere
+	   ═══════════════════════════════════════════════════════════════ */
+	(function() {
+		const canvas = document.getElementById('c0');
+		const ctx = canvas.getContext('2d');
+		const ghostChars = ['👻', '💀', '👾', '🤖', '📱', '⚡', '🔮'];
+		// Pre-render emojis to offscreen canvases (emoji rendering is expensive)
+		const ghostCache = ghostChars.map(ch => {
+			const sizes = [12, 16, 20, 24];
+			return sizes.map(s => {
+				const oc = document.createElement('canvas');
+				oc.width = s + 4; oc.height = s + 4;
+				const octx = oc.getContext('2d');
+				octx.font = s + 'px sans-serif';
+				octx.textBaseline = 'top';
+				octx.fillText(ch, 2, 2);
+				return oc;
+			});
+		});
+		let W, H, time = 0;
+
+		function resize() {
+			const dpr = window.devicePixelRatio || 1;
+			W = canvas.parentElement.offsetWidth;
+			H = canvas.parentElement.offsetHeight;
+			canvas.width = W * dpr;
+			canvas.height = H * dpr;
+			ctx.scale(dpr, dpr);
+		}
+		resize();
+		window.addEventListener('resize', resize);
+
+		function render() {
+			time += 0.006;
+			ctx.clearRect(0, 0, W, H);
+
+			const cx = W * 0.5;
+			const cy = H * 0.45;
+			const radius = Math.min(W, H) * 0.3;
+			const rotX = (my - 0.5) * 2 + time * 0.25;
+			const rotY = (mx - 0.5) * 2 + time * 0.4;
+			const dmx = mx * W, dmy = my * H;
+
+			const points = 250;
+			const items = [];
+			for (let i = 0; i < points; i++) {
+				const phi = Math.acos(1 - 2 * (i + 0.5) / points);
+				const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+
+				let x = Math.sin(phi) * Math.cos(theta);
+				let y = Math.sin(phi) * Math.sin(theta);
+				let z = Math.cos(phi);
+
+				// Rotate
+				const x2 = x * Math.cos(rotY) - z * Math.sin(rotY);
+				const z2 = x * Math.sin(rotY) + z * Math.cos(rotY);
+				const y2 = y * Math.cos(rotX) - z2 * Math.sin(rotX);
+				const z3 = y * Math.sin(rotX) + z2 * Math.cos(rotX);
+
+				const scale = 1 / (1 + z3 * 0.4);
+				let px = cx + x2 * radius * scale;
+				let py = cy + y2 * radius * scale;
+
+				// Mouse distortion
+				const ddx = px - dmx, ddy = py - dmy;
+				const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+				const distortion = Math.max(0, 1 - dist / 180);
+				if (distortion > 0) {
+					const push = distortion * distortion * 50;
+					px += (ddx / (dist || 1)) * push;
+					py += (ddy / (dist || 1)) * push;
+				}
+
+				items.push({ px, py, z3, i, distortion });
+			}
+
+			// Sort by depth (back to front)
+			items.sort((a, b) => a.z3 - b.z3);
+
+			for (const p of items) {
+				const brightness = (p.z3 + 1) * 0.5;
+				const alpha = 0.1 + brightness * 0.6 + p.distortion * 0.3;
+				const size = 10 + brightness * 10 + p.distortion * 8;
+				const sizeIdx = size < 14 ? 0 : size < 18 ? 1 : size < 22 ? 2 : 3;
+				const cached = ghostCache[p.i % ghostCache.length][sizeIdx];
+
+				ctx.globalAlpha = alpha;
+				ctx.drawImage(cached, p.px - cached.width * 0.4, p.py - cached.height * 0.3);
+			}
+			ctx.globalAlpha = 1;
+
+			requestAnimationFrame(render);
+		}
+		render();
+	})();
+
+	/* ═══════════════════════════════════════════════════════════════
+	   APPROACH 2: Phone + Ghost (original V1)
+	   ═══════════════════════════════════════════════════════════════ */
+	(function() {
+		const canvas = document.getElementById('c1');
+		const ctx = canvas.getContext('2d');
+		let W, H, time = 0;
+
+		function resize() {
+			const dpr = window.devicePixelRatio || 1;
+			W = canvas.parentElement.offsetWidth;
+			H = canvas.parentElement.offsetHeight;
+			canvas.width = W * dpr;
+			canvas.height = H * dpr;
+			ctx.scale(dpr, dpr);
+		}
+		resize();
+		window.addEventListener('resize', resize);
+
+		const chars = ['.', ':', '-', '=', '+', '*', '#', '%', '@'];
+
+		// Orb = fixed sphere surface of N slots. Vapor particles fill them.
+		const SPHERE_SLOTS = 2500;
+		const sphereSlots = [];
+		for (let i = 0; i < SPHERE_SLOTS; i++) {
+			const phi = Math.asin(1 - 2 * (i + 0.5) / SPHERE_SLOTS);
+			const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+			sphereSlots.push({
+				phi, theta,
+				filled: i < 1500, // 60% pre-filled so orb visible on load
+				fillTime: i < 1500 ? -10 : 0,
+				charIdx: i % 9,
+			});
+		}
+		// Fast lookup of unfilled slots
+		const unfilledSlots = [];
+		for (let i = 1500; i < SPHERE_SLOTS; i++) unfilledSlots.push(i);
+
+		function render() {
+			time += 0.008;
+			const pw = canvas.parentElement.offsetWidth;
+			if (pw > 0 && Math.abs(pw - W) > 2) resize();
+			ctx.clearRect(0, 0, W, H);
+
+			const dmx = mx * W, dmy = my * H;
+			const phoneW = 160, phoneH = 300, cellW = 8, cellH = 13;
+			const cy = H * 0.75;
+
+			// Orb — living particle colony (visible 3D sphere)
+			const orbX = W * 0.5;
+			const orbY = H * 0.12;
+			const orbR = 90;
+			const orbMaxParticles = 1200;
+			const gravityY = H * 0.35;
+
+			// 4 phones: evenly spaced, gap in the center (below orb)
+			const padX = W * 0.08;
+			const usable = W - padX * 2;
+			const positions = [
+				padX + usable * 0.1,
+				padX + usable * 0.35,
+				padX + usable * 0.65,
+				padX + usable * 0.9,
+			];
+
+			for (let pi = 0; pi < 4; pi++) {
+				const cx = positions[pi];
+				const phoneX = cx - phoneW / 2;
+				const phoneY = cy - phoneH / 2 + 30;
+
+				// Phone border
+				ctx.font = '11px "JetBrains Mono", monospace';
+				ctx.textBaseline = 'top';
+				for (let row = 0; row < Math.floor(phoneH / cellH); row++) {
+					for (let col = 0; col < Math.floor(phoneW / cellW); col++) {
+						const px = phoneX + col * cellW;
+						const py = phoneY + row * cellH;
+						const isTop = row === 0;
+						const isBottom = row === Math.floor(phoneH / cellH) - 1;
+						const isLeft = col === 0;
+						const isRight = col === Math.floor(phoneW / cellW) - 1;
+						if (!(isTop || isBottom || isLeft || isRight)) continue;
+
+						let c = '│';
+						if (isTop && isLeft) c = '╭';
+						else if (isTop && isRight) c = '╮';
+						else if (isBottom && isLeft) c = '╰';
+						else if (isBottom && isRight) c = '╯';
+						else if (isTop || isBottom) c = '─';
+						if (isTop && col >= 7 && col <= 12) c = '◡';
+						if (isBottom && col >= 8 && col <= 11) c = '─';
+
+						const wave = Math.sin(time * 2 + row * 0.3 + col * 0.2 + pi) * 1.5;
+						ctx.fillStyle = 'rgba(0, 229, 160, 0.4)';
+						ctx.fillText(c, px + wave, py);
+					}
+				}
+
+				// Ghost vapor plume — dense swarm
+				const ghostCount = 3000;
+				for (let i = 0; i < ghostCount; i++) {
+					// Better hash — fract(sin) with different primes per channel
+					const id = pi * 10000 + i;
+					const hash = ((id * 2654435761 >>> 0) % 100000) / 100000;
+					const hash2 = ((id * 2246822519 >>> 0) % 100000) / 100000;
+					const hash3 = ((id * 3266489917 >>> 0) % 100000) / 100000;
+
+					// Each particle has its own cycle length (1.5-4s) and phase offset
+					// This creates many overlapping waves instead of 1-2 synced clusters
+					const cycleLen = 3 + hash3 * 5; // seconds per cycle — longer life
+					const phase = hash * 100; // large offset so particles are fully decorrelated
+					const lifeT = ((time * (1 / cycleLen) + phase) % 1);
+					const startX = phoneX + 8 + hash * (phoneW - 16);
+					const startY = phoneY + phoneH * 0.75 + hash2 * (phoneH * 0.22);
+
+					const spread = lifeT * lifeT;
+					const centerX = phoneX + phoneW / 2;
+
+					// Phase 1 (lifeT 0→0.3): chaotic emission from random spawn point, drifts up
+					// Phase 2 (lifeT 0.3→1): gravitates into one of 3 swirl columns, then spirals
+					const blendT = Math.max(0, Math.min(1, (lifeT - 0.2) / 0.15)); // 0→1 transition zone
+
+					// Which swirl column (0, 1, 2) — deterministic per particle
+					const swirlIdx = Math.floor(hash3 * 3) % 3;
+					const swirlCenterX = centerX + (swirlIdx - 1) * 50; // left, center, right
+
+					// Phase 1: chaotic — just drift from spawn point with noise
+					const chaoticX = startX + Math.sin(hash * 30 + time * 2) * 20 + Math.cos(hash2 * 20 + time * 1.3) * 15;
+					const chaoticY = startY - lifeT * 900;
+
+					// Phase 2: structured double-helix spiral around swirl column
+					// Each swirl has 2 arms (like a DNA helix), particles alternate arms
+					const arm = (i % 4) * (Math.PI / 2); // 0, 90, 180, 270 — four arms
+					const swirlT = Math.max(0, lifeT - 0.3) / 0.7; // 0→1 within swirl phase
+					const spiralSpeed = 5 + swirlIdx * 1.5; // each column spins slightly differently
+					const spiralAngle = arm + hash * 0.8 + swirlT * spiralSpeed + time * (1.2 + swirlIdx * 0.3);
+					// Radius: tight at bottom, expands, then tightens again at top (hourglass)
+					const rBase = 20 + swirlT * 70;
+					const rPinch = 1 - Math.pow(swirlT * 2 - 1, 2) * 0.4; // pinch at middle
+					const spiralR = rBase * rPinch + Math.sin(hash3 * 20 + time * 2) * 8;
+					const swirlX = swirlCenterX + Math.cos(spiralAngle) * spiralR;
+					const swirlY = startY - lifeT * 900;
+
+					// Blend between chaotic and swirl
+					let floatX = chaoticX * (1 - blendT) + swirlX * blendT;
+					let floatY = chaoticY * (1 - blendT) + swirlY * blendT;
+
+					// Orb gravity — pull toward orb CENTER so all 4 streams converge
+					const gravStart = (cy + orbY) * 0.5;
+					const gravCaught = floatY < gravStart;
+
+					if (gravCaught) {
+						const gravT = Math.min(1, (gravStart - floatY) / (gravStart - orbY + 30));
+						const pull = gravT * gravT * gravT * 0.95;
+						floatX = floatX * (1 - pull) + orbX * pull;
+						floatY = floatY * (1 - pull) + orbY * pull;
+					}
+
+					// Distance to orb center (after gravity applied)
+					const dxOrb = floatX - orbX;
+					const dyOrb = floatY - orbY;
+					const distToOrb = Math.sqrt(dxOrb * dxOrb + dyOrb * dyOrb);
+
+					// Near the orb — slide onto surface, then absorb
+					if (distToOrb < orbR * 2.2) {
+						// How close to the surface (0 = outer edge of zone, 1 = on surface)
+						const surfT = Math.max(0, 1 - (distToOrb - orbR * 0.7) / (orbR * 1.5));
+
+						if (surfT > 0.05) {
+							// Drift toward surface point in approach direction
+							const arrAngle = Math.atan2(dyOrb, dxOrb);
+							const targX = orbX + Math.cos(arrAngle + surfT * 0.8) * orbR;
+							const targY = orbY + Math.sin(arrAngle + surfT * 0.8) * orbR * 0.85;
+							floatX = floatX * (1 - surfT * 0.7) + targX * surfT * 0.7;
+							floatY = floatY * (1 - surfT * 0.7) + targY * surfT * 0.7;
+						}
+
+						// Only absorb when actually on the surface
+						if (distToOrb < orbR * 0.85) {
+							if (unfilledSlots.length > 0) {
+								const slotIdx = Math.floor(hash2 * unfilledSlots.length);
+								const slotId = unfilledSlots[slotIdx];
+								sphereSlots[slotId].filled = true;
+								sphereSlots[slotId].fillTime = time;
+								sphereSlots[slotId].charIdx = Math.min(chars.length - 1, Math.floor(hash3 * chars.length));
+								unfilledSlots.splice(slotIdx, 1);
+							} else {
+								const slotId = Math.floor(hash2 * SPHERE_SLOTS);
+								sphereSlots[slotId].fillTime = time;
+							}
+							continue;
+						}
+						// Still render as it slides onto surface
+					}
+
+					const fadeIn = Math.min(1, lifeT * 6);
+					const fadeOut = gravCaught ? 1 : Math.max(0, 1 - (lifeT - 0.85) * 6);
+					// Gentle dim near orb surface — don't black-hole them
+					const orbDim = distToOrb < orbR * 1.5 ? Math.max(0.5, distToOrb / (orbR * 1.5)) : 1;
+					const alpha = fadeIn * fadeOut * orbDim;
+					if (alpha <= 0.015) continue;
+
+					let dpx = floatX, dpy = floatY;
+					const ddx = dpx - dmx, ddy = dpy - dmy;
+					const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+					const distortion = Math.max(0, 1 - dist / 130);
+					if (distortion > 0) {
+						dpx += (ddx / (dist || 1)) * distortion * 45;
+						dpy += (ddy / (dist || 1)) * distortion * 45;
+					}
+
+					const isGhost = (id % 400) === 0; // 0.25% chance
+					if (isGhost) {
+						const ghosts = ['👻','💀','👾','🤖','🔮'];
+						ctx.globalAlpha = alpha * 0.8;
+						ctx.font = Math.floor(8 + spread * 6) + 'px sans-serif';
+						ctx.fillText(ghosts[id % ghosts.length], dpx, dpy);
+					} else {
+						const size = 3 + spread * 3 + Math.abs(hash3) * 1.5;
+						const charIdx = Math.min(chars.length - 1, Math.max(0, Math.floor(alpha * chars.length)));
+						const g = Math.floor(150 + alpha * 79);
+						ctx.globalAlpha = alpha * 0.85;
+						ctx.fillStyle = 'rgba(0,' + g + ',' + Math.floor(100 + alpha * 60) + ',1)';
+						ctx.font = Math.floor(size) + 'px "JetBrains Mono", monospace';
+						ctx.fillText(chars[charIdx], dpx, dpy);
+					}
+				}
+
+				// Screen glow
+				const grd = ctx.createRadialGradient(cx, cy + 10, 10, cx, cy + 10, 120);
+				grd.addColorStop(0, 'rgba(0, 229, 160, 0.06)');
+				grd.addColorStop(1, 'rgba(0, 229, 160, 0)');
+				ctx.globalAlpha = 0.5 + Math.sin(time * 2 + pi) * 0.2;
+				ctx.fillStyle = grd;
+				ctx.fillRect(phoneX + 10, phoneY + 15, phoneW - 20, phoneH - 30);
+			}
+
+			// ── Render the orb as a rotating 3D sphere of surface slots ──
+
+			// Soft glow behind the sphere
+			const glowGrd = ctx.createRadialGradient(orbX, orbY, orbR * 0.1, orbX, orbY, orbR * 1.4);
+			glowGrd.addColorStop(0, 'rgba(0, 229, 160, 0.07)');
+			glowGrd.addColorStop(0.6, 'rgba(0, 180, 140, 0.03)');
+			glowGrd.addColorStop(1, 'rgba(0, 229, 160, 0)');
+			ctx.globalAlpha = 1;
+			ctx.fillStyle = glowGrd;
+			ctx.fillRect(orbX - orbR * 1.6, orbY - orbR * 1.6, orbR * 3.2, orbR * 3.2);
+
+			// Sphere rotation — slow spin so you see it's 3D
+			const sRotY = time * 0.3;
+			const sRotX = 0.25; // tilt so poles are visible
+
+			ctx.textBaseline = 'middle';
+			const orbDraw = [];
+			for (let i = 0; i < SPHERE_SLOTS; i++) {
+				const s = sphereSlots[i];
+
+				// Liquid wobble on surface
+				const wobble = 1 + Math.sin(s.phi * 3 + time * 2) * 0.05 + Math.sin(s.theta * 2 + time * 3) * 0.03;
+				const r = orbR * wobble;
+
+				// 3D position on sphere — theta rotates with global spin
+				const x = Math.cos(s.phi) * Math.cos(s.theta + sRotY) * r;
+				const y0 = Math.sin(s.phi) * r;
+				const z0 = Math.cos(s.phi) * Math.sin(s.theta + sRotY) * r;
+
+				// Tilt around X axis so poles are visible
+				const y = y0 * Math.cos(sRotX) - z0 * Math.sin(sRotX);
+				const z = y0 * Math.sin(sRotX) + z0 * Math.cos(sRotX);
+
+				// Perspective projection
+				const persp = 280;
+				const sc = persp / (persp + z);
+				const ox = orbX + x * sc;
+				const oy = orbY + y * sc;
+
+				const depthNorm = (z / orbR + 1) * 0.5; // 0=back, 1=front
+
+				orbDraw.push({ ox, oy, z, depthNorm, filled: s.filled, fillTime: s.fillTime, charIdx: s.charIdx });
+			}
+
+			// Depth sort — back to front
+			orbDraw.sort((a, b) => a.z - b.z);
+
+			for (const p of orbDraw) {
+				if (p.filled) {
+					const age = time - p.fillTime;
+					const fadeIn = Math.min(1, age * 2);
+					const g = Math.floor(130 + p.depthNorm * 100);
+					const b = Math.floor(110 + p.depthNorm * 100);
+					// Back particles visible (0.3), front bright (0.9)
+					ctx.globalAlpha = (0.3 + p.depthNorm * 0.6) * fadeIn;
+					ctx.fillStyle = 'rgba(0,' + g + ',' + b + ',1)';
+					const sz = 4 + p.depthNorm * 5;
+					ctx.font = Math.floor(sz) + 'px "JetBrains Mono", monospace';
+					ctx.fillText(chars[p.charIdx], p.ox, p.oy);
+				} else {
+					// Unfilled slot — dim dot gives sphere wireframe outline
+					ctx.globalAlpha = 0.05 + p.depthNorm * 0.07;
+					ctx.fillStyle = 'rgba(0, 200, 160, 1)';
+					ctx.font = '3px "JetBrains Mono", monospace';
+					ctx.fillText('.', p.ox, p.oy);
+				}
+			}
+			ctx.textBaseline = 'top';
+
+			ctx.globalAlpha = 1;
+			requestAnimationFrame(render);
+		}
+		render();
+	})();
+
+	/* ═══════════════════════════════════════════════════════════════
+	   APPROACH 3: Sphere with Wave Deformations
+	   ═══════════════════════════════════════════════════════════════ */
+	(function() {
+		const canvas = document.getElementById('c2');
+		const ctx = canvas.getContext('2d');
+		const chars = '.·:;+=*#%@'.split('');
+		let W, H, time = 0;
+
+		function resize() {
+			const dpr = window.devicePixelRatio || 1;
+			W = canvas.parentElement.offsetWidth;
+			H = canvas.parentElement.offsetHeight;
+			canvas.width = W * dpr;
+			canvas.height = H * dpr;
+			ctx.scale(dpr, dpr);
+		}
+		resize();
+		window.addEventListener('resize', resize);
+
+		function render() {
+			time += 0.007;
+			const pw = canvas.parentElement.offsetWidth;
+			if (pw > 0 && Math.abs(pw - W) > 2) resize();
+			ctx.clearRect(0, 0, W, H);
+			ctx.font = '13px "JetBrains Mono", monospace';
+			ctx.textBaseline = 'top';
+
+			const cx = W * 0.5;
+			const cy = H * 0.45;
+			const baseRadius = Math.min(W, H) * 0.28;
+			const rotX = (my - 0.5) * 1.8 + time * 0.2;
+			const rotY = (mx - 0.5) * 1.8 + time * 0.35;
+			const dmx = mx * W, dmy = my * H;
+
+			const points = 1400;
+			for (let i = 0; i < points; i++) {
+				const phi = Math.acos(1 - 2 * (i + 0.5) / points);
+				const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+
+				// Base sphere position
+				let x = Math.sin(phi) * Math.cos(theta);
+				let y = Math.sin(phi) * Math.sin(theta);
+				let z = Math.cos(phi);
+
+				// Wave deformations — multiple sine waves rippling across surface
+				const wave1 = Math.sin(phi * 4 + time * 3) * 0.08;
+				const wave2 = Math.sin(theta * 3 + time * 2.5) * 0.06;
+				const wave3 = Math.sin(phi * 6 + theta * 4 + time * 1.8) * 0.04;
+				const wave4 = Math.sin(phi * 2 - time * 4) * 0.05; // slow deep wave
+				const deform = 1 + wave1 + wave2 + wave3 + wave4;
+
+				x *= deform;
+				y *= deform;
+				z *= deform;
+
+				// Rotate Y
+				const x2 = x * Math.cos(rotY) - z * Math.sin(rotY);
+				const z2 = x * Math.sin(rotY) + z * Math.cos(rotY);
+				// Rotate X
+				const y2 = y * Math.cos(rotX) - z2 * Math.sin(rotX);
+				const z3 = y * Math.sin(rotX) + z2 * Math.cos(rotX);
+
+				const scale = 1 / (1 + z3 * 0.4);
+				let px = cx + x2 * baseRadius * scale;
+				let py = cy + y2 * baseRadius * scale;
+
+				// Mouse distortion
+				const ddx = px - dmx, ddy = py - dmy;
+				const dist = Math.sqrt(ddx * ddx + ddy * ddy);
+				const distortion = Math.max(0, 1 - dist / 200);
+				if (distortion > 0) {
+					const push = distortion * distortion * 70;
+					px += (ddx / (dist || 1)) * push;
+					py += (ddy / (dist || 1)) * push;
+				}
+
+				// Brightness based on depth + wave intensity
+				const brightness = (z3 + 1) * 0.5;
+				const waveGlow = Math.abs(wave1 + wave2) * 3;
+				const charIdx = Math.min(chars.length - 1, Math.floor((brightness + waveGlow * 0.3) * (chars.length - 1)));
+				const alpha = 0.2 + brightness * 0.7 + distortion * 0.3;
+
+				// Color shifts with waves — green base, cyan on wave peaks
+				const g = Math.floor(140 + brightness * 80 + waveGlow * 30);
+				const b = Math.floor(80 + waveGlow * 80);
+				const r = Math.floor(waveGlow * 20);
+
+				ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+				ctx.fillText(chars[charIdx], px, py);
+			}
+
+			requestAnimationFrame(render);
+		}
+		render();
+	})();
+	</script>
+</body>
+</html>

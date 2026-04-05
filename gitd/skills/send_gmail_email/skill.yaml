@@ -1,0 +1,10 @@
+app_package: com.google.android.gm
+description: Auto-generated skill from 6 recorded steps
+name: send_gmail_email
+version: 1.0.0
+
+default_params:
+  workflows:
+    recorded:
+      subject: "Test email subject"
+      body: "Hello, this is a test email sent via automation."

@@ -1,0 +1,119 @@
+name: tiktok
+display_name: TikTok
+description: TikTok automation skill — upload, crawl, outreach, engage, analytics
+version: "1.0.0"
+app_package: com.zhiliaoapp.musically
+author: C-K-Loan
+license: MIT
+
+exports:
+  actions:
+    - name: open_app
+      description: Launch TikTok and wait for home screen
+    - name: navigate_to_profile
+      description: Navigate to the Profile tab
+    - name: tap_search
+      description: Tap the search icon to open search
+    - name: type_and_search
+      description: Type a query and execute search
+      params:
+        query: { type: string, required: true, default: "#cats" }
+    - name: dismiss_popup
+      description: Detect and dismiss TikTok-specific popups
+  workflows:
+    - name: upload_video
+      description: Upload a video with caption and hashtags
+      steps: [open_app, upload_flow]
+    - name: crawl_hashtag
+      description: Crawl posts from a hashtag search
+      steps: [open_app, tap_search, type_and_search, scrape_loop]
+    - name: send_dm
+      description: Send a direct message to a user
+      steps: [open_app, tap_search, type_and_search, tap_user, send_message]
+    - name: scrape_analytics
+      description: Scrape account analytics data
+      steps: [open_app, navigate_to_profile, open_analytics, scrape_data]
+    - name: engage_fyp
+      description: Auto-engage with For You Page content (like, comment, follow)
+      steps: [open_app, scroll_fyp, engage_loop]
+
+popup_detectors:
+  - detect: "Continue editing"
+    button: "Save draft"
+    label: "Draft resume overlay"
+  - detect: "connect with people"
+    button: "Don't allow"
+    label: "Contacts access popup"
+  - detect: "access to your Facebook"
+    button: "Don't allow"
+    label: "Facebook friends access popup"
+  - detect: "Make TikTok Shop more relevant"
+    button: "Select"
+    label: "TikTok Shop relevance"
+  - detect: "shared collections"
+    button: "Not now"
+    label: "Shared collections popup"
+  - detect: "Turn on notifications"
+    button: "Not now"
+    label: "Notifications popup"
+  - detect: "security checkup"
+    button: "Close"
+    label: "Security checkup popup"
+  - detect: 'content-desc="Close"'
+    button: "Close"
+    label: "Close dialog"
+  - detect: "Skip"
+    button: "Skip"
+    label: "Skip dialog"
+  - detect: "Learn more"
+    button: "_back"
+    label: "Invisible promo overlay"
+    method: "back"
+
+default_params:
+  actions:
+    type_and_search:
+      query: "#cats"
+    comment_on_post:
+      text: "Great content!"
+    tap_user:
+      index: 0
+    type_message:
+      text: "Hey! Love your content"
+  workflows:
+    send_dm:
+      username: "@username"
+      message: "Hey! I love your content, would love to collab"
+    crawl_hashtag:
+      query: "#fyp"
+      label: "general"
+      tab: "top"
+      passes: 5
+    crawl_users:
+      query: "#cats"
+      label: "general"
+      passes: 5
+    upload_video:
+      video_path: "/sdcard/DCIM/video.mp4"
+      caption: "Check this out!"
+      hashtags: "#fyp #viral"
+      as_draft: false
+    scrape_analytics:
+      account: "@myaccount"
+    engage_fyp:
+      like: true
+      comment: ""
+      follow: false
+    scan_inbox:
+      account: "@myaccount"
+    continuous_scrape:
+      label: "niche"
+      passes_per_tag: 5
+    publish_draft:
+      draft_tag: ""
+
+tested_on:
+  - device: ASUS ROG Phone II
+    android: "12"
+  - device: Samsung Galaxy A15
+    android: "14"

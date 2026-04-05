@@ -1,0 +1,46 @@
+name: play_store
+description: Google Play Store automation — install, uninstall, update apps, check versions
+version: "1.0.0"
+app_package: com.android.vending
+
+exports:
+  actions:
+    - open_store
+    - search_app
+    - install_app
+    - uninstall_app
+    - update_app
+    - check_version
+  workflows:
+    - install_by_name
+    - update_all
+
+popup_detectors:
+  - detect: "Sign in"
+    button: "Skip"
+    label: "Sign in prompt"
+  - detect: "Just a sec"
+    button: "Not now"
+    label: "Account setup"
+  - detect: "Finish setting up"
+    button: "Not now"
+    label: "Setup reminder"
+  - detect: "Try again"
+    button: "Try again"
+    label: "Connection error retry"
+
+default_params:
+  actions:
+    search_app:
+      query: "TikTok"
+    install_app:
+      package: "com.zhiliaoapp.musically"
+    uninstall_app:
+      package: "com.zhiliaoapp.musically"
+    update_app:
+      package: "com.zhiliaoapp.musically"
+    check_version:
+      package: "com.zhiliaoapp.musically"
+  workflows:
+    install_by_name:
+      query: "TikTok"

@@ -1,0 +1,131 @@
+{
+  "generated_at": "2026-04-02T16:46:53Z",
+  "skill_count": 4,
+  "total_actions": 17,
+  "total_workflows": 8,
+  "skills": [
+    {
+      "name": "base",
+      "display_name": "Base Actions",
+      "description": "Shared actions usable by any Android app skill",
+      "version": "1.0.0",
+      "app_package": null,
+      "author": "C-K-Loan",
+      "license": "MIT",
+      "actions": [
+        "tap_element",
+        "swipe_direction",
+        "type_text",
+        "wait_for_element",
+        "launch_app",
+        "take_screenshot",
+        "dismiss_popup",
+        "press_back",
+        "press_home"
+      ],
+      "workflows": [],
+      "elements_count": 0,
+      "tested_on": [
+        {
+          "device": "ASUS ROG Phone II",
+          "android": "12"
+        },
+        {
+          "device": "Samsung Galaxy A15",
+          "android": "14"
+        }
+      ],
+      "source": "official",
+      "repo_url": "https://github.com/C-K-Loan/android-agent-skills/tree/main/registry/_base",
+      "last_updated": "2026-04-02T16:46:53Z"
+    },
+    {
+      "name": "instagram",
+      "display_name": "Instagram",
+      "description": "Instagram automation skill \u2014 crawl, outreach",
+      "version": "1.0.0",
+      "app_package": "com.instagram.android",
+      "author": "C-K-Loan",
+      "license": "MIT",
+      "actions": [
+        "open_app",
+        "navigate_to_profile",
+        "tap_search"
+      ],
+      "workflows": [
+        "crawl_hashtag",
+        "send_dm"
+      ],
+      "elements_count": 0,
+      "tested_on": [
+        {
+          "device": "ASUS ROG Phone II",
+          "android": "12"
+        }
+      ],
+      "source": "official",
+      "repo_url": "https://github.com/C-K-Loan/android-agent-skills/tree/main/registry/instagram",
+      "last_updated": "2026-04-02T16:46:53Z"
+    },
+    {
+      "name": "send_gmail_email",
+      "display_name": "Send Gmail Email",
+      "description": "Auto-generated skill for sending emails via the Gmail Android app",
+      "version": "1.0.0",
+      "app_package": "com.google.android.gm",
+      "author": "C-K-Loan",
+      "license": "MIT",
+      "actions": [],
+      "workflows": [
+        "recorded"
+      ],
+      "elements_count": 0,
+      "tested_on": [
+        {
+          "device": "ASUS ROG Phone II",
+          "android": "12"
+        }
+      ],
+      "source": "official",
+      "repo_url": "https://github.com/C-K-Loan/android-agent-skills/tree/main/registry/send_gmail_email",
+      "last_updated": "2026-04-02T16:46:53Z"
+    },
+    {
+      "name": "tiktok",
+      "display_name": "TikTok",
+      "description": "TikTok automation skill \u2014 upload, crawl, outreach, engage, analytics",
+      "version": "1.0.0",
+      "app_package": "com.zhiliaoapp.musically",
+      "author": "C-K-Loan",
+      "license": "MIT",
+      "actions": [
+        "open_app",
+        "navigate_to_profile",
+        "tap_search",
+        "type_and_search",
+        "dismiss_popup"
+      ],
+      "workflows": [
+        "upload_video",
+        "crawl_hashtag",
+        "send_dm",
+        "scrape_analytics",
+        "engage_fyp"
+      ],
+      "elements_count": 41,
+      "tested_on": [
+        {
+          "device": "ASUS ROG Phone II",
+          "android": "12"
+        },
+        {
+          "device": "Samsung Galaxy A15",
+          "android": "14"
+        }
+      ],
+      "source": "official",
+      "repo_url": "https://github.com/C-K-Loan/android-agent-skills/tree/main/registry/tiktok",
+      "last_updated": "2026-04-02T16:46:53Z"
+    }
+  ]
+}

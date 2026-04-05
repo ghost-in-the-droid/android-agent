@@ -1,0 +1,72 @@
+name: base
+display_name: Base Actions
+description: Shared actions usable by any Android app skill
+version: "1.0.0"
+app_package: null
+author: C-K-Loan
+license: MIT
+
+exports:
+  actions:
+    - name: tap_element
+      description: Tap a UI element by name or locator
+    - name: swipe_direction
+      description: Swipe in a direction (up/down/left/right)
+    - name: type_text
+      description: Type text into the focused input field
+    - name: wait_for_element
+      description: Wait for a UI element to appear on screen
+    - name: launch_app
+      description: Launch an Android app by package name
+    - name: take_screenshot
+      description: Capture a screenshot and save to file
+    - name: dismiss_popup
+      description: Detect and dismiss common popup dialogs
+    - name: press_back
+      description: Press the Android back button
+    - name: press_home
+      description: Press the Android home button
+  workflows: []
+
+popup_detectors:
+  - detect: "Not now"
+    button: "Not now"
+    label: "Generic Not now dialog"
+  - detect: "Skip"
+    button: "Skip"
+    label: "Generic Skip dialog"
+  - detect: "Cancel"
+    button: "Cancel"
+    label: "Generic Cancel dialog"
+  - detect: "Dismiss"
+    button: "Dismiss"
+    label: "Generic Dismiss dialog"
+  - detect: "Later"
+    button: "Later"
+    label: "Generic Later dialog"
+  - detect: "Allow"
+    button: "Allow"
+    label: "Permission dialog"
+
+default_params:
+  actions:
+    tap_element:
+      element_name: "search_icon"
+    swipe_direction:
+      direction: "up"
+      distance: 500
+    type_text:
+      text: "Hello world"
+    wait_for_element:
+      element_name: "search_icon"
+      timeout: 10
+    launch_app:
+      package: "com.zhiliaoapp.musically"
+    take_screenshot:
+      output_path: "/tmp/screenshot.png"
+
+tested_on:
+  - device: ASUS ROG Phone II
+    android: "12"
+  - device: Samsung Galaxy A15
+    android: "14"

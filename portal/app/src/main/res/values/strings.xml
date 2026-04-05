@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ghost Portal</string>
+    <string name="accessibility_description">Ghost Portal reads the screen to enable automation tools. No data is collected or sent externally.</string>
+    <string name="notification_channel">Ghost Portal Service</string>
+    <string name="notification_title">Ghost Portal running</string>
+    <string name="notification_text">HTTP server on port 8080</string>
+</resources>

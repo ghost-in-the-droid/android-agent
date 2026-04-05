@@ -1,0 +1,1021 @@
+{
+  "package": "com.android.settings",
+  "device": "R9PT70T558H",
+  "max_depth": 1,
+  "total_states": 3,
+  "total_transitions": 1,
+  "states": {
+    "2fa2b9dbcb38": {
+      "state_id": "2fa2b9dbcb38",
+      "screenshot_path": "data/app_explorer/com.android.settings/screenshots/2fa2b9dbcb38.png",
+      "xml_path": "data/app_explorer/com.android.settings/xml/2fa2b9dbcb38.xml",
+      "elements": [
+        {
+          "idx": 1,
+          "class": "TextView",
+          "text": "Settings",
+          "content_desc": "",
+          "resource_id": "com.android.settings:id/collapsing_appbar_extended_title",
+          "bounds": {
+            "x1": 0,
+            "y1": 270,
+            "x2": 720,
+            "y2": 356
+          },
+          "center": {
+            "x": 360,
+            "y": 313
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 2,
+          "class": "Button",
+          "text": "Search settings",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 622,
+            "y1": 496,
+            "x2": 720,
+            "y2": 616
+          },
+          "center": {
+            "x": 671,
+            "y": 556
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 3,
+          "class": "TextView",
+          "text": "Ckl L",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 45,
+            "y1": 642,
+            "x2": 135,
+            "y2": 698
+          },
+          "center": {
+            "x": 90,
+            "y": 670
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 4,
+          "class": "TextView",
+          "text": "Samsung account  \u2022  chr*******************@gmail.com",
+          "content_desc": "",
+          "resource_id": "android:id/summary",
+          "bounds": {
+            "x1": 45,
+            "y1": 698,
+            "x2": 554,
+            "y2": 759
+          },
+          "center": {
+            "x": 299,
+            "y": 728
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 5,
+          "class": "TextView",
+          "text": "Access your pictures anywhere",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 45,
+            "y1": 854,
+            "x2": 490,
+            "y2": 897
+          },
+          "center": {
+            "x": 267,
+            "y": 875
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 6,
+          "class": "TextView",
+          "text": "1 more suggestion",
+          "content_desc": "",
+          "resource_id": "android:id/summary",
+          "bounds": {
+            "x1": 45,
+            "y1": 897,
+            "x2": 243,
+            "y2": 930
+          },
+          "center": {
+            "x": 144,
+            "y": 913
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 7,
+          "class": "TextView",
+          "text": "Connections",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 1025,
+            "x2": 301,
+            "y2": 1068
+          },
+          "center": {
+            "x": 211,
+            "y": 1046
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 8,
+          "class": "TextView",
+          "text": "Wi-Fi  \u2022  Bluetooth  \u2022  SIM manager",
+          "content_desc": "",
+          "resource_id": "android:id/summary",
+          "bounds": {
+            "x1": 121,
+            "y1": 1068,
+            "x2": 484,
+            "y2": 1101
+          },
+          "center": {
+            "x": 302,
+            "y": 1084
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 9,
+          "class": "TextView",
+          "text": "Connected devices",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 1153,
+            "x2": 393,
+            "y2": 1196
+          },
+          "center": {
+            "x": 257,
+            "y": 1174
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 10,
+          "class": "TextView",
+          "text": "Quick Share  \u2022  Android Auto",
+          "content_desc": "",
+          "resource_id": "android:id/summary",
+          "bounds": {
+            "x1": 121,
+            "y1": 1196,
+            "x2": 423,
+            "y2": 1229
+          },
+          "center": {
+            "x": 272,
+            "y": 1212
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 11,
+          "class": "TextView",
+          "text": "Modes and Routines",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 1318,
+            "x2": 414,
+            "y2": 1361
+          },
+          "center": {
+            "x": 267,
+            "y": 1339
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 12,
+          "class": "TextView",
+          "text": "Modes  \u2022  Routines",
+          "content_desc": "",
+          "resource_id": "android:id/summary",
+          "bounds": {
+            "x1": 121,
+            "y1": 1361,
+            "x2": 321,
+            "y2": 1394
+          },
+          "center": {
+            "x": 221,
+            "y": 1377
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 13,
+          "class": "TextView",
+          "text": "Sounds and vibration",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 1446,
+            "x2": 422,
+            "y2": 1489
+          },
+          "center": {
+            "x": 271,
+            "y": 1467
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 14,
+          "class": "TextView",
+          "text": "Sound mode  \u2022  Ringtone",
+          "content_desc": "",
+          "resource_id": "android:id/summary",
+          "bounds": {
+            "x1": 121,
+            "y1": 1489,
+            "x2": 384,
+            "y2": 1510
+          },
+          "center": {
+            "x": 252,
+            "y": 1499
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        }
+      ],
+      "transitions": {
+        "com.android.settings:id/collapsing_appbar_extended_title|Settings||360,313": "2fa2b9dbcb38"
+      },
+      "depth": 0,
+      "activity": "com.android.settings/.Settings"
+    },
+    "a6555a51167b": {
+      "state_id": "a6555a51167b",
+      "screenshot_path": "data/app_explorer/com.android.settings/screenshots/a6555a51167b.png",
+      "xml_path": "data/app_explorer/com.android.settings/xml/a6555a51167b.xml",
+      "elements": [
+        {
+          "idx": 1,
+          "class": "TextView",
+          "text": "Accessibility",
+          "content_desc": "",
+          "resource_id": "com.samsung.accessibility:id/collapsing_appbar_extended_title",
+          "bounds": {
+            "x1": 0,
+            "y1": 45,
+            "x2": 720,
+            "y2": 75
+          },
+          "center": {
+            "x": 360,
+            "y": 60
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 2,
+          "class": "ImageButton",
+          "text": "Navigate up",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 0,
+            "y1": 75,
+            "x2": 105,
+            "y2": 195
+          },
+          "center": {
+            "x": 52,
+            "y": 135
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 3,
+          "class": "TextView",
+          "text": "Accessibility",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 105,
+            "y1": 108,
+            "x2": 326,
+            "y2": 161
+          },
+          "center": {
+            "x": 215,
+            "y": 134
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 4,
+          "class": "Button",
+          "text": "Search",
+          "content_desc": "",
+          "resource_id": "com.samsung.accessibility:id/action_search",
+          "bounds": {
+            "x1": 554,
+            "y1": 75,
+            "x2": 629,
+            "y2": 195
+          },
+          "center": {
+            "x": 591,
+            "y": 135
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 5,
+          "class": "ImageView",
+          "text": "More options",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 629,
+            "y1": 75,
+            "x2": 720,
+            "y2": 195
+          },
+          "center": {
+            "x": 674,
+            "y": 135
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 6,
+          "class": "TextView",
+          "text": "Recommended for you",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 226,
+            "x2": 444,
+            "y2": 269
+          },
+          "center": {
+            "x": 282,
+            "y": 247
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 7,
+          "class": "TextView",
+          "text": "TalkBack",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 369,
+            "x2": 250,
+            "y2": 412
+          },
+          "center": {
+            "x": 185,
+            "y": 390
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 8,
+          "class": "TextView",
+          "text": "Spoken assistance",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 474,
+            "x2": 390,
+            "y2": 517
+          },
+          "center": {
+            "x": 255,
+            "y": 495
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 9,
+          "class": "TextView",
+          "text": "Visibility enhancements",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 579,
+            "x2": 461,
+            "y2": 622
+          },
+          "center": {
+            "x": 291,
+            "y": 600
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 10,
+          "class": "TextView",
+          "text": "Hearing enhancements",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 722,
+            "x2": 453,
+            "y2": 765
+          },
+          "center": {
+            "x": 287,
+            "y": 743
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 11,
+          "class": "TextView",
+          "text": "Interaction and dexterity",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 865,
+            "x2": 465,
+            "y2": 908
+          },
+          "center": {
+            "x": 293,
+            "y": 886
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 12,
+          "class": "TextView",
+          "text": "Advanced settings",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 1008,
+            "x2": 386,
+            "y2": 1051
+          },
+          "center": {
+            "x": 253,
+            "y": 1029
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 13,
+          "class": "TextView",
+          "text": "Installed apps",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 1108,
+            "x2": 321,
+            "y2": 1151
+          },
+          "center": {
+            "x": 221,
+            "y": 1129
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 14,
+          "class": "LinearLayout",
+          "text": "New content available",
+          "content_desc": "",
+          "resource_id": "com.samsung.accessibility:id/badge_frame",
+          "bounds": {
+            "x1": 321,
+            "y1": 1108,
+            "x2": 340,
+            "y2": 1127
+          },
+          "center": {
+            "x": 330,
+            "y": 1117
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 15,
+          "class": "TextView",
+          "text": "1 of 4 apps are in use",
+          "content_desc": "",
+          "resource_id": "android:id/summary",
+          "bounds": {
+            "x1": 121,
+            "y1": 1151,
+            "x2": 370,
+            "y2": 1184
+          },
+          "center": {
+            "x": 245,
+            "y": 1167
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 16,
+          "class": "TextView",
+          "text": "About Accessibility",
+          "content_desc": "",
+          "resource_id": "android:id/title",
+          "bounds": {
+            "x1": 121,
+            "y1": 1279,
+            "x2": 395,
+            "y2": 1322
+          },
+          "center": {
+            "x": 258,
+            "y": 1300
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        }
+      ],
+      "transitions": {},
+      "depth": 0,
+      "activity": "unknown"
+    },
+    "c50efe9f3d26": {
+      "state_id": "c50efe9f3d26",
+      "screenshot_path": "data/app_explorer/com.android.settings/screenshots/c50efe9f3d26.png",
+      "xml_path": "data/app_explorer/com.android.settings/xml/c50efe9f3d26.xml",
+      "elements": [
+        {
+          "idx": 1,
+          "class": "TextView",
+          "text": "Droidrun Portal",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 135,
+            "y1": 127,
+            "x2": 607,
+            "y2": 183
+          },
+          "center": {
+            "x": 371,
+            "y": 155
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 2,
+          "class": "ImageButton",
+          "text": "Settings",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/settings_button",
+          "bounds": {
+            "x1": 607,
+            "y1": 114,
+            "x2": 690,
+            "y2": 197
+          },
+          "center": {
+            "x": 648,
+            "y": 155
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 3,
+          "class": "TextView",
+          "text": "Accessibility Service",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 121,
+            "y1": 290,
+            "x2": 450,
+            "y2": 326
+          },
+          "center": {
+            "x": 285,
+            "y": 308
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 4,
+          "class": "Button",
+          "text": "Test Fetching",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/fetch_button",
+          "bounds": {
+            "x1": 450,
+            "y1": 274,
+            "x2": 660,
+            "y2": 342
+          },
+          "center": {
+            "x": 555,
+            "y": 308
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 5,
+          "class": "TextView",
+          "text": "Droidrun Keyboard not active. Using accessibility fallback for text input.",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/keyboard_warning_text",
+          "bounds": {
+            "x1": 117,
+            "y1": 417,
+            "x2": 499,
+            "y2": 478
+          },
+          "center": {
+            "x": 308,
+            "y": 447
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 6,
+          "class": "Button",
+          "text": "Select",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/enable_keyboard_button",
+          "bounds": {
+            "x1": 499,
+            "y1": 414,
+            "x2": 664,
+            "y2": 482
+          },
+          "center": {
+            "x": 581,
+            "y": 448
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 7,
+          "class": "TextView",
+          "text": "Connect to Mobilerun",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 124,
+            "y1": 557,
+            "x2": 380,
+            "y2": 593
+          },
+          "center": {
+            "x": 252,
+            "y": 575
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 8,
+          "class": "TextView",
+          "text": "Choose how to authenticate this device",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 124,
+            "y1": 597,
+            "x2": 532,
+            "y2": 629
+          },
+          "center": {
+            "x": 328,
+            "y": 613
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 9,
+          "class": "Button",
+          "text": "Sign in with Browser",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/btn_sign_in_browser",
+          "bounds": {
+            "x1": 60,
+            "y1": 655,
+            "x2": 660,
+            "y2": 745
+          },
+          "center": {
+            "x": 360,
+            "y": 700
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 10,
+          "class": "Button",
+          "text": "Use API Key",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/btn_use_api_key",
+          "bounds": {
+            "x1": 60,
+            "y1": 760,
+            "x2": 660,
+            "y2": 850
+          },
+          "center": {
+            "x": 360,
+            "y": 805
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 11,
+          "class": "Button",
+          "text": "Custom Connection",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/btn_custom_connection",
+          "bounds": {
+            "x1": 60,
+            "y1": 865,
+            "x2": 660,
+            "y2": 955
+          },
+          "center": {
+            "x": 360,
+            "y": 910
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 12,
+          "class": "TextView",
+          "text": "Controls",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 60,
+            "y1": 1034,
+            "x2": 189,
+            "y2": 1080
+          },
+          "center": {
+            "x": 124,
+            "y": 1057
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 13,
+          "class": "TextView",
+          "text": "Overlay",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 60,
+            "y1": 1136,
+            "x2": 570,
+            "y2": 1174
+          },
+          "center": {
+            "x": 315,
+            "y": 1155
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 14,
+          "class": "Switch",
+          "text": "toggle_overlay",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/toggle_overlay",
+          "bounds": {
+            "x1": 570,
+            "y1": 1110,
+            "x2": 660,
+            "y2": 1200
+          },
+          "center": {
+            "x": 615,
+            "y": 1155
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 15,
+          "class": "TextView",
+          "text": "Overlay Offset",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 60,
+            "y1": 1273,
+            "x2": 567,
+            "y2": 1311
+          },
+          "center": {
+            "x": 313,
+            "y": 1292
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 16,
+          "class": "Button",
+          "text": "Reset",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/btn_reset_offset",
+          "bounds": {
+            "x1": 567,
+            "y1": 1262,
+            "x2": 660,
+            "y2": 1322
+          },
+          "center": {
+            "x": 613,
+            "y": 1292
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 17,
+          "class": "SeekBar",
+          "text": "offset_slider",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/offset_slider",
+          "bounds": {
+            "x1": 60,
+            "y1": 1366,
+            "x2": 502,
+            "y2": 1400
+          },
+          "center": {
+            "x": 281,
+            "y": 1383
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        },
+        {
+          "idx": 18,
+          "class": "EditText",
+          "text": "0",
+          "content_desc": "",
+          "resource_id": "com.droidrun.portal:id/offset_value_display",
+          "bounds": {
+            "x1": 525,
+            "y1": 1341,
+            "x2": 660,
+            "y2": 1425
+          },
+          "center": {
+            "x": 592,
+            "y": 1383
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": true
+        },
+        {
+          "idx": 19,
+          "class": "TextView",
+          "text": "Tip: Vision mode works even with overlay off",
+          "content_desc": "",
+          "resource_id": "",
+          "bounds": {
+            "x1": 128,
+            "y1": 1471,
+            "x2": 589,
+            "y2": 1503
+          },
+          "center": {
+            "x": 358,
+            "y": 1487
+          },
+          "clickable": true,
+          "scrollable": false,
+          "editable": false
+        }
+      ],
+      "transitions": {},
+      "depth": 0,
+      "activity": "unknown"
+    }
+  }
+}

@@ -1,0 +1,94 @@
+name: tiktok
+description: TikTok automation skill — upload, crawl, outreach, engage, analytics
+version: "1.0.0"
+app_package: com.zhiliaoapp.musically
+app_version_tested: "44.3.3"
+exports:
+  actions:
+    - open_app
+    - navigate_to_profile
+    - tap_search
+    - type_and_search
+    - dismiss_popup
+  workflows:
+    - upload_video
+    - crawl_hashtag
+    - send_dm
+    - scrape_analytics
+    - engage_fyp
+
+# Default parameters — pre-filled in the UI run modal
+popup_detectors:
+  - detect: "Continue editing"
+    button: "Save draft"
+    label: "Draft resume overlay"
+  - detect: "connect with people"
+    button: "Don\u2019t allow"
+    label: "Contacts access popup"
+  - detect: "access to your Facebook"
+    button: "Don't allow"
+    label: "Facebook friends access popup"
+  - detect: "Make TikTok Shop more relevant"
+    button: "Select"
+    label: "TikTok Shop relevance"
+  - detect: "shared collections"
+    button: "Not now"
+    label: "Shared collections popup"
+  - detect: "Turn on notifications"
+    button: "Not now"
+    label: "Notifications popup"
+  - detect: "security checkup"
+    button: "Close"
+    label: "Security checkup popup"
+  - detect: 'content-desc="Close"'
+    button: "Close"
+    label: "Close dialog"
+  - detect: "Skip"
+    button: "Skip"
+    label: "Skip dialog"
+  - detect: "Learn more"
+    button: "_back"
+    label: "Invisible promo overlay"
+    method: "back"
+
+default_params:
+  actions:
+    type_and_search:
+      query: "#cats"
+    comment_on_post:
+      text: "Great content! 🔥"
+    tap_user:
+      index: 0
+    type_message:
+      text: "Hey! Love your content"
+  workflows:
+    send_dm:
+      username: "@username"
+      message: "Hey! I love your content, would love to collab"
+    crawl_hashtag:
+      query: "#fyp"
+      label: "general"
+      tab: "top"
+      passes: 5
+    crawl_users:
+      query: "#cats"
+      label: "general"
+      passes: 5
+    upload_video:
+      video_path: "/sdcard/DCIM/video.mp4"
+      caption: "Check this out!"
+      hashtags: "#fyp #viral"
+      as_draft: false
+    scrape_analytics:
+      account: "@myaccount"
+    engage_fyp:
+      like: true
+      comment: ""
+      follow: false
+    scan_inbox:
+      account: "@myaccount"
+    continuous_scrape:
+      label: "niche"
+      passes_per_tag: 5
+    publish_draft:
+      draft_tag: ""

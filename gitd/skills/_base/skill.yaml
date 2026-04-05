@@ -1,0 +1,53 @@
+name: base
+description: Shared actions usable by any Android app skill
+version: "1.0.0"
+app_package: null
+exports:
+  actions:
+    - tap_element
+    - swipe_direction
+    - type_text
+    - wait_for_element
+    - launch_app
+    - take_screenshot
+    - dismiss_popup
+    - press_back
+    - press_home
+
+popup_detectors:
+  - detect: "Not now"
+    button: "Not now"
+    label: "Generic Not now dialog"
+  - detect: "Skip"
+    button: "Skip"
+    label: "Generic Skip dialog"
+  - detect: "Cancel"
+    button: "Cancel"
+    label: "Generic Cancel dialog"
+  - detect: "Dismiss"
+    button: "Dismiss"
+    label: "Generic Dismiss dialog"
+  - detect: "Later"
+    button: "Later"
+    label: "Generic Later dialog"
+  - detect: "Allow"
+    button: "Allow"
+    label: "Permission dialog"
+    notes: "Use cautiously — may grant unwanted permissions"
+
+default_params:
+  actions:
+    tap_element:
+      element_name: "search_icon"
+    swipe_direction:
+      direction: "up"
+      distance: 500
+    type_text:
+      text: "Hello world"
+    wait_for_element:
+      element_name: "search_icon"
+      timeout: 10
+    launch_app:
+      package: "com.zhiliaoapp.musically"
+    take_screenshot:
+      output_path: "/tmp/screenshot.png"

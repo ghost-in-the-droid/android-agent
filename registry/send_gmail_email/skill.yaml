@@ -1,0 +1,26 @@
+name: send_gmail_email
+display_name: Send Gmail Email
+description: Auto-generated skill for sending emails via the Gmail Android app
+version: "1.0.0"
+app_package: com.google.android.gm
+author: C-K-Loan
+license: MIT
+
+exports:
+  actions: []
+  workflows:
+    - name: recorded
+      description: Send an email with subject and body via recorded macro steps
+      steps: [open_compose, fill_subject, fill_body, tap_send]
+
+popup_detectors: []
+
+default_params:
+  workflows:
+    recorded:
+      subject: "Test email subject"
+      body: "Hello, this is a test email sent via automation."
+
+tested_on:
+  - device: ASUS ROG Phone II
+    android: "12"

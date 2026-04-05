@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Environment / secrets
+.env
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# Data (runtime-generated)
+data/
+
+# Test recordings
+test_recordings/
+
+# Reference projects
+reference/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude / MCP config
+.claude/
+.mcp.json
+
+# OS
+.DS_Store
+Thumbs.db
+*.egg-info/
+node_modules/
+site/node_modules/
+site/dist/
+site/.astro/
+.astro/
+
+# Portal build artifacts (source is tracked)
+portal/.gradle/
+portal/app/build/
+portal/build/
+portal/local.properties
+portal/*.apk

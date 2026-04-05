@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+# Secrets are set in GitHub repo Settings → Secrets → Actions
+# They're encrypted, never printed in logs, available as ${{ secrets.NAME }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install ruff
+      - run: ruff check gitd/routers/ gitd/schemas/ gitd/services/ gitd/models/ gitd/app.py
+      - run: ruff format --check gitd/routers/ gitd/schemas/ gitd/services/ gitd/models/ gitd/app.py
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # Secrets injected from GitHub Settings → Secrets
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      DEFAULT_DEVICE: ""  # No device in CI
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install -e ".[test]" httpx
+      - run: python -m pytest tests/api/test_smoke.py -v --tb=short
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: cd frontend && npm ci
+      - run: cd frontend && npx vue-tsc --noEmit
+      - run: cd frontend && npx vite build
+
+  type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install -e ".[all]" httpx
+      - run: python -c "from gitd.app import app; print(f'{len([r for r in app.routes if hasattr(r, \"methods\")])} routes loaded')"
+
+  # Deploy docs to Cloudflare Pages (optional — uncomment when ready)
+  # deploy-docs:
+  #   runs-on: ubuntu-latest
+  #   needs: [lint, test, build-frontend]
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: "20"
+  #     - run: cd site && npm ci && npm run build
+  #     - uses: cloudflare/pages-action@v1
+  #       with:
+  #         apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  #         accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+  #         projectName: android-agent-docs
+  #         directory: site/dist

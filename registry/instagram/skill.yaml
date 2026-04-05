@@ -1,0 +1,51 @@
+name: instagram
+display_name: Instagram
+description: Instagram automation skill — crawl, outreach
+version: "1.0.0"
+app_package: com.instagram.android
+author: C-K-Loan
+license: MIT
+
+exports:
+  actions:
+    - name: open_app
+      description: Launch Instagram and wait for home screen
+    - name: navigate_to_profile
+      description: Navigate to the Profile tab
+    - name: tap_search
+      description: Tap the search/explore icon
+  workflows:
+    - name: crawl_hashtag
+      description: Crawl posts from a hashtag search
+      steps: [open_app, tap_search, type_and_search, scrape_loop]
+    - name: send_dm
+      description: Send a direct message to a user
+      steps: [open_app, tap_search, find_user, send_message]
+
+popup_detectors:
+  - detect: "Turn on Notifications"
+    button: "Not Now"
+    label: "Notifications popup"
+  - detect: "Save Your Login Info"
+    button: "Not Now"
+    label: "Save login popup"
+  - detect: "Add Account"
+    button: "Not Now"
+    label: "Add account popup"
+  - detect: "Allow Instagram to access"
+    button: "Don't Allow"
+    label: "Permission request"
+
+default_params:
+  workflows:
+    crawl_hashtag:
+      query: "#photography"
+      label: "general"
+      passes: 5
+    send_dm:
+      username: "@username"
+      message: "Hey! Love your work"
+
+tested_on:
+  - device: ASUS ROG Phone II
+    android: "12"

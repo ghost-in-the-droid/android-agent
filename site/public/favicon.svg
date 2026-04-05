@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Ghost body -->
+  <path d="M64 8C38 8 20 30 20 56v52c0 4 3 6 6 4l10-8c4-3 8-3 12 0l8 6c4 3 8 3 12 0l4-4c4-3 8-3 12 0l8 6c4 3 8 3 12 0l10-8c3-2 6 0 6 4V56C120 30 98 8 64 8z" fill="#00e5a0"/>
+  <!-- Eyes -->
+  <ellipse cx="46" cy="56" rx="10" ry="12" fill="#050505"/>
+  <ellipse cx="82" cy="56" rx="10" ry="12" fill="#050505"/>
+  <!-- Eye glints -->
+  <ellipse cx="50" cy="52" rx="4" ry="5" fill="#fff" opacity="0.8"/>
+  <ellipse cx="86" cy="52" rx="4" ry="5" fill="#fff" opacity="0.8"/>
+  <!-- Subtle mouth -->
+  <path d="M52 76c4 6 16 6 20 0" stroke="#050505" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>

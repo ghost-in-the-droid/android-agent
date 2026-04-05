@@ -1,0 +1,198 @@
+---
+// Skill Detail — Dynamic route
+export function getStaticPaths() {
+	const skills = [
+		{ name: 'tiktok', display: 'TikTok', icon: '🎵', version: '1.0.0', pkg: 'com.zhiliaoapp.musically', desc: 'TikTok automation skill — upload videos, crawl influencer profiles, send DMs, engage on FYP, and scrape post analytics. Built for phone farm scale with 41 UI element locators.', actions: ['open_app', 'navigate_to_profile', 'tap_search', 'type_and_search', 'dismiss_popup'], workflows: ['upload_video', 'crawl_hashtag', 'send_dm', 'scrape_analytics', 'engage_fyp'], elements: 41, devices: [{ name: 'ASUS ROG Phone II', android: '12' }, { name: 'Samsung Galaxy A15', android: '14' }], repo: 'https://github.com/ghost-in-the-droid/skills/tree/main/registry/tiktok' },
+		{ name: 'instagram', display: 'Instagram', icon: '📸', version: '1.0.0', pkg: 'com.instagram.android', desc: 'Instagram automation — crawl profiles by hashtag or user search, send DMs for influencer outreach, and track outreach status.', actions: ['open_app', 'navigate_to_profile', 'tap_search'], workflows: ['crawl_hashtag', 'send_dm'], elements: 0, devices: [{ name: 'ASUS ROG Phone II', android: '12' }], repo: 'https://github.com/ghost-in-the-droid/skills/tree/main/registry/instagram' },
+		{ name: 'base', display: 'Base Actions', icon: '🧩', version: '1.0.0', pkg: null, desc: 'Universal actions for any Android app. Tap elements, swipe, type text, wait for elements, launch apps, take screenshots, dismiss popups, press back, press home.', actions: ['tap_element', 'swipe_direction', 'type_text', 'wait_for_element', 'launch_app', 'take_screenshot', 'dismiss_popup', 'press_back', 'press_home'], workflows: [], elements: 0, devices: [{ name: 'ASUS ROG Phone II', android: '12' }, { name: 'Samsung Galaxy A15', android: '14' }], repo: 'https://github.com/ghost-in-the-droid/skills/tree/main/registry/_base' },
+		{ name: 'send_gmail_email', display: 'Send Gmail Email', icon: '📧', version: '1.0.0', pkg: 'com.google.android.gm', desc: 'Auto-generated skill for sending emails via the Gmail Android app. Created from a recorded macro session.', actions: [], workflows: ['recorded'], elements: 0, devices: [{ name: 'ASUS ROG Phone II', android: '12' }], repo: 'https://github.com/ghost-in-the-droid/skills/tree/main/registry/send_gmail_email' },
+	]
+	return skills.map(s => ({ params: { slug: s.name }, props: { skill: s } }))
+}
+
+const { skill } = Astro.props
+---
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>{skill.display} — Ghost in the Droid Skill Hub</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+	<style>
+		*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+		html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+		body { font-family: 'Outfit', sans-serif; background: #050505; color: #b0b0b0; line-height: 1.6; overflow-x: hidden; }
+		a { color: inherit; text-decoration: none; }
+		:root {
+			--accent: #00e5a0; --accent-dim: #00e5a018; --accent-mid: #00e5a040;
+			--surface: #0c0c0c; --surface-raised: #111111;
+			--border: #1a1a1a; --border-hover: #2a2a2a;
+			--text-primary: #e8e8e8; --text-secondary: #777;
+			--max-w: 900px; --radius: 12px;
+		}
+		body::before { content: ''; position: fixed; inset: 0; opacity: 0.03; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size: 256px 256px; pointer-events: none; z-index: 9999; }
+
+		nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; background: #050505cc; backdrop-filter: blur(20px) saturate(1.4); border-bottom: 1px solid var(--border); }
+		.nav-logo { font-weight: 700; font-size: 1.2rem; color: var(--text-primary); letter-spacing: -0.5px; display: flex; align-items: center; gap: 0.5rem; }
+		.nav-logo .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 12px var(--accent); animation: pulse-dot 2s ease-in-out infinite; }
+		@keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.85); } }
+		.nav-links { display: flex; gap: 2rem; align-items: center; }
+		.nav-links a { font-size: 0.875rem; font-weight: 400; color: var(--text-secondary); transition: color 0.2s; }
+		.nav-links a:hover, .nav-links a.active { color: var(--text-primary); }
+		.nav-links a.active { color: var(--accent); font-weight: 500; }
+		.nav-cta { font-size: 0.8rem !important; font-weight: 500 !important; color: #050505 !important; background: var(--accent); padding: 0.4rem 1rem; border-radius: 6px; }
+
+		.container { max-width: var(--max-w); margin: 0 auto; padding: 0 2rem; }
+
+		/* DETAIL */
+		.detail { padding: 6rem 0 2rem; }
+		.back-link { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 2rem; transition: color 0.2s; }
+		.back-link:hover { color: var(--accent); }
+
+		.skill-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 1.5rem; }
+		.skill-icon { width: 56px; height: 56px; border-radius: 14px; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+		.skill-title { font-size: 2rem; font-weight: 800; color: var(--text-primary); letter-spacing: -1px; }
+		.skill-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+		.meta-pill { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; background: var(--surface-raised); color: var(--text-secondary); border: 1px solid var(--border); }
+		.badge-official { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; padding: 3px 10px; border-radius: 100px; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-mid); }
+
+		.skill-desc { font-size: 1rem; color: var(--text-secondary); line-height: 1.7; margin-bottom: 2rem; max-width: 700px; }
+
+		/* INSTALL */
+		.install-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 2.5rem; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+		.install-cmd { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); }
+		.install-copy { background: var(--surface-raised); border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; transition: color 0.2s, border-color 0.2s; font-family: 'Outfit', sans-serif; }
+		.install-copy:hover { color: var(--text-primary); border-color: var(--border-hover); }
+
+		/* SECTIONS */
+		.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 2rem; }
+		.detail-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+		.detail-card h3 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 1rem; }
+		.item-row { padding: 8px 0; border-bottom: 1px solid #111; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--text-primary); }
+		.item-row:last-child { border-bottom: none; }
+		.empty-msg { font-size: 0.82rem; color: #444; font-style: italic; }
+
+		/* DEVICES */
+		.devices-section { margin-bottom: 2.5rem; }
+		.devices-section h3 { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-secondary); margin-bottom: 0.75rem; }
+		.device-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+		.device-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: #0a1a14; color: #4ade80; border: 1px solid #1a3a2a; font-size: 0.8rem; }
+		.device-chip .android { color: #777; font-size: 0.7rem; }
+
+		/* ACTIONS */
+		.detail-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 3rem; }
+		.btn-gh { display: inline-flex; align-items: center; gap: 8px; padding: 0.65rem 1.25rem; background: var(--surface-raised); color: var(--text-primary); font-weight: 500; font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--border); transition: border-color 0.2s; }
+		.btn-gh:hover { border-color: var(--border-hover); }
+
+		footer { border-top: 1px solid var(--border); padding: 3rem 0; }
+		.footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+		.footer-left { font-size: 0.8rem; color: var(--text-secondary); }
+		.footer-links { display: flex; gap: 1.5rem; }
+		.footer-links a { font-size: 0.8rem; color: var(--text-secondary); transition: color 0.2s; }
+		.footer-links a:hover { color: var(--text-primary); }
+
+		@media (max-width: 640px) {
+			.detail-grid { grid-template-columns: 1fr; }
+			.skill-header { flex-direction: column; }
+			.nav-links a:not(.nav-cta) { display: none; }
+		}
+	</style>
+</head>
+<body>
+	<nav>
+		<a href="/" class="nav-logo"><span class="dot"></span> Ghost in the Droid</a>
+		<div class="nav-links">
+			<a href="/">Home</a>
+			<a href="/getting-started/introduction/">Docs</a>
+			<a href="/skills/" class="active">Skill Hub</a>
+			<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
+			<a href="/getting-started/installation/" class="nav-cta">Get Started</a>
+		</div>
+	</nav>
+
+	<section class="detail">
+		<div class="container">
+			<a href="/skills/" class="back-link">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+				Back to Skill Hub
+			</a>
+
+			<div class="skill-header">
+				<div class="skill-icon">{skill.icon}</div>
+				<div>
+					<div class="skill-title">{skill.display}</div>
+					<div class="skill-meta">
+						<span class="meta-pill">v{skill.version}</span>
+						<span class="meta-pill">{skill.pkg || 'universal'}</span>
+						<span class="badge-official">Official</span>
+					</div>
+				</div>
+			</div>
+
+			<p class="skill-desc">{skill.desc}</p>
+
+			<div class="install-block">
+				<code class="install-cmd" id="install-cmd">android-agent skill install {skill.name}</code>
+				<button class="install-copy" onclick="navigator.clipboard.writeText(document.getElementById('install-cmd').textContent);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
+			</div>
+
+			<div class="detail-grid">
+				<div class="detail-card">
+					<h3>Actions ({skill.actions.length})</h3>
+					{skill.actions.length > 0
+						? skill.actions.map(a => <div class="item-row">{a}</div>)
+						: <div class="empty-msg">No standalone actions</div>
+					}
+				</div>
+				<div class="detail-card">
+					<h3>Workflows ({skill.workflows.length})</h3>
+					{skill.workflows.length > 0
+						? skill.workflows.map(w => <div class="item-row">{w}</div>)
+						: <div class="empty-msg">No workflows</div>
+					}
+				</div>
+			</div>
+
+			{skill.elements > 0 && (
+				<div style="margin-bottom:2rem;font-size:0.85rem;color:var(--text-secondary)">
+					<strong style="color:var(--text-primary)">{skill.elements}</strong> UI element locators with fallback chains
+				</div>
+			)}
+
+			<div class="devices-section">
+				<h3>Tested On</h3>
+				<div class="device-chips">
+					{skill.devices.map(d => (
+						<span class="device-chip">
+							{d.name} <span class="android">Android {d.android}</span>
+						</span>
+					))}
+				</div>
+			</div>
+
+			<div class="detail-actions">
+				<a href={skill.repo} class="btn-gh" target="_blank">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+					View on GitHub
+				</a>
+				<a href={`${skill.repo}/issues`} class="btn-gh" target="_blank">Report Issue</a>
+			</div>
+		</div>
+	</section>
+
+	<footer>
+		<div class="container">
+			<div class="footer-inner">
+				<div class="footer-left">Ghost in the Droid &mdash; Open-source Android automation</div>
+				<div class="footer-links">
+					<a href="/getting-started/introduction/">Docs</a>
+					<a href="/skills/">Skill Hub</a>
+					<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
+				</div>
+			</div>
+		</div>
+	</footer>
+</body>
+</html>

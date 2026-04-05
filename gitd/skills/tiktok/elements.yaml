@@ -1,0 +1,154 @@
+# TikTok UI elements — fallback chain: content_desc → text → resource_id → coords
+# Verified on TikTok v44.3.3, ASUS ROG Phone II (1080x2400)
+
+# ── Bottom navigation ─────────────────────────────────────────────────────────
+profile_tab:
+  resource_id: "com.zhiliaoapp.musically:id/n19"
+  text: "Profile"
+  x: 972
+  y: 2316
+
+home_tab:
+  text: "Home"
+  x: 108
+  y: 2316
+
+inbox_tab:
+  text: "Inbox"
+  x: 864
+  y: 2316
+
+friends_tab:
+  text: "Friends"
+  x: 324
+  y: 2316
+
+# ── Search ────────────────────────────────────────────────────────────────────
+search_icon:
+  resource_id: "com.zhiliaoapp.musically:id/j4d"
+  content_desc: "Search"
+  x: 972
+  y: 72
+
+search_box:
+  resource_id: "com.zhiliaoapp.musically:id/gti"
+
+search_suggestion:
+  resource_id: "com.zhiliaoapp.musically:id/zg6"
+
+users_tab:
+  text: "Users"
+
+top_tab:
+  text: "Top"
+
+videos_tab:
+  text: "Videos"
+
+sounds_tab:
+  text: "Sounds"
+
+# ── Profile page ──────────────────────────────────────────────────────────────
+username_row:
+  resource_id: "com.zhiliaoapp.musically:id/zef"
+
+followers_count:
+  resource_id: "com.zhiliaoapp.musically:id/r1p"
+
+display_name:
+  resource_id: "com.zhiliaoapp.musically:id/qzr"
+
+following_count:
+  text: "Following"
+
+likes_count:
+  text: "Likes"
+
+# ── Upload flow ───────────────────────────────────────────────────────────────
+plus_button:
+  content_desc: "Create"
+  resource_id: "com.zhiliaoapp.musically:id/m76"
+  x: 540
+  y: 2316
+
+next_button:
+  text: "Next"
+
+post_button:
+  text: "Post"
+
+drafts_button:
+  text: "Drafts"
+
+caption_input:
+  text: "Describe your video"
+  resource_id: "com.zhiliaoapp.musically:id/caption_input"
+
+add_sound_button:
+  text: "Add sound"
+
+# ── Engagement ────────────────────────────────────────────────────────────────
+like_button:
+  content_desc: "Like"
+
+comment_button:
+  content_desc: "Comment"
+
+share_button:
+  content_desc: "Share"
+
+follow_button:
+  text: "Follow"
+
+# ── DM / Messages ────────────────────────────────────────────────────────────
+message_button:
+  text: "Message"
+  resource_id: "com.zhiliaoapp.musically:id/btn_message"
+
+message_input:
+  text: "Send a message"
+
+send_button:
+  content_desc: "Send"
+
+# ── Common dialogs ────────────────────────────────────────────────────────────
+close_button:
+  content_desc: "Close"
+  text: "Close"
+
+back_button:
+  content_desc: "Back"
+
+not_now_button:
+  text: "Not now"
+
+skip_button:
+  text: "Skip"
+
+allow_button:
+  text: "Allow"
+
+# ── Analytics ─────────────────────────────────────────────────────────────────
+analytics_button:
+  text: "Analytics"
+  content_desc: "Analytics"
+
+overview_tab:
+  text: "Overview"
+
+content_tab:
+  text: "Content"
+
+# ── Account switcher ──────────────────────────────────────────────────────────
+account_switcher:
+  resource_id: "com.zhiliaoapp.musically:id/account_switcher"
+
+# ── Ad authorization ──────────────────────────────────────────────────────────
+ad_auth_text:
+  text: "Ad authorization"
+
+more_options:
+  text: "More options"
+
+content_disclosure:
+  text: "Content disclosure"
