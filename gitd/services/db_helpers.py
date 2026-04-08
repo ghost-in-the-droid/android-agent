@@ -16,12 +16,9 @@ from gitd.models import (
     ScheduledJob,
     TikTokAccount,
 )
-
-logger = logging.getLogger(__name__)
-
-
 from gitd.services._job_helpers import _now  # noqa: F401
 
+logger = logging.getLogger(__name__)
 
 # ── Job queue ─────────────────────────────────────────────────────────────────
 

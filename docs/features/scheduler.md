@@ -10,7 +10,7 @@ Per-phone job queue with priority-based scheduling, preemption, timeout enforcem
 - 30-second scheduler tick loop (daemon thread)
 - Per-phone job queues (one active job per device at a time)
 - Priority-based preemption with 90-second grace period
-- 7 job types supported
+- 6 job types supported
 - Orphan detection and recovery (dead PIDs, server restart)
 - Timeout enforcement with SIGTERM → SIGKILL escalation
 - 24h timeline visualization in dashboard Scheduler tab
@@ -62,7 +62,6 @@ State machine per job:
 | `skill_workflow` | `skills/_run_skill.py` | 900s | Run a skill workflow |
 | `skill_action` | `skills/_run_skill.py` | 900s | Run a single skill action |
 | `app_explore` | `skills/auto_creator.py` | 900s | BFS app exploration |
-| `content_gen` | `agent/agent_core.py` | 3600s | LLM content planning |
 
 ## Files
 

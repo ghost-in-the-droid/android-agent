@@ -43,8 +43,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-      - run: cd frontend && npm ci
+          node-version: "22"
+      - run: cd frontend && npm install --no-audit
       - run: cd frontend && npx vue-tsc --noEmit
       - run: cd frontend && npx vite build
 

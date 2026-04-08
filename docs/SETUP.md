@@ -45,24 +45,22 @@ adb devices
 
 ---
 
-## Repositories
+## Repository
 
-The project spans 3 repos under the `ghost-in-the-droid` GitHub organization:
+The project lives in a single repo. The public skill registry is at `registry/` inside it.
 
 | Repo | Purpose | Clone? |
 |------|---------|--------|
-| [android-agent](https://github.com/ghost-in-the-droid/android-agent) | Main project — backend, frontend, bots, skills | **Yes** (required) |
-| [skills](https://github.com/ghost-in-the-droid/skills) | Public skill registry (index.json, official skills) | Optional (CLI fetches from it automatically) |
-| [skill-template](https://github.com/ghost-in-the-droid/skill-template) | Template for creating new skills | Only if contributing a skill |
+| [ghost-in-the-droid](https://github.com/ghost-in-the-droid/android-agent) | Main project — backend, frontend, bots, skills, registry | **Yes** (required) |
 
 ---
 
 ## Install
 
 ```bash
-# 1. Clone the main repo
+# 1. Clone the repo
 git clone https://github.com/ghost-in-the-droid/android-agent.git
-cd android-agent
+cd ghost-in-the-droid
 
 # 2. Install Python package (includes all dependencies)
 pip install -e ".[all]"
@@ -166,7 +164,7 @@ DEVICE=SERIAL python3 -m pytest tests/ -v
 
 ## Next Steps
 
-1. Open `http://localhost:6175` and explore the 15-tab dashboard
+1. Open `http://localhost:6175` and explore the 9-tab dashboard
 2. Navigate to **Phone Agent** to verify your device appears
 3. Try **Multi Device > Start All (MJPEG)** to see your phone screen
 4. Browse **Skill Hub** to see installed skills and run them

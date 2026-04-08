@@ -1,5 +1,5 @@
 """Tools Hub routes — list, inspect, and test all available agent tools."""
-import json
+
 import time
 
 from fastapi import APIRouter, Body, HTTPException
@@ -12,14 +12,29 @@ def _get_all_tools() -> list[dict]:
     from gitd.services.agent_tools import TOOLS
 
     CATEGORIES = {
-        "Screen Reading": ["screenshot", "screenshot_annotated", "screenshot_cropped", "get_screen_tree",
-                           "get_elements", "get_phone_state", "classify_screen", "find_on_screen",
-                           "ocr_screen", "ocr_region", "get_screen_xml"],
+        "Screen Reading": [
+            "screenshot",
+            "screenshot_annotated",
+            "screenshot_cropped",
+            "get_screen_tree",
+            "get_elements",
+            "get_phone_state",
+            "classify_screen",
+            "find_on_screen",
+            "ocr_screen",
+            "ocr_region",
+            "get_screen_xml",
+        ],
         "Input": ["tap", "tap_element", "swipe", "type_text", "press_key", "long_press"],
         "App Management": ["launch_app", "force_stop", "list_packages", "launch_intent"],
         "Shell": ["shell"],
-        "Clipboard & Notifications": ["clipboard_get", "clipboard_set", "get_notifications",
-                                       "open_notifications", "clear_notifications"],
+        "Clipboard & Notifications": [
+            "clipboard_get",
+            "clipboard_set",
+            "get_notifications",
+            "open_notifications",
+            "clear_notifications",
+        ],
         "Skills": ["list_skills", "run_skill"],
         "Device": ["list_devices", "toggle_overlay"],
         "System": ["wait"],
@@ -30,26 +45,55 @@ def _get_all_tools() -> list[dict]:
 
     # Also add device_context tools not in TOOLS
     extra_tools = [
-        {"name": "get_screen_xml", "description": "Get raw UI XML dump from uiautomator.",
-         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
-         "category": "Screen Reading"},
-        {"name": "launch_intent", "description": "Launch full Android intent (action, data, package, extras).",
-         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}, "action": {"type": "string"},
-                          "data": {"type": "string"}, "package": {"type": "string"}}, "required": ["device"]},
-         "category": "App Management"},
-        {"name": "open_notifications", "description": "Pull down the notification shade.",
-         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
-         "category": "Clipboard & Notifications"},
-        {"name": "clear_notifications", "description": "Dismiss all notifications.",
-         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
-         "category": "Clipboard & Notifications"},
-        {"name": "list_devices", "description": "List all connected Android devices with serial and model.",
-         "input_schema": {"type": "object", "properties": {}},
-         "category": "Device"},
-        {"name": "toggle_overlay", "description": "Toggle Portal numbered element overlay on/off.",
-         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}, "visible": {"type": "boolean"}},
-                          "required": ["device"]},
-         "category": "Device"},
+        {
+            "name": "get_screen_xml",
+            "description": "Get raw UI XML dump from uiautomator.",
+            "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+            "category": "Screen Reading",
+        },
+        {
+            "name": "launch_intent",
+            "description": "Launch full Android intent (action, data, package, extras).",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "device": {"type": "string"},
+                    "action": {"type": "string"},
+                    "data": {"type": "string"},
+                    "package": {"type": "string"},
+                },
+                "required": ["device"],
+            },
+            "category": "App Management",
+        },
+        {
+            "name": "open_notifications",
+            "description": "Pull down the notification shade.",
+            "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+            "category": "Clipboard & Notifications",
+        },
+        {
+            "name": "clear_notifications",
+            "description": "Dismiss all notifications.",
+            "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+            "category": "Clipboard & Notifications",
+        },
+        {
+            "name": "list_devices",
+            "description": "List all connected Android devices with serial and model.",
+            "input_schema": {"type": "object", "properties": {}},
+            "category": "Device",
+        },
+        {
+            "name": "toggle_overlay",
+            "description": "Toggle Portal numbered element overlay on/off.",
+            "input_schema": {
+                "type": "object",
+                "properties": {"device": {"type": "string"}, "visible": {"type": "boolean"}},
+                "required": ["device"],
+            },
+            "category": "Device",
+        },
     ]
     for et in extra_tools:
         if et["name"] not in tool_map:
@@ -65,18 +109,22 @@ def _get_all_tools() -> list[dict]:
                 props = t.get("input_schema", {}).get("properties", {})
                 required = t.get("input_schema", {}).get("required", [])
                 for pname, pschema in props.items():
-                    params.append({
-                        "name": pname,
-                        "type": pschema.get("type", "string"),
-                        "required": pname in required,
-                        "default": pschema.get("default"),
-                    })
-                tools.append({
-                    "name": name,
-                    "description": t.get("description", ""),
-                    "params": params,
-                    "category": cat,
-                })
+                    params.append(
+                        {
+                            "name": pname,
+                            "type": pschema.get("type", "string"),
+                            "required": pname in required,
+                            "default": pschema.get("default"),
+                        }
+                    )
+                tools.append(
+                    {
+                        "name": name,
+                        "description": t.get("description", ""),
+                        "params": params,
+                        "category": cat,
+                    }
+                )
         result.append({"category": cat, "tools": tools})
     return result
 

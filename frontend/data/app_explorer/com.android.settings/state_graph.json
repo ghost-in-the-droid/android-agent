@@ -1,6 +1,6 @@
 {
   "package": "com.android.settings",
-  "device": "R9PT70T558H",
+  "device": "EXAMPLE_SERIAL",
   "max_depth": 1,
   "total_states": 3,
   "total_transitions": 1,
@@ -53,7 +53,7 @@
         {
           "idx": 3,
           "class": "TextView",
-          "text": "Ckl L",
+          "text": "User",
           "content_desc": "",
           "resource_id": "android:id/title",
           "bounds": {
@@ -73,7 +73,7 @@
         {
           "idx": 4,
           "class": "TextView",
-          "text": "Samsung account  \u2022  chr*******************@gmail.com",
+          "text": "Samsung account",
           "content_desc": "",
           "resource_id": "android:id/summary",
           "bounds": {

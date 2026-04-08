@@ -31,7 +31,7 @@ Thanks for your interest in contributing! This guide covers how to get involved,
 ### Install
 
 ```bash
-git clone https://github.com/ghost-in-the-droid/ghost-in-the-droid.git
+git clone https://github.com/ghost-in-the-droid/android-agent.git
 cd ghost-in-the-droid
 pip install -e ".[all]"
 ```

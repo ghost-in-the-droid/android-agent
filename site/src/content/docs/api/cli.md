@@ -32,26 +32,6 @@ python3 -c "from gitd.server import app; app.run(host='0.0.0.0', port=5055, debu
 
 All bot scripts are in `gitd/bots/tiktok/` and can be run directly.
 
-### Influencer Crawling
-
-```bash
-# Crawl top tab
-python3 -m gitd.bots.tiktok.scraper "#Cat" \
-  --tab top --date-filter "Past 24 hours" --passes 5
-
-# Crawl users tab
-python3 -m gitd.bots.tiktok.scraper "#Dog" \
-  --tab users --passes 3
-```
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `query` | required | Hashtag to search |
-| `--tab` | `top` | Search tab (top, users) |
-| `--date-filter` | None | Time filter |
-| `--passes` | 3 | Scroll passes |
-| `--sort` | Relevance | Sort order |
-
 ### Video Upload
 
 ```bash

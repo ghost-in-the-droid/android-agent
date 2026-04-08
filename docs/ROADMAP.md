@@ -7,7 +7,7 @@
 ## Done
 
 - **FastAPI Migration** -- all 148 Flask routes migrated to FastAPI + SQLAlchemy + Pydantic. Auto-generated docs at `/docs` and `/redoc`.
-- **Vue 3 Frontend** -- 15-tab dashboard replaces the 9800-line monolithic HTML. Vue 3 + Vite + TypeScript + Tailwind CSS.
+- **Vue 3 Frontend** -- 9-tab dashboard replaces the 9800-line monolithic HTML. Vue 3 + Vite + TypeScript + Tailwind CSS.
 - **Skill Hub + Public Registry** -- REST API, CLI (`android-agent skill install`), community skills via GitHub topic tag.
 - **Skill Creator** -- split-screen LLM chat + live device stream, 4 backends (OpenRouter, Claude, OpenAI, Ollama).
 - **WebRTC Streaming** -- live 720x1280 via Portal MediaProjection, MJPEG fallback, multi-device viewer.

@@ -7,13 +7,13 @@
 ## Core Platform
 
 ### FastAPI Backend
-- 21 routers, 153+ routes, auto-generated API docs at `/docs` (Swagger) and `/redoc` (ReDoc)
+- 21 routers, 113+ routes, auto-generated API docs at `/docs` (Swagger) and `/redoc` (ReDoc)
 - SQLAlchemy 2.0 ORM with 23 tables, Alembic migrations
 - Pydantic v2 request/response validation
 - Configuration via `pydantic_settings.BaseSettings` from `.env`
 
 ### Vue 3 Frontend
-- 15-tab dashboard (Vue 3 + Vite 8 + TypeScript + Tailwind CSS 4)
+- 9-tab dashboard (Vue 3 + Vite 8 + TypeScript + Tailwind CSS 4)
 - Tabs use `v-show` for state preservation across switches
 - Dark theme with CSS variables
 - Chart.js + Plotly.js for analytics visualization
@@ -56,7 +56,7 @@
 - CLI: `android-agent skill install tiktok`, `skill search`, `skill update`, `skill remove`
 - REST API: list, detail, run, export (ZIP), import
 - Community contributions via GitHub repos tagged `android-agent-skill`
-- Registry at [ghost-in-the-droid/skills](https://github.com/ghost-in-the-droid/skills)
+- Registry at [`registry/`](https://github.com/ghost-in-the-droid/android-agent/tree/main/registry) inside the main repo
 
 ### Skill Creator (LLM-powered)
 - Split-screen: chat panel (left) + live device stream with numbered element overlay (right)
@@ -110,7 +110,7 @@
 ## Scheduling & Job Queue
 
 - Per-phone job queue with priority-based preemption
-- 7 job types: crawl, post, publish_draft, content_gen, skill_workflow, skill_action, app_explore
+- 6 job types: crawl, post, publish_draft, skill_workflow, skill_action, app_explore
 - 30-second scheduler tick, one active job per phone
 - Dashboard with 24h timeline, job CRUD, queue status
 
@@ -146,7 +146,7 @@ gitd/
   agent/agent_core.py         # LLM content planning agent
   _deprecated/                # Old Flask server + raw sqlite3 (preserved for bots/ shim)
 frontend/
-  src/App.vue                 # 15-tab shell
+  src/App.vue                 # 9-tab shell
   src/views/                  # One view per tab
   src/composables/useApi.ts   # Typed API fetch wrapper
 ```

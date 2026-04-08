@@ -2,7 +2,7 @@
 
 > TikTok automation skill -- upload, crawl, and publish.
 
-![Validate](https://github.com/C-K-Loan/android-agent-skills/actions/workflows/build-index.yml/badge.svg)
+![Validate](https://github.com/ghost-in-the-droid/android-agent/actions/workflows/build-index.yml/badge.svg)
 
 ## Install
 

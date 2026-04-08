@@ -31,10 +31,10 @@ const restarting = ref(false)
 // Status ghost — polls device state for header mascot
 const ghostState = ref<'disconnected' | 'idle' | 'working' | 'error'>('disconnected')
 const GHOST_IMAGES: Record<string, string> = {
-  disconnected: '/mascot/33-disconnected.png',
-  idle: '/mascot/27-idle.png',
-  working: '/mascot/28-working.png',
-  error: '/mascot/30-error.png',
+  disconnected: '/mascot/47-sleeping.png',
+  idle: '/mascot/01-front-view.png',
+  working: '/mascot/05-focused.png',
+  error: '/mascot/49-dead.png',
 }
 let ghostTimer: number | null = null
 async function pollGhostState() {
@@ -95,7 +95,10 @@ async function restartServer() {
     <div class="px-6 pt-4 pb-0">
       <div class="flex items-center justify-between mb-4">
         <div style="display:flex;align-items:center;gap:0.6rem">
-          <img :src="GHOST_IMAGES[ghostState]" alt="" style="width:36px;height:36px;object-fit:contain;transition:opacity 0.3s" />
+          <div style="display:flex;flex-direction:column;align-items:center;min-width:48px">
+            <img :src="GHOST_IMAGES[ghostState]" alt="" style="width:44px;height:44px;object-fit:contain;transition:all 0.3s;filter:drop-shadow(0 0 6px rgba(52,211,153,0.4))" />
+            <span style="font-size:8px;letter-spacing:0.5px;margin-top:-2px;opacity:0.45;text-transform:uppercase;color:var(--text-1);line-height:1">{{ ghostState }}</span>
+          </div>
           <h1 class="text-xl font-bold" style="color: var(--text-1)">
             Ghost in the Droid
           </h1>

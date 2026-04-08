@@ -778,81 +778,8 @@ onUnmounted(() => {
     </div>
 
     <!-- ═══════════════ Single Device ═══════════════ -->
-    <div v-if="subTab === 'single'" class="single-layout" style="grid-template-columns: 200px 1fr 280px">
-      <!-- LEFT: Controls sidebar -->
-      <div class="sidebar" style="overflow-y: auto">
-        <!-- Device selector -->
-        <div class="sidebar-section">
-          <div class="section-label">DEVICE</div>
-          <div class="device-row">
-            <select v-model="selectedDevice" @change="updateNicknameRow" class="device-select">
-              <option value="">-- no device --</option>
-              <option v-for="d in devices" :key="d.serial" :value="d.serial">
-                {{ d.connection === 'wifi' ? '\uD83D\uDCF6' : '\uD83D\uDD0C' }} {{ d.nickname || d.model || d.serial }}
-              </option>
-            </select>
-            <button class="ctrl-btn" @click="loadDevices" title="Refresh devices">&#x27F3;</button>
-          </div>
-        </div>
-
-        <!-- Stream controls -->
-        <div class="sidebar-section">
-          <div class="section-label">STREAM</div>
-          <div class="btn-grid">
-            <template v-if="!streaming">
-              <button class="ctrl-btn ctrl-btn--webrtc" @click="singleStreamMode = 'rtc'; startStream()">&#x26A1; WebRTC</button>
-              <button class="ctrl-btn ctrl-btn--mjpeg" @click="singleStreamMode = 'mjpeg'; startStream()">&#x25B6; MJPEG</button>
-            </template>
-            <template v-else>
-              <button class="ctrl-btn ctrl-btn--stop" @click="stopStream">&#x23F9; Stop</button>
-              <button class="ctrl-btn" @click="toggleSingleMode"
-                :style="{ background: singleStreamMode === 'rtc' ? '#0ea5e922' : '#6366f122', color: singleStreamMode === 'rtc' ? '#38bdf8' : '#a5b4fc', borderColor: singleStreamMode === 'rtc' ? '#0ea5e955' : '#6366f155' }">
-                &#x21C4;
-              </button>
-            </template>
-          </div>
-        </div>
-
-        <!-- Hardware keys -->
-        <div class="sidebar-section">
-          <div class="section-label">CONTROLS</div>
-          <div class="hw-keys-grid">
-            <button class="ctrl-btn" @click="sendKeyTo(selectedDevice, 'KEYCODE_BACK')">&#x25C0; Back</button>
-            <button class="ctrl-btn" @click="sendKeyTo(selectedDevice, 'KEYCODE_HOME')">&#x23FA; Home</button>
-            <button class="ctrl-btn" @click="sendKeyTo(selectedDevice, 'KEYCODE_APP_SWITCH')">&#x2B1C; Rec</button>
-            <button class="ctrl-btn" @click="sendKeyTo(selectedDevice, 'KEYCODE_POWER')">&#x23FB; Screen</button>
-            <button class="ctrl-btn" @click="sendKeyTo(selectedDevice, 'KEYCODE_VOLUME_UP')">&#x1F50A; Vol+</button>
-            <button class="ctrl-btn" @click="sendKeyTo(selectedDevice, 'KEYCODE_VOLUME_DOWN')">&#x1F509; Vol-</button>
-            <button class="ctrl-btn" @click="toggleOverlay(selectedDevice)"
-              :style="{ background: overlayOn[selectedDevice] ? '#fbbf24' : '', color: overlayOn[selectedDevice] ? '#000' : '#fbbf24' }"
-              title="Toggle UI Grid">&#x1F522; Grid</button>
-          </div>
-        </div>
-
-        <!-- Server logs (collapsible, closed by default) -->
-        <div class="sidebar-section" :class="{ 'sidebar-section--grow': logsOpen }">
-          <div class="section-label" style="cursor: pointer; user-select: none; display: flex; align-items: center; gap: 6px" @click="logsOpen = !logsOpen">
-            <span style="font-size: 10px; transition: transform 0.2s" :style="{ transform: logsOpen ? 'rotate(90deg)' : 'rotate(0deg)' }">&#9654;</span>
-            LOGS
-            <span v-if="!logsOpen" style="font-size: 9px; color: var(--text-4); font-weight: 400">{{ filteredSrvLogs.length }} lines</span>
-          </div>
-          <template v-if="logsOpen">
-            <div class="log-filter-row">
-              <button v-for="f in LOG_FILTERS" :key="f"
-                class="log-filter-btn" :class="{ active: logFilter === f }"
-                @click="logFilter = f">{{ f }}</button>
-            </div>
-            <div class="log-scroll">
-              <div v-for="(line, i) in filteredSrvLogs" :key="i"
-                class="log-line"
-                :style="{ color: line.includes('[ERROR]') || line.includes('[CRITICAL]') ? '#f87171' : line.includes('[WARN') ? '#fbbf24' : 'var(--text-4)' }">{{ line }}</div>
-              <div v-if="!filteredSrvLogs.length" class="log-empty">Waiting for logs...</div>
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- MIDDLE: Agent Chat -->
+    <div v-if="subTab === 'single'" class="single-layout">
+      <!-- LEFT: Agent Chat -->
       <div style="display: flex; flex-direction: column; min-width: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden">
         <!-- Chat header -->
         <div style="padding: 6px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap">
@@ -946,8 +873,23 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- RIGHT: Phone stream -->
-      <div class="stream-panel">
+      <!-- RIGHT: Phone column (controls + stream + hw keys) -->
+      <div style="display: flex; flex-direction: column; gap: 4px; min-height: 0">
+        <!-- Top: device + stream controls -->
+        <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap; padding: 4px">
+          <select v-model="selectedDevice" @change="updateNicknameRow" class="device-select" style="flex: 1; min-width: 80px; font-size: 10px; padding: 3px 4px">
+            <option value="">--</option>
+            <option v-for="d in devices" :key="d.serial" :value="d.serial">
+              {{ d.connection === 'wifi' ? '\uD83D\uDCF6' : '\uD83D\uDD0C' }} {{ d.nickname || d.model || d.serial }}
+            </option>
+          </select>
+          <button v-if="!streaming" class="ctrl-btn ctrl-btn--webrtc" style="font-size:9px;padding:3px 8px" @click="singleStreamMode = 'rtc'; startStream()">&#x26A1; Stream</button>
+          <button v-else class="ctrl-btn ctrl-btn--stop" style="font-size:9px;padding:3px 8px" @click="stopStream">&#x23F9; Stop</button>
+          <button class="ctrl-btn" style="font-size:9px;padding:3px 6px" @click="toggleOverlay(selectedDevice)"
+            :style="{ background: overlayOn[selectedDevice] ? '#fbbf24' : '', color: overlayOn[selectedDevice] ? '#000' : '#fbbf24' }">&#x1F522;</button>
+        </div>
+        <!-- Stream -->
+        <div class="stream-panel" style="flex: 1">
         <div class="stream-viewport">
           <video v-if="streaming && singleStreamMode === 'rtc'" :id="`rtc-video-${selectedDevice}`" autoplay playsinline muted
             class="stream-media"
@@ -980,6 +922,16 @@ onUnmounted(() => {
             <div class="frozen-text">Stream frozen</div>
             <div class="frozen-hint">Tap to reconnect</div>
           </div>
+        </div>
+      </div>
+        <!-- Bottom: hardware keys -->
+        <div style="display: flex; gap: 3px; padding: 4px; justify-content: center; flex-wrap: wrap">
+          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_BACK')">&#x25C0;</button>
+          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_HOME')">&#x23FA;</button>
+          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_APP_SWITCH')">&#x2B1C;</button>
+          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_POWER')">&#x23FB;</button>
+          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_VOLUME_UP')">&#x1F50A;</button>
+          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_VOLUME_DOWN')">&#x1F509;</button>
         </div>
       </div>
     </div>
@@ -1205,8 +1157,8 @@ onUnmounted(() => {
 /* ── Single Device Layout ────────────────────────────────────────── */
 .single-layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 12px;
+  grid-template-columns: 1fr 320px;
+  gap: 8px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -1214,32 +1166,32 @@ onUnmounted(() => {
 
 /* Stream panel (left) */
 .stream-panel {
-  background: var(--bg-card);
+  background: #070b10;
   border: 1px solid var(--border);
   border-radius: 8px;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   overflow: hidden;
   min-height: 0;
+  min-width: 0;
 }
 
 .stream-viewport {
   position: relative;
-  width: 100%;
-  height: 100%;
-  max-height: 70vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #070b10;
-  border-radius: 6px;
   overflow: hidden;
+  width: 100%;
+  height: 100%;
 }
 
 .stream-media {
+  height: 100%;
+  width: auto;
   max-width: 100%;
-  max-height: 70vh;
   object-fit: contain;
   cursor: crosshair;
   touch-action: none;

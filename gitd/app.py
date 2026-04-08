@@ -36,6 +36,7 @@ async def lifespan(app: FastAPI):
     scheduler_service.start()
     try:
         from gitd.services.device_context import wireless_reconnect_all
+
         reconnected = wireless_reconnect_all()
         for r in reconnected:
             if r.get("ok"):
@@ -109,6 +110,7 @@ def create_app() -> FastAPI:
     # Plugin hook: load premium features if installed
     try:
         import ghost_premium
+
         ghost_premium.register(app)
         logger.info("Premium plugin loaded: %s", ghost_premium.__version__)
     except ImportError:

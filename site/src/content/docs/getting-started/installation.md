@@ -42,8 +42,8 @@ adb --version
 ## Install Ghost in the Droid
 
 ```bash
-git clone https://github.com/[org]/android-agent.git
-cd android-agent
+git clone https://github.com/ghost-in-the-droid/android-agent.git
+cd ghost-in-the-droid
 
 # Install in development mode (recommended)
 pip install -e .
@@ -69,7 +69,7 @@ cp .env.example .env
 - ADB device control (tap, swipe, type, screenshots)
 - Skill system (load, run, create skills)
 - Macro recording and replay
-- Dashboard (all 14 tabs)
+- Dashboard (all 9 tabs)
 - Job scheduler
 - App Explorer
 
@@ -102,7 +102,7 @@ The Skill Creator supports 4 LLM backends. Configure whichever you want to use:
 python3 run.py
 ```
 
-Open http://localhost:5055 in your browser. You should see the dashboard with 14 tabs.
+Open http://localhost:5055 in your browser. You should see the dashboard with 9 tabs.
 
 ```bash
 # Quick Python verification
@@ -138,7 +138,7 @@ android-agent/
   pyproject.toml                  # Package config
   .env                            # Your API keys (gitignored)
   gitd/               # All application code
-    server.py                     # Flask API (132+ routes)
+    server.py                     # Flask API (113+ routes)
     db.py                         # SQLite ORM (20+ tables)
     bots/common/adb.py            # Device class
     skills/                       # Skill packages

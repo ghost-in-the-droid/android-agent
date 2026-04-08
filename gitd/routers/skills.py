@@ -17,8 +17,8 @@ from gitd.models.base import get_db
 router = APIRouter(prefix="/api/skills", tags=["skills"])
 
 # ── Registry cache (5 min TTL) ───────────────────────────────────────────
-_REGISTRY_URL = "https://raw.githubusercontent.com/ghost-in-the-droid/skills/main/index.json"
-_COMMUNITY_URL = "https://raw.githubusercontent.com/ghost-in-the-droid/skills/main/community.json"
+_REGISTRY_URL = "https://raw.githubusercontent.com/ghost-in-the-droid/android-agent/main/registry/index.json"
+_COMMUNITY_URL = "https://raw.githubusercontent.com/ghost-in-the-droid/android-agent/main/registry/community.json"
 _cache: dict[str, tuple[float, list]] = {}  # key -> (timestamp, data)
 _CACHE_TTL = 300  # 5 minutes
 
@@ -41,6 +41,7 @@ def _fetch_cached(url: str, cache_key: str) -> list:
         if cache_key in _cache:
             return _cache[cache_key][1]
         return []
+
 
 _SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
 

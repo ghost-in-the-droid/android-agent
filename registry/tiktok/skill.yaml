@@ -1,6 +1,6 @@
 name: tiktok
 display_name: TikTok
-description: TikTok automation skill — upload, crawl, outreach, engage, analytics
+description: TikTok automation skill — upload, navigate, search, engage
 version: "1.0.0"
 app_package: com.zhiliaoapp.musically
 author: C-K-Loan
@@ -27,12 +27,6 @@ exports:
     - name: crawl_hashtag
       description: Crawl posts from a hashtag search
       steps: [open_app, tap_search, type_and_search, scrape_loop]
-    - name: send_dm
-      description: Send a direct message to a user
-      steps: [open_app, tap_search, type_and_search, tap_user, send_message]
-    - name: scrape_analytics
-      description: Scrape account analytics data
-      steps: [open_app, navigate_to_profile, open_analytics, scrape_data]
     - name: engage_fyp
       description: Auto-engage with For You Page content (like, comment, follow)
       steps: [open_app, scroll_fyp, engage_loop]
@@ -81,9 +75,6 @@ default_params:
     type_message:
       text: "Hey! Love your content"
   workflows:
-    send_dm:
-      username: "@username"
-      message: "Hey! I love your content, would love to collab"
     crawl_hashtag:
       query: "#fyp"
       label: "general"
@@ -98,17 +89,10 @@ default_params:
       caption: "Check this out!"
       hashtags: "#fyp #viral"
       as_draft: false
-    scrape_analytics:
-      account: "@myaccount"
     engage_fyp:
       like: true
       comment: ""
       follow: false
-    scan_inbox:
-      account: "@myaccount"
-    continuous_scrape:
-      label: "niche"
-      passes_per_tag: 5
     publish_draft:
       draft_tag: ""
 

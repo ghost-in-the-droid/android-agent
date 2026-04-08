@@ -93,9 +93,7 @@ def _parse_partial_crawl(lines: list[str]) -> str:
         m = re.search(r"\[runner\] Label:.*?\|\s*(\d+)\s+hashtag", line)
         if m:
             total_tags = int(m.group(1))
-        m = re.search(
-            r"\[runner\]\s+(\d+)/(\d+)\s+.*?done:\s*(\d+)\s+new,\s*(\d+)\s+known", line
-        )
+        m = re.search(r"\[runner\]\s+(\d+)/(\d+)\s+.*?done:\s*(\d+)\s+new,\s*(\d+)\s+known", line)
         if m:
             done_tags = int(m.group(1))
             total_tags = total_tags or int(m.group(2))
@@ -106,9 +104,7 @@ def _parse_partial_crawl(lines: list[str]) -> str:
     return ""
 
 
-def _parse_job_summary(
-    jid: int, entry: dict | None = None, log_path: str | None = None
-) -> str:
+def _parse_job_summary(jid: int, entry: dict | None = None, log_path: str | None = None) -> str:
     """Parse [done] summary from a job's log file."""
     log_path = log_path or (entry or {}).get("log_path") or f"/tmp/sched_job_{jid}.log"
     try:
@@ -142,8 +138,7 @@ def _parse_job_summary(
 # ── DB helpers (SQLAlchemy text()) ─────────────────────────────────────────
 
 
-def finish_job(db, job_id: int, status: str,
-               exit_code: int | None = None, error_msg: str | None = None):
+def finish_job(db, job_id: int, status: str, exit_code: int | None = None, error_msg: str | None = None):
     """Mark a job_queue row as finished."""
     db.execute(
         text(
@@ -163,9 +158,7 @@ def finish_job(db, job_id: int, status: str,
 
 def archive_to_runs(db, job_id: int):
     """Move a job_queue row into job_runs and delete it from the queue."""
-    row = db.execute(
-        text("SELECT * FROM job_queue WHERE id = :id"), {"id": job_id}
-    ).mappings().first()
+    row = db.execute(text("SELECT * FROM job_queue WHERE id = :id"), {"id": job_id}).mappings().first()
     if not row:
         return
     r = dict(row)
@@ -212,4 +205,5 @@ def archive_to_runs(db, job_id: int):
 def _enqueue_job(db, **kwargs) -> int:
     """Insert a pending job into job_queue (text-based, for scheduler thread)."""
     from gitd.services.db_helpers import enqueue_job
+
     return enqueue_job(db, **kwargs)

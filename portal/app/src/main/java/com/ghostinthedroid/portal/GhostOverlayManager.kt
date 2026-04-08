@@ -23,7 +23,7 @@ import android.view.accessibility.AccessibilityNodeInfo
  */
 object GhostOverlayManager {
     private const val TAG = "GhostOverlay"
-    private const val REFRESH_INTERVAL_MS = 1500L  // Periodic refresh
+    private const val REFRESH_INTERVAL_MS = 800L   // Periodic refresh
     private const val MIN_REFRESH_GAP_MS = 500L    // Throttle rapid events
 
     private var overlayView: OverlayView? = null

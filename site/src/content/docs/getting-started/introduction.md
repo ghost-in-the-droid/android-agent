@@ -21,7 +21,7 @@ Emulator support is also available for development and testing, but production a
 Your Python code / Dashboard / Scheduler
         |
         v
-   Flask Server (132+ REST endpoints, port 5055)
+   Flask Server (113+ REST endpoints, port 5055)
         |
         v
    Device class (47+ methods wrapping ADB)
@@ -41,8 +41,8 @@ Every interaction flows through the `Device` class, which wraps `adb shell` comm
 |-----------|-------------|
 | **Device class** | 47+ methods: tap, swipe, type, stealth mode, XML parsing, screenshots, notifications |
 | **Skill system** | Actions (atomic operations) + Workflows (sequences) + Elements (UI locators) packaged per app |
-| **Dashboard** | 14-tab SPA: device management, skill browsing, scheduling, analytics, live streaming |
-| **Scheduler** | Per-phone job queue with priority preemption, 12 job types, 30-second tick |
+| **Dashboard** | 9-tab SPA: device management, skill browsing, scheduling, analytics, live streaming |
+| **Scheduler** | Per-phone job queue with priority preemption, 6 job types, 30-second tick |
 | **Skill Creator** | Split-screen LLM chat + live device stream for building skills visually |
 | **App Explorer** | BFS discovery of app UI states, screenshots, and transition graphs |
 | **Macro Recorder** | Record/replay action sequences with speed control |
@@ -63,12 +63,12 @@ Verified on TikTok v44.3.3 across multiple physical devices.
 android-agent/
   run.py                    # Entry point -> http://localhost:5055
   gitd/         # All application code (54 Python files)
-    server.py               # Flask API + scheduler (132 routes, ~4500 LoC)
+    server.py               # Flask API + scheduler (113 routes, ~4500 LoC)
     db.py                   # SQLite ORM (~2000 LoC, 20+ tables)
     bots/common/adb.py      # Device class (47+ methods)
     skills/                 # Skill packages (tiktok, base, instagram)
     agent/                  # LLM content planner
-    static/dashboard.html   # Main SPA (14 tabs, ~400K)
+    static/dashboard.html   # Main SPA (9 tabs, ~400K)
   data/                     # Runtime data + SQLite DB
   tests/                    # Pytest suite (19 files)
 ```

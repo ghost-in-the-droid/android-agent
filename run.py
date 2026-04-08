@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point — start the marketing system server (FastAPI + Uvicorn)."""
+"""Entry point — start the Ghost in the Droid server (FastAPI + Uvicorn)."""
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / '.env')

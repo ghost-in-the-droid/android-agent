@@ -88,7 +88,7 @@ Unplug and replug USB. Set USB mode to "File transfer" (not "Charging only").
 
 ```bash
 # Check network access to the registry
-curl -s https://raw.githubusercontent.com/ghost-in-the-droid/skills/main/registry.json | head -20
+curl -s https://raw.githubusercontent.com/ghost-in-the-droid/android-agent/main/registry/index.json | head -20
 
 # Verify skill CLI works
 android-agent skill list

@@ -19,7 +19,7 @@
           +------------------+  +-----------+  +----------------------------+
           | FastAPI (:5055)  |  |  SQLite   |  | Vue Frontend (:6175)      |
           |                  |  |           |  |                            |
-          | 14 routers       |  | WAL mode  |  | Vue 3 + Vite + Tailwind   |
+          | 13 routers       |  | WAL mode  |  | Vue 3 + Vite + Tailwind   |
           | Pydantic schemas |  | 11 tables |  | 9 tabs                    |
           | SQLAlchemy ORM   |  | Alembic   |  | Proxies /api/* -> :5055   |
           +--------+---------+  +-----------+  +----------------------------+
@@ -100,7 +100,7 @@ FastAPI Lifespan (app.py)
 ```
 create_app()
   |
-  +-- register core routers (14)
+  +-- register core routers (13)
   |
   +-- try: import ghost_premium
   |     ghost_premium.register(app)

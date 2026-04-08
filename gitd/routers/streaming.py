@@ -261,7 +261,9 @@ def portal_fix(device: str):
             ["adb", "-s", device, "shell", "input", "keyevent", "KEYCODE_WAKEUP"], capture_output=True, timeout=10
         )
         subprocess.run(
-            ["adb", "-s", device, "shell", "am", "force-stop", "com.ghostinthedroid.portal"], capture_output=True, timeout=5
+            ["adb", "-s", device, "shell", "am", "force-stop", "com.ghostinthedroid.portal"],
+            capture_output=True,
+            timeout=5,
         )
         time.sleep(1)
         subprocess.run(
@@ -343,7 +345,7 @@ async def webrtc_signals_stream(device: str):
         # Create per-device event for notifications
         _signaling_events[device] = asyncio.Event()
         try:
-            yield "data: {\"type\":\"connected\"}\n\n"
+            yield 'data: {"type":"connected"}\n\n'
             while True:
                 # Wait for signal or timeout (keepalive every 15s)
                 try:
@@ -373,6 +375,7 @@ async def webrtc_signal(data: dict = Body({})):
     """Relay WebRTC signaling to Portal via its HTTP API.
     Runs blocking I/O in a thread to avoid starving the async event loop."""
     import asyncio
+
     return await asyncio.to_thread(_webrtc_signal_sync, data)
 
 
@@ -397,6 +400,7 @@ def _webrtc_signal_sync(data: dict):
         if method == "stream/start":
             _signaling_queues[device] = []
             from gitd.config import settings
+
             server_port = str(getattr(settings, "port", 5055))
 
             # Only run ADB setup if not done recently (saves ~300ms)
@@ -404,12 +408,14 @@ def _webrtc_signal_sync(data: dict):
             if time.time() - last_setup > _ADB_SETUP_TTL:
                 subprocess.run(
                     ["adb", "-s", device, "shell", "input", "keyevent", "KEYCODE_WAKEUP"],
-                    capture_output=True, timeout=10,
+                    capture_output=True,
+                    timeout=10,
                 )
                 try:
                     subprocess.run(
                         ["adb", "-s", device, "reverse", f"tcp:{server_port}", f"tcp:{server_port}"],
-                        capture_output=True, timeout=3,
+                        capture_output=True,
+                        timeout=3,
                     )
                 except Exception:
                     pass
@@ -419,6 +425,7 @@ def _webrtc_signal_sync(data: dict):
             is_wifi = ":" in device
             if is_wifi:
                 import socket
+
                 lan_ip = socket.gethostbyname(socket.gethostname())
                 # gethostbyname may return 127.0.0.1 — fall back to interface scan
                 if lan_ip.startswith("127."):

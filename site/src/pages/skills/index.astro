@@ -5,15 +5,15 @@ const skills = [
 	{
 		name: 'tiktok', display: 'TikTok', icon: '🎵', version: '1.0.0',
 		pkg: 'com.zhiliaoapp.musically',
-		desc: 'TikTok automation — upload, crawl, outreach, engage, analytics',
-		actions: 5, workflows: 5, elements: 41,
+		desc: 'TikTok automation — upload, navigate, search, engage',
+		actions: 5, workflows: 3, elements: 41,
 		devices: ['ASUS ROG Phone II', 'Samsung Galaxy A15'],
 	},
 	{
 		name: 'instagram', display: 'Instagram', icon: '📸', version: '1.0.0',
 		pkg: 'com.instagram.android',
-		desc: 'Instagram automation — crawl profiles, send DMs, outreach tracking',
-		actions: 3, workflows: 2, elements: 0,
+		desc: 'Instagram automation — navigate profiles, search by hashtag',
+		actions: 3, workflows: 1, elements: 0,
 		devices: ['ASUS ROG Phone II'],
 	},
 	{
@@ -207,7 +207,7 @@ const totalElements = skills.reduce((s, k) => s + k.elements, 0)
 			<p>Create automation for WhatsApp, Telegram, Spotify, or any Android app — and share it with the community.</p>
 			<div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
 				<a href="/skills/creating-skills/" class="btn-primary">Create a Skill</a>
-				<a href="https://github.com/ghost-in-the-droid/skill-template" class="btn-outline">Use Template</a>
+				<a href="https://github.com/ghost-in-the-droid/android-agent/tree/main/registry" class="btn-outline">Use Template</a>
 			</div>
 		</div>
 	</section>

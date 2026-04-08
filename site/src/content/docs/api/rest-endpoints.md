@@ -1,6 +1,6 @@
 ---
 title: "🌐 REST Endpoints"
-description: All 90+ REST API endpoints organized by category — phone, bot, influencers, content, scheduler, skills, and more.
+description: All 90+ REST API endpoints organized by category — phone, bot, content, scheduler, skills, and more.
 ---
 
 The server exposes 90+ REST endpoints at `http://localhost:5055`. All responses are JSON unless noted otherwise.
@@ -66,27 +66,6 @@ The server exposes 90+ REST endpoints at `http://localhost:5055`. All responses 
 | GET | `/api/content/posts` | Upload history for a video |
 | POST | `/api/content/videos/<id>` | Update video status |
 
-## Content Generation
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/gen/templates` | List generation styles (72 templates) |
-| POST | `/api/gen/submit` | Submit generation job |
-| GET | `/api/gen/jobs/<id>` | Check job status |
-| GET | `/api/gen/jobs` | List all generation jobs |
-
-## Content Plan and Agent
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/content-plan` | List all planned content |
-| GET | `/api/content-plan/<id>` | Plan entry detail |
-| POST | `/api/content-plan/<id>` | Update plan entry |
-| POST | `/api/agent/run` | Run LLM content planner |
-| GET | `/api/agent/runs` | Agent run history |
-| GET | `/api/agent/logs/<run_id>` | Agent run logs |
-| GET | `/api/agent/memory` | Get agent memory files |
-| POST | `/api/agent/memory` | Update agent memory |
 
 ## Scheduler
 
@@ -140,15 +119,6 @@ The server exposes 90+ REST endpoints at `http://localhost:5055`. All responses 
 | GET | `/api/explorer/run/<name>` | Full state graph |
 | GET | `/api/explorer/screenshot/<name>/<state_id>` | State screenshot |
 | DELETE | `/api/explorer/delete/<name>` | Delete exploration |
-
-## Strategies
-
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/api/strategies` | List message templates |
-| POST | `/api/strategies` | Create template |
-| PUT | `/api/strategies/<id>` | Update template |
-| DELETE | `/api/strategies/<id>` | Delete template |
 
 ## Analytics
 

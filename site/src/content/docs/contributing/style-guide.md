@@ -71,7 +71,7 @@ Features use alternating left-right layout with ghost mascot images:
   <div class="feature-text">
     <span class="feature-tag">Device Control</span>
     <h3>Possess Any Android</h3>
-    <p>Send taps, swipes, and text through ADB. No app installed on the device.</p>
+    <p>Send taps, swipes, and text through ADB. No root required. Pure automation.</p>
   </div>
 </div>
 

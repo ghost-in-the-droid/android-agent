@@ -105,7 +105,7 @@ skills/
 
 ## Registry
 
-The community registry at [ghost-in-the-droid/skills](https://github.com/ghost-in-the-droid/skills) provides an index of available skills. The Browse tab in the dashboard fetches this registry and shows installable skills with one-click install.
+The skill registry lives in [`registry/`](https://github.com/ghost-in-the-droid/android-agent/tree/main/registry) in the main repo. The Browse tab in the dashboard fetches this registry and shows installable skills with one-click install.
 
 ## Related
 

@@ -16,7 +16,9 @@ def _build_creator_system_prompt(data: dict) -> str:
     Uses shared device_context functions for all screen understanding.
     """
     from gitd.services.device_context import (
-        get_phone_state, get_screen_tree, get_screen_xml,
+        get_phone_state,
+        get_screen_tree,
+        get_screen_xml,
     )
 
     backend = data.get("backend", "openrouter")

@@ -6,8 +6,9 @@
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 	<title>Ghost in the Droid — Android Body for AI Agents</title>
-	<meta name="description" content="Summon a ghost into your Android. Open-source framework for controlling real phones via ADB. No app installed. No footprint. Pure automation." />
+	<meta name="description" content="Summon a ghost into your Android. Open-source framework for controlling real phones via ADB. No root required. No cloud dependency. Pure automation." />
 	<meta property="og:title" content="Ghost in the Droid — Android Body for AI Agents" />
 	<meta property="og:description" content="Open-source Python framework for automating Android devices. Build skills, manage phone farms, zero cloud dependency." />
 	<meta property="og:image" content="/mascot/40-lineup-banner.png" />
@@ -85,17 +86,16 @@
 			align-items: center;
 			gap: 0.5rem;
 		}
-		.nav-logo .dot {
-			width: 8px;
-			height: 8px;
-			background: var(--accent);
-			border-radius: 50%;
-			box-shadow: 0 0 12px var(--accent);
-			animation: pulse-dot 2s ease-in-out infinite;
+		.nav-logo .nav-mascot {
+			width: 32px;
+			height: 32px;
+			object-fit: contain;
+			filter: drop-shadow(0 0 6px var(--accent));
+			animation: float-mascot 3s ease-in-out infinite;
 		}
-		@keyframes pulse-dot {
-			0%, 100% { opacity: 1; transform: scale(1); }
-			50% { opacity: 0.6; transform: scale(0.85); }
+		@keyframes float-mascot {
+			0%, 100% { transform: translateY(0); }
+			50% { transform: translateY(-2px); }
 		}
 		.nav-links {
 			display: flex;
@@ -274,6 +274,88 @@
 		.t-num { color: #f78c6c; }
 		.t-op { color: #89ddff; }
 		.t-var { color: #e8e8e8; }
+
+		/* ═══════════ DEMO VIDEO TOGGLE ═══════════ */
+		.demo-section { padding: 2rem 0 6rem; }
+		.demo-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: flex-end;
+			margin-bottom: 2rem;
+			flex-wrap: wrap;
+			gap: 1rem;
+		}
+		.demo-header h2 {
+			font-size: clamp(1.6rem, 3vw, 2.2rem);
+			font-weight: 700;
+			color: var(--text-primary);
+			letter-spacing: -1px;
+		}
+		.demo-header p {
+			color: var(--text-secondary);
+			font-size: 0.95rem;
+			font-weight: 300;
+			margin-top: 0.35rem;
+		}
+		.demo-tabs {
+			display: flex;
+			gap: 0;
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			overflow: hidden;
+			background: var(--surface);
+		}
+		.demo-tab {
+			padding: 0.55rem 1.25rem;
+			font-size: 0.82rem;
+			font-weight: 500;
+			color: var(--text-secondary);
+			cursor: pointer;
+			transition: all 0.25s;
+			border: none;
+			background: transparent;
+			font-family: 'Outfit', sans-serif;
+			border-right: 1px solid var(--border);
+			white-space: nowrap;
+		}
+		.demo-tab:last-child { border-right: none; }
+		.demo-tab:hover { color: var(--text-primary); background: var(--surface-raised); }
+		.demo-tab.active {
+			color: #050505;
+			background: var(--accent);
+			font-weight: 600;
+		}
+		.demo-player {
+			position: relative;
+			border-radius: var(--radius);
+			overflow: hidden;
+			border: 1px solid var(--border);
+			background: #000;
+			aspect-ratio: 16 / 9;
+			max-width: 900px;
+			margin: 0 auto;
+			box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+		}
+		.demo-player video {
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			opacity: 0;
+			transition: opacity 0.4s ease;
+		}
+		.demo-player video.active { opacity: 1; }
+		.demo-subtitle {
+			text-align: center;
+			margin-top: 1rem;
+			font-size: 0.85rem;
+			color: var(--text-secondary);
+			font-weight: 300;
+		}
+		@media (max-width: 768px) {
+			.demo-header { flex-direction: column; align-items: flex-start; }
+		}
 
 		/* ═══════════ FEATURES — Alternating rows with ghost images ═══════════ */
 		.features-section { padding-top: 4rem; }
@@ -528,7 +610,7 @@
 	<!-- NAV -->
 	<nav>
 		<a href="/" class="nav-logo">
-			<span class="dot"></span>
+			<img src="/mascot/43-wave.png" alt="Ghost mascot" class="nav-mascot" />
 			Ghost in the Droid
 		</a>
 		<div class="nav-links">
@@ -558,7 +640,7 @@
 					<p class="hero-sub">
 						It sees the screen. It taps the buttons. It never sleeps.
 						Open-source Python framework for controlling real phones via ADB.
-						No app installed. No footprint. Pure automation.
+						No root required. No cloud dependency. Pure automation.
 					</p>
 					<div class="hero-actions">
 						<a href="/getting-started/installation/" class="btn-primary">
@@ -601,12 +683,35 @@
 		</div>
 	</section>
 
+	<!-- DEMO VIDEOS -->
+	<section class="demo-section" style="position:relative;z-index:1">
+		<div class="container">
+			<div class="demo-header">
+				<div>
+					<h2>See the ghost in action</h2>
+					<p>Watch it navigate real apps on a real phone. No scripted mockups.</p>
+				</div>
+				<div class="demo-tabs">
+					<button class="demo-tab active" data-video="reddit">Reddit Search & Comment</button>
+					<button class="demo-tab" data-video="amazon">Product Search</button>
+					<button class="demo-tab" data-video="booking">Hotel Search</button>
+				</div>
+			</div>
+			<div class="demo-player">
+				<video src="/demo/reddit.mp4" class="active" autoplay muted loop playsinline preload="auto"></video>
+				<video src="/demo/amazon.mp4" muted loop playsinline preload="none"></video>
+				<video src="/demo/booking.mp4" muted loop playsinline preload="none"></video>
+			</div>
+			<div class="demo-subtitle" id="demo-sub">The ghost searches Reddit, finds a post, and leaves a comment.</div>
+		</div>
+	</section>
+
 	<!-- FEATURES — alternating left/right with ghost mascot -->
 	<section class="features-section">
 		<div class="container">
 			<div class="section-label">Capabilities</div>
 			<h2 class="section-title">The ghost sees. The ghost taps. The ghost never stops.</h2>
-			<p class="section-sub">From a single tap to a full phone farm. No app installed. No footprint. Pure ADB.</p>
+			<p class="section-sub">From a single tap to a full phone farm. No root. No cloud. Pure ADB.</p>
 
 			<div class="feature-row">
 				<div class="feature-img">
@@ -648,7 +753,7 @@
 				<div class="feature-text">
 					<span class="feature-tag">Phone Farm</span>
 					<h3>One ghost is useful. A hundred are unstoppable.</h3>
-					<p>Multi-device management with per-phone job queues, priority scheduling, WebRTC streaming, and a 14-tab dashboard. One USB hub. Five phones. Infinite automation.</p>
+					<p>Multi-device management with per-phone job queues, priority scheduling, WebRTC streaming, and a full dashboard. One USB hub. Five phones. Infinite automation.</p>
 				</div>
 			</div>
 
@@ -658,8 +763,8 @@
 				</div>
 				<div class="feature-text">
 					<span class="feature-tag">Stealth</span>
-					<h3>No app. No footprint. No trace.</h3>
-					<p>Pure ADB — system-level access that looks like USB debugging. No accessibility services. No overlay permissions. No companion app installed. The ghost doesn't leave fingerprints.</p>
+					<h3>No root. No cloud. No trace.</h3>
+					<p>Gaussian tap jitter, variable-speed swipes, and character-by-character typing make automation look human. Optional companion app adds accessibility + screen streaming. Everything runs locally — nothing phones home.</p>
 				</div>
 			</div>
 
@@ -740,7 +845,7 @@
 					<div class="stat-label">Device methods</div>
 				</div>
 				<div>
-					<div class="stat-value">14</div>
+					<div class="stat-value">9</div>
 					<div class="stat-label">Dashboard tabs</div>
 				</div>
 			</div>
@@ -773,6 +878,7 @@
 					<a href="/api/device-methods/">API</a>
 					<a href="/contributing/setup/">Contribute</a>
 					<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
+					<a href="https://x.com/ghostinthedroid">X</a>
 				</div>
 			</div>
 		</div>
@@ -878,6 +984,35 @@
 			requestAnimationFrame(render);
 		}
 		render();
+	})();
+	</script>
+	<script>
+	(function() {
+		const tabs = document.querySelectorAll('.demo-tab');
+		const videos = document.querySelectorAll('.demo-player video');
+		const sub = document.getElementById('demo-sub');
+		const subs = {
+			reddit: 'The ghost searches Reddit, finds a post, and leaves a comment.',
+			amazon: 'The ghost searches for a product on Amazon, browses results and reviews.',
+			booking: 'The ghost searches for a hotel on Booking, picks dates and filters results.',
+		};
+		tabs.forEach(function(tab) {
+			tab.addEventListener('click', function() {
+				var target = tab.dataset.video;
+				tabs.forEach(function(t) { t.classList.remove('active'); });
+				tab.classList.add('active');
+				videos.forEach(function(v) {
+					if (v.src.includes(target)) {
+						v.classList.add('active');
+						v.play();
+					} else {
+						v.classList.remove('active');
+						v.pause();
+					}
+				});
+				sub.textContent = subs[target] || '';
+			});
+		});
 	})();
 	</script>
 </body>

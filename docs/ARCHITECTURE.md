@@ -55,7 +55,7 @@ android-agent/
     _deprecated/                  # Old Flask server + raw sqlite3 (preserved, not used)
   frontend/                       # Vue 3 + Vite + TypeScript + Tailwind CSS
     src/
-      App.vue                     # Tab shell (15 tabs, v-show for state preservation)
+      App.vue                     # Tab shell (9 tabs, v-show for state preservation)
       views/                      # One view per tab
       composables/useApi.ts       # Typed fetch wrapper for /api/* calls
     vite.config.ts                # Vite config + API proxy to :5055
@@ -109,7 +109,7 @@ Bots (`bots/tiktok/*.py`, `bots/instagram/*.py`) and skill runs (`skills/_run_sk
 - **No Vue Router** -- tabs are managed with `v-show` in `App.vue` to preserve state across tab switches
 - **API calls** via typed `useApi.ts` composable (`api('/api/...')`)
 - **Vite proxy** forwards `/api/*` requests to the backend at `:5055`
-- **15 tabs**: Phone Agent, Skill Hub, Skill Creator, Explorer, Influencers, Strategies, Bot, Content, Generate, Content Plan, Metrics, Analytics, Scheduler, Tests, Inbox
+- **9 tabs**: Phone Agent, Scheduler, Skill Hub, Skill Creator, Skill Miner, Tools, Manual Run, Tests, Emulators
 
 ---
 

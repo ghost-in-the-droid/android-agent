@@ -8,18 +8,18 @@ Usage:
         ocr_screen, ocr_region, classify_screen,
     )
 """
+
 import base64
 import io
 import json
 import re
 import subprocess
 import urllib.request
-from pathlib import Path
 
-from gitd.bots.common.adb import Device, _stable_port
-
+from gitd.bots.common.adb import Device
 
 # ── Phone state ──────────────────────────────────────────────────────────────
+
 
 def get_phone_state(device: str) -> dict:
     """Current app, package, activity, keyboard state, focused element.
@@ -28,8 +28,7 @@ def get_phone_state(device: str) -> dict:
     port = dev._ensure_portal_forward()
     if port:
         try:
-            resp = json.loads(urllib.request.urlopen(
-                f"http://localhost:{port}/phone_state", timeout=3).read())
+            resp = json.loads(urllib.request.urlopen(f"http://localhost:{port}/phone_state", timeout=3).read())
             result = resp.get("result", {})
             if isinstance(result, str):
                 result = json.loads(result)
@@ -50,11 +49,12 @@ def get_phone_state(device: str) -> dict:
 
 # ── Screenshots ──────────────────────────────────────────────────────────────
 
+
 def screenshot(device: str, half_res: bool = True, quality: int = 50) -> dict:
     """Take screenshot via ADB screencap. Returns {image: base64, width, height}."""
     from PIL import Image
-    raw = subprocess.check_output(
-        ["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+
+    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
     img = Image.open(io.BytesIO(raw)).convert("RGB")
     if half_res:
         img = img.resize((img.width // 2, img.height // 2), Image.NEAREST)
@@ -74,8 +74,7 @@ def screenshot_annotated(device: str) -> dict:
     from PIL import Image, ImageDraw, ImageFont
 
     # Take screenshot
-    raw = subprocess.check_output(
-        ["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
     img = Image.open(io.BytesIO(raw)).convert("RGB")
     draw = ImageDraw.Draw(img)
 
@@ -84,14 +83,14 @@ def screenshot_annotated(device: str) -> dict:
 
     # Color palette — distinct, vibrant
     COLORS = [
-        (0, 229, 160),    # Ghost green (brand)
-        (99, 102, 241),   # Indigo
-        (56, 189, 248),   # Sky blue
-        (251, 191, 36),   # Amber
+        (0, 229, 160),  # Ghost green (brand)
+        (99, 102, 241),  # Indigo
+        (56, 189, 248),  # Sky blue
+        (251, 191, 36),  # Amber
         (167, 139, 250),  # Violet
-        (52, 211, 153),   # Emerald
+        (52, 211, 153),  # Emerald
         (248, 113, 113),  # Red
-        (96, 165, 250),   # Blue
+        (96, 165, 250),  # Blue
     ]
 
     try:
@@ -109,8 +108,7 @@ def screenshot_annotated(device: str) -> dict:
 
         # Draw element border (thin, semi-transparent feel)
         for offset in range(2):
-            draw.rectangle([x1 - offset, y1 - offset, x2 + offset, y2 + offset],
-                           outline=color, width=1)
+            draw.rectangle([x1 - offset, y1 - offset, x2 + offset, y2 + offset], outline=color, width=1)
 
         # Draw index badge (top-left corner of element)
         label = str(idx)
@@ -138,13 +136,12 @@ def screenshot_annotated(device: str) -> dict:
     }
 
 
-def screenshot_cropped(device: str, x1: int, y1: int, x2: int, y2: int,
-                       quality: int = 70) -> dict:
+def screenshot_cropped(device: str, x1: int, y1: int, x2: int, y2: int, quality: int = 70) -> dict:
     """Screenshot a specific region of the screen.
     Coordinates are in device pixels. Returns {image: base64, width, height}."""
     from PIL import Image
-    raw = subprocess.check_output(
-        ["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+
+    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
     img = Image.open(io.BytesIO(raw)).convert("RGB")
     cropped = img.crop((x1, y1, x2, y2))
     buf = io.BytesIO()
@@ -157,6 +154,7 @@ def screenshot_cropped(device: str, x1: int, y1: int, x2: int, y2: int,
 
 
 # ── XML / Element tree ───────────────────────────────────────────────────────
+
 
 def get_screen_xml(device: str, max_length: int = 50000) -> str:
     """Raw UI XML dump from uiautomator. Use get_screen_tree() for LLM-friendly format."""
@@ -192,17 +190,19 @@ def get_interactive_elements(device: str, interactive_only: bool = True) -> list
         x1, y1, x2, y2 = bounds
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
 
-        elements.append({
-            "idx": len(elements),
-            "text": text,
-            "content_desc": desc,
-            "resource_id": rid.split("/")[-1] if "/" in rid else rid,
-            "class": cls,
-            "bounds": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
-            "center": {"x": cx, "y": cy},
-            "clickable": clickable,
-            "scrollable": scrollable,
-        })
+        elements.append(
+            {
+                "idx": len(elements),
+                "text": text,
+                "content_desc": desc,
+                "resource_id": rid.split("/")[-1] if "/" in rid else rid,
+                "class": cls,
+                "bounds": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+                "center": {"x": cx, "y": cy},
+                "clickable": clickable,
+                "scrollable": scrollable,
+            }
+        )
     return elements
 
 
@@ -216,6 +216,7 @@ def get_screen_tree(device: str, max_nodes: int = 80) -> str:
     read directly to understand screen layout and pick elements to interact with.
     """
     import xml.etree.ElementTree as ET
+
     dev = Device(device)
     xml_str = dev.dump_xml()
     if not xml_str:
@@ -274,6 +275,28 @@ def get_screen_tree(device: str, max_nodes: int = 80) -> str:
     for child in root:
         _walk(child, 0)
 
+    # Add scroll hint based on element positions
+    try:
+        all_y = []
+        for n in root.iter():
+            b = n.get("bounds", "")
+            nums = re.findall(r"\d+", b)
+            if len(nums) == 4:
+                all_y.append(int(nums[3]))
+        if all_y:
+            max_y = max(all_y)
+            # Get screen height
+            screen_h = 0
+            for n in root.iter():
+                b = n.get("bounds", "")
+                nums = re.findall(r"\d+", b)
+                if len(nums) == 4 and int(nums[2]) > 500:  # wide enough to be the screen
+                    screen_h = max(screen_h, int(nums[3]))
+            if screen_h and max_y >= screen_h - 50 and len(lines) > 15:
+                lines.append("\n[Page likely scrollable — swipe up to see more content]")
+    except Exception:
+        pass
+
     return "\n".join(lines)
 
 
@@ -287,8 +310,10 @@ def _get_ocr():
     global _ocr_engine
     if _ocr_engine is None:
         import logging
+
         logging.disable(logging.INFO)
         from rapidocr import RapidOCR
+
         _ocr_engine = RapidOCR()
         logging.disable(logging.NOTSET)
     return _ocr_engine
@@ -296,8 +321,7 @@ def _get_ocr():
 
 def ocr_screen(device: str) -> list[dict]:
     """OCR the full device screen. Returns [{text, conf, x, y}] sorted top-to-bottom."""
-    raw = subprocess.check_output(
-        ["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
     ocr = _get_ocr()
     result = ocr(raw)
     if not result or not result.txts:
@@ -316,8 +340,8 @@ def ocr_region(device: str, x1: int, y1: int, x2: int, y2: int) -> list[dict]:
     """OCR a specific region of the screen. Coordinates in device pixels.
     Returns [{text, conf, x, y, w, h}] where x/y are relative to the crop."""
     from PIL import Image
-    raw = subprocess.check_output(
-        ["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+
+    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
     img = Image.open(io.BytesIO(raw))
     cropped = img.crop((x1, y1, x2, y2))
     ocr = _get_ocr()
@@ -336,6 +360,7 @@ def ocr_region(device: str, x1: int, y1: int, x2: int, y2: int) -> list[dict]:
 
 # ── Overlay ──────────────────────────────────────────────────────────────────
 
+
 def toggle_overlay(device: str, visible: bool = True) -> bool:
     """Toggle Portal's numbered element overlay. Returns True on success."""
     dev = Device(device)
@@ -345,8 +370,11 @@ def toggle_overlay(device: str, visible: bool = True) -> bool:
     try:
         payload = json.dumps({"visible": visible}).encode()
         req = urllib.request.Request(
-            f"http://localhost:{port}/overlay", data=payload,
-            headers={"Content-Type": "application/json"}, method="POST")
+            f"http://localhost:{port}/overlay",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
         urllib.request.urlopen(req, timeout=3)
         return True
     except Exception:
@@ -354,6 +382,7 @@ def toggle_overlay(device: str, visible: bool = True) -> bool:
 
 
 # ── Screen classification ────────────────────────────────────────────────────
+
 
 def classify_screen(device: str) -> dict:
     """Classify the current screen state. Returns {app, screen_type, has_keyboard, details}.
@@ -415,6 +444,7 @@ def classify_screen(device: str) -> dict:
 
 # ── Clipboard ────────────────────────────────────────────────────────────────
 
+
 def clipboard_get(device: str) -> str:
     """Get current clipboard text from device."""
     dev = Device(device)
@@ -442,6 +472,7 @@ def clipboard_set(device: str, text: str) -> bool:
 
 
 # ── Notifications ────────────────────────────────────────────────────────────
+
 
 def get_notifications(device: str) -> list[dict]:
     """Get active notifications from the notification panel.
@@ -494,8 +525,10 @@ def clear_notifications(device: str) -> bool:
 
 # ── Intent launching ─────────────────────────────────────────────────────────
 
-def launch_intent(device: str, action: str = "", data: str = "", package: str = "",
-                  component: str = "", extras: dict | None = None) -> str:
+
+def launch_intent(
+    device: str, action: str = "", data: str = "", package: str = "", component: str = "", extras: dict | None = None
+) -> str:
     """Launch a full Android intent. More powerful than launch_app().
     Examples:
       launch_intent(dev, action="android.intent.action.VIEW", data="https://google.com")
@@ -527,6 +560,7 @@ def launch_intent(device: str, action: str = "", data: str = "", package: str = 
 
 # ── Search / find on screen ──────────────────────────────────────────────────
 
+
 def find_on_screen(device: str, text: str) -> dict | None:
     """Find specific text on screen and return its location.
     Searches XML elements first (fast), falls back to OCR (slower).
@@ -542,16 +576,27 @@ def find_on_screen(device: str, text: str) -> dict | None:
                 bounds = dev.node_bounds(node)
                 if bounds:
                     x1, y1, x2, y2 = bounds
-                    return {"text": node_text or node_desc, "x": (x1 + x2) // 2,
-                            "y": (y1 + y2) // 2, "w": x2 - x1, "h": y2 - y1, "method": "xml"}
+                    return {
+                        "text": node_text or node_desc,
+                        "x": (x1 + x2) // 2,
+                        "y": (y1 + y2) // 2,
+                        "w": x2 - x1,
+                        "h": y2 - y1,
+                        "method": "xml",
+                    }
     # Fallback to OCR
     try:
         texts = ocr_screen(device)
         for t in texts:
             if text.lower() in t["text"].lower():
-                return {"text": t["text"], "x": t["x"] + t.get("w", 0) // 2,
-                        "y": t["y"] + t.get("h", 0) // 2,
-                        "w": t.get("w", 0), "h": t.get("h", 0), "method": "ocr"}
+                return {
+                    "text": t["text"],
+                    "x": t["x"] + t.get("w", 0) // 2,
+                    "y": t["y"] + t.get("h", 0) // 2,
+                    "w": t.get("w", 0),
+                    "h": t.get("h", 0),
+                    "method": "ocr",
+                }
     except Exception:
         pass
     return None
@@ -559,8 +604,10 @@ def find_on_screen(device: str, text: str) -> dict | None:
 
 # ── Convenience: build full context for LLM ─────────────────────────────────
 
-def build_llm_context(device: str, include_screenshot: bool = True,
-                      include_ocr: bool = False, max_elements: int = 40) -> dict:
+
+def build_llm_context(
+    device: str, include_screenshot: bool = True, include_ocr: bool = False, max_elements: int = 40
+) -> dict:
     """Build a complete context snapshot for an LLM agent.
 
     Returns a dict with all context an agent needs to understand and act on the screen.
@@ -580,6 +627,7 @@ def build_llm_context(device: str, include_screenshot: bool = True,
 
 # ── Device health check ──────────────────────────────────────────────────────
 
+
 def device_health(device: str) -> dict:
     """Comprehensive device health check. Returns status for every subsystem."""
     dev = Device(device)
@@ -591,15 +639,19 @@ def device_health(device: str) -> dict:
     # Portal
     portal = {"installed": False, "service_active": False, "http_responding": False}
     try:
-        ps = subprocess.run(["adb", "-s", device, "shell", "pm", "list", "packages"],
-                            capture_output=True, text=True, timeout=5)
+        ps = subprocess.run(
+            ["adb", "-s", device, "shell", "pm", "list", "packages"], capture_output=True, text=True, timeout=5
+        )
         portal["installed"] = "com.ghostinthedroid.portal" in ps.stdout or "com.droidrun.portal" in ps.stdout
     except Exception:
         pass
     try:
-        acc = subprocess.run(["adb", "-s", device, "shell", "settings", "get", "secure",
-                              "enabled_accessibility_services"],
-                             capture_output=True, text=True, timeout=5)
+        acc = subprocess.run(
+            ["adb", "-s", device, "shell", "settings", "get", "secure", "enabled_accessibility_services"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
         portal["service_active"] = "com.ghostinthedroid.portal" in acc.stdout or "com.droidrun.portal" in acc.stdout
     except Exception:
         pass
@@ -646,7 +698,7 @@ def device_health(device: str) -> dict:
     try:
         df = dev.adb("shell", "df", "/data", timeout=5)
         # Parse df output — second line has the values
-        lines = [l for l in df.strip().splitlines() if "/data" in l]
+        lines = [line for line in df.strip().splitlines() if "/data" in line]
         if lines:
             parts = lines[0].split()
             if len(parts) >= 4:
@@ -715,6 +767,7 @@ def device_health(device: str) -> dict:
 
 # ── Wireless ADB ─────────────────────────────────────────────────────────────
 
+
 def get_device_wifi_ip(device: str) -> str | None:
     """Get the WiFi IP address of a USB-connected device."""
     dev = Device(device)
@@ -732,15 +785,14 @@ def wireless_enable(device: str) -> dict:
     if not ip:
         return {"ok": False, "error": "Cannot detect WiFi IP — is WiFi connected?"}
     try:
-        subprocess.run(["adb", "-s", device, "tcpip", "5555"],
-                       capture_output=True, text=True, timeout=5, check=True)
+        subprocess.run(["adb", "-s", device, "tcpip", "5555"], capture_output=True, text=True, timeout=5, check=True)
     except Exception as e:
         return {"ok": False, "error": f"tcpip failed: {e}"}
     import time
+
     time.sleep(2)
     try:
-        result = subprocess.run(["adb", "connect", f"{ip}:5555"],
-                                capture_output=True, text=True, timeout=5)
+        result = subprocess.run(["adb", "connect", f"{ip}:5555"], capture_output=True, text=True, timeout=5)
         if "connected" in result.stdout.lower() or "already" in result.stdout.lower():
             return {"ok": True, "wifi_ip": ip, "wifi_port": 5555}
         return {"ok": False, "error": result.stdout.strip()}
@@ -752,8 +804,7 @@ def wireless_pair(ip: str, port: int, code: str) -> dict:
     """Pair with a device using Wireless Debugging (Android 11+).
     Returns {ok, device_serial}."""
     try:
-        result = subprocess.run(["adb", "pair", f"{ip}:{port}", code],
-                                capture_output=True, text=True, timeout=10)
+        result = subprocess.run(["adb", "pair", f"{ip}:{port}", code], capture_output=True, text=True, timeout=10)
         if "successfully" in result.stdout.lower():
             # Now connect
             return wireless_connect(ip, 5555)
@@ -765,8 +816,7 @@ def wireless_pair(ip: str, port: int, code: str) -> dict:
 def wireless_connect(ip: str, port: int = 5555) -> dict:
     """Connect to a device over WiFi. Returns {ok, device_serial}."""
     try:
-        result = subprocess.run(["adb", "connect", f"{ip}:{port}"],
-                                capture_output=True, text=True, timeout=5)
+        result = subprocess.run(["adb", "connect", f"{ip}:{port}"], capture_output=True, text=True, timeout=5)
         out = result.stdout.strip()
         if "connected" in out.lower() or "already" in out.lower():
             return {"ok": True, "device_serial": f"{ip}:{port}"}
@@ -778,8 +828,7 @@ def wireless_connect(ip: str, port: int = 5555) -> dict:
 def wireless_disconnect(device: str) -> dict:
     """Disconnect a wireless device."""
     try:
-        result = subprocess.run(["adb", "disconnect", device],
-                                capture_output=True, text=True, timeout=5)
+        result = subprocess.run(["adb", "disconnect", device], capture_output=True, text=True, timeout=5)
         return {"ok": True, "message": result.stdout.strip()}
     except Exception as e:
         return {"ok": False, "error": str(e)}
@@ -791,11 +840,16 @@ def wireless_reconnect_all() -> list[dict]:
     try:
         from gitd.models.base import SessionLocal
         from gitd.models.phone import Phone
+
         db = SessionLocal()
-        wifi_phones = db.query(Phone).filter(
-            Phone.connection_type.in_(["wifi", "wireless_debug"]),
-            Phone.wifi_ip.isnot(None),
-        ).all()
+        wifi_phones = (
+            db.query(Phone)
+            .filter(
+                Phone.connection_type.in_(["wifi", "wireless_debug"]),
+                Phone.wifi_ip.isnot(None),
+            )
+            .all()
+        )
         for phone in wifi_phones:
             r = wireless_connect(phone.wifi_ip, phone.wifi_port or 5555)
             results.append({"serial": phone.serial, "ip": phone.wifi_ip, **r})
@@ -806,6 +860,7 @@ def wireless_reconnect_all() -> list[dict]:
 
 
 # ── Structural fingerprint ───────────────────────────────────────────────────
+
 
 def fingerprint_screen(device: str) -> dict:
     """Structural fingerprint of current screen — stable regardless of visual changes.
@@ -823,10 +878,7 @@ def fingerprint_screen(device: str) -> dict:
         "is_launcher": "launcher" in activity.lower() if activity else False,
         "has_keyboard": state.get("keyboardVisible", False),
         "interactive_count": len(elements),
-        "element_signatures": [
-            f"{e.get('class', '')}.{e.get('resource_id', '')}"
-            for e in elements[:20]
-        ],
+        "element_signatures": [f"{e.get('class', '')}.{e.get('resource_id', '')}" for e in elements[:20]],
         "hash": _fingerprint_hash(pkg, activity, elements),
     }
 
@@ -834,8 +886,9 @@ def fingerprint_screen(device: str) -> dict:
 def _fingerprint_hash(pkg: str, activity: str, elements: list[dict]) -> str:
     """Stable hash of screen structure — use for change detection."""
     import hashlib
+
     sig = f"{pkg}|{activity}|{len(elements)}|"
-    sig += "|".join(f"{e.get('class','')}.{e.get('resource_id','')}" for e in elements[:20])
+    sig += "|".join(f"{e.get('class', '')}.{e.get('resource_id', '')}" for e in elements[:20])
     return hashlib.md5(sig.encode()).hexdigest()[:12]
 
 

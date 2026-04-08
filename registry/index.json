@@ -2,7 +2,7 @@
   "generated_at": "2026-04-02T16:46:53Z",
   "skill_count": 4,
   "total_actions": 17,
-  "total_workflows": 8,
+  "total_workflows": 5,
   "skills": [
     {
       "name": "base",
@@ -36,13 +36,13 @@
         }
       ],
       "source": "official",
-      "repo_url": "https://github.com/C-K-Loan/android-agent-skills/tree/main/registry/_base",
+      "repo_url": "https://github.com/ghost-in-the-droid/android-agent/tree/main/registry/_base",
       "last_updated": "2026-04-02T16:46:53Z"
     },
     {
       "name": "instagram",
       "display_name": "Instagram",
-      "description": "Instagram automation skill \u2014 crawl, outreach",
+      "description": "Instagram automation skill \u2014 navigate profiles, search by hashtag",
       "version": "1.0.0",
       "app_package": "com.instagram.android",
       "author": "C-K-Loan",
@@ -53,8 +53,7 @@
         "tap_search"
       ],
       "workflows": [
-        "crawl_hashtag",
-        "send_dm"
+        "crawl_hashtag"
       ],
       "elements_count": 0,
       "tested_on": [
@@ -64,7 +63,7 @@
         }
       ],
       "source": "official",
-      "repo_url": "https://github.com/C-K-Loan/android-agent-skills/tree/main/registry/instagram",
+      "repo_url": "https://github.com/ghost-in-the-droid/android-agent/tree/main/registry/instagram",
       "last_updated": "2026-04-02T16:46:53Z"
     },
     {
@@ -87,13 +86,13 @@
         }
       ],
       "source": "official",
-      "repo_url": "https://github.com/C-K-Loan/android-agent-skills/tree/main/registry/send_gmail_email",
+      "repo_url": "https://github.com/ghost-in-the-droid/android-agent/tree/main/registry/send_gmail_email",
       "last_updated": "2026-04-02T16:46:53Z"
     },
     {
       "name": "tiktok",
       "display_name": "TikTok",
-      "description": "TikTok automation skill \u2014 upload, crawl, outreach, engage, analytics",
+      "description": "TikTok automation skill \u2014 upload, navigate, search, engage",
       "version": "1.0.0",
       "app_package": "com.zhiliaoapp.musically",
       "author": "C-K-Loan",
@@ -108,8 +107,6 @@
       "workflows": [
         "upload_video",
         "crawl_hashtag",
-        "send_dm",
-        "scrape_analytics",
         "engage_fyp"
       ],
       "elements_count": 41,
@@ -124,7 +121,7 @@
         }
       ],
       "source": "official",
-      "repo_url": "https://github.com/C-K-Loan/android-agent-skills/tree/main/registry/tiktok",
+      "repo_url": "https://github.com/ghost-in-the-droid/android-agent/tree/main/registry/tiktok",
       "last_updated": "2026-04-02T16:46:53Z"
     }
   ]

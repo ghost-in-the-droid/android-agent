@@ -37,7 +37,6 @@ Step 4: Detect externally finished processes -> archive
 | `skill_workflow` | `skills/_run_skill.py` | 900s | Run a skill workflow |
 | `skill_action` | `skills/_run_skill.py` | 900s | Run a single action |
 | `app_explore` | `skills/auto_creator.py` | 900s | BFS app exploration |
-| `content_gen` | `agent/agent_core.py` | 3600s (1hr) | LLM content planning |
 
 ## Creating Schedules
 

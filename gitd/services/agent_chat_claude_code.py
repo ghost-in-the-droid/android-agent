@@ -1,12 +1,12 @@
 """Claude Code agent chat provider — real-time streaming with tool call visibility."""
+
 import json
 import os
 import subprocess
 import threading
-import time
 
 from gitd.services.agent_chat import ChatMessage, ChatSession
-from gitd.services.device_context import get_screen_tree, get_phone_state
+from gitd.services.device_context import get_phone_state, get_screen_tree
 
 
 def chat_claude_code(session: ChatSession, user_message: str):
@@ -42,11 +42,21 @@ Keep going until done. Be concise."""
 
     try:
         proc = subprocess.Popen(
-            ["claude", "--print", "--model", session.model or "sonnet",
-             "--output-format", "stream-json", "--verbose",
-             "--dangerously-skip-permissions"],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            text=True, bufsize=1,
+            [
+                "claude",
+                "--print",
+                "--model",
+                session.model or "sonnet",
+                "--output-format",
+                "stream-json",
+                "--verbose",
+                "--dangerously-skip-permissions",
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            bufsize=1,
             cwd=project_dir,
             env={**os.environ, "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"},
         )
@@ -73,7 +83,6 @@ Keep going until done. Be concise."""
 
     processed_idx = 0
     full_text = ""
-    seen_text_len = 0  # track how much text we've already yielded to avoid duplicates
     total_input_tokens = 0
     total_output_tokens = 0
     total_cost = 0.0
@@ -126,15 +135,21 @@ Keep going until done. Be concise."""
                         tool_name = block.get("name", "")
                         tool_args = block.get("input", {})
                         # Strip mcp prefix for display
-                        display_name = tool_name.replace("mcp__android-agent__", "").replace("mcp__playwright__", "pw/").replace("mcp__claude_ai_Gmail__", "gmail/")
-                        session.messages.append(ChatMessage(role="tool_call", tool_name=display_name, tool_args=tool_args, content=""))
+                        display_name = (
+                            tool_name.replace("mcp__android-agent__", "")
+                            .replace("mcp__playwright__", "pw/")
+                            .replace("mcp__claude_ai_Gmail__", "gmail/")
+                        )
+                        session.messages.append(
+                            ChatMessage(role="tool_call", tool_name=display_name, tool_args=tool_args, content="")
+                        )
                         yield {"type": "tool_call", "name": display_name, "args": tool_args}
                         yield {"type": "activity", "content": f"⚡ {display_name}..."}
 
                     elif btype == "tool_result":
                         content_parts = block.get("content", [])
                         result_text = ""
-                        for cp in (content_parts if isinstance(content_parts, list) else []):
+                        for cp in content_parts if isinstance(content_parts, list) else []:
                             if isinstance(cp, dict) and cp.get("type") == "text":
                                 result_text += cp.get("text", "")
                             elif isinstance(cp, str):

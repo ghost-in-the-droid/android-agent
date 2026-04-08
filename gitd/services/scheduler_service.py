@@ -12,6 +12,7 @@ Public API:
 import logging
 import os
 import signal
+import subprocess
 import threading
 import time
 from datetime import datetime
@@ -25,6 +26,7 @@ from gitd.services._job_helpers import (
     archive_to_runs,
     finish_job,
 )
+
 try:
     from gitd.services.content_pipeline import _content_plan_tick
 except ImportError:
@@ -59,10 +61,15 @@ def _wifi_reconnect_tick(db):
 
     try:
         from gitd.models.phone import Phone
-        wifi_phones = db.query(Phone).filter(
-            Phone.connection_type.in_(["wifi", "wireless_debug"]),
-            Phone.wifi_ip.isnot(None),
-        ).all()
+
+        wifi_phones = (
+            db.query(Phone)
+            .filter(
+                Phone.connection_type.in_(["wifi", "wireless_debug"]),
+                Phone.wifi_ip.isnot(None),
+            )
+            .all()
+        )
         if not wifi_phones:
             return
 
@@ -77,8 +84,7 @@ def _wifi_reconnect_tick(db):
             # Device dropped — try reconnect
             logger.info("WiFi reconnect: %s (%s)", phone.serial, wifi_serial)
             try:
-                r = subprocess.run(["adb", "connect", wifi_serial],
-                                   capture_output=True, text=True, timeout=5)
+                r = subprocess.run(["adb", "connect", wifi_serial], capture_output=True, text=True, timeout=5)
                 if "connected" in r.stdout.lower():
                     logger.info("WiFi reconnected: %s", wifi_serial)
                 else:
@@ -100,9 +106,7 @@ def _scheduler_tick():
             now = datetime.now()
 
             # 0. Clean orphaned running jobs (dead PIDs not in _phone_procs)
-            for o in db.execute(
-                text("SELECT * FROM job_queue WHERE status = 'running'")
-            ).mappings().all():
+            for o in db.execute(text("SELECT * FROM job_queue WHERE status = 'running'")).mappings().all():
                 o = dict(o)
                 phone = o.get("phone_serial")
                 if phone in _phone_procs and _phone_procs[phone].get("job_id") == o["id"]:
@@ -118,13 +122,15 @@ def _scheduler_tick():
                 if alive:
                     max_dur = o.get("max_duration_s") or 3600
                     if o.get("started_at"):
-                        elapsed = (
-                            now - datetime.fromisoformat(o["started_at"])
-                        ).total_seconds()
+                        elapsed = (now - datetime.fromisoformat(o["started_at"])).total_seconds()
                         if elapsed > max_dur:
                             logger.warning(
                                 "Orphaned job #%d (%s, PID %s) -- killing (elapsed %ds > max %ds)",
-                                o["id"], o["job_type"], pid, int(elapsed), max_dur,
+                                o["id"],
+                                o["job_type"],
+                                pid,
+                                int(elapsed),
+                                max_dur,
                             )
                             try:
                                 os.kill(pid, signal.SIGTERM)
@@ -137,9 +143,7 @@ def _scheduler_tick():
                                 os.waitpid(pid, os.WNOHANG)
                             except (ChildProcessError, OSError):
                                 pass
-                            log_file = (
-                                o.get("log_file") or f"/tmp/sched_job_{o['id']}.log"
-                            )
+                            log_file = o.get("log_file") or f"/tmp/sched_job_{o['id']}.log"
                             summary = _parse_job_summary(o["id"], log_path=log_file)
                             dur_str = f"{int(elapsed / 60)}m"
                             msg = f"T {dur_str}"
@@ -151,7 +155,9 @@ def _scheduler_tick():
                 if not alive:
                     logger.info(
                         "Orphaned job #%d (%s, PID %s) -- archiving",
-                        o["id"], o["job_type"], pid,
+                        o["id"],
+                        o["job_type"],
+                        pid,
                     )
                     orphan_summary = ""
                     log_file = o.get("log_file") or f"/tmp/sched_job_{o['id']}.log"
@@ -160,9 +166,7 @@ def _scheduler_tick():
                             all_lines = lf.readlines()
                         for line in reversed(all_lines[-10:]):
                             if "[done]" in line:
-                                orphan_summary = (
-                                    line.strip().split("[done]")[-1].strip()
-                                )
+                                orphan_summary = line.strip().split("[done]")[-1].strip()
                                 break
                     except (FileNotFoundError, OSError):
                         pass
@@ -176,9 +180,7 @@ def _scheduler_tick():
                     archive_to_runs(db, o["id"])
 
             # 1. Enqueue due scheduled jobs
-            scheds = db.execute(
-                text("SELECT * FROM scheduled_jobs WHERE is_enabled = 1")
-            ).mappings().all()
+            scheds = db.execute(text("SELECT * FROM scheduled_jobs WHERE is_enabled = 1")).mappings().all()
             for s in scheds:
                 s = dict(s)
                 if _is_job_due(s, now, db):
@@ -195,10 +197,7 @@ def _scheduler_tick():
             # 2. Collect all phones with pending/running work
             phones = set()
             for row in db.execute(
-                text(
-                    "SELECT DISTINCT phone_serial FROM job_queue "
-                    "WHERE status IN ('pending','running')"
-                )
+                text("SELECT DISTINCT phone_serial FROM job_queue WHERE status IN ('pending','running')")
             ).fetchall():
                 phones.add(row[0])
             for p in list(_phone_procs.keys()):
@@ -211,17 +210,19 @@ def _scheduler_tick():
             for phone, entry in list(_phone_procs.items()):
                 if entry["proc"].poll() is not None:
                     continue
-                job = db.execute(
-                    text("SELECT * FROM job_queue WHERE id = :id"),
-                    {"id": entry["job_id"]},
-                ).mappings().first()
+                job = (
+                    db.execute(
+                        text("SELECT * FROM job_queue WHERE id = :id"),
+                        {"id": entry["job_id"]},
+                    )
+                    .mappings()
+                    .first()
+                )
                 if job:
                     job = dict(job)
                     max_dur = job.get("max_duration_s") or 3600
                     if job.get("started_at"):
-                        elapsed = (
-                            now - datetime.fromisoformat(job["started_at"])
-                        ).total_seconds()
+                        elapsed = (now - datetime.fromisoformat(job["started_at"])).total_seconds()
                         if elapsed > max_dur:
                             summary = _parse_job_summary(entry["job_id"], entry)
                             dur_str = f"{int(elapsed / 60)}m"
@@ -243,10 +244,13 @@ def _scheduler_tick():
                     summary = _parse_job_summary(jid, entry)
                     logger.info(
                         "Job #%d finished in step4 (rc=%s), summary=%r",
-                        jid, proc.returncode, summary,
+                        jid,
+                        proc.returncode,
+                        summary,
                     )
                     finish_job(
-                        db, jid,
+                        db,
+                        jid,
                         "completed" if proc.returncode == 0 else "failed",
                         exit_code=proc.returncode,
                         error_msg=summary or None,

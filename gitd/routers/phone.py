@@ -1,9 +1,8 @@
 """Phone admin routes: devices, nickname, input, tap, type, back, key, etc."""
 
-import base64
-import io
 import re
 import subprocess
+import time as _time
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import text
@@ -13,7 +12,6 @@ from gitd.models.base import get_db
 
 router = APIRouter(prefix="/api/phone", tags=["phone"])
 
-import time as _time
 _last_wifi_reconnect: float = 0
 
 
@@ -30,18 +28,15 @@ def _try_wifi_reconnect(db: Session):
         connected = {line.split()[0] for line in out.strip().split("\n")[1:] if "device" in line}
 
         # Get known WiFi devices from DB
-        rows = db.execute(text(
-            "SELECT wifi_ip, wifi_port FROM phones WHERE wifi_ip IS NOT NULL AND wifi_port IS NOT NULL"
-        )).fetchall()
+        rows = db.execute(
+            text("SELECT wifi_ip, wifi_port FROM phones WHERE wifi_ip IS NOT NULL AND wifi_port IS NOT NULL")
+        ).fetchall()
 
         for ip, port in rows:
             addr = f"{ip}:{port}"
             if addr not in connected:
                 # Try connecting in background (non-blocking, 2s timeout)
-                subprocess.Popen(
-                    ["adb", "connect", addr],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                )
+                subprocess.Popen(["adb", "connect", addr], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         pass
 
@@ -76,19 +71,24 @@ def phone_devices(db: Session = Depends(get_db)):
 
             if is_wifi:
                 # For WiFi devices, also update the USB entry if we know the model
-                db.execute(text("""
+                db.execute(
+                    text("""
                     UPDATE phones SET wifi_ip=:ip, wifi_port=:port, connection_type=:conn
                     WHERE model=:model AND wifi_ip IS NULL
-                """), {"ip": wifi_ip, "port": wifi_port, "conn": conn_type, "model": model})
+                """),
+                    {"ip": wifi_ip, "port": wifi_port, "conn": conn_type, "model": model},
+                )
 
-            db.execute(text("""
+            db.execute(
+                text("""
                 INSERT INTO phones (serial, model, first_seen, last_seen, wifi_ip, wifi_port, connection_type)
                 VALUES (:serial, :model, :now, :now, :ip, :port, :conn)
                 ON CONFLICT(serial) DO UPDATE SET model=:model, last_seen=:now,
                     wifi_ip=COALESCE(:ip, wifi_ip), wifi_port=COALESCE(:port, wifi_port),
                     connection_type=:conn
-            """), {"serial": serial, "model": model, "now": now_str,
-                   "ip": wifi_ip, "port": wifi_port, "conn": conn_type})
+            """),
+                {"serial": serial, "model": model, "now": now_str, "ip": wifi_ip, "port": wifi_port, "conn": conn_type},
+            )
             db.commit()
             devices.append({"serial": serial, "model": model or serial, "connection": conn_type})
 
@@ -158,6 +158,7 @@ def phone_input(data: dict = Body({})):
 def api_phone_elements(device: str):
     """Get interactive UI elements from device screen."""
     from gitd.services.device_context import get_interactive_elements
+
     elements = get_interactive_elements(device)
     return {"elements": elements, "count": len(elements)}
 
@@ -290,6 +291,7 @@ def api_phone_swipe(data: dict = Body({})):
 def api_phone_screenshot(device: str):
     """Take screenshot, return as base64 JPEG."""
     from gitd.services.device_context import screenshot
+
     result = screenshot(device)
     return {"ok": True, **result}
 
@@ -298,6 +300,7 @@ def api_phone_screenshot(device: str):
 def api_phone_screenshot_annotated(device: str):
     """Take screenshot with Portal's numbered element overlay."""
     from gitd.services.device_context import screenshot_annotated
+
     result = screenshot_annotated(device)
     return {"ok": True, **result}
 
@@ -306,6 +309,7 @@ def api_phone_screenshot_annotated(device: str):
 def api_phone_screenshot_crop(device: str, x1: int = 0, y1: int = 0, x2: int = 1080, y2: int = 2400):
     """Take a cropped screenshot of a specific screen region."""
     from gitd.services.device_context import screenshot_cropped
+
     result = screenshot_cropped(device, x1, y1, x2, y2)
     return {"ok": True, **result}
 
@@ -314,6 +318,7 @@ def api_phone_screenshot_crop(device: str, x1: int = 0, y1: int = 0, x2: int = 1
 def api_phone_xml(device: str):
     """Dump current UI XML."""
     from gitd.services.device_context import get_screen_xml
+
     xml = get_screen_xml(device)
     return {"ok": True, "xml": xml[:10000], "length": len(xml)}
 
@@ -322,13 +327,15 @@ def api_phone_xml(device: str):
 def api_phone_screen_tree(device: str):
     """Get indented UI hierarchy optimized for LLM consumption."""
     from gitd.services.device_context import get_screen_tree
+
     return {"ok": True, "tree": get_screen_tree(device)}
 
 
 @router.get("/ocr/{device}", summary="OCR Phone Screen")
 def api_phone_ocr(device: str, x1: int = 0, y1: int = 0, x2: int = 0, y2: int = 0):
     """OCR the screen (or a region if x1/y1/x2/y2 provided). Returns text with positions."""
-    from gitd.services.device_context import ocr_screen, ocr_region
+    from gitd.services.device_context import ocr_region, ocr_screen
+
     if x1 or y1 or x2 or y2:
         texts = ocr_region(device, x1, y1, x2, y2)
     else:
@@ -340,6 +347,7 @@ def api_phone_ocr(device: str, x1: int = 0, y1: int = 0, x2: int = 0, y2: int = 
 def api_phone_classify(device: str):
     """Classify current screen type (home, search, dialog, error, etc.)."""
     from gitd.services.device_context import classify_screen
+
     return classify_screen(device)
 
 
@@ -392,6 +400,7 @@ def api_phone_packages(device: str, all: str = ""):
 def api_phone_health(device: str):
     """Comprehensive health check — portal, wifi, battery, storage, apps."""
     from gitd.services.device_context import device_health
+
     return device_health(device)
 
 
@@ -399,12 +408,14 @@ def api_phone_health(device: str):
 def api_phone_health_fix(device: str, data: dict = Body({})):
     """Fix a specific device issue (portal_service, portal_install, screen_capture)."""
     from gitd.routers.streaming import portal_fix
+
     issue = data.get("issue", "")
     if issue in ("portal_service", "portal_install", "portal"):
         return portal_fix(device)
     if issue == "screen_wake":
-        subprocess.run(["adb", "-s", device, "shell", "input", "keyevent", "KEYCODE_WAKEUP"],
-                       capture_output=True, timeout=3)
+        subprocess.run(
+            ["adb", "-s", device, "shell", "input", "keyevent", "KEYCODE_WAKEUP"], capture_output=True, timeout=3
+        )
         return {"ok": True, "message": "Screen woken"}
     return {"ok": False, "error": f"Unknown issue: {issue}"}
 
@@ -416,6 +427,7 @@ def api_phone_health_fix(device: str, data: dict = Body({})):
 def api_wireless_enable(data: dict = Body({}), db: Session = Depends(get_db)):
     """Switch USB device to WiFi mode."""
     from gitd.services.device_context import wireless_enable
+
     device = data.get("device", "")
     if not device:
         raise HTTPException(status_code=400, detail="device serial required")
@@ -423,6 +435,7 @@ def api_wireless_enable(data: dict = Body({}), db: Session = Depends(get_db)):
     if result.get("ok"):
         # Persist in DB
         from gitd.models.phone import Phone
+
         phone = db.get(Phone, device)
         if phone:
             phone.wifi_ip = result["wifi_ip"]
@@ -436,6 +449,7 @@ def api_wireless_enable(data: dict = Body({}), db: Session = Depends(get_db)):
 def api_wireless_pair(data: dict = Body({})):
     """Pair with Android 11+ Wireless Debugging."""
     from gitd.services.device_context import wireless_pair
+
     ip = data.get("ip", "")
     port = data.get("port", 5555)
     code = data.get("code", "")
@@ -448,6 +462,7 @@ def api_wireless_pair(data: dict = Body({})):
 def api_wireless_connect(data: dict = Body({})):
     """Connect to a WiFi device by IP."""
     from gitd.services.device_context import wireless_connect
+
     ip = data.get("ip", "")
     port = data.get("port", 5555)
     if not ip:
@@ -459,6 +474,7 @@ def api_wireless_connect(data: dict = Body({})):
 def api_wireless_disconnect(data: dict = Body({})):
     """Disconnect a wireless device."""
     from gitd.services.device_context import wireless_disconnect
+
     device = data.get("device", "")
     if not device:
         raise HTTPException(status_code=400, detail="device required")
@@ -472,6 +488,7 @@ def api_wireless_disconnect(data: dict = Body({})):
 def api_phone_fingerprint(device: str):
     """Structural fingerprint of current screen — stable regardless of visual changes."""
     from gitd.services.device_context import fingerprint_screen
+
     return fingerprint_screen(device)
 
 
@@ -479,5 +496,6 @@ def api_phone_fingerprint(device: str):
 def api_phone_fingerprint_validate(device: str, data: dict = Body({})):
     """Compare current screen against an expected fingerprint."""
     from gitd.services.device_context import validate_fingerprint
+
     expected = data.get("expected", {})
     return validate_fingerprint(device, expected)

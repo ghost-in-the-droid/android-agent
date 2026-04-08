@@ -185,7 +185,7 @@ adb -s <serial> shell input keyevent KEYCODE_WAKEUP
 
 ### Tables not loading / slow
 
-Large datasets (10K+ influencers) cause slow initial loads. The dashboard uses virtual scrolling. If completely broken, check browser console.
+Large datasets cause slow initial loads. The dashboard uses virtual scrolling. If completely broken, check browser console.
 
 ## Scheduler
 

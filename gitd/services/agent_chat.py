@@ -6,6 +6,7 @@ Supports multiple LLM providers:
   - openrouter: Any model via OpenRouter
   - ollama: Local models
 """
+
 import json
 import logging
 import os
@@ -16,7 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from gitd.services.agent_tools import TOOLS, execute_tool, get_screenshot_b64
-from gitd.services.device_context import get_screen_tree, get_phone_state
+from gitd.services.device_context import get_phone_state, get_screen_tree
 
 log = logging.getLogger(__name__)
 
@@ -90,46 +91,27 @@ _active_procs: dict[str, subprocess.Popen] = {}  # session_id -> running subproc
 
 
 def stop_agent(session_id: str):
-    """Kill the running agent subprocess AND all its children (MCP server, ADB commands)."""
-    import signal
+    """Kill the running agent subprocess AND all its children."""
     proc = _active_procs.pop(session_id, None)
-    if not proc or proc.poll() is not None:
-        return
-    pid = proc.pid
-    # Kill children first (MCP server, ADB commands), then the parent
-    try:
-        import psutil
-        parent = psutil.Process(pid)
-        for child in parent.children(recursive=True):
-            try:
-                child.kill()
-            except psutil.NoSuchProcess:
-                pass
-        parent.kill()
-    except ImportError:
-        # No psutil — fall back to /proc walk
+    if proc:
         try:
-            # Find all children via /proc
-            for p in os.listdir("/proc"):
-                if not p.isdigit():
-                    continue
-                try:
-                    with open(f"/proc/{p}/stat") as f:
-                        ppid = int(f.read().split()[3])
-                    if ppid == pid:
-                        os.kill(int(p), signal.SIGKILL)
-                except (FileNotFoundError, PermissionError, ValueError, IndexError):
-                    pass
+            proc.kill()
         except Exception:
             pass
-        proc.kill()
+    # Nuclear option: kill ALL claude --print processes (only agent chat uses this)
+    # This catches cases where the PID changed (node re-exec) or psutil can't find it
+    try:
+        subprocess.run(
+            ["pkill", "-9", "-f", "claude.*--print.*--output-format.*stream-json"],
+            capture_output=True,
+            timeout=3,
+        )
     except Exception:
-        proc.kill()
-    log.info("Killed agent process tree for session %s (pid=%s)", session_id, pid)
+        pass
+    log.info("Stopped agent for session %s", session_id)
 
 
-def create_session(device: str, provider: str = "claude-code", model: str = "",
-                   system_prompt: str = "") -> ChatSession:
+def create_session(device: str, provider: str = "claude-code", model: str = "", system_prompt: str = "") -> ChatSession:
     sid = str(uuid.uuid4())[:8]
     default_model = PROVIDERS.get(provider, {}).get("models", ["sonnet"])[0] if not model else model
     session = ChatSession(id=sid, device=device, provider=provider, model=default_model or "sonnet")
@@ -142,8 +124,10 @@ def get_session(sid: str) -> ChatSession | None:
 
 
 def list_sessions() -> list[dict]:
-    return [{"id": s.id, "device": s.device, "provider": s.provider,
-             "model": s.model, "messages": len(s.messages)} for s in _sessions.values()]
+    return [
+        {"id": s.id, "device": s.device, "provider": s.provider, "model": s.model, "messages": len(s.messages)}
+        for s in _sessions.values()
+    ]
 
 
 def delete_session(sid: str):
@@ -151,6 +135,7 @@ def delete_session(sid: str):
 
 
 # ── Persistence (DB) ───────────────────────────────────────────────────────
+
 
 def _utcnow_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -191,15 +176,17 @@ def save_session_to_db(session: ChatSession):
         # Only insert messages that haven't been saved yet
         existing_count = db.query(ChatMessageRow).filter_by(conversation_id=session.id).count()
         for msg in session.messages[existing_count:]:
-            db.add(ChatMessageRow(
-                conversation_id=session.id,
-                role=msg.role,
-                content=msg.content or "",
-                tool_name=msg.tool_name or "",
-                tool_args=json.dumps(msg.tool_args) if msg.tool_args else "{}",
-                tool_id=msg.tool_id or "",
-                created_at=now,
-            ))
+            db.add(
+                ChatMessageRow(
+                    conversation_id=session.id,
+                    role=msg.role,
+                    content=msg.content or "",
+                    tool_name=msg.tool_name or "",
+                    tool_args=json.dumps(msg.tool_args) if msg.tool_args else "{}",
+                    tool_id=msg.tool_id or "",
+                    created_at=now,
+                )
+            )
 
         db.commit()
     except Exception:
@@ -248,12 +235,7 @@ def load_conversation(conversation_id: str) -> ChatSession | None:
         if not conv:
             return None
 
-        rows = (
-            db.query(ChatMessageRow)
-            .filter_by(conversation_id=conversation_id)
-            .order_by(ChatMessageRow.id)
-            .all()
-        )
+        rows = db.query(ChatMessageRow).filter_by(conversation_id=conversation_id).order_by(ChatMessageRow.id).all()
 
         messages = []
         api_messages = []
@@ -264,14 +246,16 @@ def load_conversation(conversation_id: str) -> ChatSession | None:
                     tool_args = json.loads(r.tool_args)
                 except (json.JSONDecodeError, TypeError):
                     pass
-            messages.append(ChatMessage(
-                role=r.role,
-                content=r.content or "",
-                tool_name=r.tool_name or "",
-                tool_args=tool_args,
-                tool_id=r.tool_id or "",
-                image_b64="",
-            ))
+            messages.append(
+                ChatMessage(
+                    role=r.role,
+                    content=r.content or "",
+                    tool_name=r.tool_name or "",
+                    tool_args=tool_args,
+                    tool_id=r.tool_id or "",
+                    image_b64="",
+                )
+            )
 
             # Rebuild api_messages for anthropic provider
             if conv.provider == "anthropic":
@@ -323,6 +307,7 @@ def chat_turn(session: ChatSession, user_message: str):
         yield from _chat_anthropic(session, user_message)
     elif provider == "claude-code":
         from gitd.services.agent_chat_claude_code import chat_claude_code
+
         yield from chat_claude_code(session, user_message)
     elif provider == "openrouter":
         yield from _chat_openrouter(session, user_message)
@@ -333,6 +318,7 @@ def chat_turn(session: ChatSession, user_message: str):
 
 
 # ── Claude Code (free, local CLI) ────────────────────────────────────────────
+
 
 def _chat_claude_code(session: ChatSession, user_message: str):
     """Use claude CLI with MCP android-agent tools — streams output line-by-line."""
@@ -357,9 +343,20 @@ def _chat_claude_code(session: ChatSession, user_message: str):
 
 The user wants: {user_message}
 
-You have access to MCP android-agent tools. Use them to accomplish the task.
-After each action, check the screen to verify it worked.
-Keep going until the task is done or you need user input."""
+IMPORTANT: Use the MCP android-agent tools for ALL phone interactions. Never use Bash/shell for ADB — the MCP tools handle everything. Bash is only for non-phone tasks.
+Key tools:
+- get_screen_tree: read what's on screen (ALWAYS call this before tapping)
+- tap_element(idx): tap by element index from the tree
+- tap(x,y): tap by coordinates
+- swipe(x1,y1,x2,y2): scroll/swipe
+- type_text(text): type into focused field
+- screenshot: see the screen visually
+- search_apps(query): find apps by name
+- launch_app(package): open an app
+- press_back / press_home: navigation
+
+After each action the screen tree is auto-included in the result.
+Keep going until the task is done."""
 
     yield {"type": "activity", "content": "🧠 Starting agent..."}
 
@@ -367,11 +364,20 @@ Keep going until the task is done or you need user input."""
     # The .mcp.json in the project root gives it android-agent tools
     try:
         proc = subprocess.Popen(
-            ["claude", "--print", "--model", session.model or "sonnet",
-             "--output-format", "stream-json",
-             "--dangerously-skip-permissions"],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            text=True, bufsize=1,
+            [
+                "claude",
+                "--print",
+                "--model",
+                session.model or "sonnet",
+                "--output-format",
+                "stream-json",
+                "--dangerously-skip-permissions",
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
             cwd=str(__import__("pathlib").Path(__file__).parent.parent.parent),
             env={**os.environ, "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"},
         )
@@ -386,7 +392,6 @@ Keep going until the task is done or you need user input."""
 
     full_text = ""
     current_tool = ""
-    last_activity_time = __import__("time").time()
 
     try:
         for raw_line in proc.stdout:
@@ -410,7 +415,9 @@ Keep going until the task is done or you need user input."""
                         elif block.get("type") == "tool_use":
                             current_tool = block.get("name", "")
                             args = block.get("input", {})
-                            session.messages.append(ChatMessage(role="tool_call", tool_name=current_tool, tool_args=args, content=""))
+                            session.messages.append(
+                                ChatMessage(role="tool_call", tool_name=current_tool, tool_args=args, content="")
+                            )
                             yield {"type": "tool_call", "name": current_tool, "args": args}
                             yield {"type": "activity", "content": f"⚡ {current_tool}..."}
 
@@ -446,7 +453,9 @@ Keep going until the task is done or you need user input."""
                         if block.get("type") == "text":
                             result_text += block.get("text", "")
                     if result_text:
-                        session.messages.append(ChatMessage(role="tool_result", content=result_text[:500], tool_name=current_tool))
+                        session.messages.append(
+                            ChatMessage(role="tool_result", content=result_text[:500], tool_name=current_tool)
+                        )
                         yield {"type": "tool_result", "name": current_tool, "result": result_text[:500]}
                     yield {"type": "activity", "content": "🤔 Thinking..."}
 
@@ -473,9 +482,11 @@ Keep going until the task is done or you need user input."""
         yield {"type": "activity", "content": "⏳ Fallback mode..."}
         try:
             proc2 = subprocess.run(
-                ["claude", "--print", "--model", session.model or "sonnet",
-                 "--dangerously-skip-permissions"],
-                input=prompt, capture_output=True, text=True, timeout=300,
+                ["claude", "--print", "--model", session.model or "sonnet", "--dangerously-skip-permissions"],
+                input=prompt,
+                capture_output=True,
+                text=True,
+                timeout=300,
                 cwd=str(__import__("pathlib").Path(__file__).parent.parent.parent),
                 env={**os.environ, "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"},
             )
@@ -491,6 +502,7 @@ Keep going until the task is done or you need user input."""
 
 
 # ── Anthropic API (native tool_use) ──────────────────────────────────────────
+
 
 def _chat_anthropic(session: ChatSession, user_message: str):
     """Use Anthropic API with native tool calling."""
@@ -527,7 +539,11 @@ def _chat_anthropic(session: ChatSession, user_message: str):
                 tool_args = dict(block.input)
                 tool_args.setdefault("device", session.device)
 
-                session.messages.append(ChatMessage(role="tool_call", tool_name=tool_name, tool_args=tool_args, tool_id=block.id, content=""))
+                session.messages.append(
+                    ChatMessage(
+                        role="tool_call", tool_name=tool_name, tool_args=tool_args, tool_id=block.id, content=""
+                    )
+                )
                 yield {"type": "tool_call", "name": tool_name, "args": tool_args}
 
                 result = execute_tool(tool_name, tool_args)
@@ -535,7 +551,11 @@ def _chat_anthropic(session: ChatSession, user_message: str):
                 if tool_name in ("screenshot", "screenshot_annotated", "screenshot_cropped"):
                     image_b64 = get_screenshot_b64(tool_args.get("device", session.device)) or ""
 
-                session.messages.append(ChatMessage(role="tool_result", content=result, tool_name=tool_name, tool_id=block.id, image_b64=image_b64))
+                session.messages.append(
+                    ChatMessage(
+                        role="tool_result", content=result, tool_name=tool_name, tool_id=block.id, image_b64=image_b64
+                    )
+                )
                 yield {"type": "tool_result", "name": tool_name, "result": result[:500]}
                 if image_b64:
                     yield {"type": "screenshot", "image": image_b64}
@@ -553,6 +573,7 @@ def _chat_anthropic(session: ChatSession, user_message: str):
 
 # ── OpenRouter ───────────────────────────────────────────────────────────────
 
+
 def _chat_openrouter(session: ChatSession, user_message: str):
     """Use OpenRouter with OpenAI-compatible tool calling."""
     from openai import OpenAI
@@ -565,8 +586,13 @@ def _chat_openrouter(session: ChatSession, user_message: str):
     )
 
     # Convert tools to OpenAI format
-    oai_tools = [{"type": "function", "function": {"name": t["name"], "description": t["description"],
-                  "parameters": t["input_schema"]}} for t in TOOLS]
+    oai_tools = [
+        {
+            "type": "function",
+            "function": {"name": t["name"], "description": t["description"], "parameters": t["input_schema"]},
+        }
+        for t in TOOLS
+    ]
 
     # Build messages
     context = ""
@@ -601,7 +627,9 @@ def _chat_openrouter(session: ChatSession, user_message: str):
                 tool_args = json.loads(tc.function.arguments)
                 tool_args.setdefault("device", session.device)
 
-                session.messages.append(ChatMessage(role="tool_call", tool_name=tool_name, tool_args=tool_args, content=""))
+                session.messages.append(
+                    ChatMessage(role="tool_call", tool_name=tool_name, tool_args=tool_args, content="")
+                )
                 yield {"type": "tool_call", "name": tool_name, "args": tool_args}
 
                 result = execute_tool(tool_name, tool_args)
@@ -615,6 +643,7 @@ def _chat_openrouter(session: ChatSession, user_message: str):
 
 
 # ── Ollama ───────────────────────────────────────────────────────────────────
+
 
 def _chat_ollama(session: ChatSession, user_message: str):
     """Use local Ollama model."""
@@ -634,14 +663,18 @@ def _chat_ollama(session: ChatSession, user_message: str):
     system = DEFAULT_SYSTEM.replace("{tool_list}", tool_list)
 
     try:
-        r = requests.post("http://localhost:11434/api/chat", json={
-            "model": session.model or "llama3",
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": f"{context}Device: {session.device}\n\n{user_message}"},
-            ],
-            "stream": False,
-        }, timeout=120)
+        r = requests.post(
+            "http://localhost:11434/api/chat",
+            json={
+                "model": session.model or "llama3",
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": f"{context}Device: {session.device}\n\n{user_message}"},
+                ],
+                "stream": False,
+            },
+            timeout=120,
+        )
         reply = r.json().get("message", {}).get("content", "")
 
         if reply:
@@ -650,7 +683,8 @@ def _chat_ollama(session: ChatSession, user_message: str):
 
             # Parse tool calls from response (same format as claude-code)
             import re
-            tool_pattern = re.compile(r'```tool\s*\n(.*?)\n```', re.DOTALL)
+
+            tool_pattern = re.compile(r"```tool\s*\n(.*?)\n```", re.DOTALL)
             for match in tool_pattern.finditer(reply):
                 try:
                     call = json.loads(match.group(1).strip())
@@ -670,6 +704,7 @@ def _chat_ollama(session: ChatSession, user_message: str):
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _build_vision_content(session: ChatSession, text: str) -> list:
     """Build user content with screenshot for vision-capable providers."""
     content = []
@@ -683,7 +718,9 @@ def _build_vision_content(session: ChatSession, text: str) -> list:
         try:
             state = get_phone_state(session.device)
             if state:
-                content.append({"type": "text", "text": f"[App: {state.get('currentApp', '')} ({state.get('packageName', '')})]"})
+                content.append(
+                    {"type": "text", "text": f"[App: {state.get('currentApp', '')} ({state.get('packageName', '')})]"}
+                )
         except Exception:
             pass
         try:

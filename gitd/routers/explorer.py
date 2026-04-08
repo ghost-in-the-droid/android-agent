@@ -1,20 +1,15 @@
 """App Explorer routes: start/stop exploration, status, runs, screenshots."""
 
 import json
-import os
 import shutil
-import signal
 import subprocess as _subprocess
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import FileResponse
-from sqlalchemy import text
-from sqlalchemy.orm import Session
 
 from gitd.config import settings
-from gitd.models.base import get_db
 
 router = APIRouter(prefix="/api/explorer", tags=["explorer"])
 
@@ -52,17 +47,31 @@ def explorer_start(data: dict = Body({})):
     # Start directly as subprocess
     log_file = f"/tmp/explorer_{package.replace('.', '_')}.log"
     cmd = [
-        "python3", "-u", str(_SCRIPT),
-        "--package", package, "--device", device,
-        "--max-depth", str(max_depth), "--max-states", str(max_states),
-        "--settle", str(settle), "--output", output_dir,
+        "python3",
+        "-u",
+        str(_SCRIPT),
+        "--package",
+        package,
+        "--device",
+        device,
+        "--max-depth",
+        str(max_depth),
+        "--max-states",
+        str(max_states),
+        "--settle",
+        str(settle),
+        "--output",
+        output_dir,
     ]
     log_f = open(log_file, "w")
-    proc = _subprocess.Popen(cmd, stdout=log_f, stderr=_subprocess.STDOUT,
-                             cwd=str(_PROJECT_DIR))
+    proc = _subprocess.Popen(cmd, stdout=log_f, stderr=_subprocess.STDOUT, cwd=str(_PROJECT_DIR))
     _active_proc = {
-        "proc": proc, "pid": proc.pid, "package": package,
-        "device": device, "log_file": log_file, "output_dir": output_dir,
+        "proc": proc,
+        "pid": proc.pid,
+        "package": package,
+        "device": device,
+        "log_file": log_file,
+        "output_dir": output_dir,
         "max_states": max_states,
     }
     return {"ok": True, "pid": proc.pid, "output_dir": output_dir}

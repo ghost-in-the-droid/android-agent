@@ -66,7 +66,7 @@ Define **skills** for any app, run them from the dashboard or API, scale across 
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/ghost-in-the-droid/ghost-in-the-droid.git
+git clone https://github.com/ghost-in-the-droid/android-agent.git
 cd ghost-in-the-droid
 
 # 2. Install Python dependencies
@@ -194,21 +194,20 @@ android-agent skill remove tiktok
 android-agent skill validate ./my-skill/
 ```
 
-The registry is hosted at [ghost-in-the-droid/skills](https://github.com/ghost-in-the-droid/skills). Community skills are auto-discovered nightly from repos tagged `android-agent-skill`.
+The skill registry lives in [`registry/`](registry/) in this repo. Community skills are auto-discovered nightly from repos tagged `android-agent-skill`.
 
 ## Teach the Ghost a New App
 
 Two ways to forge a skill:
 
 **Community skill** (your own repo):
-1. Use the [skill template](https://github.com/ghost-in-the-droid/skill-template) → "Use this template"
-2. Fill in `skill.yaml`, `elements.yaml`, actions, workflows
-3. Tag your repo with the `android-agent-skill` topic
-4. It appears on the hub automatically (nightly scraper)
+1. Create a new repo with `skill.yaml`, `elements.yaml`, actions, workflows
+2. Tag your repo with the `android-agent-skill` topic
+3. It appears on the hub automatically (nightly scraper)
 
-**Official skill** (PR to registry):
+**Official skill** (PR to this repo):
 1. Build and test as a community skill first
-2. Open a PR to [ghost-in-the-droid/skills](https://github.com/ghost-in-the-droid/skills)
+2. Open a PR adding your skill to [`registry/`](registry/)
 3. CI validates, maintainer reviews, gets "Official" badge
 
 Each skill needs:

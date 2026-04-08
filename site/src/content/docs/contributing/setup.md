@@ -14,8 +14,8 @@ This guide covers setting up a development environment for contributing to Ghost
 ## Install from Source
 
 ```bash
-git clone https://github.com/[org]/android-agent.git
-cd android-agent
+git clone https://github.com/ghost-in-the-droid/android-agent.git
+cd ghost-in-the-droid
 
 # Install with dev dependencies
 pip install -e ".[dev]"
@@ -42,7 +42,7 @@ android-agent/
   run.py                              # Entry point -> http://localhost:5055
   pyproject.toml                      # Package config (pip install -e .)
   gitd/                   # All application code (54 Python files)
-    server.py                         # Flask API + scheduler (132 routes, ~4500 LoC)
+    server.py                         # Flask API + scheduler (113 routes, ~4500 LoC)
     db.py                             # SQLite ORM (~2000 LoC, 20+ tables)
     bots/
       common/
@@ -70,7 +70,7 @@ android-agent/
       emulators.py                    # Emulator Flask Blueprint
     tools/                            # TTS, overlay, export, dashboard check
     static/
-      dashboard.html                  # Main SPA (14 tabs, ~400K)
+      dashboard.html                  # Main SPA (9 tabs, ~400K)
   data/                               # Runtime data
     gitd.db                      # SQLite database (WAL mode)
     profile_screenshots/              # Crawled profile images
@@ -84,7 +84,7 @@ android-agent/
 
 | File | LoC | What It Does |
 |------|-----|-------------|
-| `server.py` | ~4500 | Flask app, 132+ routes, scheduler daemon, WebRTC relay |
+| `server.py` | ~4500 | Flask app, 113+ routes, scheduler daemon, WebRTC relay |
 | `db.py` | ~2000 | SQLite schema (20+ tables), all CRUD operations |
 | `adb.py` | ~700 | Device class, 47+ ADB wrapper methods |
 | `base.py` | 262 | Skill system base classes |

@@ -1,6 +1,6 @@
 name: instagram
 display_name: Instagram
-description: Instagram automation skill — crawl, outreach
+description: Instagram automation skill — navigate profiles, search by hashtag
 version: "1.0.0"
 app_package: com.instagram.android
 author: C-K-Loan
@@ -18,9 +18,6 @@ exports:
     - name: crawl_hashtag
       description: Crawl posts from a hashtag search
       steps: [open_app, tap_search, type_and_search, scrape_loop]
-    - name: send_dm
-      description: Send a direct message to a user
-      steps: [open_app, tap_search, find_user, send_message]
 
 popup_detectors:
   - detect: "Turn on Notifications"
@@ -42,9 +39,6 @@ default_params:
       query: "#photography"
       label: "general"
       passes: 5
-    send_dm:
-      username: "@username"
-      message: "Hey! Love your work"
 
 tested_on:
   - device: ASUS ROG Phone II

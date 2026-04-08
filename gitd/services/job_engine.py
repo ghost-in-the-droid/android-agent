@@ -55,12 +55,17 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
         if label:
             n_hashtags = config.get("n_hashtags", 1)
             cmd = [
-                "python3", "-u",
+                "python3",
+                "-u",
                 str(script_dir / "bots" / "tiktok" / "crawl_runner.py"),
-                "--label", str(label),
-                "--n-hashtags", str(n_hashtags),
-                "--tab", str(tab),
-                "--passes", str(passes),
+                "--label",
+                str(label),
+                "--n-hashtags",
+                str(n_hashtags),
+                "--tab",
+                str(tab),
+                "--passes",
+                str(passes),
             ]
             if phone:
                 cmd += ["--device", phone]
@@ -81,11 +86,14 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
         else:
             query = config.get("query", "#cats")
             cmd = [
-                "python3", "-u",
+                "python3",
+                "-u",
                 str(script_dir / "bots" / "tiktok" / "scraper.py"),
                 query,
-                "--tab", str(tab),
-                "--passes", str(passes),
+                "--tab",
+                str(tab),
+                "--passes",
+                str(passes),
             ]
             if phone:
                 cmd += ["--device", phone]
@@ -100,11 +108,15 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
         delay = config.get("delay", 60)
         limit = config.get("limit", 20)
         cmd = [
-            "python3", "-u",
+            "python3",
+            "-u",
             str(script_dir / "bots" / "tiktok" / "outreach.py"),
-            "--strategy-id", str(sid),
-            "--delay", str(delay),
-            "--limit", str(limit),
+            "--strategy-id",
+            str(sid),
+            "--delay",
+            str(delay),
+            "--limit",
+            str(limit),
         ]
         if phone:
             cmd += ["--device", phone]
@@ -160,9 +172,13 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
         ppd = config.get("posts_per_day", 3)
         agent_script = _SCRIPT_DIR / "agent" / "agent_core.py"
         cmd = [
-            "python3", "-u", str(agent_script),
-            "--days", str(days),
-            "--posts-per-day", str(ppd),
+            "python3",
+            "-u",
+            str(agent_script),
+            "--days",
+            str(days),
+            "--posts-per-day",
+            str(ppd),
         ]
         if config.get("model"):
             cmd += ["--model", config["model"]]
@@ -236,11 +252,17 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
         run_type = "workflow" if job_type == "skill_workflow" else "action"
         runner = script_dir / "skills" / "_run_skill.py"
         cmd = [
-            "python3", "-u", str(runner),
-            "--skill", skill_name,
-            f"--{run_type}", target,
-            "--device", phone or _BOT_DEVICE,
-            "--params", json.dumps(params),
+            "python3",
+            "-u",
+            str(runner),
+            "--skill",
+            skill_name,
+            f"--{run_type}",
+            target,
+            "--device",
+            phone or _BOT_DEVICE,
+            "--params",
+            json.dumps(params),
         ]
         return cmd
     return None
@@ -256,8 +278,7 @@ def _launch_scheduled_job(db, job_row: dict):
     config = json.loads(job_row.get("config_json") or "{}")
     cmd = _build_scheduled_cmd(job_row["job_type"], config, phone)
     if not cmd:
-        finish_job(db, job_id, "failed",
-                   error_msg=f"unsupported job_type: {job_row['job_type']}")
+        finish_job(db, job_id, "failed", error_msg=f"unsupported job_type: {job_row['job_type']}")
         archive_to_runs(db, job_id)
         return
 
@@ -291,8 +312,7 @@ def _launch_scheduled_job(db, job_row: dict):
     }
 
 
-def _kill_scheduled_job(phone: str | None, db, status: str = "killed",
-                        error_msg: str = ""):
+def _kill_scheduled_job(phone: str | None, db, status: str = "killed", error_msg: str = ""):
     """Kill a running scheduler-managed job on a phone."""
     entry = _phone_procs.get(phone)
     if not entry:
@@ -321,10 +341,7 @@ def _kill_scheduled_job(phone: str | None, db, status: str = "killed",
 def _is_job_due(sched: dict, now: datetime, db) -> bool:
     """Check if a scheduled job should be enqueued right now."""
     existing = db.execute(
-        text(
-            "SELECT COUNT(*) FROM job_queue "
-            "WHERE scheduled_job_id = :sid AND status IN ('pending','running')"
-        ),
+        text("SELECT COUNT(*) FROM job_queue WHERE scheduled_job_id = :sid AND status IN ('pending','running')"),
         {"sid": sched["id"]},
     ).scalar()
     if existing > 0:
@@ -356,10 +373,7 @@ def _is_job_due(sched: dict, now: datetime, db) -> bool:
                 t_dt = datetime.strptime(f"{today_str} {t}", "%Y-%m-%d %H:%M")
                 if now <= t_dt + timedelta(minutes=30):
                     already = db.execute(
-                        text(
-                            "SELECT COUNT(*) FROM job_runs "
-                            "WHERE scheduled_job_id = :sid AND started_at >= :ts"
-                        ),
+                        text("SELECT COUNT(*) FROM job_runs WHERE scheduled_job_id = :sid AND started_at >= :ts"),
                         {"sid": sched["id"], "ts": f"{today_str} {t}"},
                     ).scalar()
                     if already == 0:
@@ -378,29 +392,41 @@ def _process_phone_queue(phone: str | None, db, now: datetime):
     running_entry = _phone_procs.get(phone)
     running_job = None
     if running_entry and running_entry["proc"].poll() is None:
-        row = db.execute(
-            text("SELECT * FROM job_queue WHERE id = :id"),
-            {"id": running_entry["job_id"]},
-        ).mappings().first()
+        row = (
+            db.execute(
+                text("SELECT * FROM job_queue WHERE id = :id"),
+                {"id": running_entry["job_id"]},
+            )
+            .mappings()
+            .first()
+        )
         if row:
             running_job = dict(row)
 
     # Pending job query — handle NULL phone_serial properly
     if phone is None:
-        pending_row = db.execute(
-            text(
-                "SELECT * FROM job_queue WHERE phone_serial IS NULL "
-                "AND status = 'pending' ORDER BY priority ASC, enqueued_at ASC LIMIT 1"
+        pending_row = (
+            db.execute(
+                text(
+                    "SELECT * FROM job_queue WHERE phone_serial IS NULL "
+                    "AND status = 'pending' ORDER BY priority ASC, enqueued_at ASC LIMIT 1"
+                )
             )
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
     else:
-        pending_row = db.execute(
-            text(
-                "SELECT * FROM job_queue WHERE phone_serial = :phone "
-                "AND status = 'pending' ORDER BY priority ASC, enqueued_at ASC LIMIT 1"
-            ),
-            {"phone": phone},
-        ).mappings().first()
+        pending_row = (
+            db.execute(
+                text(
+                    "SELECT * FROM job_queue WHERE phone_serial = :phone "
+                    "AND status = 'pending' ORDER BY priority ASC, enqueued_at ASC LIMIT 1"
+                ),
+                {"phone": phone},
+            )
+            .mappings()
+            .first()
+        )
 
     if not running_job and running_entry:
         # Process finished while we were checking
@@ -414,10 +440,13 @@ def _process_phone_queue(phone: str | None, db, now: datetime):
         summary = _parse_job_summary(jid, running_entry)
         logger.info(
             "Job #%d finished in queue check (rc=%s), summary=%r",
-            jid, proc.returncode, summary,
+            jid,
+            proc.returncode,
+            summary,
         )
         finish_job(
-            db, jid,
+            db,
+            jid,
             "completed" if proc.returncode == 0 else "failed",
             exit_code=proc.returncode,
             error_msg=summary or None,
@@ -430,17 +459,11 @@ def _process_phone_queue(phone: str | None, db, now: datetime):
     if not running_job:
         if phone is None:
             db_running = db.execute(
-                text(
-                    "SELECT id, pid FROM job_queue WHERE phone_serial IS NULL "
-                    "AND status = 'running' LIMIT 1"
-                )
+                text("SELECT id, pid FROM job_queue WHERE phone_serial IS NULL AND status = 'running' LIMIT 1")
             ).first()
         else:
             db_running = db.execute(
-                text(
-                    "SELECT id, pid FROM job_queue WHERE phone_serial = :phone "
-                    "AND status = 'running' LIMIT 1"
-                ),
+                text("SELECT id, pid FROM job_queue WHERE phone_serial = :phone AND status = 'running' LIMIT 1"),
                 {"phone": phone},
             ).first()
         if db_running:
@@ -467,7 +490,9 @@ def _process_phone_queue(phone: str | None, db, now: datetime):
                 waited = (now - enq_dt).total_seconds()
                 if waited >= _PREEMPT_GRACE_S:
                     _kill_scheduled_job(
-                        phone, db, "preempted",
+                        phone,
+                        db,
+                        "preempted",
                         f"Preempted by job #{pending['id']}",
                     )
                     _launch_scheduled_job(db, pending)

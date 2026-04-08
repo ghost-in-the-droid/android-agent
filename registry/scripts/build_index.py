@@ -98,7 +98,7 @@ def parse_skill(skill_dir: Path) -> dict | None:
         "elements_count": elements_count,
         "tested_on": tested_on,
         "source": "official",
-        "repo_url": f"https://github.com/C-K-Loan/android-agent-skills/tree/main/registry/{skill_dir.name}",
+        "repo_url": f"https://github.com/ghost-in-the-droid/android-agent/tree/main/registry/{skill_dir.name}",
         "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
 

@@ -15,9 +15,9 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-REGISTRY_URL = "https://api.github.com/repos/ghost-in-the-droid/skills/contents/index.json"
-COMMUNITY_URL = "https://api.github.com/repos/ghost-in-the-droid/skills/contents/community.json"
-REGISTRY_RAW_BASE = "https://raw.githubusercontent.com/ghost-in-the-droid/skills/main/registry"
+REGISTRY_URL = "https://api.github.com/repos/ghost-in-the-droid/android-agent/contents/registry/index.json"
+COMMUNITY_URL = "https://api.github.com/repos/ghost-in-the-droid/android-agent/contents/registry/community.json"
+REGISTRY_RAW_BASE = "https://raw.githubusercontent.com/ghost-in-the-droid/android-agent/main/registry"
 _GITHUB_HEADERS = {"Accept": "application/vnd.github.raw"}
 SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 

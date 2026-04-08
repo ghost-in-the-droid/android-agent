@@ -1,4 +1,5 @@
 """Agent Chat routes — interactive natural language phone control."""
+
 import json
 from typing import Optional
 
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/api/agent-chat", tags=["agent-chat"])
 def create_session(data: dict = Body({})):
     """Create a new agent chat session for a device."""
     from gitd.services.agent_chat import create_session
+
     device = data.get("device", "")
     if not device:
         raise HTTPException(status_code=400, detail="device required")
@@ -27,20 +29,29 @@ def create_session(data: dict = Body({})):
 @router.get("/sessions", summary="List Active Sessions")
 def list_sessions():
     from gitd.services.agent_chat import list_sessions
+
     return list_sessions()
 
 
 @router.get("/session/{sid}", summary="Get Session History")
 def get_session(sid: str):
     from gitd.services.agent_chat import get_session
+
     session = get_session(sid)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return {
-        "id": session.id, "device": session.device, "model": session.model,
+        "id": session.id,
+        "device": session.device,
+        "model": session.model,
         "messages": [
-            {"role": m.role, "content": m.content, "tool_name": m.tool_name,
-             "tool_args": m.tool_args, "image_b64": m.image_b64[:100] if m.image_b64 else ""}
+            {
+                "role": m.role,
+                "content": m.content,
+                "tool_name": m.tool_name,
+                "tool_args": m.tool_args,
+                "image_b64": m.image_b64[:100] if m.image_b64 else "",
+            }
             for m in session.messages
         ],
     }
@@ -49,6 +60,7 @@ def get_session(sid: str):
 @router.delete("/session/{sid}", summary="Delete Session")
 def delete_session(sid: str):
     from gitd.services.agent_chat import delete_session
+
     delete_session(sid)
     return {"ok": True}
 
@@ -57,6 +69,7 @@ def delete_session(sid: str):
 def stop_agent(sid: str):
     """Kill the running agent subprocess for a session."""
     from gitd.services.agent_chat import stop_agent
+
     stop_agent(sid)
     return {"ok": True}
 
@@ -65,7 +78,10 @@ def stop_agent(sid: str):
 def send_message(data: dict = Body({})):
     """Send a message to the agent. Returns SSE stream of events."""
     from gitd.services.agent_chat import (
-        get_session, chat_turn, create_session, save_session_to_db,
+        chat_turn,
+        create_session,
+        get_session,
+        save_session_to_db,
     )
 
     sid = data.get("session_id", "")
@@ -91,13 +107,19 @@ def send_message(data: dict = Body({})):
         try:
             for event in chat_turn(session, message):
                 yield f"data: {json.dumps(event)}\n\n"
-        except Exception as e:
-            yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
-        # Persist conversation after streaming completes
-        try:
-            save_session_to_db(session)
-        except Exception:
-            pass  # Don't break the stream for persistence errors
+        except (GeneratorExit, Exception) as e:
+            if not isinstance(e, GeneratorExit):
+                yield f"data: {json.dumps({'type': 'error', 'content': str(e)})}\n\n"
+        finally:
+            # ALWAYS clean up — whether stream completed normally or was aborted
+            try:
+                stop_agent(session.id)
+            except Exception:
+                pass
+            try:
+                save_session_to_db(session)
+            except Exception:
+                pass
 
     return StreamingResponse(
         generate(),
@@ -108,17 +130,19 @@ def send_message(data: dict = Body({})):
 
 # ── Conversation persistence endpoints ─────────────────────────────────────
 
+
 @router.get("/conversations", summary="List Saved Conversations")
 def list_conversations_endpoint(device: Optional[str] = Query(None)):
     """List saved conversations, optionally filtered by device."""
     from gitd.services.agent_chat import list_conversations
+
     return list_conversations(device=device)
 
 
 @router.post("/conversation/{cid}/resume", summary="Resume Conversation")
 def resume_conversation(cid: str):
     """Load a saved conversation into an active session so it can be continued."""
-    from gitd.services.agent_chat import load_conversation, get_session
+    from gitd.services.agent_chat import get_session, load_conversation
 
     # If already loaded in memory, just return it
     existing = get_session(cid)
@@ -157,5 +181,6 @@ def resume_conversation(cid: str):
 def delete_conversation_endpoint(cid: str):
     """Delete a conversation and its messages from the database."""
     from gitd.services.agent_chat import delete_conversation
+
     delete_conversation(cid)
     return {"ok": True}
