@@ -1,11 +1,14 @@
 """
-Emulator management API — Flask Blueprint.
+Emulator management API — FastAPI Router.
 
 All emulator lifecycle operations: list, create, delete, start, stop,
 setup, install APK, snapshots, system images, pool management.
 """
 
-from flask import Blueprint, jsonify, request
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from gitd.services.emulator_service import (
     EmulatorConfig,
@@ -13,246 +16,265 @@ from gitd.services.emulator_service import (
     get_pool,
 )
 
-bp = Blueprint("emulators", __name__, url_prefix="/api/emulators")
-pool_bp = Blueprint("emulator_pool", __name__, url_prefix="/api/emulator-pool")
+router = APIRouter(prefix="/api/emulators", tags=["emulators"])
+pool_router = APIRouter(prefix="/api/emulator-pool", tags=["emulators"])
 
 
-# ── Prerequisites ────────────────────────────────────────────────────────────
+# ── Request models ──────────────────────────────────────────────────────────
 
 
-@bp.route("/prerequisites", methods=["GET"])
+class CreateAVDRequest(BaseModel):
+    name: str
+    api_level: int = 35
+    target: str = "google_apis_playstore"
+    arch: str = ""
+    device_profile: str = "medium_phone"
+    ram_mb: int = 2048
+    disk_mb: int = 6144
+    resolution: str = "1080x2400"
+    dpi: int = 420
+    gpu: str = "auto"
+    cores: int = 2
+    headless: bool = False
+    snapshot: bool = True
+
+
+class StartRequest(BaseModel):
+    headless: bool = False
+    gpu: str = "auto"
+    cold_boot: bool = False
+    extra_args: Optional[list[str]] = None
+
+
+class StopBySerialRequest(BaseModel):
+    serial: str
+
+
+class ApkRequest(BaseModel):
+    apk_path: str
+
+
+class SnapshotRequest(BaseModel):
+    snapshot_name: str = "automation_ready"
+
+
+class ImageInstallRequest(BaseModel):
+    api_level: int
+    target: str = "google_apis_playstore"
+    arch: str = ""
+
+
+class PoolScaleUpRequest(BaseModel):
+    count: int = 1
+    config: Optional[dict] = None
+
+
+class PoolScaleDownRequest(BaseModel):
+    count: Optional[int] = None
+
+
+# ── Helpers ─────────────────────────────────────────────────────────────────
+
+
+def _find_running_serial(name: str) -> str:
+    """Find the serial for a running emulator by AVD name. Raises 404 if not running."""
+    mgr = get_manager()
+    for info in mgr.list_running():
+        if info["name"] == name:
+            return info["serial"]
+    raise HTTPException(status_code=404, detail=f'Emulator "{name}" is not running')
+
+
+# ── Prerequisites ───────────────────────────────────────────────────────────
+
+
+@router.get("/prerequisites", summary="Check SDK Prerequisites")
 def prerequisites():
-    """Check SDK tool availability."""
+    """Check SDK tool availability and hardware acceleration."""
     mgr = get_manager()
-    return jsonify(mgr.check_prerequisites())
+    return mgr.check_prerequisites()
 
 
-# ── AVD CRUD ─────────────────────────────────────────────────────────────────
+# ── AVD CRUD ────────────────────────────────────────────────────────────────
 
 
-@bp.route("", methods=["GET"])
+@router.get("", summary="List All AVDs")
 def list_avds():
-    """List all AVDs (created + running status)."""
+    """List all AVDs with running status annotation."""
     mgr = get_manager()
-    return jsonify(mgr.list_avds())
+    return mgr.list_avds()
 
 
-@bp.route("", methods=["POST"])
-def create_avd():
-    """Create a new AVD.
-    Body: {name, api_level?, target?, device_profile?, ram_mb?, disk_mb?,
-           resolution?, dpi?, gpu?, cores?, headless?, snapshot?}
-    """
-    data = request.json or {}
-    name = data.get("name")
-    if not name:
-        return jsonify({"ok": False, "error": "name is required"}), 400
-
+@router.post("", summary="Create AVD", status_code=201)
+def create_avd(req: CreateAVDRequest):
+    """Create a new Android Virtual Device."""
     config = EmulatorConfig(
-        name=name,
-        api_level=data.get("api_level", 35),
-        target=data.get("target", "google_apis_playstore"),
-        arch=data.get("arch", "x86_64"),
-        device_profile=data.get("device_profile", "medium_phone"),
-        ram_mb=data.get("ram_mb", 2048),
-        disk_mb=data.get("disk_mb", 6144),
-        resolution=data.get("resolution", "1080x2400"),
-        dpi=data.get("dpi", 420),
-        gpu=data.get("gpu", "auto"),
-        cores=data.get("cores", 2),
-        headless=data.get("headless", False),
-        snapshot=data.get("snapshot", True),
+        name=req.name,
+        api_level=req.api_level,
+        target=req.target,
+        arch=req.arch,
+        device_profile=req.device_profile,
+        ram_mb=req.ram_mb,
+        disk_mb=req.disk_mb,
+        resolution=req.resolution,
+        dpi=req.dpi,
+        gpu=req.gpu,
+        cores=req.cores,
+        headless=req.headless,
+        snapshot=req.snapshot,
     )
     mgr = get_manager()
     result = mgr.create(config)
-    status_code = 201 if result.get("ok") else 400
-    return jsonify(result), status_code
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Create failed"))
+    return result
 
 
-@bp.route("/<name>", methods=["DELETE"])
-def delete_avd(name):
-    """Delete an AVD."""
+@router.delete("/{name}", summary="Delete AVD")
+def delete_avd(name: str):
+    """Delete an AVD and all its data."""
     mgr = get_manager()
     result = mgr.delete(name)
-    status_code = 200 if result.get("ok") else 404
-    return jsonify(result), status_code
+    if not result.get("ok"):
+        raise HTTPException(status_code=404, detail=result.get("error", "Not found"))
+    return result
 
 
-# ── Lifecycle ────────────────────────────────────────────────────────────────
+# ── Lifecycle ───────────────────────────────────────────────────────────────
 
 
-@bp.route("/<name>/start", methods=["POST"])
-def start_emulator(name):
-    """Start an emulator.
-    Body: {headless?: bool, gpu?: str, cold_boot?: bool, extra_args?: list}
-    """
-    data = request.json or {}
+@router.post("/{name}/start", summary="Start Emulator")
+def start_emulator(name: str, req: StartRequest = StartRequest()):
+    """Boot an emulator by AVD name."""
     mgr = get_manager()
     result = mgr.start(
         name,
-        headless=data.get("headless", False),
-        gpu=data.get("gpu", "auto"),
-        cold_boot=data.get("cold_boot", False),
-        extra_args=data.get("extra_args"),
+        headless=req.headless,
+        gpu=req.gpu,
+        cold_boot=req.cold_boot,
+        extra_args=req.extra_args,
     )
-    status_code = 200 if result.get("ok") else 400
-    return jsonify(result), status_code
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Start failed"))
+    return result
 
 
-@bp.route("/<name>/stop", methods=["POST"])
-def stop_emulator(name):
-    """Stop an emulator by AVD name — finds its serial first."""
+@router.post("/{name}/stop", summary="Stop Emulator by Name")
+def stop_emulator(name: str):
+    """Stop a running emulator by AVD name."""
+    serial = _find_running_serial(name)
     mgr = get_manager()
-    for info in mgr.list_running():
-        if info["name"] == name:
-            result = mgr.stop(info["serial"])
-            return jsonify(result)
-    return jsonify({"ok": False, "error": f'Emulator "{name}" is not running'}), 404
+    return mgr.stop(serial)
 
 
-@bp.route("/stop-by-serial", methods=["POST"])
-def stop_by_serial():
-    """Stop an emulator by serial. Body: {serial}"""
-    data = request.json or {}
-    serial = data.get("serial")
-    if not serial:
-        return jsonify({"ok": False, "error": "serial is required"}), 400
+@router.post("/stop-by-serial", summary="Stop Emulator by Serial")
+def stop_by_serial(req: StopBySerialRequest):
+    """Stop a running emulator by ADB serial."""
     mgr = get_manager()
-    result = mgr.stop(serial)
-    return jsonify(result)
+    return mgr.stop(req.serial)
 
 
-@bp.route("/running", methods=["GET"])
+@router.get("/running", summary="List Running Emulators")
 def list_running():
     """List running emulators with serials and AVD names."""
     mgr = get_manager()
-    return jsonify(mgr.list_running())
+    return mgr.list_running()
 
 
-@bp.route("/<name>/boot-status", methods=["GET"])
-def boot_status(name):
-    """Check if an emulator has booted. Finds serial by name."""
+@router.get("/{name}/boot-status", summary="Check Boot Status")
+def boot_status(name: str):
+    """Check if a named emulator has finished booting."""
+    serial = _find_running_serial(name)
     mgr = get_manager()
-    for info in mgr.list_running():
-        if info["name"] == name:
-            return jsonify(mgr.get_boot_status(info["serial"]))
-    return jsonify({"booted": False, "error": f'Emulator "{name}" is not running'}), 404
+    return mgr.get_boot_status(serial)
 
 
-# ── Setup & Apps ─────────────────────────────────────────────────────────────
+# ── Setup & Apps ────────────────────────────────────────────────────────────
 
 
-@bp.route("/<name>/setup", methods=["POST"])
-def setup_emulator(name):
-    """Run automation setup (disable animations, max timeout, etc.)."""
+@router.post("/{name}/setup", summary="Setup for Automation")
+def setup_emulator(name: str):
+    """Disable animations, set max timeout, configure for automation."""
+    serial = _find_running_serial(name)
     mgr = get_manager()
-    for info in mgr.list_running():
-        if info["name"] == name:
-            result = mgr.setup_for_automation(info["serial"])
-            return jsonify(result)
-    return jsonify({"ok": False, "error": f'Emulator "{name}" is not running'}), 404
+    return mgr.setup_for_automation(serial)
 
 
-@bp.route("/<name>/install-apk", methods=["POST"])
-def install_apk(name):
-    """Install APK on emulator. Body: {apk_path}"""
-    data = request.json or {}
-    apk_path = data.get("apk_path")
-    if not apk_path:
-        return jsonify({"ok": False, "error": "apk_path is required"}), 400
+@router.post("/{name}/install-apk", summary="Install APK")
+def install_apk(name: str, req: ApkRequest):
+    """Install an APK file on a running emulator."""
+    serial = _find_running_serial(name)
     mgr = get_manager()
-    for info in mgr.list_running():
-        if info["name"] == name:
-            result = mgr.install_apk(info["serial"], apk_path)
-            return jsonify(result)
-    return jsonify({"ok": False, "error": f'Emulator "{name}" is not running'}), 404
+    return mgr.install_apk(serial, req.apk_path)
 
 
-# ── Snapshots ────────────────────────────────────────────────────────────────
+# ── Snapshots ───────────────────────────────────────────────────────────────
 
 
-@bp.route("/<name>/snapshot/save", methods=["POST"])
-def snapshot_save(name):
-    """Save emulator snapshot. Body: {snapshot_name?: str}"""
-    data = request.json or {}
-    snap_name = data.get("snapshot_name", "automation_ready")
+@router.post("/{name}/snapshot/save", summary="Save Snapshot")
+def snapshot_save(name: str, req: SnapshotRequest = SnapshotRequest()):
+    """Save emulator state to a named snapshot."""
+    serial = _find_running_serial(name)
     mgr = get_manager()
-    for info in mgr.list_running():
-        if info["name"] == name:
-            result = mgr.snapshot_save(info["serial"], snap_name)
-            return jsonify(result)
-    return jsonify({"ok": False, "error": f'Emulator "{name}" is not running'}), 404
+    return mgr.snapshot_save(serial, req.snapshot_name)
 
 
-@bp.route("/<name>/snapshot/load", methods=["POST"])
-def snapshot_load(name):
-    """Load emulator snapshot. Body: {snapshot_name?: str}"""
-    data = request.json or {}
-    snap_name = data.get("snapshot_name", "automation_ready")
+@router.post("/{name}/snapshot/load", summary="Load Snapshot")
+def snapshot_load(name: str, req: SnapshotRequest = SnapshotRequest()):
+    """Restore emulator state from a named snapshot."""
+    serial = _find_running_serial(name)
     mgr = get_manager()
-    for info in mgr.list_running():
-        if info["name"] == name:
-            result = mgr.snapshot_load(info["serial"], snap_name)
-            return jsonify(result)
-    return jsonify({"ok": False, "error": f'Emulator "{name}" is not running'}), 404
+    return mgr.snapshot_load(serial, req.snapshot_name)
 
 
-@bp.route("/<name>/snapshots", methods=["GET"])
-def list_snapshots(name):
-    """List snapshots for a running emulator."""
+@router.get("/{name}/snapshots", summary="List Snapshots")
+def list_snapshots(name: str):
+    """List available snapshots for a running emulator."""
+    serial = _find_running_serial(name)
     mgr = get_manager()
-    for info in mgr.list_running():
-        if info["name"] == name:
-            result = mgr.list_snapshots(info["serial"])
-            return jsonify(result)
-    return jsonify({"ok": False, "error": f'Emulator "{name}" is not running'}), 404
+    return mgr.list_snapshots(serial)
 
 
-# ── System Images ────────────────────────────────────────────────────────────
+# ── System Images ───────────────────────────────────────────────────────────
 
 
-@bp.route("/system-images", methods=["GET"])
+@router.get("/system-images", summary="List System Images")
 def list_system_images():
-    """List installed system images."""
+    """List installed Android system images."""
     mgr = get_manager()
-    return jsonify(mgr.list_system_images())
+    return mgr.list_system_images()
 
 
-@bp.route("/system-images/install", methods=["POST"])
-def install_system_image():
-    """Download a new system image. Body: {api_level, target?, arch?}"""
-    data = request.json or {}
-    api_level = data.get("api_level")
-    if not api_level:
-        return jsonify({"ok": False, "error": "api_level is required"}), 400
+@router.post("/system-images/install", summary="Install System Image")
+def install_system_image(req: ImageInstallRequest):
+    """Download and install a system image via sdkmanager."""
     mgr = get_manager()
     result = mgr.install_system_image(
-        api_level=int(api_level),
-        target=data.get("target", "google_apis_playstore"),
-        arch=data.get("arch", "x86_64"),
+        api_level=req.api_level,
+        target=req.target,
+        arch=req.arch or "",
     )
-    status_code = 200 if result.get("ok") else 400
-    return jsonify(result), status_code
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Install failed"))
+    return result
 
 
-# ── Emulator Pool ────────────────────────────────────────────────────────────
+# ── Emulator Pool ───────────────────────────────────────────────────────────
 
 
-@pool_bp.route("/status", methods=["GET"])
+@pool_router.get("/status", summary="Pool Status")
 def pool_status():
-    """Pool status (active, idle, busy counts + resources)."""
+    """Get pool status: active, idle, busy counts + resource usage."""
     pool = get_pool()
-    return jsonify(pool.status())
+    return pool.status()
 
 
-@pool_bp.route("/scale-up", methods=["POST"])
-def pool_scale_up():
-    """Start N emulators. Body: {count, config?: {api_level, ram_mb, ...}}"""
-    data = request.json or {}
-    count = data.get("count", 1)
-    cfg_data = data.get("config", {})
+@pool_router.post("/scale-up", summary="Scale Up Pool")
+def pool_scale_up(req: PoolScaleUpRequest):
+    """Start N emulators in the pool."""
+    cfg_data = req.config or {}
     config = EmulatorConfig(
-        name="_template",  # ignored — pool generates names
+        name="_template",
         api_level=cfg_data.get("api_level", 35),
         target=cfg_data.get("target", "google_apis_playstore"),
         ram_mb=cfg_data.get("ram_mb", 2048),
@@ -262,31 +284,28 @@ def pool_scale_up():
         headless=True,
     )
     pool = get_pool()
-    result = pool.scale_up(count, config)
-    status_code = 200 if result.get("ok") else 400
-    return jsonify(result), status_code
+    result = pool.scale_up(req.count, config)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result.get("error", "Scale up failed"))
+    return result
 
 
-@pool_bp.route("/scale-down", methods=["POST"])
-def pool_scale_down():
-    """Stop N idle emulators. Body: {count?: int} (null = all idle)"""
-    data = request.json or {}
-    count = data.get("count")
+@pool_router.post("/scale-down", summary="Scale Down Pool")
+def pool_scale_down(req: PoolScaleDownRequest = PoolScaleDownRequest()):
+    """Stop N idle emulators from the pool."""
     pool = get_pool()
-    result = pool.scale_down(count)
-    return jsonify(result)
+    return pool.scale_down(req.count)
 
 
-@pool_bp.route("/stop-all", methods=["POST"])
+@pool_router.post("/stop-all", summary="Stop All Pool Emulators")
 def pool_stop_all():
-    """Stop all pool emulators."""
+    """Stop every emulator managed by the pool."""
     pool = get_pool()
-    result = pool.stop_all()
-    return jsonify(result)
+    return pool.stop_all()
 
 
-@pool_bp.route("/resources", methods=["GET"])
+@pool_router.get("/resources", summary="System Resources")
 def pool_resources():
-    """System resource usage (CPU, RAM, disk)."""
+    """Get system resource usage (CPU, RAM, disk)."""
     pool = get_pool()
-    return jsonify(pool.resource_usage())
+    return pool.resource_usage()

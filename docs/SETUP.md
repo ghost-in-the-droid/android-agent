@@ -162,10 +162,52 @@ DEVICE=SERIAL python3 -m pytest tests/ -v
 
 ---
 
+## MCP Server (AI Agent Tools)
+
+The project includes an MCP server that exposes 35 Android automation tools to any AI client. If you cloned this repo, the `.mcp.json` is already configured.
+
+**Claude Code / Codex** (if not using the repo's `.mcp.json`):
+```bash
+claude mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
+codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
+```
+
+**Claude Desktop / Cursor / VS Code / Windsurf** — see the [MCP section in README.md](../README.md#mcp-server--give-any-ai-agent-an-android-body) for config snippets.
+
+Verify it works:
+```bash
+# List available tools
+python3 -c "from gitd.mcp_server import mcp; print(len(mcp._tool_manager.list_tools()), 'tools')"
+```
+
+---
+
+## Emulators (Optional)
+
+Run Android emulators alongside physical devices. Requires Android SDK:
+
+```bash
+# macOS (Homebrew)
+brew install --cask android-commandlinetools
+sdkmanager "platform-tools" "emulator"
+sdkmanager "system-images;android-35;google_apis_playstore;arm64-v8a"
+
+# Create an AVD
+echo "no" | avdmanager create avd -n test_api35 \
+  -k "system-images;android-35;google_apis_playstore;arm64-v8a" -d medium_phone
+
+# Or use the API/dashboard after starting the server
+```
+
+The Emulators tab in the dashboard handles creation, boot, snapshots, and pool management.
+
+---
+
 ## Next Steps
 
-1. Open `http://localhost:6175` and explore the 9-tab dashboard
+1. Open `http://localhost:6175` and explore the dashboard
 2. Navigate to **Phone Agent** to verify your device appears
-3. Try **Multi Device > Start All (MJPEG)** to see your phone screen
+3. Try the live MJPEG stream to see your phone screen
 4. Browse **Skill Hub** to see installed skills and run them
-5. Read [ARCHITECTURE.md](ARCHITECTURE.md) for how the system fits together
+5. Open Claude Code in this project — the MCP tools are ready to use
+6. Read [ARCHITECTURE.md](ARCHITECTURE.md) for how the system fits together
