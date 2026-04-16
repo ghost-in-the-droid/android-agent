@@ -26,7 +26,10 @@ export interface Prerequisites {
   emulator_binary: boolean
   adb_binary: boolean
   cmdline_tools: boolean
-  kvm: boolean
+  hw_accel: boolean
+  hw_accel_type: 'HVF' | 'KVM'
+  platform: string
+  arch: string
   avd_home: string
 }
 

@@ -12,6 +12,8 @@ from gitd.models.base import Base, engine
 from gitd.routers.agent_chat import router as agent_chat_router
 from gitd.routers.bot import router as bot_router
 from gitd.routers.creator import router as creator_router
+from gitd.routers.emulators import pool_router as emulator_pool_router
+from gitd.routers.emulators import router as emulators_router
 from gitd.routers.explorer import router as explorer_router
 from gitd.routers.misc import router as misc_router
 from gitd.routers.phone import router as phone_router
@@ -60,6 +62,7 @@ TAGS_METADATA = [
     {"name": "stats", "description": "Dashboard stats"},
     {"name": "tools", "description": "Utility tools hub"},
     {"name": "misc", "description": "Health, logs, server management"},
+    {"name": "emulators", "description": "Emulator lifecycle, AVDs, snapshots, pool management"},
 ]
 
 
@@ -106,6 +109,8 @@ def create_app() -> FastAPI:
     app.include_router(bot_router)
     app.include_router(scheduler_router)
     app.include_router(tests_router)
+    app.include_router(emulators_router)
+    app.include_router(emulator_pool_router)
 
     # Plugin hook: load premium features if installed
     try:

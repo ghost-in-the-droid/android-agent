@@ -27,9 +27,8 @@ reference/
 *.swp
 *.swo
 
-# Claude / MCP config
+# Claude session data (not the MCP config — that ships with the repo)
 .claude/
-.mcp.json
 
 # OS
 .DS_Store
