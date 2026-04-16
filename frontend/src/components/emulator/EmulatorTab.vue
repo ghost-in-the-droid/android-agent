@@ -140,13 +140,13 @@ onUnmounted(() => {
     </div>
 
     <div
-      v-if="store.prerequisites && !store.prerequisites.kvm"
+      v-if="store.prerequisites && !store.prerequisites.hw_accel"
       class="card mb-4 px-4 py-3"
       style="border-color: #f59e0b; background: #f59e0b10"
     >
-      <div class="text-sm font-semibold" style="color: #f59e0b">KVM Not Available</div>
+      <div class="text-sm font-semibold" style="color: #f59e0b">Hardware Acceleration Not Available</div>
       <div class="text-xs mt-1" style="color: var(--text-3)">
-        /dev/kvm not found. Emulators will run without hardware acceleration (very slow).
+        {{ store.prerequisites.hw_accel_type }} not available. Emulators will run without hardware acceleration (very slow).
       </div>
     </div>
 

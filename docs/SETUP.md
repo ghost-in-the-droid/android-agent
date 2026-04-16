@@ -101,7 +101,7 @@ API docs auto-generated at http://localhost:5055/docs
 
 ## Environment Variables
 
-Core ADB automation works without any API keys. AI features need keys in `.env`:
+Core ADB automation works without any API keys. For AI-powered phone control, either use Ollama (free, local, no keys) or add API keys in `.env`:
 
 | Variable | Purpose | Required? |
 |----------|---------|-----------|
@@ -109,6 +109,29 @@ Core ADB automation works without any API keys. AI features need keys in `.env`:
 | `OPENAI_API_KEY` | LLM features (Skill Creator, Content Agent) | For AI features |
 | `ANTHROPIC_API_KEY` | Alternative LLM provider | Optional |
 | `OPENROUTER_API_KEY` | LLM routing (content planning) | For content pipeline |
+
+---
+
+## Ollama (Local LLM — No API Keys)
+
+Run a tool-using Android agent entirely on your machine:
+
+```bash
+# Install Ollama
+brew install ollama       # macOS
+# or: curl -fsSL https://ollama.com/install.sh | sh  # Linux
+
+# Start server + pull a model
+ollama serve &
+ollama pull llama3.2:3b   # 2GB, fast, good tool-use
+
+# Other good options:
+# ollama pull gemma3:4b    # Google, multilingual
+# ollama pull qwen3:4b     # strong reasoning
+# ollama pull phi4-mini:3.8b  # Microsoft, efficient
+```
+
+In the dashboard: Phone Agent tab > Provider: Ollama > pick a model > chat. The agent can see the screen, tap elements, type, navigate — multi-turn with tool execution.
 
 ---
 
@@ -162,10 +185,52 @@ DEVICE=SERIAL python3 -m pytest tests/ -v
 
 ---
 
+## MCP Server (AI Agent Tools)
+
+The project includes an MCP server that exposes 35 Android automation tools to any AI client. If you cloned this repo, the `.mcp.json` is already configured.
+
+**Claude Code / Codex** (if not using the repo's `.mcp.json`):
+```bash
+claude mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
+codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
+```
+
+**Claude Desktop / Cursor / VS Code / Windsurf** — see the [MCP section in README.md](../README.md#mcp-server--give-any-ai-agent-an-android-body) for config snippets.
+
+Verify it works:
+```bash
+# List available tools
+python3 -c "from gitd.mcp_server import mcp; print(len(mcp._tool_manager.list_tools()), 'tools')"
+```
+
+---
+
+## Emulators (Optional)
+
+Run Android emulators alongside physical devices. Requires Android SDK:
+
+```bash
+# macOS (Homebrew)
+brew install --cask android-commandlinetools
+sdkmanager "platform-tools" "emulator"
+sdkmanager "system-images;android-35;google_apis_playstore;arm64-v8a"
+
+# Create an AVD
+echo "no" | avdmanager create avd -n test_api35 \
+  -k "system-images;android-35;google_apis_playstore;arm64-v8a" -d medium_phone
+
+# Or use the API/dashboard after starting the server
+```
+
+The Emulators tab in the dashboard handles creation, boot, snapshots, and pool management.
+
+---
+
 ## Next Steps
 
-1. Open `http://localhost:6175` and explore the 9-tab dashboard
+1. Open `http://localhost:6175` and explore the dashboard
 2. Navigate to **Phone Agent** to verify your device appears
-3. Try **Multi Device > Start All (MJPEG)** to see your phone screen
+3. Try the live MJPEG stream to see your phone screen
 4. Browse **Skill Hub** to see installed skills and run them
-5. Read [ARCHITECTURE.md](ARCHITECTURE.md) for how the system fits together
+5. Open Claude Code in this project — the MCP tools are ready to use
+6. Read [ARCHITECTURE.md](ARCHITECTURE.md) for how the system fits together

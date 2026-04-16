@@ -98,6 +98,14 @@ Copy `.env.example` to `.env` (if provided) or create a `.env` file in the proje
 | `OPENROUTER_API_KEY` | OpenRouter LLM provider |
 | `DEFAULT_DEVICE` | ADB serial (auto-detected if empty) |
 
+**No API keys needed for local models:** Select Ollama in the Phone Agent tab — runs entirely on your machine with [Ollama](https://ollama.com). Install, pull a model, go:
+
+```bash
+brew install ollama       # or curl -fsSL https://ollama.com/install.sh | sh
+ollama serve &
+ollama pull llama3.2:3b   # 2GB, fast, good tool-use
+```
+
 ---
 
 ## Architecture
@@ -165,7 +173,79 @@ API domains: phone, streaming, skills, creator, explorer, agent-chat, bot, sched
 | Tools | Utility tools hub |
 | Manual Run | Start/stop bot jobs, queue management, logs |
 | Tests | Per-device test runner with screen recording playback |
-| Emulators | Headless emulator management (coming soon) |
+| Emulators | Create, boot, snapshot, and manage Android emulators |
+
+---
+
+## MCP Server — Give Any AI Agent an Android Body
+
+The project ships an [MCP](https://modelcontextprotocol.io) server with 35 tools for Android control. Any MCP-compatible AI client (Claude Code, Claude Desktop, Cursor, VS Code Copilot, Windsurf) can use them.
+
+### Install
+
+One command — works with Claude Code, Codex, Cursor, VS Code Copilot, Windsurf:
+
+```bash
+claude mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
+```
+
+That's it. `uvx` installs the package, creates an isolated env, and runs the MCP server. No clone, no venv, no manual setup.
+
+**Other clients** — same command, different registration:
+
+```bash
+# Codex (OpenAI)
+codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
+```
+
+**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "android-agent": {
+      "command": "uvx",
+      "args": ["--from", "ghost-in-the-droid", "android-agent-mcp"]
+    }
+  }
+}
+```
+
+**VS Code Copilot** (`.vscode/mcp.json`):
+```json
+{
+  "servers": {
+    "android-agent": {
+      "command": "uvx",
+      "args": ["--from", "ghost-in-the-droid", "android-agent-mcp"]
+    }
+  }
+}
+```
+
+**Cursor** (`.cursor/mcp.json`) / **Windsurf** (`~/.codeium/windsurf/mcp_config.json`):
+```json
+{
+  "mcpServers": {
+    "android-agent": {
+      "command": "uvx",
+      "args": ["--from", "ghost-in-the-droid", "android-agent-mcp"]
+    }
+  }
+}
+```
+
+**For contributors** who clone the repo: the `.mcp.json` is already there — 35 tools available on first `claude` launch.
+
+### Available tools
+
+| Category | Tools |
+|----------|-------|
+| Screen | `screenshot`, `get_elements`, `get_screen_tree`, `get_screen_xml`, `screenshot_annotated`, `screenshot_cropped` |
+| Interaction | `tap`, `tap_element`, `swipe`, `long_press`, `type_text`, `type_unicode`, `press_back`, `press_home`, `press_key` |
+| Apps | `launch_app`, `search_apps`, `list_apps`, `launch_intent` |
+| Context | `get_phone_state`, `classify_screen`, `find_on_screen`, `ocr_screen`, `ocr_region` |
+| Device | `list_devices`, `clipboard_get`, `clipboard_set`, `get_notifications`, `open_notifications`, `toggle_overlay` |
+| Skills | `list_skills`, `run_workflow`, `run_action`, `create_skill`, `explore_app` |
 
 ---
 

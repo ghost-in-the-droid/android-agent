@@ -137,15 +137,7 @@ async function restartServer() {
       <ToolsHubView v-else-if="activeTab === 'tools'" />
       <BotView v-else-if="activeTab === 'bot'" />
       <TestsView v-else-if="activeTab === 'tests'" />
-      <div v-else-if="activeTab === 'emulators'">
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;text-align:center">
-          <img src="/mascot/27-idle.png" alt="Ghost sleeping" style="width:120px;height:120px;object-fit:contain;margin-bottom:1.5rem;opacity:0.8" />
-          <h2 style="font-size:1.5rem;font-weight:700;color:var(--text-1);margin-bottom:0.5rem">The ghost is sleeping on this one.</h2>
-          <p style="color:var(--text-3);max-width:400px;font-size:0.9rem;line-height:1.6">
-            Headless emulator management is under active development. Spin up, control, and schedule jobs on virtual devices — no hardware required.
-          </p>
-        </div>
-      </div>
+      <EmulatorTab v-else-if="activeTab === 'emulators'" />
       <!-- Premium tabs: rendered as iframes from premium frontend server -->
       <iframe
         v-else-if="premiumTabs.some(t => t.id === activeTab)"
