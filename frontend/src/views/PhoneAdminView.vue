@@ -538,9 +538,22 @@ const CHAT_PROVIDERS = [
   { id: 'claude-code', label: 'Claude Code (free)', models: ['sonnet', 'opus', 'haiku'] },
   { id: 'anthropic', label: 'Claude API', models: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514'] },
   { id: 'openrouter', label: 'OpenRouter', models: ['anthropic/claude-sonnet-4', 'google/gemini-2.5-pro'] },
-  { id: 'ollama', label: 'Ollama', models: [] },
+  { id: 'ollama', label: 'Ollama (local)', models: ['llama3.2:3b', 'llama3.2:1b', 'gemma3:4b', 'qwen3:4b', 'phi4-mini:3.8b', 'mistral:7b'] },
 ]
 const chatConversations = ref<{id: string; title: string; provider: string; model: string; message_count: number; updated_at: string}[]>([])
+
+async function ollamaUnload() {
+  try {
+    await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: chatModel.value, keep_alive: 0 }),
+    })
+    chatMessages.value.push({ role: 'system', content: `Unloaded ${chatModel.value} from memory.` })
+  } catch (e: any) {
+    chatMessages.value.push({ role: 'system', content: `Failed to unload: ${e.message}` })
+  }
+}
 
 async function loadConversations() {
   if (!selectedDevice.value) return
@@ -803,6 +816,9 @@ onUnmounted(() => {
             style="font-size: 10px; padding: 2px 6px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; color: var(--text-3); max-width: 140px">
             <option v-for="m in (CHAT_PROVIDERS.find(p => p.id === chatProvider)?.models || [])" :key="m" :value="m">{{ m }}</option>
           </select>
+          <button v-if="chatProvider === 'ollama'" @click="ollamaUnload"
+            style="font-size: 9px; padding: 2px 8px; background: #1a1f2e; border: 1px solid #ef4444; border-radius: 4px; color: #ef4444; cursor: pointer"
+            title="Unload model from GPU memory">Unload</button>
           <span style="margin-left: auto; display: flex; align-items: center; gap: 6px">
             <button @click="chatVerbose = !chatVerbose"
               style="font-size: 9px; padding: 2px 6px; border-radius: 4px; cursor: pointer; border: 1px solid #2a3044"

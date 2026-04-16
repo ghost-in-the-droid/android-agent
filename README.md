@@ -98,6 +98,14 @@ Copy `.env.example` to `.env` (if provided) or create a `.env` file in the proje
 | `OPENROUTER_API_KEY` | OpenRouter LLM provider |
 | `DEFAULT_DEVICE` | ADB serial (auto-detected if empty) |
 
+**No API keys needed for local models:** Select Ollama in the Phone Agent tab — runs entirely on your machine with [Ollama](https://ollama.com). Install, pull a model, go:
+
+```bash
+brew install ollama       # or curl -fsSL https://ollama.com/install.sh | sh
+ollama serve &
+ollama pull llama3.2:3b   # 2GB, fast, good tool-use
+```
+
 ---
 
 ## Architecture

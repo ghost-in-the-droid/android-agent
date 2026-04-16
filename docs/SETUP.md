@@ -101,7 +101,7 @@ API docs auto-generated at http://localhost:5055/docs
 
 ## Environment Variables
 
-Core ADB automation works without any API keys. AI features need keys in `.env`:
+Core ADB automation works without any API keys. For AI-powered phone control, either use Ollama (free, local, no keys) or add API keys in `.env`:
 
 | Variable | Purpose | Required? |
 |----------|---------|-----------|
@@ -109,6 +109,29 @@ Core ADB automation works without any API keys. AI features need keys in `.env`:
 | `OPENAI_API_KEY` | LLM features (Skill Creator, Content Agent) | For AI features |
 | `ANTHROPIC_API_KEY` | Alternative LLM provider | Optional |
 | `OPENROUTER_API_KEY` | LLM routing (content planning) | For content pipeline |
+
+---
+
+## Ollama (Local LLM — No API Keys)
+
+Run a tool-using Android agent entirely on your machine:
+
+```bash
+# Install Ollama
+brew install ollama       # macOS
+# or: curl -fsSL https://ollama.com/install.sh | sh  # Linux
+
+# Start server + pull a model
+ollama serve &
+ollama pull llama3.2:3b   # 2GB, fast, good tool-use
+
+# Other good options:
+# ollama pull gemma3:4b    # Google, multilingual
+# ollama pull qwen3:4b     # strong reasoning
+# ollama pull phi4-mini:3.8b  # Microsoft, efficient
+```
+
+In the dashboard: Phone Agent tab > Provider: Ollama > pick a model > chat. The agent can see the screen, tap elements, type, navigate — multi-turn with tool execution.
 
 ---
 
