@@ -60,7 +60,17 @@ PROVIDERS = {
     "claude-code": {"label": "Claude Code (free)", "models": ["sonnet", "opus", "haiku"]},
     "anthropic": {"label": "Claude API", "models": ["claude-sonnet-4-20250514", "claude-opus-4-20250514"]},
     "openrouter": {"label": "OpenRouter", "models": ["anthropic/claude-sonnet-4", "google/gemini-2.5-pro"]},
-    "ollama": {"label": "Ollama (local)", "models": []},
+    "ollama": {
+        "label": "Ollama (local)",
+        "models": [
+            "llama3.2:3b",
+            "llama3.2:1b",
+            "gemma3:4b",
+            "qwen3:4b",
+            "phi4-mini:3.8b",
+            "mistral:7b",
+        ],
+    },
 }
 
 
@@ -645,12 +655,43 @@ def _chat_openrouter(session: ChatSession, user_message: str):
 # ── Ollama ───────────────────────────────────────────────────────────────────
 
 
+def _parse_tool_calls(text: str) -> list[dict]:
+    """Extract tool calls from LLM output. Handles ```tool blocks and common LLM quirks."""
+    import re
+
+    calls = []
+    for match in re.finditer(r"```tool\s*\n?(.*?)\n?```", text, re.DOTALL):
+        raw = match.group(1).strip()
+        # Try parsing as-is first (valid JSON)
+        try:
+            call = json.loads(raw)
+            if isinstance(call, dict) and "tool" in call:
+                calls.append(call)
+                continue
+        except json.JSONDecodeError:
+            pass
+        # Fallback: some models wrap JSON in doubled braces {{ ... }}
+        fixed = raw
+        for _ in range(3):
+            fixed = re.sub(r"\{\{", "{", fixed)
+            fixed = re.sub(r"\}\}", "}", fixed)
+            try:
+                call = json.loads(fixed)
+                if isinstance(call, dict) and "tool" in call:
+                    calls.append(call)
+                    break
+            except json.JSONDecodeError:
+                continue
+    return calls
+
+
 def _chat_ollama(session: ChatSession, user_message: str):
-    """Use local Ollama model."""
+    """Use local Ollama model with multi-turn tool execution loop."""
     import requests
 
     session.messages.append(ChatMessage(role="user", content=user_message))
 
+    # Build screen context
     context = ""
     try:
         tree = get_screen_tree(session.device)
@@ -659,45 +700,77 @@ def _chat_ollama(session: ChatSession, user_message: str):
     except Exception:
         pass
 
-    tool_list = "\n".join(f"- {t['name']}: {t['description']}" for t in TOOLS)
+    # Build tool list with param names so the LLM knows what args to send
+    tool_list = "\n".join(
+        f"- {t['name']}: {t['description']}  params: {list(t.get('input_schema', {}).get('properties', {}).keys())}"
+        for t in TOOLS
+    )
     system = DEFAULT_SYSTEM.replace("{tool_list}", tool_list)
 
-    try:
-        r = requests.post(
-            "http://localhost:11434/api/chat",
-            json={
-                "model": session.model or "llama3",
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": f"{context}Device: {session.device}\n\n{user_message}"},
-                ],
-                "stream": False,
-            },
-            timeout=120,
-        )
-        reply = r.json().get("message", {}).get("content", "")
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"{context}Device: {session.device}\n\n{user_message}"},
+    ]
 
-        if reply:
-            session.messages.append(ChatMessage(role="assistant", content=reply))
-            yield {"type": "text", "content": reply}
+    model = session.model or "llama3.2:3b"
 
-            # Parse tool calls from response (same format as claude-code)
-            import re
+    for turn in range(MAX_TURNS):
+        try:
+            r = requests.post(
+                "http://localhost:11434/api/chat",
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "stream": False,
+                    "options": {"num_ctx": 4096},
+                },
+                timeout=120,
+            )
+            reply = r.json().get("message", {}).get("content", "")
+        except requests.ConnectionError:
+            yield {
+                "type": "error",
+                "content": "Ollama not reachable at localhost:11434. Install: https://ollama.com/download",
+            }
+            return
+        except Exception as e:
+            yield {"type": "error", "content": str(e)}
+            return
 
-            tool_pattern = re.compile(r"```tool\s*\n(.*?)\n```", re.DOTALL)
-            for match in tool_pattern.finditer(reply):
-                try:
-                    call = json.loads(match.group(1).strip())
-                    tool_name = call.get("tool", "")
-                    tool_args = call.get("args", {})
-                    tool_args.setdefault("device", session.device)
-                    result = execute_tool(tool_name, tool_args)
-                    yield {"type": "tool_call", "name": tool_name, "args": tool_args}
-                    yield {"type": "tool_result", "name": tool_name, "result": result[:500]}
-                except Exception:
-                    pass
-    except Exception as e:
-        yield {"type": "error", "content": str(e)}
+        if not reply:
+            break
+
+        session.messages.append(ChatMessage(role="assistant", content=reply))
+        yield {"type": "text", "content": reply}
+        messages.append({"role": "assistant", "content": reply})
+
+        # Parse and execute tool calls
+        tool_calls = _parse_tool_calls(reply)
+        if not tool_calls:
+            break  # No tools requested — done
+
+        tool_results = []
+        for call in tool_calls:
+            tool_name = call.get("tool", "")
+            tool_args = call.get("args", {})
+            tool_args.setdefault("device", session.device)
+
+            session.messages.append(ChatMessage(role="tool_call", tool_name=tool_name, tool_args=tool_args, content=""))
+            yield {"type": "tool_call", "name": tool_name, "args": tool_args}
+
+            try:
+                result = execute_tool(tool_name, tool_args)
+                session.messages.append(ChatMessage(role="tool_result", content=result[:500], tool_name=tool_name))
+                yield {"type": "tool_result", "name": tool_name, "result": result[:500]}
+                tool_results.append(f"[{tool_name}] {result[:800]}")
+            except Exception as e:
+                err = f"Tool error: {e}"
+                session.messages.append(ChatMessage(role="tool_result", content=err, tool_name=tool_name))
+                yield {"type": "tool_result", "name": tool_name, "result": err}
+                tool_results.append(f"[{tool_name}] ERROR: {err}")
+
+        # Feed tool results back for next turn
+        messages.append({"role": "user", "content": "Tool results:\n" + "\n".join(tool_results)})
 
     yield {"type": "done"}
 
