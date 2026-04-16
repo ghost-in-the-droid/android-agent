@@ -552,5 +552,9 @@ def create_skill(name: str, app_package: str, steps: str) -> str:
     return f"Skill '{name}' created at skills/{name}/ with {len(parsed_steps)} steps"
 
 
-if __name__ == "__main__":
+def main():
     mcp.run()
+
+
+if __name__ == "__main__":
+    main()

@@ -6,6 +6,7 @@ EmulatorConfig dataclass, and discovery/query functions.
 import configparser
 import logging
 import os
+import platform
 import shutil
 import subprocess
 import threading
@@ -19,7 +20,29 @@ logger = logging.getLogger(__name__)
 
 # ── SDK paths ────────────────────────────────────────────────────────────────
 
-SDK_ROOT = Path(os.environ.get("ANDROID_SDK_ROOT", os.environ.get("ANDROID_HOME", Path.home() / "Android" / "Sdk")))
+
+def _detect_sdk_root() -> Path:
+    """Auto-detect Android SDK root across platforms."""
+    for var in ("ANDROID_SDK_ROOT", "ANDROID_HOME"):
+        val = os.environ.get(var)
+        if val and Path(val).exists():
+            return Path(val)
+    # macOS: Homebrew commandline-tools
+    brew = Path("/opt/homebrew/share/android-commandlinetools")
+    if brew.exists():
+        return brew
+    # macOS: Android Studio default
+    mac_studio = Path.home() / "Library" / "Android" / "sdk"
+    if mac_studio.exists():
+        return mac_studio
+    # Linux default
+    linux = Path.home() / "Android" / "Sdk"
+    if linux.exists():
+        return linux
+    return brew if platform.system() == "Darwin" else linux
+
+
+SDK_ROOT = _detect_sdk_root()
 
 EMULATOR_BIN = SDK_ROOT / "emulator" / "emulator"
 ADB_BIN = shutil.which("adb") or str(SDK_ROOT / "platform-tools" / "adb")
@@ -48,8 +71,30 @@ def _adb(serial: str, *args, timeout: int = 30) -> str:
     return r.stdout.strip()
 
 
+def _safe_int(val: str, default: int = 0) -> int:
+    """Parse int from string, stripping size suffixes like 'M', 'G', '2G'."""
+    val = val.strip()
+    if not val:
+        return default
+    for suffix in ("MB", "GB", "KB", "M", "G", "K"):
+        if val.upper().endswith(suffix):
+            val = val[: -len(suffix)]
+            break
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+
 def is_emulator(serial: str) -> bool:
     return serial.startswith("emulator-")
+
+
+def default_arch() -> str:
+    """Return the correct emulator arch for this platform."""
+    if platform.machine().lower() in ("arm64", "aarch64"):
+        return "arm64-v8a"
+    return "x86_64"
 
 
 # ── Config dataclass ─────────────────────────────────────────────────────────
@@ -60,7 +105,7 @@ class EmulatorConfig:
     name: str
     api_level: int = 35
     target: str = "google_apis_playstore"  # google_apis | google_apis_playstore | default
-    arch: str = "x86_64"
+    arch: str = ""  # auto-detected if empty
     device_profile: str = "medium_phone"  # hardware profile name
     ram_mb: int = 2048
     disk_mb: int = 6144
@@ -70,6 +115,10 @@ class EmulatorConfig:
     cores: int = 2
     headless: bool = False
     snapshot: bool = True
+
+    def __post_init__(self):
+        if not self.arch:
+            self.arch = default_arch()
 
     def system_image_pkg(self) -> str:
         api = f"android-{self.api_level}"
@@ -87,13 +136,18 @@ class EmulatorConfig:
 
 def check_prerequisites() -> dict:
     """Check what SDK tools are available."""
+    is_mac = platform.system() == "Darwin"
+    hw_accel = True if is_mac else Path("/dev/kvm").exists()
     return {
         "sdk_root": str(SDK_ROOT),
         "sdk_exists": SDK_ROOT.exists(),
         "emulator_binary": EMULATOR_BIN.exists(),
         "adb_binary": shutil.which("adb") is not None or (SDK_ROOT / "platform-tools" / "adb").exists(),
         "cmdline_tools": _has_cmdline_tools(),
-        "kvm": Path("/dev/kvm").exists(),
+        "hw_accel": hw_accel,
+        "hw_accel_type": "HVF" if is_mac else "KVM",
+        "platform": platform.system(),
+        "arch": default_arch(),
         "avd_home": str(AVD_HOME),
     }
 
@@ -127,8 +181,10 @@ def list_system_images() -> list[dict]:
     return images
 
 
-def install_system_image(api_level: int, target: str = "google_apis_playstore", arch: str = "x86_64") -> dict:
+def install_system_image(api_level: int, target: str = "google_apis_playstore", arch: str = "") -> dict:
     """Download a system image via sdkmanager. Requires cmdline-tools."""
+    if not arch:
+        arch = default_arch()
     if not _has_cmdline_tools():
         return {
             "ok": False,
@@ -157,7 +213,6 @@ def list_avds(running_list: list[dict]) -> list[dict]:
     for ini_file in sorted(AVD_HOME.glob("*.ini")):
         if ini_file.suffix != ".ini":
             continue
-        # skip .avd directories, only process top-level .ini
         name_from_file = ini_file.stem
 
         cfg = configparser.ConfigParser()
@@ -171,7 +226,6 @@ def list_avds(running_list: list[dict]) -> list[dict]:
             "target": cfg.get("root", "target", fallback=""),
         }
 
-        # Read detailed config from the .avd/config.ini
         config_ini = avd_path / "config.ini" if avd_path else None
         if config_ini and config_ini.exists():
             lines = config_ini.read_text().splitlines()
@@ -189,16 +243,15 @@ def list_avds(running_list: list[dict]) -> list[dict]:
                     "target_flavor": kv.get("tag.display", ""),
                     "abi": kv.get("abi.type", ""),
                     "resolution": f"{kv.get('hw.lcd.width', '?')}x{kv.get('hw.lcd.height', '?')}",
-                    "dpi": int(kv.get("hw.lcd.density", 0)),
-                    "ram_mb": int(kv.get("hw.ramSize", 0)),
+                    "dpi": _safe_int(kv.get("hw.lcd.density", "0")),
+                    "ram_mb": _safe_int(kv.get("hw.ramSize", "0")),
                     "disk": kv.get("disk.dataPartition.size", ""),
                     "gpu_mode": kv.get("hw.gpu.mode", ""),
-                    "cores": int(kv.get("hw.cpu.ncore", 0)),
+                    "cores": _safe_int(kv.get("hw.cpu.ncore", "0")),
                     "playstore": kv.get("PlayStore.enabled", "false").lower() == "true",
                 }
             )
 
-        # Running status
         run_info = running.get(name_from_file)
         if run_info:
             adb_state = run_info.get("adb_state", "device")
@@ -215,14 +268,7 @@ def list_avds(running_list: list[dict]) -> list[dict]:
 
 
 def list_running(procs: dict, lock: threading.Lock) -> list[dict]:
-    """List running emulators with serials and AVD names.
-
-    Picks up both 'device' (fully booted) and 'offline' (booting) emulators.
-
-    Args:
-        procs: the EmulatorManager._procs dict (serial -> Popen).
-        lock: the EmulatorManager._lock.
-    """
+    """List running emulators with serials and AVD names."""
     try:
         r = _run([ADB_BIN, "devices"], timeout=10, check=False)
     except (subprocess.SubprocessError, OSError):
@@ -232,13 +278,11 @@ def list_running(procs: dict, lock: threading.Lock) -> list[dict]:
         parts = line.split()
         if len(parts) >= 2 and parts[0].startswith("emulator-") and parts[1] in ("device", "offline"):
             serial = parts[0]
-            adb_state = parts[1]  # 'device' or 'offline'
-            # get AVD name (only works if device is online)
+            adb_state = parts[1]
             avd_name = "unknown"
             if adb_state == "device":
                 name_out = _adb(serial, "emu", "avd", "name", timeout=5)
                 avd_name = name_out.splitlines()[0].strip() if name_out else "unknown"
-            # get pid from tracked procs or from system
             pid = None
             with lock:
                 proc = procs.get(serial)

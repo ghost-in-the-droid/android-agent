@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "ghost-in-the-droid"
 version = "1.0.0"
 description = "Give any AI agent an Android body. Open-source phone automation via ADB — tap, swipe, type, run skills, scale across devices."
+readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 keywords = ["android", "adb", "automation", "ghost", "agent", "mcp", "fastapi", "phone-farm"]
@@ -29,7 +30,14 @@ dependencies = [
     "pyyaml>=6.0",
     "psutil>=5.9",
     "openai>=1.0",
+    "mcp>=1.20",
 ]
+
+[project.urls]
+Homepage = "https://ghostinthedroid.com"
+Repository = "https://github.com/ghost-in-the-droid/android-agent"
+Documentation = "https://ghostinthedroid.com/getting-started/installation/"
+Issues = "https://github.com/ghost-in-the-droid/android-agent/issues"
 
 [project.optional-dependencies]
 llm = ["anthropic>=0.30"]
@@ -40,6 +48,7 @@ all = ["ghost-in-the-droid[llm,analytics,ocr,test]"]
 
 [project.scripts]
 android-agent = "gitd.cli:main"
+android-agent-mcp = "gitd.mcp_server:main"
 
 [tool.setuptools.packages.find]
 include = ["gitd*"]
