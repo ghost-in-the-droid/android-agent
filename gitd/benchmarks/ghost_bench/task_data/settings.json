@@ -1,0 +1,74 @@
+[
+  {
+    "id": "SystemWifiTurnOn",
+    "goal": "Turn wifi on.",
+    "app": "com.android.settings",
+    "category": "settings",
+    "complexity": 1,
+    "init": {"cmd": "svc wifi disable", "desc": "Disable WiFi"},
+    "eval": {"cmd": "settings get global wifi_on", "expect_in": ["1", "2"]}
+  },
+  {
+    "id": "SystemWifiTurnOff",
+    "goal": "Turn wifi off.",
+    "app": "com.android.settings",
+    "category": "settings",
+    "complexity": 1,
+    "init": {"cmd": "svc wifi enable", "desc": "Enable WiFi"},
+    "eval": {"cmd": "settings get global wifi_on", "expect": "0"}
+  },
+  {
+    "id": "SystemBluetoothTurnOn",
+    "goal": "Turn bluetooth on.",
+    "app": "com.android.settings",
+    "category": "settings",
+    "complexity": 1,
+    "init": {"cmd": "svc bluetooth disable", "desc": "Disable Bluetooth"},
+    "eval": {"cmd": "settings get global bluetooth_on", "expect": "1"}
+  },
+  {
+    "id": "SystemBluetoothTurnOff",
+    "goal": "Turn bluetooth off.",
+    "app": "com.android.settings",
+    "category": "settings",
+    "complexity": 1,
+    "init": {"cmd": "svc bluetooth enable", "desc": "Enable Bluetooth"},
+    "eval": {"cmd": "settings get global bluetooth_on", "expect": "0"}
+  },
+  {
+    "id": "SystemBrightnessMax",
+    "goal": "Set screen brightness to maximum.",
+    "app": "com.android.settings",
+    "category": "settings",
+    "complexity": 1,
+    "init": {"cmd": "settings put system screen_brightness 1", "desc": "Set brightness to min"},
+    "eval": {"cmd": "settings get system screen_brightness", "expect": "255"}
+  },
+  {
+    "id": "SystemBrightnessMin",
+    "goal": "Set screen brightness to minimum.",
+    "app": "com.android.settings",
+    "category": "settings",
+    "complexity": 1,
+    "init": {"cmd": "settings put system screen_brightness 255", "desc": "Set brightness to max"},
+    "eval": {"cmd": "settings get system screen_brightness", "expect": "1"}
+  },
+  {
+    "id": "SystemAirplaneModeOn",
+    "goal": "Turn on airplane mode.",
+    "app": "com.android.settings",
+    "category": "settings",
+    "complexity": 1.5,
+    "init": {"cmd": "settings put global airplane_mode_on 0", "desc": "Disable airplane mode"},
+    "eval": {"cmd": "settings get global airplane_mode_on", "expect": "1"}
+  },
+  {
+    "id": "SystemAirplaneModeOff",
+    "goal": "Turn off airplane mode.",
+    "app": "com.android.settings",
+    "category": "settings",
+    "complexity": 1.5,
+    "init": {"cmd": "settings put global airplane_mode_on 1", "desc": "Enable airplane mode"},
+    "eval": {"cmd": "settings get global airplane_mode_on", "expect": "0"}
+  }
+]
