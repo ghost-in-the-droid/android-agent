@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from gitd.models.base import Base, engine
 from gitd.routers.agent_chat import router as agent_chat_router
+from gitd.routers.benchmarks import router as benchmarks_router
 from gitd.routers.bot import router as bot_router
 from gitd.routers.creator import router as creator_router
 from gitd.routers.emulators import pool_router as emulator_pool_router
@@ -63,6 +64,7 @@ TAGS_METADATA = [
     {"name": "tools", "description": "Utility tools hub"},
     {"name": "misc", "description": "Health, logs, server management"},
     {"name": "emulators", "description": "Emulator lifecycle, AVDs, snapshots, pool management"},
+    {"name": "benchmarks", "description": "Benchmark runner — task suites, live progress, results"},
 ]
 
 
@@ -111,6 +113,7 @@ def create_app() -> FastAPI:
     app.include_router(tests_router)
     app.include_router(emulators_router)
     app.include_router(emulator_pool_router)
+    app.include_router(benchmarks_router)
 
     # Plugin hook: load premium features if installed
     try:
