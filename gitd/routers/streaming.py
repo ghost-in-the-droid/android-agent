@@ -35,7 +35,7 @@ def _stable_ws_port(serial: str) -> int:
 
 
 @router.get("/api/phone/stream", summary="Stream Phone Screen MJPEG")
-def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = "portal"):
+def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = "screencap"):
     """Stream phone screen via MJPEG."""
     fps = max(1, min(fps, 60))
     quality = max(1, min(quality, 31))
