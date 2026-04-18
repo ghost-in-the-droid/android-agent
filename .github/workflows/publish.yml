@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish Release
 
 on:
   push:
@@ -7,8 +7,12 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # required for creating GitHub Releases
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so CHANGELOG compare links resolve
 
       - uses: actions/setup-python@v5
         with:
@@ -30,3 +34,48 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_PROJECT_TOKEN }}
+
+      - name: Extract release notes from CHANGELOG
+        run: |
+          python3 <<'PY' > release_notes.md
+          import re, os
+          version = os.environ["GITHUB_REF_NAME"].lstrip("v")
+          with open("CHANGELOG.md") as f:
+              c = f.read()
+          m = re.search(rf"## \[{re.escape(version)}\][^\n]*\n(.*?)(?=\n## \[|\Z)", c, re.DOTALL)
+          print(m.group(1).strip() if m else f"Release v{version}")
+          PY
+          echo "--- release_notes.md ---"
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          make_latest: "true"
+
+  mirror-to-archive:
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push main + tag to archive repo
+        env:
+          ARCHIVE_TOKEN: ${{ secrets.ARCHIVE_PUSH_TOKEN }}
+        run: |
+          if [ -z "$ARCHIVE_TOKEN" ]; then
+            echo "ARCHIVE_PUSH_TOKEN not set — skipping archive mirror (see docs/RELEASE.md)"
+            exit 0
+          fi
+          git remote add archive "https://x-access-token:${ARCHIVE_TOKEN}@github.com/ghost-in-the-droid/android-agent-archive.git"
+          git fetch origin main
+          git push archive origin/main:refs/heads/public-main --force
+          git push archive ${{ github.ref_name }}
+          echo "✓ Mirrored public main + ${{ github.ref_name }} to archive"
