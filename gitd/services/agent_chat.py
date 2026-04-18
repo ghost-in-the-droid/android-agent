@@ -310,6 +310,25 @@ def delete_conversation(conversation_id: str):
     _sessions.pop(conversation_id, None)
 
 
+def get_providers() -> list[dict]:
+    """Return providers with models. Ollama models are discovered live from the local server."""
+    import requests
+
+    result = []
+    for pid, info in PROVIDERS.items():
+        models = list(info["models"])
+        if pid == "ollama":
+            try:
+                r = requests.get("http://localhost:11434/api/tags", timeout=3)
+                installed = [m["name"] for m in r.json().get("models", [])]
+                if installed:
+                    models = installed
+            except Exception:
+                pass  # Ollama not running — return defaults
+        result.append({"id": pid, "label": info["label"], "models": models})
+    return result
+
+
 def chat_turn(session: ChatSession, user_message: str):
     """Run one agent turn. Yields SSE event dicts."""
     provider = session.provider
@@ -726,11 +745,22 @@ def _chat_ollama(session: ChatSession, user_message: str):
                 },
                 timeout=120,
             )
-            reply = r.json().get("message", {}).get("content", "")
+            data = r.json()
+            if r.status_code != 200:
+                error = data.get("error", r.text[:200])
+                if "not found" in error.lower():
+                    yield {
+                        "type": "error",
+                        "content": f"Model '{model}' not found. Pull it first: ollama pull {model}",
+                    }
+                else:
+                    yield {"type": "error", "content": f"Ollama error: {error}"}
+                return
+            reply = data.get("message", {}).get("content", "")
         except requests.ConnectionError:
             yield {
                 "type": "error",
-                "content": "Ollama not reachable at localhost:11434. Install: https://ollama.com/download",
+                "content": "Ollama not reachable at localhost:11434. Start it: ollama serve",
             }
             return
         except Exception as e:
