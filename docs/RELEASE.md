@@ -2,6 +2,8 @@
 
 How we cut a new release of Ghost in the Droid and publish it to GitHub + PyPI.
 
+**TL;DR:** `./scripts/release.sh 1.3.0` → merge the PR it opens → `git tag v1.3.0 && git push public v1.3.0` → done. Workflows handle PyPI + GitHub Release + archive sync automatically.
+
 ---
 
 ## Versioning — Semantic (SemVer)
@@ -19,168 +21,143 @@ Examples: `1.0.0 → 1.1.0` (Ollama added), `1.1.0 → 1.1.1` (fix parse bug), `
 ## Repo Flow
 
 ```
-   private-mirror (work here)
+   private-mirror (dev target)
         │
-        │ open PR against private-mirror/main
+        │ feature PRs land on main
         ▼
-   private-mirror/main  ← first merge here; CI runs
+   private-mirror/main  ← release.sh runs here
         │
-        │ sync main → feature branch on public
+        │ script creates clean PR on public (rebuilt on public/main)
         ▼
-   public/android-agent (release target)
+   public/main ← merge PR
         │
-        │ tag vX.Y.Z on public main
+        │ push v* tag
         ▼
-   [publish.yml fires]
+   [publish.yml fires automatically]
         │
         ├─► PyPI: ghost-in-the-droid==X.Y.Z
-        │
-        └─► GitHub Release: v X.Y.Z with notes
+        ├─► GitHub Release v X.Y.Z with CHANGELOG notes
+        └─► Archive: mirror public/main + tag to android-agent-archive
 ```
 
-**Never push directly to public `main`.** Always go through private mirror PR → public PR → tag.
+**Never push directly to public `main`.** Always go through the release.sh flow.
 
 ---
 
-## Release Checklist
+## Quick Release (automated path)
 
-### 1. Land all features on private mirror `main`
-
-- All PRs merged, CI green
-- Manual smoke test: `python3 run.py` starts, dashboard loads, one end-to-end flow works (e.g. take screenshot on a real device)
-
-### 2. Bump version + update changelog
-
-On private-mirror `main`:
+### 1. Run the script on private-mirror/main
 
 ```bash
-# Update pyproject.toml
-sed -i 's/^version = "1.0.0"/version = "1.1.0"/' pyproject.toml
-
-# Move [Unreleased] → [1.1.0] — YYYY-MM-DD in CHANGELOG.md
-# Add the compare link at the bottom
+./scripts/release.sh 1.3.0
 ```
 
-Commit message: `Bump version to X.Y.Z`
+This does everything up to opening the public PR:
+- Pulls latest private-mirror/main
+- Bumps `pyproject.toml` version
+- Stamps CHANGELOG.md (moves `[Unreleased]` → dated section, updates compare links)
+- Commits + pushes to private-mirror/main
+- Creates `release/v1.3.0` branch on public (rebuilt on top of public/main — no history-divergence conflicts)
+- Opens PR on public with CHANGELOG notes as the body
 
-### 3. Create release PR on public repo
+### 2. Wait for CI + merge the public PR
+
+4 checks on public (lint, test, type-check, build-frontend) — all must pass.
+
+Use **Squash and merge** on the public repo.
+
+### 3. Tag
 
 ```bash
-# Push private mirror/main as a feature branch on public
-git remote add public https://github.com/ghost-in-the-droid/android-agent.git
-git fetch public main
-git push public origin/main:refs/heads/release/vX.Y.Z
-
-# Open PR
-gh pr create --repo ghost-in-the-droid/android-agent \
-  --base main --head release/vX.Y.Z \
-  --title "Release vX.Y.Z" \
-  --body-file CHANGELOG_SECTION.md
+git fetch public
+git checkout public/main
+git tag v1.3.0
+git push public v1.3.0
 ```
 
-Wait for CI to pass on public. Review. Merge.
+### 4. Automation takes over
 
-### 4. Tag the release
+The tag push triggers `.github/workflows/publish.yml` which:
+- Builds the package, verifies entry points
+- Publishes to PyPI (`PYPI_PROJECT_TOKEN`)
+- Creates the GitHub Release with notes pulled from CHANGELOG.md
+- Mirrors `public/main` + the tag to the archive repo (needs `ARCHIVE_PUSH_TOKEN` secret)
 
-```bash
-# On the merged public main
-git checkout main && git pull public main
-git tag -a vX.Y.Z -m "Release vX.Y.Z"
-git push public vX.Y.Z
-```
-
-This triggers `.github/workflows/publish.yml`:
-- Builds the package (`python -m build`)
-- Verifies entry points (`android-agent --help`, MCP import)
-- Publishes to PyPI via `PYPI_PROJECT_TOKEN`
-
-### 5. Create GitHub Release
+### 5. Verify
 
 ```bash
-gh release create vX.Y.Z \
-  --repo ghost-in-the-droid/android-agent \
-  --title "vX.Y.Z" \
-  --notes-file CHANGELOG_SECTION.md \
-  --latest
-```
-
-(Or via the GitHub UI: Releases → Draft a new release → pick tag `vX.Y.Z` → paste changelog section.)
-
-### 6. Verify
-
-```bash
-# Clean environment
-uvx --from ghost-in-the-droid==X.Y.Z android-agent-mcp --help
-
-# PyPI page
-open https://pypi.org/project/ghost-in-the-droid/X.Y.Z/
-
-# GitHub release page
-open https://github.com/ghost-in-the-droid/android-agent/releases/tag/vX.Y.Z
+pip install ghost-in-the-droid==1.3.0
+# GitHub release: https://github.com/ghost-in-the-droid/android-agent/releases/tag/v1.3.0
+# PyPI: https://pypi.org/project/ghost-in-the-droid/1.3.0/
 ```
 
 ---
 
-## What's Automated vs Manual
+## Manual Path (if the script fails)
+
+Everything release.sh does can be done by hand; see git history for worked examples (v1.0.0, v1.1.0, v1.2.0).
+
+The one thing that's easy to miss: when pushing private-mirror/main to public, history often diverges (private-mirror has non-squashed PR merges, public is squashed). Fix: rebuild a clean release branch on top of public/main:
+
+```bash
+git fetch public
+git checkout -B release/vX.Y.Z public/main
+# Apply cumulative diff from the last "Release" commit on main onto public/main:
+git diff <last-release-commit>..main | git apply --3way --index
+git commit -m "Release vX.Y.Z"
+git push public release/vX.Y.Z
+gh pr create --repo ghost-in-the-droid/android-agent --base main --head release/vX.Y.Z ...
+```
+
+The script automates this pattern.
+
+---
+
+## GitHub Secrets (one-time setup)
+
+| Secret | Repo | Purpose |
+|--------|------|---------|
+| `PYPI_PROJECT_TOKEN` | `android-agent` (public) | PyPI upload via `publish.yml` |
+| `ARCHIVE_PUSH_TOKEN` | `android-agent` (public) | Auto-mirror to archive repo. PAT with `repo` scope on `android-agent-archive`. |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY` | all repos | Integration tests (optional) |
+
+Set in **Settings → Secrets and variables → Actions** on each repo.
+
+---
+
+## What's Automated
 
 | Step | Automated | Manual |
 |------|-----------|--------|
-| CI (lint, test, type-check, frontend build) | ✅ on every PR | — |
-| PyPI publish | ✅ on `v*` tag push | push the tag |
-| Package verification (install + entry points) | ✅ in publish.yml | — |
-| GitHub Release | ⚠️ partial (can be scripted below) | click "Publish release" |
-| CHANGELOG.md | ❌ | write release notes |
-| Version bump | ❌ | `sed` command |
-| Private → Public sync | ❌ | push branch + PR |
+| CI (lint, test, type-check, frontend build) on every PR | ✅ | — |
+| Version bump + CHANGELOG stamp | ✅ (release.sh) | — |
+| Release PR on public | ✅ (release.sh) | — |
+| PyPI publish | ✅ (publish.yml on tag) | push the tag |
+| Package verification (install + entry points) | ✅ (publish.yml) | — |
+| GitHub Release creation | ✅ (publish.yml on tag) | — |
+| Archive mirror sync | ✅ (mirror-to-archive.yml on tag) | — |
 
 ---
 
-## GitHub Secrets (already configured)
+## Still Manual (see "Automation Roadmap" section)
 
-| Secret | Where used | Purpose |
-|--------|-----------|---------|
-| `PYPI_PROJECT_TOKEN` | `publish.yml` | PyPI upload (project-scoped token) |
-| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY` | `ci.yml` | Integration tests (optional) |
-
----
-
-## Automation Roadmap
-
-Full automation would reduce manual steps to: **write CHANGELOG entry → click a button**.
-
-### Phase 1 (easy wins)
-- [ ] Add a `release.sh` script that does: version bump + CHANGELOG stamp (move `[Unreleased]` → `[X.Y.Z]` with today's date) + commit + tag + push
-- [ ] Add auto-create GitHub Release in `publish.yml` (use `softprops/action-gh-release@v2` after PyPI upload, pulls notes from CHANGELOG.md section)
-- [ ] Pre-commit hook that runs `ruff check` + secret-scan (detect-secrets or gitleaks) on every commit
-
-### Phase 2 (medium effort)
-- [ ] `release-please` bot — reads conventional commits, auto-generates changelog + opens release PR on every merge to main
-- [ ] Branch protection on public `main`: require PR, require CI green, require 1 review, no force push
-- [ ] Dependabot for pip + npm
-
-### Phase 3 (nice to have)
-- [ ] Trusted Publishing to PyPI (OIDC, no stored token)
-- [ ] Sigstore attestations on releases (supply chain security)
-- [ ] Multi-package support if we split `gitd` into `gitd-core` + `gitd-cli` + `gitd-mcp`
-- [ ] Matrix CI: Python 3.10/3.11/3.12 × ubuntu/macos × latest/minimum deps
+- CHANGELOG entry for each PR — currently human-written. Could be auto-generated from conventional-commit messages via `release-please` bot.
+- Merging release PRs on public — intentionally manual (human review gate before shipping).
+- Deciding when to cut a release — by user request, not time-based.
 
 ---
 
 ## Hotfix Process
 
-For urgent fixes on a released version:
+Urgent fix on a released version:
 
 ```bash
 # Branch from the tag
 git checkout -b hotfix/1.1.1 v1.1.0
-
-# Apply fix, commit
+# Apply fix
 ...
-
-# Bump PATCH version, update CHANGELOG
-sed -i 's/version = "1.1.0"/version = "1.1.1"/' pyproject.toml
-
-# Push, PR to private-mirror/main, then public/main, then tag v1.1.1
+# Use release.sh with the PATCH-bumped version
+./scripts/release.sh 1.1.1
 ```
 
 Same flow as a regular release, just smaller scope.
@@ -189,29 +166,17 @@ Same flow as a regular release, just smaller scope.
 
 ## Rollback
 
-If a release is broken:
+**PyPI** can't be deleted, only yanked:
+- Go to https://pypi.org/manage/project/ghost-in-the-droid/ → Yank
 
-**PyPI** — you can't delete a version, but you can yank it (prevents installs without explicit pin):
+**GitHub Release** — `gh release delete vX.Y.Z --yes`
 
-```bash
-pip install twine
-twine upload --repository pypi dist/* --skip-existing
-# Go to https://pypi.org/manage/project/ghost-in-the-droid/ → Yank
-```
-
-**GitHub Release** — delete via UI or `gh release delete vX.Y.Z --yes`.
-
-**Tag** — `git push --delete public vX.Y.Z` (leaves PyPI version yanked).
+**Tag** — `git push --delete public vX.Y.Z`
 
 Then cut a new PATCH release with the fix.
 
 ---
 
-## Release Cadence
+## Automation Roadmap
 
-No fixed cadence. Release whenever:
-- A meaningful feature lands (MINOR)
-- A user-visible bug is fixed (PATCH)
-- Accumulated ~2-4 PRs on main
-
-Don't batch fixes if they're blocking users. Don't release daily — cut noise.
+See [`mono/docs/refactor/release-automation-nbs.md`](https://github.com/ghost-in-the-droid/mono/blob/main/docs/refactor/release-automation-nbs.md) for the next-level automation plans that are deliberately not shipped yet (release-please bot, squash-merge enforcement, Trusted Publishing, public-first workflow).
