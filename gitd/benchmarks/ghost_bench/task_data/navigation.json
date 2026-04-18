@@ -1,0 +1,56 @@
+[
+  {
+    "id": "OpenAppSettings",
+    "goal": "Open the Settings app.",
+    "app": "com.android.settings",
+    "category": "navigation",
+    "complexity": 1,
+    "init": {"cmd": "input keyevent KEYCODE_HOME", "desc": "Go home"},
+    "eval": {"cmd": "dumpsys activity activities | grep mResumedActivity", "expect_contains": "com.android.settings"}
+  },
+  {
+    "id": "OpenAppContacts",
+    "goal": "Open the Contacts app.",
+    "app": "com.google.android.contacts",
+    "category": "navigation",
+    "complexity": 1,
+    "init": {"cmd": "input keyevent KEYCODE_HOME", "desc": "Go home"},
+    "eval": {"cmd": "dumpsys activity activities | grep mResumedActivity", "expect_contains": "contacts"}
+  },
+  {
+    "id": "OpenAppClock",
+    "goal": "Open the Clock app.",
+    "app": "com.google.android.deskclock",
+    "category": "navigation",
+    "complexity": 1,
+    "init": {"cmd": "input keyevent KEYCODE_HOME", "desc": "Go home"},
+    "eval": {"cmd": "dumpsys activity activities | grep mResumedActivity", "expect_contains": "deskclock"}
+  },
+  {
+    "id": "OpenAppCamera",
+    "goal": "Open the Camera app.",
+    "app": "com.android.camera2",
+    "category": "navigation",
+    "complexity": 1,
+    "init": {"cmd": "input keyevent KEYCODE_HOME", "desc": "Go home"},
+    "eval": {"cmd": "dumpsys activity activities | grep mResumedActivity", "expect_contains": "camera"}
+  },
+  {
+    "id": "OpenAppChrome",
+    "goal": "Open Chrome browser.",
+    "app": "com.android.chrome",
+    "category": "navigation",
+    "complexity": 1,
+    "init": {"cmd": "input keyevent KEYCODE_HOME", "desc": "Go home"},
+    "eval": {"cmd": "dumpsys activity activities | grep mResumedActivity", "expect_contains": "chrome"}
+  },
+  {
+    "id": "OpenAppCalculator",
+    "goal": "Open the Calculator app.",
+    "app": "com.google.android.calculator",
+    "category": "navigation",
+    "complexity": 1,
+    "init": {"cmd": "input keyevent KEYCODE_HOME", "desc": "Go home"},
+    "eval": {"cmd": "dumpsys activity activities | grep mResumedActivity", "expect_contains": "calculator"}
+  }
+]

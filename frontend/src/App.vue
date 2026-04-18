@@ -9,6 +9,7 @@ import SkillCreatorView from '@/views/SkillCreatorView.vue'
 import ExplorerView from '@/views/ExplorerView.vue'
 import ToolsHubView from '@/views/ToolsHubView.vue'
 import EmulatorTab from '@/components/emulator/EmulatorTab.vue'
+import BenchmarkTab from '@/components/benchmark/BenchmarkTab.vue'
 
 const coreTabs = [
   { id: 'phone', label: '👻 Phone Agent' },
@@ -20,6 +21,7 @@ const coreTabs = [
   { id: 'bot', label: '▶️ Manual Run' },
   { id: 'tests', label: '🧪 Tests' },
   { id: 'emulators', label: '🖥️ Emulators' },
+  { id: 'benchmarks', label: '📊 Benchmarks' },
 ]
 
 const premiumTabs = ref<{id: string, label: string, component?: string}[]>([])
@@ -138,6 +140,7 @@ async function restartServer() {
       <BotView v-else-if="activeTab === 'bot'" />
       <TestsView v-else-if="activeTab === 'tests'" />
       <EmulatorTab v-else-if="activeTab === 'emulators'" />
+      <BenchmarkTab v-else-if="activeTab === 'benchmarks'" />
       <!-- Premium tabs: rendered as iframes from premium frontend server -->
       <iframe
         v-else-if="premiumTabs.some(t => t.id === activeTab)"

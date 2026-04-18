@@ -409,6 +409,14 @@ function startStream() {
   streaming.value = true
   if (singleStreamMode.value === 'rtc') {
     rtcStart(selectedDevice.value)
+    // Auto-fallback: if RTC doesn't connect within 5s, switch to MJPEG
+    setTimeout(() => {
+      if (streaming.value && singleStreamMode.value === 'rtc' && rtcStatus[selectedDevice.value] !== 'Streaming') {
+        console.log('RTC timeout — falling back to MJPEG')
+        singleStreamMode.value = 'mjpeg'
+        singleMjpegUrl.value = `/api/phone/stream?device=${encodeURIComponent(selectedDevice.value)}&fps=5`
+      }
+    }, 5000)
   } else {
     singleMjpegUrl.value = `/api/phone/stream?device=${encodeURIComponent(selectedDevice.value)}&fps=5`
   }
@@ -534,26 +542,107 @@ if (!(window as any).marked) {
 }
 const chatProvider = ref(localStorage.getItem('agent_provider') || 'claude-code')
 const chatModel = ref(localStorage.getItem('agent_model') || 'sonnet')
-const CHAT_PROVIDERS = [
+const CHAT_PROVIDERS = ref([
   { id: 'claude-code', label: 'Claude Code (free)', models: ['sonnet', 'opus', 'haiku'] },
   { id: 'anthropic', label: 'Claude API', models: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514'] },
   { id: 'openrouter', label: 'OpenRouter', models: ['anthropic/claude-sonnet-4', 'google/gemini-2.5-pro'] },
-  { id: 'ollama', label: 'Ollama (local)', models: ['llama3.2:3b', 'llama3.2:1b', 'gemma3:4b', 'qwen3:4b', 'phi4-mini:3.8b', 'mistral:7b'] },
-]
-const chatConversations = ref<{id: string; title: string; provider: string; model: string; message_count: number; updated_at: string}[]>([])
+  { id: 'ollama', label: 'Ollama (local)', models: [] },
+])
 
-async function ollamaUnload() {
+async function fetchProviders() {
   try {
-    await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: chatModel.value, keep_alive: 0 }),
+    const resp = await fetch('/api/agent-chat/providers')
+    if (resp.ok) CHAT_PROVIDERS.value = await resp.json()
+  } catch {}
+}
+
+// Ollama model status
+const ollamaModels = ref<Array<{name: string; status: string; vram_gb: number; size_gb: number; parameter_size: string}>>([])
+const ollamaLoading = ref('')  // model name currently loading
+
+async function fetchOllamaStatus() {
+  if (chatProvider.value !== 'ollama') return
+  try {
+    const resp = await fetch('/api/agent-chat/ollama/status')
+    if (resp.ok) {
+      const data = await resp.json()
+      if (data.ok) ollamaModels.value = data.models
+    }
+  } catch {}
+}
+
+function ollamaModelStatus(name: string): string {
+  if (ollamaLoading.value === name) return 'loading'
+  const m = ollamaModels.value.find(m => m.name === name)
+  return m?.status || 'unknown'
+}
+
+function ollamaModelVram(name: string): number {
+  const m = ollamaModels.value.find(m => m.name === name)
+  return m?.vram_gb || 0
+}
+
+async function ollamaLoad(model: string) {
+  ollamaLoading.value = model
+  try {
+    const resp = await fetch('/api/agent-chat/ollama/load', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model }),
     })
-    chatMessages.value.push({ role: 'system', content: `Unloaded ${chatModel.value} from memory.` })
+    const data = await resp.json()
+    if (!data.ok) chatMessages.value.push({ role: 'system', content: `Load failed: ${data.error}` })
+  } catch (e: any) {
+    chatMessages.value.push({ role: 'system', content: `Load failed: ${e.message}` })
+  }
+  ollamaLoading.value = ''
+  fetchOllamaStatus()
+}
+
+async function ollamaUnload(model?: string) {
+  const m = model || chatModel.value
+  try {
+    const resp = await fetch('/api/agent-chat/ollama/unload', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: m }),
+    })
+    const data = await resp.json()
+    if (data.ok) chatMessages.value.push({ role: 'system', content: `Unloaded ${m} from VRAM.` })
+    else chatMessages.value.push({ role: 'system', content: `Unload failed: ${data.error}` })
   } catch (e: any) {
     chatMessages.value.push({ role: 'system', content: `Failed to unload: ${e.message}` })
   }
+  fetchOllamaStatus()
 }
+
+const ollamaPullName = ref('')
+const ollamaPulling = ref(false)
+
+async function ollamaPull() {
+  const model = ollamaPullName.value.trim()
+  if (!model) return
+  ollamaPulling.value = true
+  chatMessages.value.push({ role: 'system', content: `Pulling ${model}...` })
+  try {
+    const resp = await fetch('/api/agent-chat/ollama/pull', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model }),
+    })
+    const data = await resp.json()
+    if (data.ok) {
+      chatMessages.value.push({ role: 'system', content: `${model} pulled successfully.` })
+      ollamaPullName.value = ''
+      fetchProviders()
+      fetchOllamaStatus()
+    } else {
+      chatMessages.value.push({ role: 'system', content: `Pull failed: ${data.error}` })
+    }
+  } catch (e: any) {
+    chatMessages.value.push({ role: 'system', content: `Pull failed: ${e.message}` })
+  }
+  ollamaPulling.value = false
+}
+
+const chatConversations = ref<{id: string; title: string; provider: string; model: string; message_count: number; updated_at: string}[]>([])
 
 async function loadConversations() {
   if (!selectedDevice.value) return
@@ -589,9 +678,10 @@ async function deleteConversation(cid: string) {
 
 function onProviderChange() {
   localStorage.setItem('agent_provider', chatProvider.value)
-  const p = CHAT_PROVIDERS.find(p => p.id === chatProvider.value)
+  const p = CHAT_PROVIDERS.value.find(p => p.id === chatProvider.value)
   if (p?.models.length) { chatModel.value = p.models[0]; localStorage.setItem('agent_model', chatModel.value) }
   chatSessionId.value = '' // reset session on provider change
+  if (chatProvider.value === 'ollama') fetchOllamaStatus()
 }
 function onModelChange() { localStorage.setItem('agent_model', chatModel.value); chatSessionId.value = '' }
 
@@ -766,6 +856,8 @@ onMounted(async () => {
   await loadDevices()
   loadAllHealth()
   loadConversations()
+  fetchProviders()
+  fetchOllamaStatus()
   logTimer = window.setInterval(pollLogs, 3000)
   multiLogTimer = window.setInterval(pollMultiLogs, 4000)
   pollMultiLogs()
@@ -816,9 +908,36 @@ onUnmounted(() => {
             style="font-size: 10px; padding: 2px 6px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; color: var(--text-3); max-width: 140px">
             <option v-for="m in (CHAT_PROVIDERS.find(p => p.id === chatProvider)?.models || [])" :key="m" :value="m">{{ m }}</option>
           </select>
-          <button v-if="chatProvider === 'ollama'" @click="ollamaUnload"
-            style="font-size: 9px; padding: 2px 8px; background: #1a1f2e; border: 1px solid #ef4444; border-radius: 4px; color: #ef4444; cursor: pointer"
-            title="Unload model from GPU memory">Unload</button>
+          <!-- Ollama model status + load/unload -->
+          <template v-if="chatProvider === 'ollama'">
+            <span v-if="ollamaModelStatus(chatModel) === 'loaded'"
+              style="font-size: 8px; padding: 1px 6px; border-radius: 10px; background: #05966920; color: #34d399; border: 1px solid #05966940; white-space: nowrap"
+              :title="`${ollamaModelVram(chatModel)} GB VRAM`">
+              ● {{ ollamaModelVram(chatModel) }}GB
+            </span>
+            <span v-else-if="ollamaModelStatus(chatModel) === 'loading'"
+              style="font-size: 8px; padding: 1px 6px; border-radius: 10px; background: #f59e0b20; color: #fbbf24; border: 1px solid #f59e0b40; white-space: nowrap; animation: pulse 1.5s infinite">
+              ◌ loading...
+            </span>
+            <span v-else
+              style="font-size: 8px; padding: 1px 6px; border-radius: 10px; background: #64748b15; color: #64748b; border: 1px solid #64748b30; white-space: nowrap">
+              ○ idle
+            </span>
+            <button v-if="ollamaModelStatus(chatModel) === 'loaded'" @click="ollamaUnload()"
+              style="font-size: 8px; padding: 1px 6px; background: #1a1f2e; border: 1px solid #ef4444; border-radius: 4px; color: #ef4444; cursor: pointer"
+              title="Free VRAM">unload</button>
+            <button v-else-if="ollamaModelStatus(chatModel) !== 'loading'" @click="ollamaLoad(chatModel)"
+              style="font-size: 8px; padding: 1px 6px; background: #1a1f2e; border: 1px solid #059669; border-radius: 4px; color: #34d399; cursor: pointer"
+              title="Load into VRAM">load</button>
+            <span style="display:inline-flex;align-items:center;gap:2px;margin-left:4px">
+              <input v-model="ollamaPullName" placeholder="pull model..."
+                @keyup.enter="ollamaPull" :disabled="ollamaPulling"
+                style="font-size:8px;padding:1px 4px;width:90px;background:var(--bg-deep);border:1px solid var(--border);border-radius:3px;color:var(--text-3)" />
+              <button @click="ollamaPull" :disabled="ollamaPulling || !ollamaPullName.trim()"
+                style="font-size:8px;padding:1px 5px;background:#1a1f2e;border:1px solid var(--border);border-radius:3px;color:var(--text-3);cursor:pointer"
+                :style="ollamaPulling ? {opacity:0.5} : {}">{{ ollamaPulling ? '...' : '↓' }}</button>
+            </span>
+          </template>
           <span style="margin-left: auto; display: flex; align-items: center; gap: 6px">
             <button @click="chatVerbose = !chatVerbose"
               style="font-size: 9px; padding: 2px 6px; border-radius: 4px; cursor: pointer; border: 1px solid #2a3044"
@@ -900,7 +1019,13 @@ onUnmounted(() => {
             </option>
           </select>
           <button v-if="!streaming" class="ctrl-btn ctrl-btn--webrtc" style="font-size:9px;padding:3px 8px" @click="singleStreamMode = 'rtc'; startStream()">&#x26A1; Stream</button>
-          <button v-else class="ctrl-btn ctrl-btn--stop" style="font-size:9px;padding:3px 8px" @click="stopStream">&#x23F9; Stop</button>
+          <span v-if="streaming" style="font-size:8px;padding:1px 6px;border-radius:10px;white-space:nowrap"
+            :style="singleStreamMode === 'rtc'
+              ? { background: '#22c55e20', color: '#4ade80', border: '1px solid #22c55e40' }
+              : { background: '#6366f120', color: '#a5b4fc', border: '1px solid #6366f140' }">
+            {{ singleStreamMode === 'rtc' ? '⚡ WebRTC' : '📷 MJPEG' }}
+          </span>
+          <button v-if="streaming" class="ctrl-btn ctrl-btn--stop" style="font-size:9px;padding:3px 8px" @click="stopStream">&#x23F9; Stop</button>
           <button class="ctrl-btn" style="font-size:9px;padding:3px 6px" @click="toggleOverlay(selectedDevice)"
             :style="{ background: overlayOn[selectedDevice] ? '#fbbf24' : '', color: overlayOn[selectedDevice] ? '#000' : '#fbbf24' }">&#x1F522;</button>
         </div>
