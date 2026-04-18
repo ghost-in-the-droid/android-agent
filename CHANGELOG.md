@@ -6,6 +6,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-04-17
+
+### Added
+- **Ghost Bench** — in-dashboard benchmark system with 14 built-in tasks (settings + navigation). Runner with SSE live streaming. New `Benchmarks` tab in the dashboard. Foundation for Phase 2 (real AndroidWorld integration).
+- **7 benchmark API endpoints** (`/api/benchmarks/*`) — list suites, start run, stream events, past runs, stop.
+- **Live Ollama model discovery** — new `GET /api/agent-chat/providers` endpoint queries `localhost:11434/api/tags` so the dropdown shows actually-installed models, not a hardcoded list.
+- **Background Ollama model pull** — endpoint to pull new models without blocking the UI, with live status tracking.
+
+### Changed
+- Frontend model selector fetches providers on mount instead of relying on hardcoded constants.
+- Better errors when Ollama isn't running or a requested model isn't installed.
+
+### Fixed
+- Confusing "connection error" when user selected a model not installed locally — now says "model X not found, pull it first" with a pull button.
+
 ## [1.1.0] — 2026-04-16
 
 ### Added
@@ -40,6 +55,7 @@ Initial open-source release of Ghost in the Droid.
 - Skill Hub (registry of reusable skills)
 - Agent Chat (LLM-driven device control via Claude / Claude Code / OpenRouter / Ollama)
 
-[Unreleased]: https://github.com/ghost-in-the-droid/android-agent/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/ghost-in-the-droid/android-agent/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/ghost-in-the-droid/android-agent/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/ghost-in-the-droid/android-agent/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/ghost-in-the-droid/android-agent/releases/tag/v1.0.0
