@@ -14,7 +14,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None  # Not available on Android (C extension)
 
 logger = logging.getLogger(__name__)
 
@@ -303,6 +306,8 @@ def list_running(procs: dict, lock: threading.Lock) -> list[dict]:
 
 def find_emulator_pid(serial: str) -> Optional[int]:
     """Find PID of emulator process by matching port."""
+    if psutil is None:
+        return None
     port = serial.replace("emulator-", "")
     try:
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
