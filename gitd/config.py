@@ -1,10 +1,15 @@
 """
 Pydantic-settings configuration — reads from .env / environment variables.
+Compatible with both pydantic v1 and v2.
 """
 
 from pathlib import Path
 
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    # pydantic v1 fallback — BaseSettings was in pydantic directly
+    from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -29,11 +34,10 @@ class Settings(BaseSettings):
     # ── Ollama ──────────────────────────────────────────────────────────────
     ollama_base_url: str = "http://localhost:11434"
 
-    model_config = {
-        "env_file": ".env",
-        "env_file_encoding": "utf-8",
-        "extra": "ignore",
-    }
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = Settings()

@@ -679,7 +679,7 @@ def _parse_tool_calls(text: str) -> list[dict]:
     import re
 
     calls = []
-    for match in re.finditer(r"```tool\s*\n?(.*?)\n?```", text, re.DOTALL):
+    for match in re.finditer(r"```(?:tool|json)\s*\n?(.*?)\n?```", text, re.DOTALL):
         raw = match.group(1).strip()
         # Try parsing as-is first (valid JSON)
         try:
