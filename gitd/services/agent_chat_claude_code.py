@@ -40,6 +40,12 @@ Keep going until done. Be concise."""
 
     project_dir = str(__import__("pathlib").Path(__file__).parent.parent.parent)
 
+    # On-device: proxy to remote host that has claude CLI + MCP tools
+    remote_host = os.environ.get("GHOST_REMOTE_HOST", "")
+    if remote_host or not __import__("shutil").which("claude"):
+        yield from _chat_claude_code_remote(session, prompt, remote_host or "http://localhost:5055")
+        return
+
     try:
         proc = subprocess.Popen(
             [
@@ -61,7 +67,7 @@ Keep going until done. Be concise."""
             env={**os.environ, "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"},
         )
     except FileNotFoundError:
-        yield {"type": "error", "content": "claude CLI not found"}
+        yield {"type": "error", "content": "claude CLI not found. Set GHOST_REMOTE_HOST to proxy."}
         return
 
     proc.stdin.write(prompt)
@@ -203,5 +209,71 @@ Keep going until done. Be concise."""
 
     if not full_text:
         yield {"type": "error", "content": "No response from Claude Code"}
+
+    yield {"type": "done"}
+
+
+def _chat_claude_code_remote(session, prompt: str, remote_host: str):
+    """Proxy Claude Code request to a remote host running the ghost backend.
+
+    The remote host has `claude` CLI + MCP android-agent tools configured.
+    Tool calls from Claude Code execute on the remote host's MCP server,
+    which talks to the device via ADB (USB or wireless).
+    """
+    import requests
+
+    yield {"type": "activity", "content": f"🔗 Connecting to {remote_host}..."}
+
+    try:
+        resp = requests.post(
+            f"{remote_host}/api/agent-chat/message",
+            json={
+                "content": prompt,
+                "device": session.device,
+                "provider": "claude-code",
+                "model": session.model or "sonnet",
+            },
+            timeout=300,
+            stream=True,
+        )
+
+        for line in resp.iter_lines():
+            if not line:
+                continue
+            text = line.decode()
+            if text.startswith("data: "):
+                try:
+                    event = json.loads(text[6:])
+                    etype = event.get("type", "")
+
+                    if etype == "text":
+                        session.messages.append(ChatMessage(role="assistant", content=event.get("content", "")))
+                        yield event
+                    elif etype == "tool_call":
+                        session.messages.append(
+                            ChatMessage(
+                                role="tool_call",
+                                tool_name=event.get("name", ""),
+                                tool_args=event.get("args", {}),
+                                content="",
+                            )
+                        )
+                        yield event
+                    elif etype == "tool_result":
+                        session.messages.append(
+                            ChatMessage(role="tool_result", content=event.get("result", ""), tool_name=event.get("name", ""))
+                        )
+                        yield event
+                    elif etype in ("activity", "tokens", "screenshot", "error"):
+                        yield event
+                    elif etype == "done":
+                        break
+                except json.JSONDecodeError:
+                    pass
+
+    except requests.ConnectionError:
+        yield {"type": "error", "content": f"Cannot reach {remote_host}. Start the backend on your Mac: python3 run.py"}
+    except Exception as e:
+        yield {"type": "error", "content": str(e)}
 
     yield {"type": "done"}

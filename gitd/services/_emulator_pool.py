@@ -11,7 +11,10 @@ import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 from gitd.services._emulator_helpers import EmulatorConfig
 
