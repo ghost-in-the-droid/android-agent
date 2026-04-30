@@ -342,6 +342,10 @@ def chat_turn(session: ChatSession, user_message: str):
         yield from _chat_openrouter(session, user_message)
     elif provider == "ollama":
         yield from _chat_ollama(session, user_message)
+    elif provider == "on-device":
+        from gitd.services.agent_chat_ondevice import chat_ondevice
+
+        yield from chat_ondevice(session, user_message)
     else:
         yield {"type": "error", "content": f"Unknown provider: {provider}"}
 
