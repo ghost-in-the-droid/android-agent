@@ -19,6 +19,7 @@ from gitd.routers.explorer import router as explorer_router
 from gitd.routers.misc import router as misc_router
 from gitd.routers.phone import router as phone_router
 from gitd.routers.scheduler import router as scheduler_router
+from gitd.routers.traces import router as traces_router
 from gitd.routers.skills import router as skills_router
 from gitd.routers.streaming import router as streaming_router
 from gitd.routers.streaming_viewers import router as streaming_viewers_router
@@ -114,6 +115,7 @@ def create_app() -> FastAPI:
     app.include_router(emulators_router)
     app.include_router(emulator_pool_router)
     app.include_router(benchmarks_router)
+    app.include_router(traces_router)
 
     # Plugin hook: load premium features if installed
     try:
