@@ -193,10 +193,24 @@ def press_key(device: str, key: str) -> str:
 
 
 @mcp.tool()
-def launch_app(device: str, package: str) -> str:
-    """Launch an Android app by package name. Use search_apps() to find the package name."""
-    Device(device).adb("shell", "monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1")
-    return f"Launched {package}"
+def launch_app(device: str, package: str, fresh: bool = False) -> str:
+    """Launch an Android app by package name. Use search_apps() to find the package name.
+
+    Args:
+        device: ADB serial.
+        package: App package name, e.g. "com.android.chrome".
+        fresh: If True, force-stop the app first (cold start, clears in-memory
+            state — back stack, unsaved drafts, login flow position, etc.).
+            If False (default), reuses any existing background instance (warm
+            start — resumes wherever the user left off).
+            Use fresh=True for benchmarks, fresh start of a flow, or when the
+            current app state would interfere with the task.
+    """
+    dev = Device(device)
+    if fresh:
+        dev.adb("shell", "am", "force-stop", package)
+    dev.adb("shell", "monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1")
+    return f"Launched {package}" + (" (fresh)" if fresh else "")
 
 
 @mcp.tool()
@@ -337,6 +351,25 @@ def open_notifications(device: str) -> str:
     """Pull down the notification shade."""
     from gitd.services.device_context import open_notifications as _open
     return "Notification shade opened" if _open(device) else "Failed"
+
+
+@mcp.tool()
+def web_search(device: str, query: str, engine: str = "google") -> str:
+    """Open a web search in whatever browser is on the device.
+
+    Faster than: launch Chrome → tap address bar → type → submit. Useful when
+    the user asks "search for X" or you need to look up info that's not on the
+    current screen. Picks the first installed browser from a fallback chain
+    (Chrome → Firefox → Samsung Internet → Edge → Brave → Opera → Vivaldi →
+    DuckDuckGo Browser → system default), so it works even if Chrome is missing.
+
+    Args:
+        device: ADB serial.
+        query: Free-text search terms (don't pre-escape — handled here).
+        engine: "google" (default), "ddg" / "duckduckgo", "bing", or "brave".
+    """
+    from gitd.services.web_search import open_search
+    return open_search(device, query, engine=engine)
 
 
 @mcp.tool()

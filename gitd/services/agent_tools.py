@@ -156,10 +156,19 @@ TOOLS = [
     # App management
     {
         "name": "launch_app",
-        "description": "Launch an app by package name. E.g. com.zhiliaoapp.musically (TikTok). Use search_apps to find the package name.",
+        "description": (
+            "Launch an app by package name. E.g. com.zhiliaoapp.musically (TikTok). "
+            "Use search_apps to find the package name. "
+            "Set fresh=true to force-stop first (cold start, clears state — use for benchmarks "
+            "or when prior app state would interfere). Default is warm start (resumes prior state)."
+        ),
         "input_schema": {
             "type": "object",
-            "properties": {"device": {"type": "string"}, "package": {"type": "string"}},
+            "properties": {
+                "device": {"type": "string"},
+                "package": {"type": "string"},
+                "fresh": {"type": "boolean", "description": "Force-stop first for a clean state. Default false."},
+            },
             "required": ["device", "package"],
         },
     },
@@ -190,6 +199,25 @@ TOOLS = [
         "name": "list_packages",
         "description": "List raw package names (no app names). Use list_apps or search_apps instead.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "web_search",
+        "description": (
+            "Open a web search in the best available browser. "
+            "Use when the user asks to search/look up something — faster than launching Chrome "
+            "and typing into the address bar. Falls back through Chrome → Firefox → Samsung "
+            "Internet → Edge → Brave → … → system default if a specific browser isn't installed. "
+            "Engines: 'google' (default), 'ddg', 'bing', 'brave'."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "query": {"type": "string"},
+                "engine": {"type": "string", "description": "Search engine: google, ddg, bing, brave. Default google."},
+            },
+            "required": ["device", "query"],
+        },
     },
     # Shell
     {
@@ -344,11 +372,18 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             Device(device).long_press(args["x"], args["y"], duration_ms=args.get("duration_ms", 1000))
             return f"Long pressed ({args['x']}, {args['y']})"
         elif name == "launch_app":
-            Device(device).adb("shell", "monkey", "-p", args["package"], "-c", "android.intent.category.LAUNCHER", "1")
-            return f"Launched {args['package']}"
+            dev = Device(device)
+            fresh = bool(args.get("fresh", False))
+            if fresh:
+                dev.adb("shell", "am", "force-stop", args["package"])
+            dev.adb("shell", "monkey", "-p", args["package"], "-c", "android.intent.category.LAUNCHER", "1")
+            return f"Launched {args['package']}" + (" (fresh)" if fresh else "")
         elif name == "force_stop":
             Device(device).adb("shell", "am", "force-stop", args["package"])
             return f"Stopped {args['package']}"
+        elif name == "web_search":
+            from gitd.services.web_search import open_search
+            return open_search(device, args["query"], engine=args.get("engine", "google"))
         elif name == "list_apps" or name == "search_apps":
             out = Device(device).adb("shell", "pm", "list", "packages", timeout=10)
             pkgs = [p.replace("package:", "").strip() for p in out.splitlines() if p.startswith("package:")]
