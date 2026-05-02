@@ -7,6 +7,13 @@ import threading
 
 from gitd.services.agent_chat import ChatMessage, ChatSession
 from gitd.services.device_context import get_phone_state, get_screen_tree
+from gitd.services.observability import (
+    record_generation,
+    record_tool_result,
+    set_trace_output,
+    span_tool_call,
+    trace_chat_turn,
+)
 
 
 def chat_claude_code(session: ChatSession, user_message: str):
@@ -16,13 +23,19 @@ def chat_claude_code(session: ChatSession, user_message: str):
 
     yield {"type": "activity", "content": "📱 Reading screen..."}
     context_parts = []
+    foreground_pkg = ""
     try:
-        tree = get_screen_tree(session.device)
-        if tree and tree != "(empty screen)":
-            context_parts.append(f"[Current screen]\n{tree[:1500]}")
         state = get_phone_state(session.device)
         if state:
-            context_parts.append(f"[App: {state.get('currentApp', '?')} ({state.get('packageName', '?')})]")
+            foreground_pkg = state.get("packageName", "") or ""
+            context_parts.append(f"[Foreground app: {state.get('currentApp', '?')} ({foreground_pkg})]")
+        # Skip injecting the chat-app's own screen tree — it'd be the user's chat
+        # bubble (incl. prior answers) and tempts the model to "answer from screen"
+        # instead of actually performing the task.
+        if foreground_pkg != "com.ghostinthedroid.app":
+            tree = get_screen_tree(session.device)
+            if tree and tree != "(empty screen)":
+                context_parts.append(f"[Current screen]\n{tree[:1500]}")
     except Exception:
         pass
     context = "\n".join(context_parts)
@@ -32,9 +45,12 @@ def chat_claude_code(session: ChatSession, user_message: str):
 
 Task: {user_message}
 
-You have MCP android-agent tools. Use them to accomplish the task.
-After each action, verify with get_screen_tree or screenshot.
-Keep going until done. Be concise."""
+Rules:
+- The phone is currently showing the chat app the user is talking to you from. You MUST actually drive the phone to complete the task — do not answer from memory or prior conversation context.
+- Use the MCP android-agent tools (launch_app, tap_element, get_screen_tree, screenshot, swipe, etc.) to control the phone.
+- For app tasks, start with `launch_app` to open the target app. Do not assume any app is already open.
+- After each action, verify the new state with `get_screen_tree` or `screenshot`.
+- Only after you've actually observed the result on the phone, answer the user. Be concise."""
 
     yield {"type": "activity", "content": "🧠 Starting Claude Code..."}
 
@@ -72,6 +88,18 @@ Keep going until done. Be concise."""
 
     proc.stdin.write(prompt)
     proc.stdin.close()
+
+    # Open Langfuse trace for this turn (no-op if observability disabled)
+    _trace_cm = trace_chat_turn(
+        session_id=getattr(session, "id", "") or "",
+        user_message=user_message,
+        provider="claude-code",
+        model=session.model or "sonnet",
+        device=session.device,
+        source="mac",
+    )
+    trace = _trace_cm.__enter__()
+    tool_spans: dict[str, object] = {}  # tool_use_id → span
 
     # Read stdout lines in a thread so we can yield events as they arrive
     lines_queue: list[str] = []
@@ -140,6 +168,7 @@ Keep going until done. Be concise."""
                     elif btype == "tool_use":
                         tool_name = block.get("name", "")
                         tool_args = block.get("input", {})
+                        tool_id = block.get("id", "")
                         # Strip mcp prefix for display
                         display_name = (
                             tool_name.replace("mcp__android-agent__", "")
@@ -151,6 +180,13 @@ Keep going until done. Be concise."""
                         )
                         yield {"type": "tool_call", "name": display_name, "args": tool_args}
                         yield {"type": "activity", "content": f"⚡ {display_name}..."}
+                        if trace is not None and tool_id:
+                            try:
+                                tool_spans[tool_id] = trace.span(
+                                    name=f"tool:{display_name}", input={"args": tool_args}
+                                )
+                            except Exception:
+                                pass
 
                     elif btype == "tool_result":
                         content_parts = block.get("content", [])
@@ -163,11 +199,28 @@ Keep going until done. Be concise."""
                         if result_text:
                             session.messages.append(ChatMessage(role="tool_result", content=result_text[:500]))
                             yield {"type": "tool_result", "name": "", "result": result_text[:300]}
+                        is_err = bool(block.get("is_error"))
+                        record_tool_result(
+                            tool_spans.pop(block.get("tool_use_id", ""), None),
+                            result_text,
+                            error=is_err,
+                        )
                         yield {"type": "activity", "content": "🤔 Thinking..."}
 
                     elif btype == "thinking":
-                        # Extended thinking — show brief activity
-                        yield {"type": "activity", "content": "🧠 Reasoning..."}
+                        # Extended thinking — surface the actual reasoning text
+                        # so the UI can render it (in addition to the activity ping).
+                        thinking_text = block.get("thinking", "")
+                        if thinking_text:
+                            # Persist alongside text/tool_use blocks so it survives
+                            # save_session_to_db and reappears on resumeConversation —
+                            # otherwise thinking bubbles are live-only and vanish.
+                            session.messages.append(
+                                ChatMessage(role="thinking", content=thinking_text)
+                            )
+                            yield {"type": "thinking", "content": thinking_text}
+                        else:
+                            yield {"type": "activity", "content": "🧠 Reasoning..."}
 
             elif etype == "result":
                 # Final result with cost info
@@ -207,6 +260,24 @@ Keep going until done. Be concise."""
     except subprocess.TimeoutExpired:
         proc.kill()
 
+    # Record final generation + close trace
+    try:
+        set_trace_output(trace, full_text)
+        record_generation(
+            trace,
+            model=session.model or "sonnet",
+            prompt=prompt,
+            output=full_text,
+            input_tokens=total_input_tokens,
+            output_tokens=total_output_tokens,
+            cost_usd=total_cost,
+        )
+    finally:
+        try:
+            _trace_cm.__exit__(None, None, None)
+        except Exception:
+            pass
+
     if not full_text:
         yield {"type": "error", "content": "No response from Claude Code"}
 
@@ -219,8 +290,27 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
     The remote host has `claude` CLI + MCP android-agent tools configured.
     Tool calls from Claude Code execute on the remote host's MCP server,
     which talks to the device via ADB (USB or wireless).
+
+    We open a *shadow* trace on the phone side too, mirroring the events as
+    they stream past — so the in-app Traces tab shows claude-code runs even
+    though the real LLM trace lives on the Mac. Without this, the tab would
+    appear empty for everything except on-device runs.
     """
     import requests
+
+    # Open phone-local trace so the in-app Traces tab sees this run.
+    _trace_cm = trace_chat_turn(
+        session_id=getattr(session, "id", "") or "",
+        user_message=prompt[-2000:],  # the prompt has full screen context — keep tail
+        provider="claude-code", model=session.model or "sonnet",
+        device=session.device, source="android",  # this code runs in Chaquopy
+    )
+    trace = _trace_cm.__enter__()
+    open_spans: dict[str, object] = {}  # last-tool-name → span (best-effort match since remote events lack ids)
+    full_text = ""
+    total_input_tokens = 0
+    total_output_tokens = 0
+    total_cost = 0.0
 
     yield {"type": "activity", "content": f"🔗 Connecting to {remote_host}..."}
 
@@ -240,31 +330,60 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
         for line in resp.iter_lines():
             if not line:
                 continue
-            text = line.decode()
-            if text.startswith("data: "):
+            text_line = line.decode()
+            if text_line.startswith("data: "):
                 try:
-                    event = json.loads(text[6:])
+                    event = json.loads(text_line[6:])
                     etype = event.get("type", "")
 
                     if etype == "text":
-                        session.messages.append(ChatMessage(role="assistant", content=event.get("content", "")))
+                        chunk = event.get("content", "")
+                        full_text += chunk
+                        session.messages.append(ChatMessage(role="assistant", content=chunk))
                         yield event
                     elif etype == "tool_call":
+                        tool_name = event.get("name", "")
+                        tool_args = event.get("args", {})
                         session.messages.append(
                             ChatMessage(
                                 role="tool_call",
-                                tool_name=event.get("name", ""),
-                                tool_args=event.get("args", {}),
+                                tool_name=tool_name,
+                                tool_args=tool_args,
                                 content="",
                             )
                         )
+                        if trace is not None:
+                            try:
+                                open_spans[tool_name] = trace.span(
+                                    name=f"tool:{tool_name}", input={"args": tool_args}
+                                )
+                            except Exception:
+                                pass
                         yield event
                     elif etype == "tool_result":
+                        result_text = event.get("result", "")
+                        tool_name = event.get("name", "")
                         session.messages.append(
-                            ChatMessage(role="tool_result", content=event.get("result", ""), tool_name=event.get("name", ""))
+                            ChatMessage(role="tool_result", content=result_text, tool_name=tool_name)
                         )
+                        # The remote stream sends tool_result without a tool_id;
+                        # close the most recent span for that tool name.
+                        span = open_spans.pop(tool_name, None) or (
+                            open_spans.popitem()[1] if open_spans else None
+                        )
+                        record_tool_result(span, result_text)
                         yield event
-                    elif etype in ("activity", "tokens", "screenshot", "error"):
+                    elif etype == "tokens":
+                        total_input_tokens = int(event.get("input", 0) or 0)
+                        total_output_tokens = int(event.get("output", 0) or 0)
+                        total_cost = float(event.get("cost", 0) or 0)
+                        yield event
+                    elif etype == "thinking":
+                        thinking_text = event.get("content", "")
+                        if thinking_text:
+                            session.messages.append(ChatMessage(role="thinking", content=thinking_text))
+                        yield event
+                    elif etype in ("activity", "screenshot", "error"):
                         yield event
                     elif etype == "done":
                         break
@@ -275,5 +394,15 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
         yield {"type": "error", "content": f"Cannot reach {remote_host}. Start the backend on your Mac: python3 run.py"}
     except Exception as e:
         yield {"type": "error", "content": str(e)}
+    finally:
+        try:
+            set_trace_output(trace, full_text)
+            record_generation(
+                trace, model=session.model or "sonnet", prompt=prompt[-4000:], output=full_text,
+                input_tokens=total_input_tokens, output_tokens=total_output_tokens, cost_usd=total_cost,
+            )
+        finally:
+            try: _trace_cm.__exit__(None, None, None)
+            except Exception: pass
 
     yield {"type": "done"}
