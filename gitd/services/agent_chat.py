@@ -71,6 +71,13 @@ PROVIDERS = {
             "mistral:7b",
         ],
     },
+    # On-device — runs the model in-process via MediaPipe (.task) or
+    # llama.cpp JNI (.gguf). The Kotlin OnDeviceModelRegistry is the source of
+    # truth for ids; we ship a default subset here and overlay live ids below.
+    "on-device": {
+        "label": "On-device (Gemma)",
+        "models": ["gemma-3-1b-it", "gemma-2-2b-it", "gemma-4-e2b-gguf"],
+    },
 }
 
 
@@ -679,32 +686,146 @@ def _chat_openrouter(session: ChatSession, user_message: str):
 
 
 def _parse_tool_calls(text: str) -> list[dict]:
-    """Extract tool calls from LLM output. Handles ```tool blocks and common LLM quirks."""
+    """Extract tool calls from LLM output.
+
+    Handles a fair amount of slop because small models — especially raw Gemma 4 —
+    emit f-string-style doubled braces, half-quoted keys, trailing ``, " "``
+    junk, missing/extra closing braces, and similar near-misses.
+
+    Accepted shapes:
+      - {"tool": "X", "args": {...}}           (canonical)
+      - {"tool": "X", "kwarg1": ..., ...}      (flat — e.g. ghost-gemma trained)
+      - {"action_type": "X", ...}              (action-schema — translated to tool)
+    """
     import re
 
-    calls = []
-    for match in re.finditer(r"```(?:tool|json)\s*\n?(.*?)\n?```", text, re.DOTALL):
-        raw = match.group(1).strip()
-        # Try parsing as-is first (valid JSON)
+    if not text:
+        return []
+
+    calls: list[dict] = []
+
+    # Map from action-schema "action_type" → ("tool", arg-key-rewrites). For raw
+    # Gemma 4 emitting the action schema we trained on, this lets the dispatcher
+    # see canonical tool calls without retraining the parser side.
+    action_to_tool = {
+        "open_app":   ("launch_app",  {"app_name": "package"}),
+        "click":      ("tap",         {"x": "x", "y": "y"}),
+        "tap":        ("tap",         {}),
+        "long_press": ("long_press",  {}),
+        "type_text":  ("input_text",  {"text": "text"}),
+        "input_text": ("input_text",  {}),
+        "swipe":      ("swipe",       {}),
+        "key_event":  ("key_event",   {"key": "key"}),
+        "screenshot": ("screenshot",  {}),
+        "wait":       ("wait",        {"duration_ms": "ms"}),
+        "force_stop": ("force_stop",  {}),
+    }
+
+    def _coerce_action(d: dict) -> dict | None:
+        action = d.get("action_type")
+        if not isinstance(action, str):
+            return None
+        mapping = action_to_tool.get(action)
+        if not mapping:
+            return None
+        tool_name, key_map = mapping
+        args = {}
+        for k, v in d.items():
+            if k == "action_type":
+                continue
+            args[key_map.get(k, k)] = v
+        return {"tool": tool_name, "args": args}
+
+    def _try_dict(d: object) -> bool:
+        if not isinstance(d, dict):
+            return False
+        if "tool" in d:
+            calls.append(d)
+            return True
+        coerced = _coerce_action(d)
+        if coerced:
+            calls.append(coerced)
+            return True
+        return False
+
+    def _try_loads(raw: str) -> bool:
         try:
-            call = json.loads(raw)
-            if isinstance(call, dict) and "tool" in call:
-                calls.append(call)
-                continue
-        except json.JSONDecodeError:
-            pass
-        # Fallback: some models wrap JSON in doubled braces {{ ... }}
-        fixed = raw
-        for _ in range(3):
-            fixed = re.sub(r"\{\{", "{", fixed)
-            fixed = re.sub(r"\}\}", "}", fixed)
-            try:
-                call = json.loads(fixed)
-                if isinstance(call, dict) and "tool" in call:
-                    calls.append(call)
-                    break
-            except json.JSONDecodeError:
-                continue
+            return _try_dict(json.loads(raw))
+        except (ValueError, TypeError):
+            return False
+
+    def _attempt_repairs(raw: str) -> bool:
+        """Run a chain of cleanups, retrying json.loads at every checkpoint."""
+        candidate = raw
+
+        # Doubled braces (Gemma f-string artefact) → singles. Only run when at
+        # least one ``{{`` is present — otherwise we'd corrupt valid JSON like
+        # ``{"a":{"b":1}}`` which has trailing ``}}`` for nested closes.
+        # Do it ONCE only; iterating collapses legitimate triples like ``}}}``
+        # (which is ``}}`` + ``}`` in the doubled convention) past the right
+        # shape.
+        if "{{" in candidate:
+            new = candidate.replace("{{", "{").replace("}}", "}")
+            if new != candidate:
+                candidate = new
+                if _try_loads(candidate):
+                    return True
+
+        # Strip dangling-comma "junk pairs" like ``, " "`` or ``, ""`` that some
+        # models tack on before a closing brace.
+        cleaned = re.sub(r',\s*"[^"]*"\s*(?=[,}])', "", candidate)
+        if cleaned != candidate:
+            candidate = cleaned
+            if _try_loads(candidate):
+                return True
+
+        # Drop trailing ``,`` before ``}`` / ``]``.
+        cleaned = re.sub(r",\s*([}\]])", r"\1", candidate)
+        if cleaned != candidate:
+            candidate = cleaned
+            if _try_loads(candidate):
+                return True
+
+        # Truncate to the first balanced brace span — handles trailing prose
+        # or extra closing braces.
+        depth = 0
+        start = candidate.find("{")
+        if start >= 0:
+            for i in range(start, len(candidate)):
+                ch = candidate[i]
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        if _try_loads(candidate[start : i + 1]):
+                            return True
+                        break
+
+        return False
+
+    # 1) ```tool / ```json fenced blocks (prompt asks for these)
+    for match in re.finditer(r"```(?:tool|json)?\s*\n?(.*?)\n?```", text, re.DOTALL):
+        raw = match.group(1).strip()
+        if not raw:
+            continue
+        if _try_loads(raw):
+            continue
+        _attempt_repairs(raw)
+
+    if calls:
+        return calls
+
+    # 2) No fences — scan for inline JSON objects mentioning "tool" or
+    #    "action_type". Greedy: match every {...} and try each.
+    for match in re.finditer(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", text, re.DOTALL):
+        raw = match.group(0)
+        if '"tool"' not in raw and '"action_type"' not in raw:
+            continue
+        if _try_loads(raw):
+            continue
+        _attempt_repairs(raw)
+
     return calls
 
 
@@ -737,16 +858,25 @@ def _chat_ollama(session: ChatSession, user_message: str):
 
     model = session.model or "llama3.2:3b"
 
+    # Gemma 4 (and other reasoning models) emit chain-of-thought into a
+    # separate `thinking` field. The agent loop wants direct JSON tool calls,
+    # so disable thinking for the action loop. Surface any thinking that does
+    # arrive as a `thinking` event so the UI can show it.
+    is_thinking_model = any(t in model.lower() for t in ("gemma-4", "gemma4", "ghost-gemma", "qwen3", "deepseek-r1"))
+
     for turn in range(MAX_TURNS):
         try:
+            payload = {
+                "model": model,
+                "messages": messages,
+                "stream": False,
+                "options": {"num_ctx": 4096, "num_predict": 512},
+            }
+            if is_thinking_model:
+                payload["think"] = False
             r = requests.post(
                 "http://localhost:11434/api/chat",
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "stream": False,
-                    "options": {"num_ctx": 4096},
-                },
+                json=payload,
                 timeout=120,
             )
             data = r.json()
@@ -760,7 +890,14 @@ def _chat_ollama(session: ChatSession, user_message: str):
                 else:
                     yield {"type": "error", "content": f"Ollama error: {error}"}
                 return
-            reply = data.get("message", {}).get("content", "")
+            msg = data.get("message", {}) or {}
+            reply = msg.get("content", "") or ""
+            thinking = msg.get("thinking", "") or ""
+            if thinking:
+                yield {"type": "thinking", "content": thinking}
+            # Fallback: if think:false was ignored and content is empty but thinking has the answer
+            if not reply and thinking:
+                reply = thinking
         except requests.ConnectionError:
             yield {
                 "type": "error",
@@ -786,7 +923,15 @@ def _chat_ollama(session: ChatSession, user_message: str):
         tool_results = []
         for call in tool_calls:
             tool_name = call.get("tool", "")
-            tool_args = call.get("args", {})
+            # Two shapes seen in the wild:
+            #   {"tool": "X", "args": {...}}            (gemma-4-e2b, llama)
+            #   {"tool": "X", "package": "...", ...}    (ghost-gemma, qwen)
+            # Accept both: prefer nested args, else take the rest of the dict as kwargs.
+            raw_args = call.get("args")
+            if isinstance(raw_args, dict):
+                tool_args = dict(raw_args)
+            else:
+                tool_args = {k: v for k, v in call.items() if k != "tool"}
             tool_args.setdefault("device", session.device)
 
             session.messages.append(ChatMessage(role="tool_call", tool_name=tool_name, tool_args=tool_args, content=""))

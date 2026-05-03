@@ -106,9 +106,15 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
                 yield {"type": "error", "content": f"On-device inference error: {e}"}
                 return
 
-            if not reply or reply.startswith("[on-device error"):
-                yield {"type": "error", "content": reply or "Empty response from on-device model"}
+            # Native error sentinel — surface and stop.
+            if reply.startswith("[on-device error") or reply.startswith("[llama_jni:"):
+                yield {"type": "error", "content": reply}
                 return
+            # Empty reply = model emitted EOG/<end_of_turn> as the first token.
+            # That means "no further actions" — finish the turn cleanly rather
+            # than treating it as a failure.
+            if not reply.strip():
+                break
 
             session.messages.append(ChatMessage(role="assistant", content=reply))
             yield {"type": "text", "content": reply}
