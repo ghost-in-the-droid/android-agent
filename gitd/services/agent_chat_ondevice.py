@@ -167,9 +167,16 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
                     streamed = True
                     while True:
                         piece = str(llm.generateStep())
-                        # JNI sentinel for end-of-stream is a single NUL byte.
-                        if piece == "" or piece == "\x00":
+                        # JNI protocol:
+                        #   "\x00"  → end of stream (EOS or stop-tag hit)
+                        #   ""      → no new text this step (the streamer is
+                        #             holding back bytes that might form a
+                        #             stop tag; keep polling)
+                        #   anything else → stream as text_delta.
+                        if piece == "\x00":
                             break
+                        if piece == "":
+                            continue
                         reply += piece
                         yield {"type": "text_delta", "content": piece}
             except Exception as e:
