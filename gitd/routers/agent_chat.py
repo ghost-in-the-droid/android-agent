@@ -211,6 +211,57 @@ def list_providers():
     return get_providers()
 
 
+@router.post("/warmup", summary="Pre-fill on-device KV cache")
+def warmup_on_device(data: dict = Body({})):
+    """
+    Pre-bake the system + tool list prefix into the on-device LLM's KV cache
+    so the user's first chat turn lands as a "turn 2" with full prefix
+    reuse. Saves ~120 s of cold prefill on Snapdragon-class CPUs with the
+    default 1.3K-token system prompt.
+
+    The Android app should POST this once at launch (idempotent; subsequent
+    calls are near-free if the prefix is already cached). No-op for
+    non-llama.cpp runtimes.
+
+    Body: {"device": "<adb_serial>", "model": "gemma-4-e2b-gguf"}
+    """
+    from gitd.services.agent_chat import DEFAULT_SYSTEM
+    from gitd.services.agent_chat_ondevice import _kotlin_llm
+    from gitd.services.agent_tools import TOOLS
+
+    device = (data.get("device") or "").strip()
+    model_id = (data.get("model") or "").strip()
+    if not model_id:
+        raise HTTPException(status_code=400, detail="model required")
+
+    llm = _kotlin_llm()
+    if llm is None:
+        return {"ok": False, "warmed": 0, "reason": "Chaquopy bridge missing"}
+
+    try:
+        if not bool(llm.ensureLoaded(model_id)):
+            return {"ok": False, "warmed": 0, "reason": f"model {model_id} not loaded"}
+    except Exception as e:
+        return {"ok": False, "warmed": 0, "reason": f"ensureLoaded failed: {e}"}
+
+    # Build the same stable prefix _chat_ondevice uses (system + tools +
+    # [USER]\nDevice: ...). Keep this in sync with agent_chat_ondevice.py
+    # so the cached prefix actually matches the chat prompt.
+    tool_list = "\n".join(
+        f"- {t['name']}: {t['description']}  params: {list(t.get('input_schema', {}).get('properties', {}).keys())}"
+        for t in TOOLS
+    )
+    system = DEFAULT_SYSTEM.replace("{tool_list}", tool_list)
+    stable_prefix = f"[SYSTEM]\n{system}\n\n[USER]\nDevice: {device}\n\n"
+
+    try:
+        warmed = int(llm.warmup(model_id, stable_prefix))
+    except Exception as e:
+        return {"ok": False, "warmed": 0, "reason": f"warmup failed: {e}"}
+
+    return {"ok": True, "warmed": warmed, "model": model_id}
+
+
 # ── Ollama model management ──────────────────────────────────────────────
 
 # Track background pull operations
