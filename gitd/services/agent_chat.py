@@ -826,6 +826,24 @@ def _parse_tool_calls(text: str) -> list[dict]:
             continue
         _attempt_repairs(raw)
 
+    if calls:
+        return calls
+
+    # 3) Last-ditch fallback — Gemma at temp 0 routinely emits inline doubled
+    #    braces with a mismatched count of closing `}` (e.g. five `}` for two
+    #    `{{`). The step-2 regex above can't match a `{{` start because it
+    #    expects a non-brace character after the first `{`. Collapse doubled
+    #    braces over the whole text and try the same scan again.
+    if "{{" in text or "}}" in text:
+        flattened = text.replace("{{", "{").replace("}}", "}")
+        for match in re.finditer(r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", flattened, re.DOTALL):
+            raw = match.group(0)
+            if '"tool"' not in raw and '"action_type"' not in raw:
+                continue
+            if _try_loads(raw):
+                continue
+            _attempt_repairs(raw)
+
     return calls
 
 

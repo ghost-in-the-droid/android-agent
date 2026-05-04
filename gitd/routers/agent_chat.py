@@ -244,15 +244,16 @@ def warmup_on_device(data: dict = Body({})):
     except Exception as e:
         return {"ok": False, "warmed": 0, "reason": f"ensureLoaded failed: {e}"}
 
-    # Build the same stable prefix _chat_ondevice uses (system + tools +
-    # [USER]\nDevice: ...). Keep this in sync with agent_chat_ondevice.py
-    # so the cached prefix actually matches the chat prompt.
+    # Build the same stable prefix _chat_ondevice uses. ondevice_stable_prefix
+    # is the single source of truth — keeping it shared ensures the warmup
+    # KV cache key matches the prefix the chat path actually decodes.
+    from gitd.services.agent_chat_ondevice import ondevice_stable_prefix
     tool_list = "\n".join(
         f"- {t['name']}: {t['description']}  params: {list(t.get('input_schema', {}).get('properties', {}).keys())}"
         for t in TOOLS
     )
     system = DEFAULT_SYSTEM.replace("{tool_list}", tool_list)
-    stable_prefix = f"[SYSTEM]\n{system}\n\n[USER]\nDevice: {device}\n\n"
+    stable_prefix = ondevice_stable_prefix(system, device)
 
     # Disk-persistence: hash the prefix to a deterministic filename. If a
     # previously-saved KV state with the same hash exists, restore it

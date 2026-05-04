@@ -37,6 +37,40 @@ def _kotlin_llm():
         return None
 
 
+# ── Gemma chat template ──────────────────────────────────────────────────────
+# Gemma 4 uses <start_of_turn>user / <end_of_turn> / <start_of_turn>model
+# markers. There's no separate system role — system content is prepended
+# into the first user turn. Earlier we used a custom [SYSTEM]/[USER]/[ASSISTANT]
+# scaffold, which the model cheerfully echoed back into its own output (it had
+# never seen those tokens in fine-tuning), causing repetition loops where the
+# model kept "writing" extra fake [USER] turns from inside its own reply.
+# Switching to the canonical Gemma markers fixes coherence on multi-turn
+# tool chains.
+
+def ondevice_stable_prefix(system: str, device: str) -> str:
+    """Stable prefix shared by warmup pre-fill and chat path. Anything beyond
+    this point varies per turn and must NOT be in the warmup KV."""
+    return f"<start_of_turn>user\n{system}\n\nDevice: {device}\n\n"
+
+
+def _ondevice_first_turn(system: str, device: str, user_message: str, screen_block: str) -> str:
+    return (
+        ondevice_stable_prefix(system, device)
+        + f"{user_message}{screen_block}<end_of_turn>\n"
+        + "<start_of_turn>model\n"
+    )
+
+
+def _ondevice_tool_results_turn(tool_results: list[str]) -> str:
+    return (
+        "<end_of_turn>\n"
+        "<start_of_turn>user\n"
+        + "Tool results:\n" + "\n".join(tool_results)
+        + "<end_of_turn>\n"
+        + "<start_of_turn>model\n"
+    )
+
+
 def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
     """Run a tool-using turn against an on-device Gemma model."""
     session.messages.append(ChatMessage(role="user", content=user_message))
@@ -104,10 +138,11 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
     # instead of ~140 s, same as turn 2+. For now the unwired path gives
     # turn-2+ the 10× win and the user pays the cold cost on turn 1.
 
-    history: list[str] = [
-        f"[SYSTEM]\n{system}",
-        f"[USER]\nDevice: {session.device}\n\n{user_message}{screen_block}",
-    ]
+    # Gemma chat template — see ondevice_stable_prefix() and friends above.
+    # `prompt` accumulates over turns: the assistant reply + each tool-results
+    # turn get appended in-place so the next iteration runs against the full
+    # rolling conversation (KV prefix reuse means we only re-decode the diff).
+    prompt = _ondevice_first_turn(system, session.device, user_message, screen_block)
 
     with trace_chat_turn(
         session_id=getattr(session, "id", "") or "",
@@ -119,7 +154,6 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
     ) as trace:
         last_reply = ""
         for turn in range(MAX_TURNS):
-            prompt = "\n\n".join(history) + "\n\n[ASSISTANT]\n"
             yield {"type": "activity", "content": f"🧠 Inferring (turn {turn + 1})..."}
 
             # Try streaming first — yields token-by-token so the UI can show
@@ -164,7 +198,11 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
             # Final full-text event for clients that didn't subscribe to
             # text_delta deltas (or to keep the protocol backward-compatible).
             yield {"type": "text", "content": reply}
-            history.append(f"[ASSISTANT]\n{reply}")
+            # Append the assistant turn to the rolling conversation so the
+            # next iteration sees the full chat history. `reply` already had
+            # any trailing <end_of_turn> stripped by the JNI streaming loop;
+            # we add it back so the model sees a clean turn boundary.
+            prompt += reply
             record_generation(trace, model=model_id, prompt=prompt, output=reply)
             last_reply = reply
 
@@ -202,7 +240,7 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
                     tool_results.append(f"[{tool_name}] ERROR: {err}")
                     record_tool_result(span, err, error=True)
 
-            history.append("[USER]\nTool results:\n" + "\n".join(tool_results))
+            prompt += _ondevice_tool_results_turn(tool_results)
 
         set_trace_output(trace, last_reply)
 

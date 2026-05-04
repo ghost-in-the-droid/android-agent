@@ -373,11 +373,63 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return f"Long pressed ({args['x']}, {args['y']})"
         elif name == "launch_app":
             dev = Device(device)
+            pkg = args["package"]
             fresh = bool(args.get("fresh", False))
-            if fresh:
-                dev.adb("shell", "am", "force-stop", args["package"])
-            dev.adb("shell", "monkey", "-p", args["package"], "-c", "android.intent.category.LAUNCHER", "1")
-            return f"Launched {args['package']}" + (" (fresh)" if fresh else "")
+            # Verify the package exists first — `monkey`/`am start` both fall
+            # through silently for missing packages, so without this the agent
+            # gets a phantom success and burns turns wondering why the app
+            # didn't open.
+            installed = dev.adb("shell", "pm", "list", "packages", pkg, timeout=10)
+            if f"package:{pkg}" not in installed:
+                pkgs_out = dev.adb("shell", "pm", "list", "packages", timeout=10)
+                all_pkgs = [
+                    p.replace("package:", "").strip()
+                    for p in pkgs_out.splitlines() if p.startswith("package:")
+                ]
+                # Suggest installed packages whose name contains a token from the
+                # requested one — usually catches `com.reddit.android` →
+                # `com.reddit.frontpage`.
+                tokens = [t for t in pkg.split(".") if len(t) > 2 and t not in {"com", "org", "net", "android", "app"}]
+                hits = [p for p in all_pkgs if any(t in p for t in tokens)][:6]
+                hint = f" Did you mean: {', '.join(hits)}?" if hits else ""
+                return f"ERROR: package {pkg} is not installed.{hint}"
+            # When the daemon runs ON the phone (Chaquopy), `am start` and
+            # `monkey` both fail under the app's own uid: am resolves to
+            # USER_CURRENT_OR_SELF and gets blocked on INTERACT_ACROSS_USERS_FULL,
+            # monkey aborts setting a system property. Going through the app
+            # process's own Context.startActivity() works because it's a
+            # public Android surface — same path any third-party launcher
+            # uses. The Kotlin helper `DeviceActions.launchApp` lives at
+            # app/src/main/java/com/ghostinthedroid/app/ondevice/DeviceActions.kt.
+            # Outside Chaquopy (host-side dev runs), fall back to the adb
+            # `am start` path, which works because host adb runs as `shell`
+            # (uid 2000) and has the cross-user permission.
+            try:
+                from java import jclass  # type: ignore[import-not-found]
+                actions = jclass("com.ghostinthedroid.app.ondevice.DeviceActions").INSTANCE
+                return str(actions.launchApp(pkg, fresh))
+            except Exception:
+                # Host-side fallback (no Chaquopy): use am start through ADB.
+                resolve = dev.adb(
+                    "shell", "cmd", "package", "resolve-activity",
+                    "--brief", "-c", "android.intent.category.LAUNCHER", pkg, timeout=10,
+                )
+                launcher = ""
+                for line in resolve.splitlines():
+                    line = line.strip()
+                    if "/" in line and line.startswith(pkg):
+                        launcher = line
+                        break
+                if not launcher:
+                    return f"ERROR: {pkg} has no LAUNCHER activity"
+                am_args = ["shell", "am", "start", "--user", "0"]
+                if fresh:
+                    am_args += ["--activity-clear-task"]
+                am_args += ["-n", launcher]
+                out = dev.adb(*am_args, timeout=15)
+                if "Error:" in out or "Activity not started" in out:
+                    return f"ERROR launching {pkg}: {out.strip()[:200]}"
+                return f"Launched {pkg} ({launcher})" + (" [fresh]" if fresh else "")
         elif name == "force_stop":
             Device(device).adb("shell", "am", "force-stop", args["package"])
             return f"Stopped {args['package']}"
