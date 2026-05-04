@@ -122,11 +122,33 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
             prompt = "\n\n".join(history) + "\n\n[ASSISTANT]\n"
             yield {"type": "activity", "content": f"🧠 Inferring (turn {turn + 1})..."}
 
+            # Try streaming first — yields token-by-token so the UI can show
+            # the response building char-by-char ("ghost is typing"). Falls
+            # back to one-shot generate if the JNI doesn't expose the
+            # streaming API yet (MediaPipe runtime, older builds).
+            reply = ""
+            streamed = False
             try:
-                reply = str(llm.generate(model_id, prompt))
+                if int(llm.generateStart(model_id, prompt)) > 0:
+                    streamed = True
+                    while True:
+                        piece = str(llm.generateStep())
+                        # JNI sentinel for end-of-stream is a single NUL byte.
+                        if piece == "" or piece == "\x00":
+                            break
+                        reply += piece
+                        yield {"type": "text_delta", "content": piece}
             except Exception as e:
-                yield {"type": "error", "content": f"On-device inference error: {e}"}
+                yield {"type": "error", "content": f"On-device streaming error: {e}"}
                 return
+
+            if not streamed:
+                # Fallback: one-shot generate (no live streaming).
+                try:
+                    reply = str(llm.generate(model_id, prompt))
+                except Exception as e:
+                    yield {"type": "error", "content": f"On-device inference error: {e}"}
+                    return
 
             # Native error sentinel — surface and stop.
             if reply.startswith("[on-device error") or reply.startswith("[llama_jni:"):
@@ -139,6 +161,8 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
                 break
 
             session.messages.append(ChatMessage(role="assistant", content=reply))
+            # Final full-text event for clients that didn't subscribe to
+            # text_delta deltas (or to keep the protocol backward-compatible).
             yield {"type": "text", "content": reply}
             history.append(f"[ASSISTANT]\n{reply}")
             record_generation(trace, model=model_id, prompt=prompt, output=reply)
