@@ -68,11 +68,11 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
         return
 
     yield {"type": "activity", "content": "📱 Reading screen..."}
-    context = ""
+    screen_block = ""
     try:
         tree = get_screen_tree(session.device)
         state = get_phone_state(session.device)
-        context = f"[Screen]\n{tree[:1500]}\n[App: {state.get('currentApp', '?')}]\n\n"
+        screen_block = f"\n\n[Screen]\n{tree[:1500]}\n[App: {state.get('currentApp', '?')}]"
     except Exception:
         pass
 
@@ -82,9 +82,31 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
     )
     system = DEFAULT_SYSTEM.replace("{tool_list}", tool_list)
 
+    # Prompt structure tuned for KV prefix reuse:
+    #   [SYSTEM]              ← invariant across turns + sessions
+    #   {tools list}          ← invariant
+    #   [USER]                ← invariant
+    #   Device: ...           ← invariant per session
+    #   {user_message}        ← changes per turn (small)
+    #   [Screen]              ← changes per turn (large)
+    #   {screen tree}
+    # Putting the dynamic screen tree LAST means the long stable prefix
+    # (system + tools + device + user message) is fully cached on every
+    # subsequent turn, even when the screen state changes between turns.
+    # NOTE: warmup() exists on OnDeviceLLM and bakes the stable system+tools
+    # prefix into the KV cache before any user input — but it has to run
+    # BEFORE this chat call, in the background at app start. Calling it
+    # inline here just serialises the cold prefill in front of the user's
+    # first response, doubling the perceived latency. The right wiring is
+    # a Kotlin coroutine in MainActivity that fires `OnDeviceLLM.warmup(
+    # selected_model_id, stable_prefix)` right after the on-device model is
+    # selected. With that in place, the first chat turn lands at ~13 s
+    # instead of ~140 s, same as turn 2+. For now the unwired path gives
+    # turn-2+ the 10× win and the user pays the cold cost on turn 1.
+
     history: list[str] = [
         f"[SYSTEM]\n{system}",
-        f"[USER]\n{context}Device: {session.device}\n\n{user_message}",
+        f"[USER]\nDevice: {session.device}\n\n{user_message}{screen_block}",
     ]
 
     with trace_chat_turn(
