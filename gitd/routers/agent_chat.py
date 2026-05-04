@@ -254,12 +254,42 @@ def warmup_on_device(data: dict = Body({})):
     system = DEFAULT_SYSTEM.replace("{tool_list}", tool_list)
     stable_prefix = f"[SYSTEM]\n{system}\n\n[USER]\nDevice: {device}\n\n"
 
+    # Disk-persistence: hash the prefix to a deterministic filename. If a
+    # previously-saved KV state with the same hash exists, restore it
+    # (~hundred ms) instead of re-prefilling (~2 minutes). The hash covers
+    # both the system prompt and the device id, so a model swap or system
+    # prompt edit invalidates the cache automatically.
+    import hashlib
+    import os
+    cache_dir = "/data/data/com.ghostinthedroid.app/files/ondevice/kv-cache"
+    os.makedirs(cache_dir, exist_ok=True)
+    h = hashlib.sha256()
+    h.update(model_id.encode())
+    h.update(b"\n")
+    h.update(stable_prefix.encode())
+    cache_path = os.path.join(cache_dir, f"warmup-{h.hexdigest()[:16]}.bin")
+
+    # Try restore first.
+    try:
+        loaded = int(getattr(llm, "loadState")(model_id, cache_path))
+    except Exception:
+        loaded = -1
+    if loaded > 0:
+        return {"ok": True, "warmed": loaded, "model": model_id, "from_cache": True}
+
+    # Cold path: do the full prefill.
     try:
         warmed = int(llm.warmup(model_id, stable_prefix))
     except Exception as e:
         return {"ok": False, "warmed": 0, "reason": f"warmup failed: {e}"}
 
-    return {"ok": True, "warmed": warmed, "model": model_id}
+    # Save for next launch (best-effort; failure doesn't break the warmup).
+    try:
+        getattr(llm, "saveState")(model_id, cache_path)
+    except Exception:
+        pass
+
+    return {"ok": True, "warmed": warmed, "model": model_id, "from_cache": False}
 
 
 # ── Ollama model management ──────────────────────────────────────────────
