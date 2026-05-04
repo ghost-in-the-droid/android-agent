@@ -76,7 +76,7 @@ PROVIDERS = {
     # truth for ids; we ship a default subset here and overlay live ids below.
     "on-device": {
         "label": "On-device (Gemma)",
-        "models": ["gemma-3-1b-it", "gemma-2-2b-it", "gemma-4-e2b-gguf"],
+        "models": ["gemma-3-1b-it", "gemma-2-2b-it", "gemma-4-e2b-q4km-gguf"],
     },
 }
 

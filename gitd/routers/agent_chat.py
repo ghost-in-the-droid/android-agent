@@ -223,7 +223,7 @@ def warmup_on_device(data: dict = Body({})):
     calls are near-free if the prefix is already cached). No-op for
     non-llama.cpp runtimes.
 
-    Body: {"device": "<adb_serial>", "model": "gemma-4-e2b-gguf"}
+    Body: {"device": "<adb_serial>", "model": "gemma-4-e2b-q4km-gguf"}
     """
     from gitd.services.agent_chat import DEFAULT_SYSTEM
     from gitd.services.agent_chat_ondevice import _kotlin_llm
