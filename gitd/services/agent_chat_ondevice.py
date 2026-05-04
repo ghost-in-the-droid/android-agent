@@ -71,6 +71,36 @@ def _ondevice_tool_results_turn(tool_results: list[str]) -> str:
     )
 
 
+def _kv_cache_path(model_id: str, stable_prefix: str) -> str:
+    """Deterministic on-device path for the saved KV state of (model, prefix).
+    Mirrors the warmup endpoint's logic so chat and warmup share the same file."""
+    import hashlib
+    import os
+    cache_dir = "/data/data/com.ghostinthedroid.app/files/ondevice/kv-cache"
+    os.makedirs(cache_dir, exist_ok=True)
+    h = hashlib.sha256()
+    h.update(model_id.encode())
+    h.update(b"\n")
+    h.update(stable_prefix.encode())
+    return os.path.join(cache_dir, f"warmup-{h.hexdigest()[:16]}.bin")
+
+
+def _ensure_kv_warmed(llm, model_id: str, stable_prefix: str) -> tuple[bool, int]:
+    """Load the disk-persisted KV state for (model, prefix) into the JNI handle
+    if a cache file exists. Returns (from_cache, n_tokens). Caller can fall
+    back to a cold prefill via llm.warmup() if from_cache is False; we DON'T
+    do that here because it'd add ~4 min latency to a chat turn — leave that
+    to the explicit /warmup endpoint that fires from MainActivity at app start."""
+    path = _kv_cache_path(model_id, stable_prefix)
+    try:
+        loaded = int(llm.loadState(model_id, path))
+    except Exception:
+        loaded = -1
+    if loaded > 0:
+        return True, loaded
+    return False, 0
+
+
 def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
     """Run a tool-using turn against an on-device Gemma model."""
     session.messages.append(ChatMessage(role="user", content=user_message))
@@ -137,6 +167,17 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
     # selected. With that in place, the first chat turn lands at ~13 s
     # instead of ~140 s, same as turn 2+. For now the unwired path gives
     # turn-2+ the 10× win and the user pays the cold cost on turn 1.
+
+    # If the warmup endpoint previously saved a KV state for this exact
+    # (model, system+device) prefix, restore it now so the first generateStart
+    # only has to decode the user_message + screen_block diff. Without this,
+    # every model switch costs a ~4-minute cold prefill on the first chat
+    # because ensureLoaded() doesn't know about the cache file. Idempotent —
+    # if no file matches we just continue with an empty KV.
+    stable_prefix = ondevice_stable_prefix(system, session.device)
+    from_cache, kv_tokens = _ensure_kv_warmed(llm, model_id, stable_prefix)
+    if from_cache:
+        yield {"type": "activity", "content": f"⚡ KV cache hit ({kv_tokens} tokens)"}
 
     # Gemma chat template — see ondevice_stable_prefix() and friends above.
     # `prompt` accumulates over turns: the assistant reply + each tool-results

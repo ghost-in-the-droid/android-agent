@@ -244,38 +244,26 @@ def warmup_on_device(data: dict = Body({})):
     except Exception as e:
         return {"ok": False, "warmed": 0, "reason": f"ensureLoaded failed: {e}"}
 
-    # Build the same stable prefix _chat_ondevice uses. ondevice_stable_prefix
-    # is the single source of truth — keeping it shared ensures the warmup
-    # KV cache key matches the prefix the chat path actually decodes.
-    from gitd.services.agent_chat_ondevice import ondevice_stable_prefix
+    # Stable prefix + disk cache path are computed in agent_chat_ondevice so
+    # chat and warmup share the same key. Without this, the chat path's
+    # generateStart sees an empty KV and pays a full cold prefill (~4 min on
+    # Q5_K_M / Q6_K) every time even though the prefix is already on disk.
+    from gitd.services.agent_chat_ondevice import (
+        _ensure_kv_warmed,
+        _kv_cache_path,
+        ondevice_stable_prefix,
+    )
     tool_list = "\n".join(
         f"- {t['name']}: {t['description']}  params: {list(t.get('input_schema', {}).get('properties', {}).keys())}"
         for t in TOOLS
     )
     system = DEFAULT_SYSTEM.replace("{tool_list}", tool_list)
     stable_prefix = ondevice_stable_prefix(system, device)
-
-    # Disk-persistence: hash the prefix to a deterministic filename. If a
-    # previously-saved KV state with the same hash exists, restore it
-    # (~hundred ms) instead of re-prefilling (~2 minutes). The hash covers
-    # both the system prompt and the device id, so a model swap or system
-    # prompt edit invalidates the cache automatically.
-    import hashlib
-    import os
-    cache_dir = "/data/data/com.ghostinthedroid.app/files/ondevice/kv-cache"
-    os.makedirs(cache_dir, exist_ok=True)
-    h = hashlib.sha256()
-    h.update(model_id.encode())
-    h.update(b"\n")
-    h.update(stable_prefix.encode())
-    cache_path = os.path.join(cache_dir, f"warmup-{h.hexdigest()[:16]}.bin")
+    cache_path = _kv_cache_path(model_id, stable_prefix)
 
     # Try restore first.
-    try:
-        loaded = int(getattr(llm, "loadState")(model_id, cache_path))
-    except Exception:
-        loaded = -1
-    if loaded > 0:
+    from_cache, loaded = _ensure_kv_warmed(llm, model_id, stable_prefix)
+    if from_cache:
         return {"ok": True, "warmed": loaded, "model": model_id, "from_cache": True}
 
     # Cold path: do the full prefill.
