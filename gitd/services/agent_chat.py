@@ -78,6 +78,19 @@ PROVIDERS = {
         "label": "On-device (Gemma)",
         "models": ["gemma-3-1b-it", "gemma-2-2b-it", "gemma-4-e2b-q4km-gguf"],
     },
+    # vLLM-on-jsl-gpu — full-precision Gemma 4 served from the GPU box,
+    # routed via Mac SSH tunnel + adb reverse so the phone hits it as if it
+    # were on localhost. Same OpenAI-compatible shape as openrouter; we just
+    # point the client at config.vllm_base_url instead.
+    "vllm": {
+        "label": "vLLM (jsl-gpu)",
+        "models": [
+            "unsloth/gemma-4-E2B-it",
+            "unsloth/gemma-4-E2B-it-bnb-4bit",
+            "unsloth/gemma-4-E4B-it",
+            "unsloth/gemma-4-E4B-it-bnb-4bit",
+        ],
+    },
 }
 
 
@@ -373,6 +386,8 @@ def chat_turn(session: ChatSession, user_message: str):
         yield from chat_claude_code(session, user_message)
     elif provider == "openrouter":
         yield from _chat_openrouter(session, user_message)
+    elif provider == "vllm":
+        yield from _chat_vllm(session, user_message)
     elif provider == "ollama":
         yield from _chat_ollama(session, user_message)
     elif provider == "on-device":
@@ -704,6 +719,135 @@ def _chat_openrouter(session: ChatSession, user_message: str):
 
     except Exception as e:
         yield {"type": "error", "content": str(e)}
+
+    yield {"type": "done"}
+
+
+# ── vLLM (OpenAI-compatible, points at jsl-gpu) ──────────────────────────────
+
+
+def _chat_vllm(session: ChatSession, user_message: str):
+    """Use a vLLM server (default: jsl-gpu via SSH tunnel + adb reverse) with
+    OpenAI-compatible tool calling and multi-turn agent loop.
+
+    Same OpenAI surface as _chat_openrouter, but unlike that one we DO loop on
+    tool results — the whole point of routing to a real GPU is to put a smarter
+    model into the actual agent loop (open Settings → tap Wi-Fi → ...), not
+    just emit a single round of tool calls.
+    """
+    from openai import OpenAI
+
+    from gitd.config import settings
+
+    session.messages.append(ChatMessage(role="user", content=user_message))
+
+    client = OpenAI(
+        api_key=os.environ.get("GITD_VLLM_API_KEY", settings.vllm_api_key) or "EMPTY",
+        base_url=os.environ.get("GITD_VLLM_BASE_URL", settings.vllm_base_url),
+    )
+
+    oai_tools = [
+        {
+            "type": "function",
+            "function": {"name": t["name"], "description": t["description"], "parameters": t["input_schema"]},
+        }
+        for t in TOOLS
+    ]
+
+    # Initial screen context.
+    context = ""
+    try:
+        tree = get_screen_tree(session.device)
+        state = get_phone_state(session.device)
+        context = f"[Screen]\n{tree[:1500]}\n[App: {state.get('currentApp', '?')}]\n\n"
+    except Exception:
+        pass
+
+    messages: list[dict] = [
+        {"role": "system", "content": ANTHROPIC_SYSTEM},
+        {"role": "user", "content": f"{context}Device: {session.device}\n\n{user_message}"},
+    ]
+
+    model = session.model or "unsloth/gemma-4-E4B-it"
+
+    for turn in range(MAX_TURNS):
+        yield {"type": "activity", "content": f"🧠 Inferring (turn {turn + 1})..."}
+
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=oai_tools,
+                max_tokens=2048,
+            )
+        except Exception as e:
+            yield {
+                "type": "error",
+                "content": (
+                    f"vLLM unreachable at {client.base_url}. "
+                    f"Start the server on jsl-gpu and ensure the SSH tunnel + "
+                    f"`adb reverse tcp:8000 tcp:8000` are up. ({e})"
+                ),
+            }
+            yield {"type": "done"}
+            return
+
+        msg = resp.choices[0].message
+
+        if msg.content:
+            session.messages.append(ChatMessage(role="assistant", content=msg.content))
+            yield {"type": "text", "content": msg.content}
+
+        # OpenAI-shape tool_calls. If absent, the model is done.
+        tool_calls = getattr(msg, "tool_calls", None) or []
+        if not tool_calls:
+            break
+
+        # Append the assistant turn to the rolling conversation BEFORE running
+        # tools so the next request sees the assistant's tool_calls in
+        # context (OpenAI shape requires this).
+        messages.append({
+            "role": "assistant",
+            "content": msg.content or "",
+            "tool_calls": [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                }
+                for tc in tool_calls
+            ],
+        })
+
+        for tc in tool_calls:
+            tool_name = tc.function.name
+            try:
+                tool_args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+            except json.JSONDecodeError:
+                tool_args = {}
+            tool_args.setdefault("device", session.device)
+
+            session.messages.append(
+                ChatMessage(role="tool_call", tool_name=tool_name, tool_args=tool_args, content="")
+            )
+            yield {"type": "tool_call", "name": tool_name, "args": tool_args}
+
+            try:
+                result = execute_tool(tool_name, tool_args)
+            except Exception as e:
+                result = f"Tool error: {e}"
+            session.messages.append(
+                ChatMessage(role="tool_result", content=result[:500], tool_name=tool_name)
+            )
+            yield {"type": "tool_result", "name": tool_name, "result": result[:500]}
+
+            # Feed result back to the model for the next turn.
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc.id,
+                "name": tool_name,
+                "content": result[:1500],
+            })
 
     yield {"type": "done"}
 
