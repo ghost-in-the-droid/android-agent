@@ -108,15 +108,41 @@ _active_procs: dict[str, subprocess.Popen] = {}  # session_id -> running subproc
 
 
 def stop_agent(session_id: str):
-    """Kill the running agent subprocess AND all its children."""
+    """Kill the running agent subprocess AND all its children.
+
+    Two layers of kill so a runaway claude can't keep tapping the phone after
+    the user hits Stop:
+      1. Typed kill via _active_procs[session_id] — sends SIGTERM (then SIGKILL)
+         to the whole process group (chat_claude_code uses start_new_session=True
+         so claude+node+MCP-tool children share a pgid).
+      2. Nuclear pkill on the claude --print command line as a safety net for
+         processes that escaped the group (e.g., claude re-execed via node).
+    """
+    import os as _os
+    import signal as _sig
+
     proc = _active_procs.pop(session_id, None)
     if proc:
         try:
-            proc.kill()
-        except Exception:
+            pgid = _os.getpgid(proc.pid)
+            _os.killpg(pgid, _sig.SIGTERM)
+            try:
+                proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                _os.killpg(pgid, _sig.SIGKILL)
+        except (ProcessLookupError, PermissionError):
             pass
-    # Nuclear option: kill ALL claude --print processes (only agent chat uses this)
-    # This catches cases where the PID changed (node re-exec) or psutil can't find it
+        except Exception:
+            # Fallback to plain kill if pgid lookup failed
+            try:
+                proc.kill()
+            except Exception:
+                pass
+    # Nuclear safety net — pkill anything matching the claude --print pattern.
+    # Catches procs that re-execed (PID changed), procs from a different
+    # session that crashed mid-stream, and the case where _active_procs lost
+    # track because chat_claude_code registered after Popen but before adding
+    # to the dict.
     try:
         subprocess.run(
             ["pkill", "-9", "-f", "claude.*--print.*--output-format.*stream-json"],
