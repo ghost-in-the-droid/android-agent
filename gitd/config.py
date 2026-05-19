@@ -34,9 +34,9 @@ class Settings(BaseSettings):
     # ── Ollama ──────────────────────────────────────────────────────────────
     ollama_base_url: str = "http://localhost:11434"
 
-    # ── vLLM (jsl-gpu, OpenAI-compatible) ────────────────────────────────────
+    # ── vLLM (OpenAI-compatible, remote GPU) ────────────────────────────────────
     # Default assumes a chained tunnel:
-    #   phone:8000 → adb reverse → mac:8000 → ssh -L 8000:localhost:8000 jsl-gpu
+    #   phone:8000 → adb reverse → mac:8000 → ssh -L 8000:localhost:8000 <your-gpu-host>
     # On the Mac dev backend, the same URL works directly because the ssh
     # tunnel is already on `localhost`. Override via env GITD_VLLM_BASE_URL.
     vllm_base_url: str = "http://127.0.0.1:8000/v1"

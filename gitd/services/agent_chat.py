@@ -78,12 +78,12 @@ PROVIDERS = {
         "label": "On-device (Gemma)",
         "models": ["gemma-3-1b-it", "gemma-2-2b-it", "gemma-4-e2b-q4km-gguf"],
     },
-    # vLLM-on-jsl-gpu — full-precision Gemma 4 served from the GPU box,
+    # vLLM — full-precision Gemma 4 served from the GPU box,
     # routed via Mac SSH tunnel + adb reverse so the phone hits it as if it
     # were on localhost. Same OpenAI-compatible shape as openrouter; we just
     # point the client at config.vllm_base_url instead.
     "vllm": {
-        "label": "vLLM (jsl-gpu)",
+        "label": "vLLM (remote GPU)",
         "models": [
             "unsloth/gemma-4-E2B-it",
             "unsloth/gemma-4-E2B-it-bnb-4bit",
@@ -723,11 +723,11 @@ def _chat_openrouter(session: ChatSession, user_message: str):
     yield {"type": "done"}
 
 
-# ── vLLM (OpenAI-compatible, points at jsl-gpu) ──────────────────────────────
+# ── vLLM (OpenAI-compatible, remote GPU via SSH) ──────────────────────────────
 
 
 def _chat_vllm(session: ChatSession, user_message: str):
-    """Use a vLLM server (default: jsl-gpu via SSH tunnel + adb reverse) with
+    """Use a vLLM server (default: remote GPU via SSH tunnel + adb reverse) with
     OpenAI-compatible tool calling and multi-turn agent loop.
 
     Same OpenAI surface as _chat_openrouter, but unlike that one we DO loop on
@@ -785,7 +785,7 @@ def _chat_vllm(session: ChatSession, user_message: str):
                 "type": "error",
                 "content": (
                     f"vLLM unreachable at {client.base_url}. "
-                    f"Start the server on jsl-gpu and ensure the SSH tunnel + "
+                    f"Start the server on your GPU host and ensure the SSH tunnel + "
                     f"`adb reverse tcp:8000 tcp:8000` are up. ({e})"
                 ),
             }
