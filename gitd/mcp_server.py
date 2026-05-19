@@ -206,11 +206,8 @@ def launch_app(device: str, package: str, fresh: bool = False) -> str:
             Use fresh=True for benchmarks, fresh start of a flow, or when the
             current app state would interfere with the task.
     """
-    dev = Device(device)
-    if fresh:
-        dev.adb("shell", "am", "force-stop", package)
-    dev.adb("shell", "monkey", "-p", package, "-c", "android.intent.category.LAUNCHER", "1")
-    return f"Launched {package}" + (" (fresh)" if fresh else "")
+    from gitd.services.agent_tools import execute_tool
+    return execute_tool("launch_app", {"device": device, "package": package, "fresh": fresh})
 
 
 @mcp.tool()

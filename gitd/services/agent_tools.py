@@ -393,6 +393,12 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 hits = [p for p in all_pkgs if any(t in p for t in tokens)][:6]
                 hint = f" Did you mean: {', '.join(hits)}?" if hits else ""
                 return f"ERROR: package {pkg} is not installed.{hint}"
+            # Check if the package is disabled — `pm list packages -d` lists disabled
+            # packages. All launch methods silently fail (or "No activities found") when
+            # the package is disabled, giving the agent a phantom success.
+            disabled = dev.adb("shell", "pm", "list", "packages", "-d", pkg, timeout=10)
+            if f"package:{pkg}" in disabled:
+                return f"ERROR: {pkg} is installed but disabled. Enable it first: adb shell pm enable {pkg}"
             # When the daemon runs ON the phone (Chaquopy), `am start` and
             # `monkey` both fail under the app's own uid: am resolves to
             # USER_CURRENT_OR_SELF and gets blocked on INTERACT_ACROSS_USERS_FULL,
@@ -421,7 +427,18 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                         launcher = line
                         break
                 if not launcher:
-                    return f"ERROR: {pkg} has no LAUNCHER activity"
+                    # resolve-activity can fail on some ROMs (ASUS, Samsung) even for
+                    # valid launcher packages. Fall back to monkey which works as long
+                    # as the package is enabled and has a LAUNCHER activity.
+                    if fresh:
+                        dev.adb("shell", "am", "force-stop", pkg)
+                    monkey_out = dev.adb(
+                        "shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1",
+                        timeout=10,
+                    )
+                    if "Events injected: 1" in monkey_out:
+                        return f"Launched {pkg} (monkey)" + (" [fresh]" if fresh else "")
+                    return f"ERROR: {pkg} has no LAUNCHER activity (monkey: {monkey_out.strip()[:100]})"
                 am_args = ["shell", "am", "start", "--user", "0"]
                 if fresh:
                     am_args += ["--activity-clear-task"]
