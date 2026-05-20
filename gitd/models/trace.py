@@ -25,7 +25,7 @@ class Trace(Base):
     # block, after the trace closes). Cascading deletes are handled in
     # delete_conversation_endpoint.
     conversation_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    provider: Mapped[str] = mapped_column(Text, nullable=False)        # claude-code, on-device, ollama, anthropic
+    provider: Mapped[str] = mapped_column(Text, nullable=False)  # claude-code, on-device, ollama, anthropic
     model: Mapped[str] = mapped_column(Text, server_default=text("''"))
     device: Mapped[str] = mapped_column(Text, server_default=text("''"))
     source: Mapped[str] = mapped_column(Text, server_default=text("'mac'"))  # mac, android
@@ -50,9 +50,7 @@ class TraceSpan(Base):
     __tablename__ = "trace_spans"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    trace_id: Mapped[str] = mapped_column(
-        Text, ForeignKey("traces.id", ondelete="CASCADE"), nullable=False
-    )
+    trace_id: Mapped[str] = mapped_column(Text, ForeignKey("traces.id", ondelete="CASCADE"), nullable=False)
     kind: Mapped[str] = mapped_column(Text, nullable=False)  # tool, generation, event
     name: Mapped[str] = mapped_column(Text, nullable=False)  # e.g. "tool:web_search", "llm-call"
     input_json: Mapped[Optional[str]] = mapped_column(Text, server_default=text("''"))
