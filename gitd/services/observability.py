@@ -31,8 +31,8 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, Iterator, Optional
 
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -48,6 +48,7 @@ def _truncate(s: Any, limit: int = 4000) -> str:
 
 
 # ── Trace handle — what the providers see ─────────────────────────────────────
+
 
 class _TraceHandle:
     """Lightweight wrapper passed to `with` blocks. Holds local trace_id and
@@ -80,20 +81,37 @@ class _TraceHandle:
         return _SpanHandle(local_id=local_span, lf_handle=lf_span)
 
     # -- generations (single-shot, no open/close pair) --
-    def record_generation(self, *, model: str, prompt: str, output: str,
-                          input_tokens: int = 0, output_tokens: int = 0,
-                          cost_usd: float = 0.0) -> None:
+    def record_generation(
+        self,
+        *,
+        model: str,
+        prompt: str,
+        output: str,
+        input_tokens: int = 0,
+        output_tokens: int = 0,
+        cost_usd: float = 0.0,
+    ) -> None:
         _local_generation(
-            self.local_id, model=model, prompt=prompt, output=output,
-            input_tokens=input_tokens, output_tokens=output_tokens, cost_usd=cost_usd,
+            self.local_id,
+            model=model,
+            prompt=prompt,
+            output=output,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost_usd,
         )
         if self.lf_handle is not None:
             try:
                 self.lf_handle.generation(
-                    name="llm-call", model=model, input=prompt, output=output,
+                    name="llm-call",
+                    model=model,
+                    input=prompt,
+                    output=output,
                     usage={
-                        "input": input_tokens, "output": output_tokens,
-                        "total": input_tokens + output_tokens, "unit": "TOKENS",
+                        "input": input_tokens,
+                        "output": output_tokens,
+                        "total": input_tokens + output_tokens,
+                        "unit": "TOKENS",
                     },
                     metadata={"cost_usd": cost_usd} if cost_usd else None,
                 )
@@ -121,37 +139,47 @@ class _SpanHandle:
 
 # ── Local SQLite writers ──────────────────────────────────────────────────────
 
-def _local_trace_open(*, conversation_id: str, provider: str, model: str,
-                      device: str, source: str, user_input: str) -> str:
+
+def _local_trace_open(
+    *, conversation_id: str, provider: str, model: str, device: str, source: str, user_input: str
+) -> str:
     from gitd.models.base import SessionLocal
     from gitd.models.trace import Trace
+
     trace_id = uuid.uuid4().hex
     db = SessionLocal()
     try:
-        db.add(Trace(
-            id=trace_id,
-            conversation_id=conversation_id or None,
-            provider=provider, model=model, device=device, source=source,
-            user_input=_truncate(user_input, 8000),
-            status="running",
-            started_at=_now_iso(),
-        ))
+        db.add(
+            Trace(
+                id=trace_id,
+                conversation_id=conversation_id or None,
+                provider=provider,
+                model=model,
+                device=device,
+                source=source,
+                user_input=_truncate(user_input, 8000),
+                status="running",
+                started_at=_now_iso(),
+            )
+        )
         db.commit()
     except Exception:
-        try: db.rollback()
-        except Exception: pass
+        try:
+            db.rollback()  # noqa: E701
+        except Exception:
+            pass  # noqa: E701
     finally:
         db.close()
     return trace_id
 
 
-def _local_trace_close(trace_id: str, *, status: str, duration_ms: int,
-                       error_text: str = "") -> None:
+def _local_trace_close(trace_id: str, *, status: str, duration_ms: int, error_text: str = "") -> None:
     """Close a trace — only touches lifecycle fields. Token/cost totals are
     accumulated by `_local_trace_accumulate_tokens` during the run, so we
     must not overwrite them here."""
     from gitd.models.base import SessionLocal
     from gitd.models.trace import Trace
+
     db = SessionLocal()
     try:
         t = db.get(Trace, trace_id)
@@ -162,8 +190,10 @@ def _local_trace_close(trace_id: str, *, status: str, duration_ms: int,
             t.ended_at = _now_iso()
             db.commit()
     except Exception:
-        try: db.rollback()
-        except Exception: pass
+        try:
+            db.rollback()  # noqa: E701
+        except Exception:
+            pass  # noqa: E701
     finally:
         db.close()
 
@@ -171,6 +201,7 @@ def _local_trace_close(trace_id: str, *, status: str, duration_ms: int,
 def _local_trace_set_output(trace_id: str, output: str) -> None:
     from gitd.models.base import SessionLocal
     from gitd.models.trace import Trace
+
     db = SessionLocal()
     try:
         t = db.get(Trace, trace_id)
@@ -178,8 +209,10 @@ def _local_trace_set_output(trace_id: str, output: str) -> None:
             t.final_output = _truncate(output, 16000)
             db.commit()
     except Exception:
-        try: db.rollback()
-        except Exception: pass
+        try:
+            db.rollback()  # noqa: E701
+        except Exception:
+            pass  # noqa: E701
     finally:
         db.close()
 
@@ -187,11 +220,14 @@ def _local_trace_set_output(trace_id: str, output: str) -> None:
 def _local_span_open(trace_id: str, *, kind: str, name: str, input_obj: Any) -> int:
     from gitd.models.base import SessionLocal
     from gitd.models.trace import TraceSpan
+
     db = SessionLocal()
     span_id = 0
     try:
         span = TraceSpan(
-            trace_id=trace_id, kind=kind, name=name,
+            trace_id=trace_id,
+            kind=kind,
+            name=name,
             input_json=_truncate(input_obj) if input_obj is not None else "",
             started_at=_now_iso(),
         )
@@ -199,8 +235,10 @@ def _local_span_open(trace_id: str, *, kind: str, name: str, input_obj: Any) -> 
         db.commit()
         span_id = span.id
     except Exception:
-        try: db.rollback()
-        except Exception: pass
+        try:
+            db.rollback()  # noqa: E701
+        except Exception:
+            pass  # noqa: E701
     finally:
         db.close()
     return span_id
@@ -209,6 +247,7 @@ def _local_span_open(trace_id: str, *, kind: str, name: str, input_obj: Any) -> 
 def _local_span_close(span_id: int, *, output_obj: Any, error: bool, duration_ms: int) -> None:
     from gitd.models.base import SessionLocal
     from gitd.models.trace import TraceSpan
+
     if not span_id:
         return
     db = SessionLocal()
@@ -221,35 +260,50 @@ def _local_span_close(span_id: int, *, output_obj: Any, error: bool, duration_ms
             s.duration_ms = duration_ms
             db.commit()
     except Exception:
-        try: db.rollback()
-        except Exception: pass
+        try:
+            db.rollback()  # noqa: E701
+        except Exception:
+            pass  # noqa: E701
     finally:
         db.close()
 
 
-def _local_generation(trace_id: str, *, model: str, prompt: str, output: str,
-                      input_tokens: int, output_tokens: int, cost_usd: float) -> None:
+def _local_generation(
+    trace_id: str, *, model: str, prompt: str, output: str, input_tokens: int, output_tokens: int, cost_usd: float
+) -> None:
     """LLM generations are stored as spans with kind='generation'. Single-shot
     write — no open/close needed since we already have all the data."""
     from gitd.models.base import SessionLocal
     from gitd.models.trace import TraceSpan
+
     db = SessionLocal()
     try:
         now = _now_iso()
-        db.add(TraceSpan(
-            trace_id=trace_id, kind="generation", name="llm-call",
-            input_json=_truncate({"prompt": prompt, "model": model}, 16000),
-            output_json=_truncate({
-                "output": output,
-                "input_tokens": input_tokens, "output_tokens": output_tokens,
-                "cost_usd": cost_usd,
-            }, 16000),
-            started_at=now, ended_at=now,
-        ))
+        db.add(
+            TraceSpan(
+                trace_id=trace_id,
+                kind="generation",
+                name="llm-call",
+                input_json=_truncate({"prompt": prompt, "model": model}, 16000),
+                output_json=_truncate(
+                    {
+                        "output": output,
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                        "cost_usd": cost_usd,
+                    },
+                    16000,
+                ),
+                started_at=now,
+                ended_at=now,
+            )
+        )
         db.commit()
     except Exception:
-        try: db.rollback()
-        except Exception: pass
+        try:
+            db.rollback()  # noqa: E701
+        except Exception:
+            pass  # noqa: E701
     finally:
         db.close()
 
@@ -273,8 +327,10 @@ def _lf_get_client():
         return None
     try:
         from langfuse import Langfuse
+
         _lf_client = Langfuse(
-            public_key=pk, secret_key=sk,
+            public_key=pk,
+            secret_key=sk,
             host=os.environ.get("LANGFUSE_HOST", "http://localhost:3000"),
         )
     except Exception:
@@ -288,15 +344,21 @@ def is_langfuse_enabled() -> bool:
 
 # ── Public API — what the chat providers call ─────────────────────────────────
 
+
 @contextmanager
-def trace_chat_turn(*, session_id: str, user_message: str, provider: str,
-                    model: str, device: str, source: str = "mac") -> Iterator[Optional[_TraceHandle]]:
+def trace_chat_turn(
+    *, session_id: str, user_message: str, provider: str, model: str, device: str, source: str = "mac"
+) -> Iterator[Optional[_TraceHandle]]:
     """Open a trace for a full chat turn. Always returns a handle (never None
     now that local tracing is always on). The handle's methods fan out to both
     backends; the caller doesn't need to know which is enabled."""
     local_id = _local_trace_open(
-        conversation_id=session_id, provider=provider, model=model,
-        device=device, source=source, user_input=user_message,
+        conversation_id=session_id,
+        provider=provider,
+        model=model,
+        device=device,
+        source=source,
+        user_input=user_message,
     )
 
     lf_handle = None
@@ -326,7 +388,9 @@ def trace_chat_turn(*, session_id: str, user_message: str, provider: str,
     finally:
         duration_ms = int((time.time() - started) * 1000)
         _local_trace_close(
-            local_id, status=status, duration_ms=duration_ms,
+            local_id,
+            status=status,
+            duration_ms=duration_ms,
             error_text=error_text,
         )
         if lf is not None:
@@ -339,8 +403,7 @@ def trace_chat_turn(*, session_id: str, user_message: str, provider: str,
 
 
 @contextmanager
-def span_tool_call(trace: Optional[_TraceHandle], tool_name: str,
-                   tool_args: Any) -> Iterator[Optional[_SpanHandle]]:
+def span_tool_call(trace: Optional[_TraceHandle], tool_name: str, tool_args: Any) -> Iterator[Optional[_SpanHandle]]:
     """Less-used helper — most providers manage span lifecycle inline so they
     can attach the result to the right span by tool_use_id. Kept for symmetry."""
     if trace is None:
@@ -352,30 +415,43 @@ def span_tool_call(trace: Optional[_TraceHandle], tool_name: str,
         yield span
     finally:
         _local_span_close(
-            span.local_id, output_obj=None, error=False,
+            span.local_id,
+            output_obj=None,
+            error=False,
             duration_ms=int((time.time() - started) * 1000),
         )
 
 
-def record_generation(trace: Optional[_TraceHandle], *, model: str, prompt: str,
-                      output: str, input_tokens: int = 0, output_tokens: int = 0,
-                      cost_usd: float = 0.0) -> None:
+def record_generation(
+    trace: Optional[_TraceHandle],
+    *,
+    model: str,
+    prompt: str,
+    output: str,
+    input_tokens: int = 0,
+    output_tokens: int = 0,
+    cost_usd: float = 0.0,
+) -> None:
     if trace is None:
         return
     trace.record_generation(
-        model=model, prompt=prompt, output=output,
-        input_tokens=input_tokens, output_tokens=output_tokens, cost_usd=cost_usd,
+        model=model,
+        prompt=prompt,
+        output=output,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        cost_usd=cost_usd,
     )
     # Also update the trace-level token + cost totals so the list view shows them.
     _local_trace_accumulate_tokens(trace.local_id, input_tokens, output_tokens, cost_usd)
 
 
-def _local_trace_accumulate_tokens(trace_id: str, input_tokens: int,
-                                   output_tokens: int, cost_usd: float) -> None:
+def _local_trace_accumulate_tokens(trace_id: str, input_tokens: int, output_tokens: int, cost_usd: float) -> None:
     """For multi-turn LLM models that emit several `record_generation` calls
     per trace (e.g. on-device Gemma's tool loop), accumulate totals."""
     from gitd.models.base import SessionLocal
     from gitd.models.trace import Trace
+
     if not (input_tokens or output_tokens or cost_usd):
         return
     db = SessionLocal()
@@ -387,19 +463,19 @@ def _local_trace_accumulate_tokens(trace_id: str, input_tokens: int,
             t.cost_usd = (t.cost_usd or 0.0) + float(cost_usd)
             db.commit()
     except Exception:
-        try: db.rollback()
-        except Exception: pass
+        try:
+            db.rollback()  # noqa: E701
+        except Exception:
+            pass  # noqa: E701
     finally:
         db.close()
 
 
-def record_tool_result(span: Optional[_SpanHandle], result: str,
-                       error: bool = False) -> None:
+def record_tool_result(span: Optional[_SpanHandle], result: str, error: bool = False) -> None:
     if span is None:
         return
     duration_ms = int((time.time() - span._started) * 1000)
-    _local_span_close(span.local_id, output_obj={"result": result[:4000]},
-                      error=error, duration_ms=duration_ms)
+    _local_span_close(span.local_id, output_obj={"result": result[:4000]}, error=error, duration_ms=duration_ms)
     if span.lf_handle is not None:
         try:
             span.lf_handle.update(

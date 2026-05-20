@@ -81,15 +81,18 @@ def list_traces(
     db = SessionLocal()
     try:
         q = db.query(Trace).order_by(desc(Trace.started_at))
-        if provider:        q = q.filter(Trace.provider == provider)
-        if source:          q = q.filter(Trace.source == source)
-        if status:          q = q.filter(Trace.status == status)
-        if conversation_id: q = q.filter(Trace.conversation_id == conversation_id)
+        if provider:
+            q = q.filter(Trace.provider == provider)
+        if source:
+            q = q.filter(Trace.source == source)
+        if status:
+            q = q.filter(Trace.status == status)
+        if conversation_id:
+            q = q.filter(Trace.conversation_id == conversation_id)
 
         total = q.count()
         rows = q.limit(limit).offset(offset).all()
-        return {"total": total, "limit": limit, "offset": offset,
-                "data": [_row_to_summary(r) for r in rows]}
+        return {"total": total, "limit": limit, "offset": offset, "data": [_row_to_summary(r) for r in rows]}
     finally:
         db.close()
 
@@ -100,6 +103,7 @@ def trace_stats(
 ):
     """Aggregate counters for the Traces tab header bar."""
     from datetime import datetime, timedelta, timezone
+
     from gitd.models.base import SessionLocal
     from gitd.models.trace import Trace
 
@@ -109,23 +113,15 @@ def trace_stats(
         base_q = db.query(Trace).filter(Trace.started_at >= cutoff)
         total = base_q.count()
         errors = base_q.filter(Trace.status == "error").count()
-        avg_duration = db.query(func.avg(Trace.duration_ms)).filter(
-            Trace.started_at >= cutoff, Trace.status == "success"
-        ).scalar() or 0
-        total_cost = db.query(func.sum(Trace.cost_usd)).filter(
-            Trace.started_at >= cutoff
-        ).scalar() or 0.0
-        total_in = db.query(func.sum(Trace.input_tokens)).filter(
-            Trace.started_at >= cutoff
-        ).scalar() or 0
-        total_out = db.query(func.sum(Trace.output_tokens)).filter(
-            Trace.started_at >= cutoff
-        ).scalar() or 0
-        # Per-provider breakdown
-        per_provider = (
-            base_q.with_entities(Trace.provider, func.count(Trace.id))
-            .group_by(Trace.provider).all()
+        avg_duration = (
+            db.query(func.avg(Trace.duration_ms)).filter(Trace.started_at >= cutoff, Trace.status == "success").scalar()
+            or 0
         )
+        total_cost = db.query(func.sum(Trace.cost_usd)).filter(Trace.started_at >= cutoff).scalar() or 0.0
+        total_in = db.query(func.sum(Trace.input_tokens)).filter(Trace.started_at >= cutoff).scalar() or 0
+        total_out = db.query(func.sum(Trace.output_tokens)).filter(Trace.started_at >= cutoff).scalar() or 0
+        # Per-provider breakdown
+        per_provider = base_q.with_entities(Trace.provider, func.count(Trace.id)).group_by(Trace.provider).all()
         return {
             "since_hours": since_hours,
             "total": total,
@@ -152,10 +148,7 @@ def get_trace(trace_id: str):
         t = db.get(Trace, trace_id)
         if not t:
             raise HTTPException(status_code=404, detail="trace not found")
-        spans = (
-            db.query(TraceSpan).filter_by(trace_id=trace_id)
-            .order_by(TraceSpan.started_at, TraceSpan.id).all()
-        )
+        spans = db.query(TraceSpan).filter_by(trace_id=trace_id).order_by(TraceSpan.started_at, TraceSpan.id).all()
         return {
             "trace": {
                 **_row_to_summary(t),

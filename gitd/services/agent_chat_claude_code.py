@@ -11,7 +11,6 @@ from gitd.services.observability import (
     record_generation,
     record_tool_result,
     set_trace_output,
-    span_tool_call,
     trace_chat_turn,
 )
 
@@ -81,10 +80,20 @@ Rules:
             bufsize=1,
             cwd=project_dir,
             env={**os.environ, "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"},
+            # New session so we can SIGTERM the whole process group (claude
+            # spawns node + MCP-tool child processes; killing just the parent
+            # leaves those orphaned and still tapping the phone).
+            start_new_session=True,
         )
     except FileNotFoundError:
         yield {"type": "error", "content": "claude CLI not found. Set GHOST_REMOTE_HOST to proxy."}
         return
+
+    # Register so the /stop/{sid} endpoint can find this proc by session id
+    # without relying on the nuclear `pkill -f claude.*--print...` fallback.
+    from gitd.services.agent_chat import _active_procs
+
+    _active_procs[session.id] = proc
 
     proc.stdin.write(prompt)
     proc.stdin.close()
@@ -182,9 +191,7 @@ Rules:
                         yield {"type": "activity", "content": f"⚡ {display_name}..."}
                         if trace is not None and tool_id:
                             try:
-                                tool_spans[tool_id] = trace.span(
-                                    name=f"tool:{display_name}", input={"args": tool_args}
-                                )
+                                tool_spans[tool_id] = trace.span(name=f"tool:{display_name}", input={"args": tool_args})
                             except Exception:
                                 pass
 
@@ -215,9 +222,7 @@ Rules:
                             # Persist alongside text/tool_use blocks so it survives
                             # save_session_to_db and reappears on resumeConversation —
                             # otherwise thinking bubbles are live-only and vanish.
-                            session.messages.append(
-                                ChatMessage(role="thinking", content=thinking_text)
-                            )
+                            session.messages.append(ChatMessage(role="thinking", content=thinking_text))
                             yield {"type": "thinking", "content": thinking_text}
                         else:
                             yield {"type": "activity", "content": "🧠 Reasoning..."}
@@ -259,6 +264,11 @@ Rules:
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
         proc.kill()
+
+    # Unregister now that the process is done — leaving a stale entry would
+    # make a later stop_agent try to killpg() a dead pid (harmless, but
+    # noisy in logs).
+    _active_procs.pop(session.id, None)
 
     # Record final generation + close trace
     try:
@@ -302,8 +312,10 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
     _trace_cm = trace_chat_turn(
         session_id=getattr(session, "id", "") or "",
         user_message=prompt[-2000:],  # the prompt has full screen context — keep tail
-        provider="claude-code", model=session.model or "sonnet",
-        device=session.device, source="android",  # this code runs in Chaquopy
+        provider="claude-code",
+        model=session.model or "sonnet",
+        device=session.device,
+        source="android",  # this code runs in Chaquopy
     )
     trace = _trace_cm.__enter__()
     open_spans: dict[str, object] = {}  # last-tool-name → span (best-effort match since remote events lack ids)
@@ -314,6 +326,15 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
 
     yield {"type": "activity", "content": f"🔗 Connecting to {remote_host}..."}
 
+    # When the phone user hits Stop, this generator gets GeneratorExit. We
+    # need to propagate that to the Mac so its claude subprocess actually
+    # dies — closing our `requests` connection alone isn't enough because
+    # Mac's chat_claude_code generator only notices the broken pipe AFTER
+    # claude has streamed its current chunk (which may include several more
+    # tool calls). The fix: capture Mac's session_id from the first SSE
+    # `session` event, and on GeneratorExit POST to Mac's /stop/{sid}.
+    remote_sid: str = ""
+    resp = None
     try:
         resp = requests.post(
             f"{remote_host}/api/agent-chat/message",
@@ -336,7 +357,14 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
                     event = json.loads(text_line[6:])
                     etype = event.get("type", "")
 
-                    if etype == "text":
+                    if etype == "session":
+                        # First event from Mac carries the remote session_id.
+                        # Capture it so a phone-side Stop can hit Mac's
+                        # /stop/{sid} endpoint and actually kill the claude
+                        # subprocess.
+                        remote_sid = event.get("session_id", "") or ""
+                        yield event
+                    elif etype == "text":
                         chunk = event.get("content", "")
                         full_text += chunk
                         session.messages.append(ChatMessage(role="assistant", content=chunk))
@@ -354,9 +382,7 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
                         )
                         if trace is not None:
                             try:
-                                open_spans[tool_name] = trace.span(
-                                    name=f"tool:{tool_name}", input={"args": tool_args}
-                                )
+                                open_spans[tool_name] = trace.span(name=f"tool:{tool_name}", input={"args": tool_args})
                             except Exception:
                                 pass
                         yield event
@@ -368,9 +394,7 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
                         )
                         # The remote stream sends tool_result without a tool_id;
                         # close the most recent span for that tool name.
-                        span = open_spans.pop(tool_name, None) or (
-                            open_spans.popitem()[1] if open_spans else None
-                        )
+                        span = open_spans.pop(tool_name, None) or (open_spans.popitem()[1] if open_spans else None)
                         record_tool_result(span, result_text)
                         yield event
                     elif etype == "tokens":
@@ -390,19 +414,46 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
                 except json.JSONDecodeError:
                     pass
 
+    except GeneratorExit:
+        # Phone user hit Stop. Propagate to Mac so its claude subprocess
+        # actually dies — without this, Mac keeps streaming tool calls and
+        # the phone keeps getting tapped even though the UI says "stopped".
+        if remote_sid:
+            try:
+                requests.post(
+                    f"{remote_host}/api/agent-chat/stop/{remote_sid}",
+                    timeout=4,
+                )
+            except Exception:
+                pass
+        raise
     except requests.ConnectionError:
         yield {"type": "error", "content": f"Cannot reach {remote_host}. Start the backend on your Mac: python3 run.py"}
     except Exception as e:
         yield {"type": "error", "content": str(e)}
     finally:
+        # Always close the upstream HTTP stream so Mac's send_message
+        # finally-block fires (which calls stop_agent on its session).
+        try:
+            if resp is not None:
+                resp.close()
+        except Exception:
+            pass
         try:
             set_trace_output(trace, full_text)
             record_generation(
-                trace, model=session.model or "sonnet", prompt=prompt[-4000:], output=full_text,
-                input_tokens=total_input_tokens, output_tokens=total_output_tokens, cost_usd=total_cost,
+                trace,
+                model=session.model or "sonnet",
+                prompt=prompt[-4000:],
+                output=full_text,
+                input_tokens=total_input_tokens,
+                output_tokens=total_output_tokens,
+                cost_usd=total_cost,
             )
         finally:
-            try: _trace_cm.__exit__(None, None, None)
-            except Exception: pass
+            try:
+                _trace_cm.__exit__(None, None, None)  # noqa: E701
+            except Exception:
+                pass  # noqa: E701
 
     yield {"type": "done"}
