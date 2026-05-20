@@ -37,11 +37,11 @@ _BROWSER_CANDIDATES: list[tuple[str, str]] = [
 ]
 
 _ENGINE_URLS = {
-    "google":      "https://www.google.com/search?q=",
-    "ddg":         "https://duckduckgo.com/?q=",
-    "duckduckgo":  "https://duckduckgo.com/?q=",
-    "bing":        "https://www.bing.com/search?q=",
-    "brave":       "https://search.brave.com/search?q=",
+    "google": "https://www.google.com/search?q=",
+    "ddg": "https://duckduckgo.com/?q=",
+    "duckduckgo": "https://duckduckgo.com/?q=",
+    "bing": "https://www.bing.com/search?q=",
+    "brave": "https://search.brave.com/search?q=",
 }
 
 
@@ -98,7 +98,5 @@ def open_search(device: str, query: str, engine: str = "google") -> str:
     _try_open(dev, store_url, package=None)
     return (
         "web_search failed: no browser handled the VIEW intent. "
-        "Opened Play Store to install one. (Tried: "
-        + ", ".join(p for _, p in _BROWSER_CANDIDATES)
-        + ")"
+        "Opened Play Store to install one. (Tried: " + ", ".join(p for _, p in _BROWSER_CANDIDATES) + ")"
     )
