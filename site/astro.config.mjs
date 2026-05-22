@@ -16,6 +16,13 @@ export default defineConfig({
 			head: [
 				{
 					tag: 'script',
+					attrs: {
+						defer: true,
+						src: '/_vercel/insights/script.js',
+					},
+				},
+				{
+					tag: 'script',
 					content: `
 document.addEventListener('DOMContentLoaded', function() {
 	var nav = document.querySelector('header nav .right-group, header nav');
@@ -116,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						{ label: '🎬 Macro Recorder', slug: 'features/macro-recorder' },
 						{ label: '🥷 Stealth Mode', slug: 'features/stealth-mode' },
 						{ label: '📎 Device Context', slug: 'features/device-context' },
-						{ label: '🖥️ Emulators', slug: 'features/emulator', badge: { text: 'Coming Soon', variant: 'caution' } },
+						{ label: '🖥️ Emulators', slug: 'features/emulator' },
 					],
 				},
 				{
