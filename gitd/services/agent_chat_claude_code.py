@@ -20,12 +20,15 @@ def _tts_speak_bg(device: str, text: str, max_chars: int = 250) -> None:
     speak_text = text.strip()[:max_chars]
     if not speak_text:
         return
+
     def _run():
         try:
             from gitd.services.device_context import speak_text as _speak
+
             _speak(device, speak_text)
         except Exception:
             pass
+
     threading.Thread(target=_run, daemon=True).start()
 
 
@@ -35,8 +38,7 @@ def _build_history_prefix(session: ChatSession, current_user_message: str) -> st
     Includes user/assistant text + brief tool summaries (no screenshots).
     Skips the message we're about to append (current_user_message).
     """
-    prior = [m for m in session.messages
-             if not (m.role == "user" and m.content == current_user_message)]
+    prior = [m for m in session.messages if not (m.role == "user" and m.content == current_user_message)]
     if not prior:
         return ""
 
@@ -120,7 +122,7 @@ Rules:
     system_prompt = (
         "You are an Android automation agent. Rules that override all defaults:\n"
         "1. For any camera/photo/selfie/video task: your FIRST tool call must be "
-        "ToolSearch({\"query\":\"select:mcp__android-agent__open_camera\"}) then call "
+        'ToolSearch({"query":"select:mcp__android-agent__open_camera"}) then call '
         "mcp__android-agent__open_camera(device, mode, timer_s). Do NOT use launch_app, "
         "do NOT call list_skills, do NOT tap any camera UI. open_camera handles everything.\n"
         "2. For any speak/TTS task: ToolSearch select mcp__android-agent__speak_text then call it.\n"

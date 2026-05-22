@@ -110,6 +110,7 @@ def send_message(data: dict = Body({})):
     # Session not in memory — try to reload from DB (happens after backend restart)
     if not session and sid:
         from gitd.services.agent_chat import load_conversation
+
         session = load_conversation(sid)
     # Auto-create session if device provided but no session
     if not session:
