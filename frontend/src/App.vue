@@ -58,7 +58,10 @@ async function pollGhostState() {
     ghostState.value = 'idle'
   } catch { ghostState.value = 'disconnected' }
 }
+const publicView = new URLSearchParams(window.location.search).has('public')
+
 async function fetchFeatures() {
+  if (publicView) return
   try {
     const resp = await fetch('/api/features')
     if (resp.ok) {

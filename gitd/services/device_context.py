@@ -361,6 +361,33 @@ def ocr_region(device: str, x1: int, y1: int, x2: int, y2: int) -> list[dict]:
 # ── Overlay ──────────────────────────────────────────────────────────────────
 
 
+def speak_text(device: str, text: str, rate: float = 1.0) -> str:
+    """Make the phone speak text aloud via its TTS engine.
+
+    Works from PC (ADB forward → portal HTTP) and on-device (same HTTP, loopback).
+    Requires the Ghost portal app to be running on the phone.
+    Returns 'speaking' on success, or an error string.
+    """
+    dev = Device(device)
+    port = dev._ensure_portal_forward()
+    if not port:
+        return "error: portal app not reachable — is the Ghost portal running on the phone?"
+    try:
+        payload = json.dumps({"text": text, "rate": rate}).encode()
+        req = urllib.request.Request(
+            f"http://localhost:{port}/speak",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        resp = json.loads(urllib.request.urlopen(req, timeout=5).read())
+        if resp.get("status") == "error":
+            return f"error: {resp.get('error', 'unknown')}"
+        return resp.get("result", "ok")
+    except Exception as e:
+        return f"error: {e}"
+
+
 def toggle_overlay(device: str, visible: bool = True) -> bool:
     """Toggle Portal's numbered element overlay. Returns True on success."""
     dev = Device(device)
@@ -462,8 +489,24 @@ def clipboard_get(device: str) -> str:
 
 
 def clipboard_set(device: str, text: str) -> bool:
-    """Set clipboard text on device."""
+    """Set clipboard text on device via Ghost portal (ClipboardManager)."""
     dev = Device(device)
+    port = dev._ensure_portal_forward()
+    if port:
+        try:
+            payload = json.dumps({"text": text}).encode()
+            req = urllib.request.Request(
+                f"http://localhost:{port}/clipboard",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            resp = json.loads(urllib.request.urlopen(req, timeout=3).read())
+            if resp.get("result") == "clipboard_set":
+                return True
+        except Exception:
+            pass
+    # Fallback: Clipper broadcast (requires Clipper app installed)
     try:
         dev.adb("shell", "am", "broadcast", "-a", "clipper.set", "-e", "text", text, timeout=3)
         return True

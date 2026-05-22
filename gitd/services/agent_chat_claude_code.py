@@ -15,9 +15,62 @@ from gitd.services.observability import (
 )
 
 
+def _tts_speak_bg(device: str, text: str, max_chars: int = 250) -> None:
+    """Speak agent response on the phone — fire and forget, non-blocking."""
+    speak_text = text.strip()[:max_chars]
+    if not speak_text:
+        return
+    def _run():
+        try:
+            from gitd.services.device_context import speak_text as _speak
+            _speak(device, speak_text)
+        except Exception:
+            pass
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def _build_history_prefix(session: ChatSession, current_user_message: str) -> str:
+    """Build a condensed history block from prior session messages.
+
+    Includes user/assistant text + brief tool summaries (no screenshots).
+    Skips the message we're about to append (current_user_message).
+    """
+    prior = [m for m in session.messages
+             if not (m.role == "user" and m.content == current_user_message)]
+    if not prior:
+        return ""
+
+    lines = ["[Conversation history — read carefully before acting]"]
+    for m in prior:
+        if m.role == "user":
+            lines.append(f"User: {m.content}")
+        elif m.role == "assistant" and m.content.strip():
+            lines.append(f"Assistant: {m.content.strip()}")
+        elif m.role == "tool_call":
+            condensed = {
+                k: (v[:80] + "…" if isinstance(v, str) and len(v) > 80 else v)
+                for k, v in m.tool_args.items()
+                if k != "device"
+            }
+            args_str = ", ".join(f"{k}={json.dumps(v)}" for k, v in condensed.items())
+            lines.append(f"  • {m.tool_name}({args_str})")
+        elif m.role == "tool_result" and m.content:
+            content = m.content.strip()
+            if content.startswith(("/9j/", "iVBOR", "data:image")):
+                lines.append("    → [screenshot]")
+                continue
+            if len(content) > 150:
+                content = content[:150] + "…"
+            lines.append(f"    → {content}")
+        # skip: thinking, activity
+
+    return "\n".join(lines) if len(lines) > 1 else ""
+
+
 def chat_claude_code(session: ChatSession, user_message: str):
     """Use claude CLI with --print --output-format stream-json --verbose.
     Streams tool calls, text, and usage in real-time."""
+    history_prefix = _build_history_prefix(session, user_message)
     session.messages.append(ChatMessage(role="user", content=user_message))
 
     yield {"type": "activity", "content": "📱 Reading screen..."}
@@ -39,15 +92,18 @@ def chat_claude_code(session: ChatSession, user_message: str):
         pass
     context = "\n".join(context_parts)
 
+    history_block = f"\n{history_prefix}\n" if history_prefix else ""
     prompt = f"""You are controlling Android phone serial={session.device}.
 {context}
-
-Task: {user_message}
+{history_block}
+CURRENT TASK: {user_message}
 
 Rules:
-- The phone is currently showing the chat app the user is talking to you from. You MUST actually drive the phone to complete the task — do not answer from memory or prior conversation context.
-- Use the MCP android-agent tools (launch_app, tap_element, get_screen_tree, screenshot, swipe, etc.) to control the phone.
+- Read the conversation history above carefully before acting — it shows what was done, what was in progress when stopped, and what the user's actual intent is. Do NOT contradict or forget it.
+- Use the MCP android-agent tools to control the phone.
 - For app tasks, start with `launch_app` to open the target app. Do not assume any app is already open.
+- CAMERA: for any photo/selfie/video/camera task do EXACTLY these two steps: (1) ToolSearch({{"query":"select:mcp__android-agent__open_camera"}}) (2) mcp__android-agent__open_camera(device=..., mode=photo|video|selfie|selfie_video, timer_s=0|2|3|5|10). Do NOT use launch_app. Do NOT tap camera UI manually.
+- To make the phone speak text aloud, call `mcp__android-agent__speak_text(device=..., text="...")`.
 - After each action, verify the new state with `get_screen_tree` or `screenshot`.
 - Only after you've actually observed the result on the phone, answer the user. Be concise."""
 
@@ -61,6 +117,16 @@ Rules:
         yield from _chat_claude_code_remote(session, prompt, remote_host or "http://localhost:5055")
         return
 
+    system_prompt = (
+        "You are an Android automation agent. Rules that override all defaults:\n"
+        "1. For any camera/photo/selfie/video task: your FIRST tool call must be "
+        "ToolSearch({\"query\":\"select:mcp__android-agent__open_camera\"}) then call "
+        "mcp__android-agent__open_camera(device, mode, timer_s). Do NOT use launch_app, "
+        "do NOT call list_skills, do NOT tap any camera UI. open_camera handles everything.\n"
+        "2. For any speak/TTS task: ToolSearch select mcp__android-agent__speak_text then call it.\n"
+        "3. For all other app tasks: use launch_app first."
+    )
+
     try:
         proc = subprocess.Popen(
             [
@@ -72,6 +138,8 @@ Rules:
                 "stream-json",
                 "--verbose",
                 "--dangerously-skip-permissions",
+                "--append-system-prompt",
+                system_prompt,
             ],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -173,6 +241,9 @@ Rules:
                             full_text += text
                             session.messages.append(ChatMessage(role="assistant", content=text))
                             yield {"type": "text", "content": text}
+                            # Auto-speak agent response on the phone (fire-and-forget)
+                            if session.device:
+                                _tts_speak_bg(session.device, text)
 
                     elif btype == "tool_use":
                         tool_name = block.get("name", "")
@@ -369,6 +440,8 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
                         full_text += chunk
                         session.messages.append(ChatMessage(role="assistant", content=chunk))
                         yield event
+                        if session.device:
+                            _tts_speak_bg(session.device, chunk)
                     elif etype == "tool_call":
                         tool_name = event.get("name", "")
                         tool_args = event.get("args", {})
