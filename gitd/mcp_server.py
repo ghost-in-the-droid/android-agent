@@ -211,6 +211,43 @@ def launch_app(device: str, package: str, fresh: bool = False) -> str:
 
 
 @mcp.tool()
+def open_camera(device: str, mode: str = "photo", timer_s: int = 0) -> str:
+    """Open the camera app in a specific mode using standard Android intents.
+
+    Works across all Android devices without knowing the camera package name.
+
+    Args:
+        device: ADB serial.
+        mode: One of:
+            "photo"        — rear camera, photo mode (default)
+            "video"        — rear camera, video/record mode
+            "selfie"       — front camera, photo mode
+            "selfie_video" — front camera, video mode
+        timer_s: Self-timer delay in seconds. Supported: 0 (off), 2, 3, 5, 10.
+                 Uses UI automation — snaps to the closest value the device supports
+                 (ASUS: 3s/10s, Samsung: 2s/5s/10s). 0 = no timer (default).
+    """
+    from gitd.services.agent_tools import execute_tool
+    return execute_tool("open_camera", {"device": device, "mode": mode, "timer_s": timer_s})
+
+
+@mcp.tool()
+def speak_text(device: str, text: str, rate: float = 1.0) -> str:
+    """Make the phone speak text aloud using its built-in TTS engine.
+
+    Works whether the agent runs on the phone or on a PC — the call always
+    goes through the Ghost portal app running on the device.
+
+    Args:
+        device: ADB serial.
+        text:   Text to speak.
+        rate:   Speech rate multiplier (0.5 = slow, 1.0 = normal, 1.5 = fast).
+    """
+    from gitd.services.device_context import speak_text as _speak
+    return _speak(device, text, rate)
+
+
+@mcp.tool()
 def search_apps(device: str, query: str) -> str:
     """Search installed apps by name. Case-insensitive. Returns matching apps with package names.
     Example: search_apps('tiktok') → [{"name": "TikTok", "package": "com.zhiliaoapp.musically"}]"""
@@ -334,6 +371,19 @@ def clipboard_set(device: str, text: str) -> str:
     """Set clipboard text on the device. Use with press_key(PASTE) to paste into fields."""
     from gitd.services.device_context import clipboard_set as _set
     return f"Clipboard set" if _set(device, text) else "Failed"
+
+
+@mcp.tool()
+def paste_text(device: str, text: str) -> str:
+    """Set clipboard text and immediately paste it into the currently focused field.
+    Equivalent to clipboard_set + press_key(PASTE) in one call.
+    Tap the target input field first to focus it, then call this."""
+    from gitd.services.device_context import clipboard_set as _set
+    from gitd.bots.common.adb import Device
+    if not _set(device, text):
+        return "Failed to set clipboard"
+    Device(device).adb("shell", "input", "keyevent", "KEYCODE_PASTE")
+    return f"Pasted: {text[:60]}{'…' if len(text) > 60 else ''}"
 
 
 @mcp.tool()

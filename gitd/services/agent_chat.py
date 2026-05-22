@@ -434,6 +434,8 @@ Key tools:
 - screenshot: see the screen visually
 - search_apps(query): find apps by name
 - launch_app(package): open an app
+- open_camera(mode): open camera — mode: photo/video/selfie/selfie_video, optional timer_s=3|10
+- speak_text(text): make the phone speak text aloud (works from PC and on-device)
 - press_back / press_home: navigation
 
 After each action the screen tree is auto-included in the result.
