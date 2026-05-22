@@ -1,15 +1,19 @@
 package com.ghostinthedroid.portal
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
+import android.speech.tts.TextToSpeech
 import android.util.Base64
 import android.util.Log
 import fi.iki.elonen.NanoHTTPD
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.util.Locale
 
 /**
  * HTTP server on port 8080. API-compatible with what our Python backend expects.
@@ -20,11 +24,32 @@ object GhostHttpServer {
     private const val PORT = 8080
     private var server: Server? = null
 
+    // Shared TTS engine — initialised lazily on first /speak call
+    private var tts: TextToSpeech? = null
+    private var ttsReady = false
+
+    fun initTts(context: Context) {
+        if (tts != null) return
+        tts = TextToSpeech(context) { status ->
+            ttsReady = (status == TextToSpeech.SUCCESS)
+            if (ttsReady) tts?.language = Locale.US
+        }
+    }
+
+    fun speak(text: String, rate: Float = 1.0f): String {
+        val engine = tts ?: return "error: TTS not initialised"
+        if (!ttsReady) return "error: TTS engine not ready"
+        engine.setSpeechRate(rate)
+        engine.speak(text, TextToSpeech.QUEUE_FLUSH, null, "ghost_tts")
+        return "speaking"
+    }
+
     fun start(context: Context) {
         if (server != null) return
         try {
             server = Server(PORT, context)
             server?.start()
+            initTts(context)
             Log.i(TAG, "HTTP server started on port $PORT")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start: ${e.message}")
@@ -64,6 +89,8 @@ object GhostHttpServer {
                     "/status" -> ok("ok")
                     "/version" -> ok("1.0.0")
                     "/packages" -> handlePackages()
+                    "/speak" -> handleSpeak(body)
+                    "/clipboard" -> handleClipboard(body)
                     "/overlay", "/overlay/toggle" -> handleOverlay(body)
                     "/stream/start" -> handleStreamStart(body)
                     "/stream/stop" -> handleStreamStop(body)
@@ -193,6 +220,25 @@ object GhostHttpServer {
                 GhostWebRtcManager.getInstance(context).handleIceCandidate(candidate, sdpMid, sdpMLineIndex)
             }
             return ok("ICE candidate received")
+        }
+
+        private fun handleClipboard(body: JSONObject): Response {
+            val text = body.optString("text", "")
+            return try {
+                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                mainHandler.post { cm.setPrimaryClip(ClipData.newPlainText("ghost", text)) }
+                ok("clipboard_set")
+            } catch (e: Exception) {
+                error("clipboard error: ${e.message}")
+            }
+        }
+
+        private fun handleSpeak(body: JSONObject): Response {
+            val text = body.optString("text", "").trim()
+            if (text.isEmpty()) return error("Missing 'text' field")
+            val rate = body.optDouble("rate", 1.0).toFloat().coerceIn(0.5f, 2.0f)
+            val result = GhostHttpServer.speak(text, rate)
+            return ok(result)
         }
 
         // ── Response helpers ────────────────────────────────────────────────

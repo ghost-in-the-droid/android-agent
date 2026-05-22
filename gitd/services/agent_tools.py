@@ -173,6 +173,52 @@ TOOLS = [
         },
     },
     {
+        "name": "open_camera",
+        "description": (
+            "Open the camera in a specific mode using standard Android intents. "
+            "Works on any device — no need to know the camera package name. "
+            "Modes: 'photo' (default rear photo), 'video' (rear video), "
+            "'selfie' (front photo), 'selfie_video' (front video). "
+            "Set timer_s=3 or timer_s=10 to activate the self-timer."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "mode": {"type": "string", "enum": ["photo", "video", "selfie", "selfie_video"], "default": "photo"},
+                "timer_s": {
+                    "type": "integer",
+                    "enum": [0, 3, 10],
+                    "description": "Self-timer delay. 0 = off.",
+                    "default": 0,
+                },
+            },
+            "required": ["device"],
+        },
+    },
+    {
+        "name": "speak_text",
+        "description": (
+            "Make the phone speak text aloud using its built-in TTS engine. "
+            "Works from PC and on-device — always emits audio on the phone. "
+            "Requires Ghost portal app to be running. "
+            "Use for audio feedback, accessibility, or voice responses."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "text": {"type": "string", "description": "Text to speak aloud."},
+                "rate": {
+                    "type": "number",
+                    "description": "Speed: 0.5=slow, 1.0=normal, 1.5=fast. Default 1.0.",
+                    "default": 1.0,
+                },
+            },
+            "required": ["device", "text"],
+        },
+    },
+    {
         "name": "force_stop",
         "description": "Force-stop an app.",
         "input_schema": {
@@ -230,6 +276,22 @@ TOOLS = [
         },
     },
     # Clipboard & notifications
+    {
+        "name": "paste_text",
+        "description": (
+            "Set clipboard and paste into the currently focused input field in one call. "
+            "Tap the target field first, then call this. "
+            "Prefer this over type_text for long text, passwords, or special characters."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "text": {"type": "string"},
+            },
+            "required": ["device", "text"],
+        },
+    },
     {
         "name": "clipboard_get",
         "description": "Get current clipboard text.",
@@ -460,6 +522,188 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 if "Error:" in out or "Activity not started" in out:
                     return f"ERROR launching {pkg}: {out.strip()[:200]}"
                 return f"Launched {pkg} ({launcher})" + (" [fresh]" if fresh else "")
+        elif name == "open_camera":
+            dev = Device(device)
+            mode = args.get("mode", "photo").lower()
+            timer_s = int(args.get("timer_s", 0))
+            import time as _time
+
+            _VIDEO_MODES = {"video", "selfie_video"}
+            _FRONT_MODES = {"selfie", "selfie_video"}
+
+            # Find installed camera package
+            _CAMERA_PKGS = [
+                "com.asus.camera",
+                "com.sec.android.app.camera",
+                "com.google.android.GoogleCamera",
+                "com.android.camera2",
+                "com.android.camera",
+            ]
+            camera_pkg = None
+            for cpkg in _CAMERA_PKGS:
+                if f"package:{cpkg}" in dev.adb("shell", "pm", "list", "packages", cpkg, timeout=5):
+                    camera_pkg = cpkg
+                    break
+            if not camera_pkg:
+                return "ERROR: no camera app found on device"
+
+            # Wake screen if it's off — camera won't open on a sleeping display
+            awake = dev.adb("shell", "dumpsys", "window", "displays", timeout=5)
+            if "mAwake=false" in awake:
+                dev.adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
+                _time.sleep(0.5)
+                # Dismiss any lock screen via swipe up
+                dev.adb("shell", "input", "swipe", "540", "1600", "540", "800", "300")
+                _time.sleep(0.5)
+
+            # Always force-stop for clean state — avoids stale mode/timer from last session
+            dev.adb("shell", "am", "force-stop", camera_pkg)
+            _time.sleep(0.4)
+
+            # Launch via LAUNCHER intent — same as tapping the icon.
+            # DO NOT use IMAGE_CAPTURE/VIDEO_CAPTURE intents — those open a
+            # "capture for app" flow that shows a Retake/Use dialog and saves
+            # nothing to the gallery.
+            launch_result = execute_tool("launch_app", {"device": device, "package": camera_pkg, "fresh": False})
+            if "ERROR" in launch_result:
+                return f"ERROR opening camera: {launch_result}"
+
+            # Wait for camera UI to be ready
+            _READY = {"button_capture", "take picture", "shutter", "capture"}
+            _ERRORS = {"being used by another", "camera not ready"}
+            for _ in range(10):  # up to 5s
+                _time.sleep(0.5)
+                xml = dev.dump_xml() or ""
+                xml_lower = xml.lower()
+                if any(ind in xml_lower for ind in _READY):
+                    break
+                if any(ind in xml_lower for ind in _ERRORS):
+                    return "ERROR: camera busy — try again in a moment"
+            else:
+                return "ERROR: camera did not become ready in time"
+
+            # Switch to front camera if needed
+            if mode in _FRONT_MODES:
+                xml = dev.dump_xml() or ""
+                switched = False
+                _FRONT_KEYWORDS = ("switch", "front", "toggle", "flip", "selfie", "btn_toggle")
+                for node in dev.nodes(xml):
+                    desc = (dev.node_content_desc(node) or "").lower()
+                    text = (dev.node_text(node) or "").lower()
+                    rid = (dev.node_rid(node) or "").lower()
+                    if any(k in desc or k in text or k in rid for k in _FRONT_KEYWORDS):
+                        b = dev.node_bounds(node)
+                        if b and 'clickable="true"' in node:
+                            dev.tap((b[0] + b[2]) // 2, (b[1] + b[3]) // 2)
+                            _time.sleep(0.8)
+                            switched = True
+                            break
+                if not switched:
+                    return "ERROR: could not find front-camera switch button"
+
+            # Switch to video mode if needed
+            if mode in _VIDEO_MODES:
+                xml = dev.dump_xml() or ""
+                for node in dev.nodes(xml):
+                    text = (dev.node_text(node) or "").lower()
+                    desc = (dev.node_content_desc(node) or "").lower()
+                    if text == "video" or desc == "video":
+                        b = dev.node_bounds(node)
+                        if b:
+                            dev.tap((b[0] + b[2]) // 2, (b[1] + b[3]) // 2)
+                            _time.sleep(0.6)
+                            break
+
+            mode_label = {
+                "photo": "📷 photo",
+                "video": "🎬 video",
+                "selfie": "🤳 selfie",
+                "selfie_video": "🤳🎬 selfie video",
+            }.get(mode, mode)
+            result = f"Opened camera — {mode_label}"
+
+            # Timer: UI automation — not a native intent parameter.
+            # Supported values differ by OEM: ASUS=3s/10s, Samsung=2s/5s/10s.
+            # Pick the closest supported value and tap through the UI.
+            if timer_s > 0:
+                _time.sleep(1.0)
+                # Snap to closest OEM-supported value
+                _SUPPORTED = [2, 3, 5, 10]
+                timer_s = min(_SUPPORTED, key=lambda v: abs(v - timer_s))
+
+                def _find_timer_node(xml_str, secs):
+                    """Search for a timer button matching `secs` seconds."""
+                    targets = [
+                        f"{secs}s",
+                        f"{secs} s",
+                        f"timer_{secs}s",  # Samsung: FRONT_TIMER_5S / REAR_TIMER_5S
+                        f"_{secs}s",  # suffix match for TIMER_5S
+                    ]
+                    for node in dev.nodes(xml_str):
+                        text = (dev.node_text(node) or "").lower()
+                        desc = (dev.node_content_desc(node) or "").lower()
+                        combined = text + " " + desc
+                        if any(t in combined for t in targets):
+                            return dev.node_bounds(node)
+                    return None
+
+                xml = dev.dump_xml() or ""
+                bounds = _find_timer_node(xml, timer_s)
+
+                if not bounds:
+                    # Samsung pattern: timer is inside "Quick controls" panel.
+                    # Step 1: tap "Quick controls" to expand.
+                    for node in dev.nodes(xml):
+                        desc = (dev.node_content_desc(node) or "").lower()
+                        text = (dev.node_text(node) or "").lower()
+                        if "quick control" in desc or "quick control" in text:
+                            b = dev.node_bounds(node)
+                            if b:
+                                dev.tap((b[0] + b[2]) // 2, (b[1] + b[3]) // 2)
+                                _time.sleep(0.6)
+                                break
+                    # Step 2: tap "Timer" entry to expand timer options.
+                    xml = dev.dump_xml() or ""
+                    for node in dev.nodes(xml):
+                        desc = (dev.node_content_desc(node) or "").lower()
+                        text = (dev.node_text(node) or "").lower()
+                        if (desc == "timer" or text == "timer") and "off" not in desc:
+                            b = dev.node_bounds(node)
+                            if b:
+                                dev.tap((b[0] + b[2]) // 2, (b[1] + b[3]) // 2)
+                                _time.sleep(0.6)
+                                break
+                    # Step 3: now find the specific value.
+                    xml = dev.dump_xml() or ""
+                    bounds = _find_timer_node(xml, timer_s)
+
+                if bounds:
+                    dev.tap((bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2)
+                    _time.sleep(0.4)
+                    # Close the Quick controls panel if it's still open (Samsung leaves it open).
+                    # Press Back once to dismiss it without closing the camera.
+                    xml_after = dev.dump_xml() or ""
+                    for node in dev.nodes(xml_after):
+                        desc = (dev.node_content_desc(node) or "").lower()
+                        text_n = (dev.node_text(node) or "").lower()
+                        if "close" in desc or "close" in text_n or "dismiss" in desc:
+                            b = dev.node_bounds(node)
+                            if b:
+                                dev.tap((b[0] + b[2]) // 2, (b[1] + b[3]) // 2)
+                                break
+                    else:
+                        # No close button found — tap outside the panel (top of screen)
+                        dev.adb("shell", "input", "keyevent", "KEYCODE_BACK")
+                    _time.sleep(0.3)
+                    result += f" | ⏱ {timer_s}s timer set"
+                else:
+                    result += " | ⚠️ timer button not found (tap it manually)"
+
+            return result
+        elif name == "speak_text":
+            from gitd.services.device_context import speak_text as _speak
+
+            return _speak(device, args["text"], float(args.get("rate", 1.0)))
         elif name == "force_stop":
             Device(device).adb("shell", "am", "force-stop", args["package"])
             return f"Stopped {args['package']}"
@@ -530,6 +774,13 @@ def _execute_tool_inner(name: str, args: dict) -> str:
         elif name == "shell":
             out = Device(device).adb("shell", *args["command"].split(), timeout=15)
             return out[:3000]
+        elif name == "paste_text":
+            from gitd.bots.common.adb import Device as _Dev
+
+            ctx.clipboard_set(device, args["text"])
+            _Dev(device).adb("shell", "input", "keyevent", "KEYCODE_PASTE")
+            t = args["text"]
+            return f"Pasted: {t[:60]}{'…' if len(t) > 60 else ''}"
         elif name == "clipboard_get":
             return ctx.clipboard_get(device) or "(empty)"
         elif name == "clipboard_set":
