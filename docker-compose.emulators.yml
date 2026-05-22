@@ -1,0 +1,64 @@
+# docker-compose.emulators.yml
+# Phone farm: spin up multiple Android 11 emulators via Docker+KVM.
+# Each service maps container port 5555 to a unique host port.
+#
+# Usage:
+#   docker compose -f docker-compose.emulators.yml up -d
+#   adb connect localhost:5555   # slot 1
+#   adb connect localhost:5556   # slot 2
+#   adb connect localhost:5557   # slot 3
+#
+# Stop:
+#   docker compose -f docker-compose.emulators.yml down
+
+services:
+  emu-1:
+    image: budtmo/docker-android:emulator_11.0
+    devices:
+      - /dev/kvm:/dev/kvm
+    environment:
+      EMULATOR_DEVICE: "Samsung Galaxy S10"
+      WEB_VNC: "false"
+    ports:
+      - "5555:5555"
+    labels:
+      ghost.type: emulator
+      ghost.name: emu-1
+      ghost.slot: "1"
+      ghost.device_profile: "Samsung Galaxy S10"
+      ghost.api_level: "30"
+    restart: unless-stopped
+
+  emu-2:
+    image: budtmo/docker-android:emulator_11.0
+    devices:
+      - /dev/kvm:/dev/kvm
+    environment:
+      EMULATOR_DEVICE: "Samsung Galaxy S10"
+      WEB_VNC: "false"
+    ports:
+      - "5556:5555"
+    labels:
+      ghost.type: emulator
+      ghost.name: emu-2
+      ghost.slot: "2"
+      ghost.device_profile: "Samsung Galaxy S10"
+      ghost.api_level: "30"
+    restart: unless-stopped
+
+  emu-3:
+    image: budtmo/docker-android:emulator_11.0
+    devices:
+      - /dev/kvm:/dev/kvm
+    environment:
+      EMULATOR_DEVICE: "Samsung Galaxy S10"
+      WEB_VNC: "false"
+    ports:
+      - "5557:5555"
+    labels:
+      ghost.type: emulator
+      ghost.name: emu-3
+      ghost.slot: "3"
+      ghost.device_profile: "Samsung Galaxy S10"
+      ghost.api_level: "30"
+    restart: unless-stopped
