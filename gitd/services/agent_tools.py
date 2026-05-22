@@ -186,7 +186,12 @@ TOOLS = [
             "properties": {
                 "device": {"type": "string"},
                 "mode": {"type": "string", "enum": ["photo", "video", "selfie", "selfie_video"], "default": "photo"},
-                "timer_s": {"type": "integer", "enum": [0, 3, 10], "description": "Self-timer delay. 0 = off.", "default": 0},
+                "timer_s": {
+                    "type": "integer",
+                    "enum": [0, 3, 10],
+                    "description": "Self-timer delay. 0 = off.",
+                    "default": 0,
+                },
             },
             "required": ["device"],
         },
@@ -204,7 +209,11 @@ TOOLS = [
             "properties": {
                 "device": {"type": "string"},
                 "text": {"type": "string", "description": "Text to speak aloud."},
-                "rate": {"type": "number", "description": "Speed: 0.5=slow, 1.0=normal, 1.5=fast. Default 1.0.", "default": 1.0},
+                "rate": {
+                    "type": "number",
+                    "description": "Speed: 0.5=slow, 1.0=normal, 1.5=fast. Default 1.0.",
+                    "default": 1.0,
+                },
             },
             "required": ["device", "text"],
         },
@@ -524,8 +533,10 @@ def _execute_tool_inner(name: str, args: dict) -> str:
 
             # Find installed camera package
             _CAMERA_PKGS = [
-                "com.asus.camera", "com.sec.android.app.camera",
-                "com.google.android.GoogleCamera", "com.android.camera2",
+                "com.asus.camera",
+                "com.sec.android.app.camera",
+                "com.google.android.GoogleCamera",
+                "com.android.camera2",
                 "com.android.camera",
             ]
             camera_pkg = None
@@ -579,7 +590,7 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 for node in dev.nodes(xml):
                     desc = (dev.node_content_desc(node) or "").lower()
                     text = (dev.node_text(node) or "").lower()
-                    rid  = (dev.node_rid(node) or "").lower()
+                    rid = (dev.node_rid(node) or "").lower()
                     if any(k in desc or k in text or k in rid for k in _FRONT_KEYWORDS):
                         b = dev.node_bounds(node)
                         if b and 'clickable="true"' in node:
@@ -603,7 +614,12 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                             _time.sleep(0.6)
                             break
 
-            mode_label = {"photo": "📷 photo", "video": "🎬 video", "selfie": "🤳 selfie", "selfie_video": "🤳🎬 selfie video"}.get(mode, mode)
+            mode_label = {
+                "photo": "📷 photo",
+                "video": "🎬 video",
+                "selfie": "🤳 selfie",
+                "selfie_video": "🤳🎬 selfie video",
+            }.get(mode, mode)
             result = f"Opened camera — {mode_label}"
 
             # Timer: UI automation — not a native intent parameter.
@@ -618,9 +634,10 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 def _find_timer_node(xml_str, secs):
                     """Search for a timer button matching `secs` seconds."""
                     targets = [
-                        f"{secs}s", f"{secs} s",
-                        f"timer_{secs}s",          # Samsung: FRONT_TIMER_5S / REAR_TIMER_5S
-                        f"_{secs}s",               # suffix match for TIMER_5S
+                        f"{secs}s",
+                        f"{secs} s",
+                        f"timer_{secs}s",  # Samsung: FRONT_TIMER_5S / REAR_TIMER_5S
+                        f"_{secs}s",  # suffix match for TIMER_5S
                     ]
                     for node in dev.nodes(xml_str):
                         text = (dev.node_text(node) or "").lower()
@@ -680,11 +697,12 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                     _time.sleep(0.3)
                     result += f" | ⏱ {timer_s}s timer set"
                 else:
-                    result += f" | ⚠️ timer button not found (tap it manually)"
+                    result += " | ⚠️ timer button not found (tap it manually)"
 
             return result
         elif name == "speak_text":
             from gitd.services.device_context import speak_text as _speak
+
             return _speak(device, args["text"], float(args.get("rate", 1.0)))
         elif name == "force_stop":
             Device(device).adb("shell", "am", "force-stop", args["package"])
@@ -758,6 +776,7 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return out[:3000]
         elif name == "paste_text":
             from gitd.bots.common.adb import Device as _Dev
+
             ctx.clipboard_set(device, args["text"])
             _Dev(device).adb("shell", "input", "keyevent", "KEYCODE_PASTE")
             t = args["text"]

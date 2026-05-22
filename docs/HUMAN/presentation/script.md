@@ -6,31 +6,37 @@ TODO make it so that Text ~ 2:30 spoekn (30s for Agent interruptions!)
 INTRO 30s: 
 <SLIDE WITH BRAG ABOUT WHO IS CKL>
 
+I'm CKL my demo begins with a story today.
+Im an ML engineer and I automate things I shouldn't.
 
+ 
 Over 10 years ago I built a bot to automate my dating life on android.
-It still runs today. Basically the source of all my dates.
+It still runs today. 
+Basically the source of all my dates.
 I'm not proud of this.
 (beat)
 Actually — I'm extremely proud.
-8 dating apps. Then apartments. Then food ordering.
-Dynamic messages, reply personalisation and databases on top!
+Support for 8 dating apps,  LLMs, Databases and more Saved a lot of time.
+
 
 -----
-I stopped automating dates. Started automating everything.
+But then I stopped automating dates. Started automating everything.
 Ghost in the Droid is the spiritual successor toPussyBot v11
-Except now — any app, any Android, any agent. 
+Except now — any app, any Android, any agent can be automated!
 <WHY NOT ALL OF THEM MEME/ AUTOMATE ALL THE APPS ! >
+
+----
+
+Let me show you what it can do!
+DEMO STARTS 1-2min
+<Take a selfie and share it to X with the text "Spooky session in @w3_hub_ZZ by @marieandmaxx_ZZ. Posted via ghostinthedroid.com".>
+
 
 ---
 <SLIDE WITH TOOLS>
-
-Introducing: Ghost in the Droid.
 It gives your Agents an ANDROID BODY to live in!
 By exposing a local MCP with X tools to take full control of your ANdroid!
 
-DEMO STARTS 1-2min
-Let me show you what it can do!
-<Take a selfie and share it to X with the text "Spooky session in @w3_hub_ZZ by @marieandmaxx_ZZ. Posted via ghostinthedroid.com".>
 
 I told the Agent to control the phone and take a selfie and post it to X! 
 You have like 30s to get out of the shot if you dont wanna be in it btw 
