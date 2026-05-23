@@ -272,11 +272,49 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
 # ── Job launch / kill ───────────────────────────────────────────────────────
 
 
+_TIKTOK_JOB_TYPES = {"crawl", "outreach", "post", "publish_draft", "perf_scan", "engage", "inbox_scan"}
+
+
+def _account_preflight(phone: str | None, job_type: str, config: dict) -> str | None:
+    """Verify the expected TikTok account is active before running.
+
+    Returns an error message string if the job should be blocked, or None
+    if it should proceed. Non-TikTok jobs always pass.
+
+    Detection failures (no premium installed, can't detect) do NOT block —
+    we log and proceed. Only an *observed mismatch* blocks the job.
+    """
+    if job_type not in _TIKTOK_JOB_TYPES:
+        return None
+    expected = (config or {}).get("account")
+    if not expected or not phone:
+        return None
+    try:
+        from gitd.services.account_health import expected_account_matches
+        check = expected_account_matches(phone, expected)
+    except Exception as e:
+        logger.warning("preflight skipped (error): %s", e)
+        return None
+    if check["ok"]:
+        if check.get("reason"):
+            logger.warning("preflight passed with caveat: %s", check["reason"])
+        return None
+    return check["reason"] or "account mismatch"
+
+
 def _launch_scheduled_job(db, job_row: dict):
     """Launch a queued job subprocess."""
     job_id = job_row["id"]
     phone = job_row.get("phone_serial")
     config = json.loads(job_row.get("config_json") or "{}")
+
+    # Pre-flight: refuse to start if the wrong TikTok account is active.
+    preflight_err = _account_preflight(phone, job_row["job_type"], config)
+    if preflight_err:
+        finish_job(db, job_id, "failed", error_msg=f"preflight: {preflight_err}")
+        archive_to_runs(db, job_id)
+        return
+
     cmd = _build_scheduled_cmd(job_row["job_type"], config, phone)
     if not cmd:
         finish_job(db, job_id, "failed", error_msg=f"unsupported job_type: {job_row['job_type']}")

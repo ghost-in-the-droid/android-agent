@@ -442,3 +442,36 @@ def scheduler_timeline(db: Session = Depends(get_db)):
         pass
 
     return {"past": past, "future": future, "content_plan": content_plan_items}
+
+
+# ── Account health endpoints ────────────────────────────────────────────────
+
+@router.get("/api/scheduler/account-health", summary="Account Health for All Devices")
+def account_health_all():
+    """Probe every connected device for its TikTok account state."""
+    from gitd.services.account_health import all_devices_health
+    return all_devices_health()
+
+
+@router.get("/api/scheduler/account-health/{device}", summary="Account Health for One Device")
+def account_health_one(device: str, fresh: bool = False):
+    """Probe a single device. Pass ?fresh=true to bypass the 60s cache."""
+    from gitd.services.account_health import device_account_health
+    return device_account_health(device, fresh=fresh)
+
+
+@router.post("/api/scheduler/account-switch/{device}", summary="Switch Active TikTok Account")
+def account_switch(device: str, data: dict = Body(...)):
+    """Switch the active TikTok account on `device` to body.handle."""
+    handle = (data.get("handle") or "").strip()
+    if not handle:
+        raise HTTPException(status_code=400, detail="handle required")
+    from gitd.services.account_health import switch_active_account
+    return switch_active_account(device, handle)
+
+
+@router.post("/api/scheduler/account-sync/{device}", summary="Sync DB tiktok_accounts with Device State")
+def account_sync(device: str):
+    """Update tiktok_accounts DB rows to match what's actually logged in on `device`."""
+    from gitd.services.account_health import sync_tiktok_accounts_table
+    return sync_tiktok_accounts_table(device)
