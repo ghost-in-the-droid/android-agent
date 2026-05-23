@@ -22,6 +22,29 @@ _SCRIPT_DIR = Path(__file__).resolve().parent.parent  # gitd/
 _VERTICAL_DIR = _SCRIPT_DIR.parent / "data" / "vertical_videos"
 _BOT_DEVICE = settings.default_device
 
+# Premium plugin scripts live in internal/ghost_premium/ when installed.
+# Resolve script paths through this helper so scheduler works in both
+# public-only and premium-installed setups.
+_PREMIUM_DIR = _SCRIPT_DIR.parent.parent / "internal" / "ghost_premium"
+
+
+def resolve_script(relpath: str) -> Path:
+    """Resolve a script path — try public gitd/ first, then premium fallback.
+
+    Example: resolve_script("bots/tiktok/crawl_runner.py")
+    Returns the first existing path, or the public path (for clearer errors).
+    """
+    public = _SCRIPT_DIR / relpath
+    if public.exists():
+        return public
+    # Premium fallback: marketing_agent/agent_core.py lives under
+    # services/marketing_agent/ in premium, not agent/
+    premium_rel = relpath.replace("agent/", "services/marketing_agent/")
+    premium = _PREMIUM_DIR / premium_rel
+    if premium.exists():
+        return premium
+    return public  # fall through — caller will see the missing-file error
+
 
 def _now() -> str:
     """Local-time timestamp (consistent with schedule times)."""
