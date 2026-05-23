@@ -1,0 +1,243 @@
+"""Account health — verify which TikTok account is logged in / active on a device.
+
+Lives in the public gitd/ namespace so the scheduler can call it without
+depending on the premium plugin. The actual UI automation (account switcher
+navigation, etc.) lives in internal/ghost_premium/bots/tiktok/upload.py —
+we delegate to it if installed, otherwise return a clean "not available"
+result so public users see no crashes.
+
+Public API:
+    device_account_health(device)        → dict
+    switch_active_account(device, handle) → dict
+    sync_tiktok_accounts_table(device)    → dict
+    all_devices_health()                  → list[dict]
+"""
+
+from __future__ import annotations
+
+import logging
+import time
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+# Cache results briefly to avoid hammering the phone with full account-switcher
+# navigations on every job preflight (each call takes 8-15s).
+_CACHE_TTL_S = 60
+_cache: dict[str, tuple[float, dict]] = {}
+
+
+def _premium_available() -> bool:
+    """Whether the premium TikTok upload module is installed."""
+    try:
+        import ghost_premium.bots.tiktok.upload  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def device_account_health(device: str, fresh: bool = False) -> dict:
+    """Probe a device for its TikTok account state.
+
+    Args:
+        device: ADB serial.
+        fresh: If True, bypass the 60s cache.
+
+    Returns:
+        {
+            "device": serial,
+            "ok": bool,                  # True if detection succeeded
+            "active": "handle" | None,   # currently active account
+            "logged_in": ["h1", "h2"],   # all logged-in accounts
+            "error": "..." | None,       # error message if detection failed
+            "cached": bool,              # True if returned from cache
+            "checked_at": iso_ts,
+        }
+    """
+    if not fresh:
+        cached = _cache.get(device)
+        if cached and time.time() - cached[0] < _CACHE_TTL_S:
+            return {**cached[1], "cached": True}
+
+    result = {
+        "device": device,
+        "ok": False,
+        "active": None,
+        "logged_in": [],
+        "error": None,
+        "cached": False,
+        "checked_at": _now_iso(),
+    }
+
+    if not _premium_available():
+        result["error"] = "premium not installed"
+        return result
+
+    try:
+        from ghost_premium.bots.tiktok.upload import get_logged_in_accounts
+        accounts = get_logged_in_accounts(device=device)
+    except Exception as e:
+        result["error"] = str(e)[:200]
+        _cache[device] = (time.time(), result)
+        return result
+
+    result["ok"] = True
+    result["logged_in"] = [a["handle"] for a in accounts]
+    active = next((a["handle"] for a in accounts if a.get("active")), None)
+    result["active"] = active
+    _cache[device] = (time.time(), result)
+    return result
+
+
+def switch_active_account(device: str, handle: str) -> dict:
+    """Switch the TikTok active account on the device to `handle`.
+
+    Args:
+        device: ADB serial.
+        handle: Target username (with or without @).
+
+    Returns:
+        {"ok": bool, "device": serial, "active": handle | None, "error": str | None}
+    """
+    handle = handle.lstrip("@").strip()
+    if not _premium_available():
+        return {"ok": False, "device": device, "active": None, "error": "premium not installed"}
+
+    # First check if already active — save 10+ seconds
+    health = device_account_health(device, fresh=True)
+    if health["active"] == handle:
+        return {"ok": True, "device": device, "active": handle, "error": None}
+    if not health["ok"]:
+        return {"ok": False, "device": device, "active": None, "error": f"can't detect state: {health['error']}"}
+    if handle not in health["logged_in"]:
+        return {
+            "ok": False,
+            "device": device,
+            "active": health["active"],
+            "error": f"@{handle} not logged in on this device (have: {health['logged_in']})",
+        }
+
+    try:
+        from ghost_premium.bots.tiktok.upload import switch_account
+        switch_account(handle, device=device)
+    except Exception as e:
+        return {"ok": False, "device": device, "active": health["active"], "error": str(e)[:200]}
+
+    # Invalidate cache and re-probe
+    _cache.pop(device, None)
+    after = device_account_health(device, fresh=True)
+    return {
+        "ok": after["active"] == handle,
+        "device": device,
+        "active": after["active"],
+        "error": None if after["active"] == handle else f"switch attempted but active is still @{after['active']}",
+    }
+
+
+def sync_tiktok_accounts_table(device: str) -> dict:
+    """Refresh the tiktok_accounts DB table to match what's actually on the device.
+
+    For each logged-in handle on `device`:
+      - Upsert (handle, phone_serial, is_active=1)
+      - If the row already exists with a different phone_serial, update it
+        (an account is "where it was last seen logged in").
+
+    Returns:
+        {"ok": bool, "device": serial, "added": [...], "updated": [...], "active": "...", "error": str | None}
+    """
+    health = device_account_health(device, fresh=True)
+    if not health["ok"]:
+        return {"ok": False, "device": device, "added": [], "updated": [], "active": None, "error": health["error"]}
+
+    import sqlite3
+    from gitd.db import DEFAULT_DB, get_connection, create_tables
+
+    conn = get_connection(DEFAULT_DB)
+    create_tables(conn)
+
+    added, updated = [], []
+    active_handle = health["active"]
+    for handle in health["logged_in"]:
+        existing = conn.execute(
+            "SELECT handle, phone_serial FROM tiktok_accounts WHERE handle=?", (handle,)
+        ).fetchone()
+        if existing is None:
+            conn.execute(
+                "INSERT INTO tiktok_accounts (handle, phone_serial, is_active) VALUES (?, ?, 1)",
+                (handle, device),
+            )
+            added.append(handle)
+        elif existing["phone_serial"] != device:
+            conn.execute(
+                "UPDATE tiktok_accounts SET phone_serial=?, is_active=1 WHERE handle=?",
+                (device, handle),
+            )
+            updated.append(handle)
+    conn.commit()
+    conn.close()
+    return {
+        "ok": True,
+        "device": device,
+        "added": added,
+        "updated": updated,
+        "active": active_handle,
+        "error": None,
+    }
+
+
+def all_devices_health() -> list[dict]:
+    """Probe every connected ADB device. Returns list of health dicts."""
+    from gitd.bots.common.adb import list_connected
+    return [device_account_health(serial) for serial in list_connected()]
+
+
+def expected_account_matches(device: str, expected: Optional[str]) -> dict:
+    """Lightweight pre-flight check for the scheduler.
+
+    Args:
+        device: ADB serial.
+        expected: Handle the job expects to run as (without @). None = no check.
+
+    Returns:
+        {"ok": bool, "reason": str | None, "active": handle, "expected": expected}
+
+        ok=True when:
+          - expected is None / empty (job doesn't care)
+          - or detection succeeded and active matches expected
+        ok=False when:
+          - active is detected but different
+        ok=True with reason set ("undetectable") when:
+          - premium not installed
+          - or detection failed (we don't block jobs on detection failures —
+            log warning and let job try, since false-blocks are worse than
+            false-allows here)
+    """
+    if not expected:
+        return {"ok": True, "reason": None, "active": None, "expected": expected}
+
+    expected_clean = expected.lstrip("@").strip()
+    health = device_account_health(device)
+
+    if not health["ok"]:
+        return {
+            "ok": True,
+            "reason": f"undetectable: {health['error']}",
+            "active": None,
+            "expected": expected_clean,
+        }
+
+    active = (health["active"] or "").lstrip("@").strip()
+    if active == expected_clean:
+        return {"ok": True, "reason": None, "active": active, "expected": expected_clean}
+
+    return {
+        "ok": False,
+        "reason": f"wrong active account: have @{active or '?'}, expected @{expected_clean}",
+        "active": active,
+        "expected": expected_clean,
+    }
+
+
+def _now_iso() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
