@@ -20,6 +20,7 @@ from gitd.services._job_helpers import (
     _parse_job_summary,
     archive_to_runs,
     finish_job,
+    resolve_script,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd = [
                 "python3",
                 "-u",
-                str(script_dir / "bots" / "tiktok" / "crawl_runner.py"),
+                str(resolve_script("bots/tiktok/crawl_runner.py")),
                 "--label",
                 str(label),
                 "--n-hashtags",
@@ -88,7 +89,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd = [
                 "python3",
                 "-u",
-                str(script_dir / "bots" / "tiktok" / "scraper.py"),
+                str(resolve_script("bots/tiktok/scraper.py")),
                 query,
                 "--tab",
                 str(tab),
@@ -110,7 +111,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
         cmd = [
             "python3",
             "-u",
-            str(script_dir / "bots" / "tiktok" / "outreach.py"),
+            str(resolve_script("bots/tiktok/outreach.py")),
             "--strategy-id",
             str(sid),
             "--delay",
@@ -134,7 +135,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
     elif job_type == "post":
         video = config.get("video", "")
         action = config.get("action", "draft")
-        cmd = ["python3", "-u", str(script_dir / "bots" / "tiktok" / "upload.py")]
+        cmd = ["python3", "-u", str(resolve_script("bots/tiktok/upload.py"))]
         if video:
             cmd.append(video)
         else:
@@ -154,7 +155,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd += ["--account", config["account"]]
         return cmd
     elif job_type == "publish_draft":
-        cmd = ["python3", "-u", str(script_dir / "bots" / "tiktok" / "upload.py")]
+        cmd = ["python3", "-u", str(resolve_script("bots/tiktok/upload.py"))]
         if phone:
             cmd += ["--device", phone]
         if config.get("draft_tag"):
@@ -170,7 +171,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
     elif job_type in ("content_gen", "content_plan"):
         days = config.get("days", 1)
         ppd = config.get("posts_per_day", 3)
-        agent_script = _SCRIPT_DIR / "agent" / "agent_core.py"
+        agent_script = resolve_script("agent/agent_core.py")
         cmd = [
             "python3",
             "-u",
@@ -192,7 +193,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd += ["--platform", config["platform"]]
         return cmd
     elif job_type == "inbox_scan":
-        cmd = ["python3", "-u", str(script_dir / "bots" / "tiktok" / "inbox_scanner.py")]
+        cmd = ["python3", "-u", str(resolve_script("bots/tiktok/inbox_scanner.py"))]
         if phone:
             cmd += ["--device", phone]
         max_scrolls = config.get("max_scrolls", 80)
@@ -201,7 +202,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd += ["--account", config["account"]]
         return cmd
     elif job_type == "perf_scan":
-        cmd = ["python3", "-u", str(script_dir / "bots" / "tiktok" / "perf_scanner.py")]
+        cmd = ["python3", "-u", str(resolve_script("bots/tiktok/perf_scanner.py"))]
         if phone:
             cmd += ["--device", phone]
         num_posts = config.get("num_posts", 10)
@@ -214,7 +215,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd += ["--account", config["account"]]
         return cmd
     elif job_type == "engage":
-        cmd = ["python3", "-u", str(script_dir / "bots" / "tiktok" / "engage.py")]
+        cmd = ["python3", "-u", str(resolve_script("bots/tiktok/engage.py"))]
         if phone:
             cmd += ["--device", phone]
         if config.get("duration"):
