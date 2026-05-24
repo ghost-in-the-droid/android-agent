@@ -544,3 +544,88 @@ def save_post_analytics(conn: sqlite3.Connection, post_data: dict,
           now))
     conn.commit()
     return cur.lastrowid
+
+
+# ── Inbox snapshots ──────────────────────────────────────────────────────────
+
+def save_inbox_snapshot(conn: sqlite3.Connection, result: dict,
+                        device: str | None = None,
+                        account: str | None = None) -> int:
+    """Persist inbox scan results. Returns snapshot_id.
+
+    result = {replies: [{handle, last_msg, unread, time_str}],
+              seen: [...], sent: int, failed: int, total: int}
+    """
+    now = _now()
+    new_replies = 0
+
+    cur = conn.execute("""
+        INSERT INTO inbox_snapshots
+            (scanned_at, total, reply_count, seen_count, sent_count, failed_count, device, account)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (now, result["total"], len(result["replies"]), len(result.get("seen", [])),
+          result["sent"], result["failed"], device, account))
+    snap_id = cur.lastrowid
+
+    for entry in result["replies"]:
+        handle = entry["handle"]
+        existing = conn.execute(
+            "SELECT id FROM inbox_replies WHERE handle = ?", (handle,)
+        ).fetchone()
+
+        inf_id = get_influencer_id(conn, handle)
+        outreach_upd = 0
+        if inf_id:
+            try:
+                upsert_outreach(conn, inf_id, status="replied", source="inbox_scan")
+                outreach_upd = 1
+            except Exception:
+                pass
+
+        if existing:
+            conn.execute("""
+                UPDATE inbox_replies SET last_msg=?, status='reply', unread=?,
+                    last_seen_at=?, snapshot_id=?, influencer_id=COALESCE(?, influencer_id),
+                    outreach_updated=MAX(outreach_updated, ?)
+                WHERE handle=?
+            """, (entry["last_msg"], entry.get("unread", 0), now, snap_id,
+                  inf_id, outreach_upd, handle))
+        else:
+            new_replies += 1
+            conn.execute("""
+                INSERT INTO inbox_replies
+                    (handle, last_msg, status, unread, influencer_id, outreach_updated,
+                     needs_reply, first_seen_at, last_seen_at, snapshot_id)
+                VALUES (?, ?, 'reply', ?, ?, ?, 1, ?, ?, ?)
+            """, (handle, entry["last_msg"], entry.get("unread", 0),
+                  inf_id, outreach_upd, now, now, snap_id))
+
+    for entry in result.get("seen", []):
+        handle = entry["handle"]
+        existing = conn.execute(
+            "SELECT id, status FROM inbox_replies WHERE handle = ?", (handle,)
+        ).fetchone()
+        inf_id = get_influencer_id(conn, handle)
+
+        if existing:
+            if existing["status"] != "reply":
+                conn.execute("""
+                    UPDATE inbox_replies SET last_msg=?, unread=?,
+                        last_seen_at=?, snapshot_id=?, influencer_id=COALESCE(?, influencer_id)
+                    WHERE handle=?
+                """, (entry["last_msg"], entry.get("unread", 0), now, snap_id, inf_id, handle))
+        else:
+            conn.execute("""
+                INSERT INTO inbox_replies
+                    (handle, last_msg, status, unread, influencer_id, outreach_updated,
+                     needs_reply, first_seen_at, last_seen_at, snapshot_id)
+                VALUES (?, ?, 'seen', ?, ?, 0, 0, ?, ?, ?)
+            """, (handle, entry["last_msg"], entry.get("unread", 0),
+                  inf_id, now, now, snap_id))
+
+    conn.execute("UPDATE inbox_snapshots SET new_replies=? WHERE id=?", (new_replies, snap_id))
+    conn.commit()
+    print(f"[db] Inbox snapshot #{snap_id}: {result['total']} total, "
+          f"{len(result['replies'])} replies ({new_replies} new), "
+          f"{len(result.get('seen', []))} seen")
+    return snap_id
