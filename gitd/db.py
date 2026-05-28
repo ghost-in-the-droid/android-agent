@@ -629,3 +629,156 @@ def save_inbox_snapshot(conn: sqlite3.Connection, result: dict,
           f"{len(result['replies'])} replies ({new_replies} new), "
           f"{len(result.get('seen', []))} seen")
     return snap_id
+
+# ─────────────────────────────────────────────────────────────────────
+# Marketing agent / content plan / styles support (added 2026-05-28)
+# ─────────────────────────────────────────────────────────────────────
+
+def generate_themes_catalog(conn: sqlite3.Connection) -> list[dict]:
+    """Generate compact catalog for agent context (no full prompts)."""
+    rows = conn.execute(
+        'SELECT id, display_name, category, description '
+        'FROM styles WHERE is_active=1 ORDER BY id'
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def generate_images_catalog(conn: sqlite3.Connection) -> list[dict]:
+    """Compact catalog for agent context."""
+    rows = conn.execute(
+        'SELECT id, pet_type, pet_name, description, source_handle '
+        'FROM input_images WHERE is_active=1 AND public_url IS NOT NULL AND public_url <> "" '
+        'ORDER BY id'
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_style(conn: sqlite3.Connection, style_id: str) -> dict | None:
+    row = conn.execute('SELECT * FROM styles WHERE id=?', (style_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def create_content_plan(conn: sqlite3.Connection, **kwargs) -> int:
+    now = _now()
+    kwargs.setdefault('created_at', now)
+    kwargs.setdefault('updated_at', now)
+    kwargs.setdefault('status', 'planned')
+    cols = ', '.join(kwargs.keys())
+    placeholders = ', '.join(f':{k}' for k in kwargs.keys())
+    cur = conn.execute(f'INSERT INTO content_plan ({cols}) VALUES ({placeholders})', kwargs)
+    conn.commit()
+    return cur.lastrowid
+
+
+def update_content_plan(conn: sqlite3.Connection, plan_id: int, **kwargs):
+    if not kwargs:
+        return
+    kwargs['updated_at'] = _now()
+    sets = ', '.join(f'{k}=?' for k in kwargs)
+    conn.execute(f'UPDATE content_plan SET {sets} WHERE id=?', (*kwargs.values(), plan_id))
+    conn.commit()
+
+
+def create_agent_run(conn: sqlite3.Connection, **kwargs) -> int:
+    now = _now()
+    kwargs.setdefault('created_at', now)
+    kwargs.setdefault('status', 'running')
+    cols = ', '.join(kwargs.keys())
+    placeholders = ', '.join(f':{k}' for k in kwargs.keys())
+    cur = conn.execute(f'INSERT INTO agent_runs ({cols}) VALUES ({placeholders})', kwargs)
+    conn.commit()
+    return cur.lastrowid
+
+
+def update_agent_run(conn: sqlite3.Connection, run_id: int, **kwargs):
+    if not kwargs:
+        return
+    sets = ', '.join(f'{k}=?' for k in kwargs)
+    conn.execute(f'UPDATE agent_runs SET {sets} WHERE id=?', (*kwargs.values(), run_id))
+    conn.commit()
+
+
+def sync_styles_from_prompts_ts(conn: sqlite3.Connection,
+                                prompts_ts_path: str | Path | None = None):
+    """Parse prompts.ts and upsert all templates into styles table.
+    Preserves manual edits to description/category/tags — only updates
+    prompt_text + inputs on sync."""
+    import re as _re
+    if prompts_ts_path is None:
+        prompts_ts_path = Path(__file__).resolve().parent / 'functions' / 'src' / 'prompts.ts'
+    content = Path(prompts_ts_path).read_text()
+    now = _now()
+    count = 0
+
+    for m in _re.finditer(r'\[GenerationTemplateName\.(\w+)\]:\s*\{', content):
+        enum_name = m.group(1)
+        start = m.end()
+        depth = 1; pos = start
+        while pos < len(content) and depth > 0:
+            if   content[pos] == '{': depth += 1
+            elif content[pos] == '}': depth -= 1
+            pos += 1
+        block = content[start:pos - 1]
+
+        pm = _re.search(r'prompt:\s*"((?:[^"\\]|\\.)*)"', block)
+        prompt = pm.group(1).replace('\\"', '"') if pm else ''
+
+        inputs = []
+        if 'inputs:' in block:
+            for im in _re.finditer(
+                r'\{[^}]*?label:\s*[\'"](\w+)[\'"]'
+                r'(?:[^}]*?templateString:\s*[\'"]([^\'"]*)[\'"])?'
+                r'(?:[^}]*?fallbackString:\s*[\'"]([^\'"]*)[\'"])?[^}]*?\}',
+                block, _re.DOTALL
+            ):
+                inputs.append({
+                    'label':          im.group(1),
+                    'templateString': im.group(2) or '',
+                    'fallbackString': im.group(3) or '',
+                })
+            seen: set = set()
+            inputs = [i for i in inputs if not (i['label'] in seen or seen.add(i['label']))]
+
+        key = _enum_to_key(enum_name)
+        display = _enum_to_display(enum_name)
+        inputs_json = json.dumps(inputs) if inputs else '[]'
+
+        conn.execute("""
+            INSERT INTO styles (id, display_name, prompt_text, inputs_json, synced_from_website_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                prompt_text = excluded.prompt_text,
+                inputs_json = excluded.inputs_json,
+                display_name = CASE WHEN styles.display_name = '' OR styles.display_name IS NULL
+                                    THEN excluded.display_name ELSE styles.display_name END,
+                synced_from_website_at = excluded.synced_from_website_at,
+                updated_at = excluded.updated_at
+        """, (key, display, prompt, inputs_json, now, now))
+        count += 1
+
+    conn.commit()
+    print(f'[db] Synced {count} styles from prompts.ts')
+    return count
+
+
+def upsert_gen_job(conn: sqlite3.Connection, task_id: str, *,
+                   template_key: str = '', image_url: str = '',
+                   prompt_used: str = '', aspect: str = '9:16',
+                   status: str = 'pending', output_url: str | None = None,
+                   output_filename: str | None = None,
+                   error_msg: str | None = None) -> None:
+    now = _now()
+    conn.execute("""
+        INSERT INTO gen_jobs
+            (task_id, template_key, image_url, prompt_used, aspect,
+             status, output_url, output_filename, error_msg, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(task_id) DO UPDATE SET
+            status          = excluded.status,
+            output_url      = COALESCE(excluded.output_url,      output_url),
+            output_filename = COALESCE(excluded.output_filename, output_filename),
+            error_msg       = COALESCE(excluded.error_msg,       error_msg),
+            updated_at      = excluded.updated_at
+    """, (task_id, template_key, image_url, prompt_used, aspect,
+          status, output_url, output_filename, error_msg, now, now))
+    conn.commit()
