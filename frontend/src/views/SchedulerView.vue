@@ -36,8 +36,9 @@ const sf = ref<any>({
 
 /* timeline canvas */
 const timelineCanvas = ref<HTMLCanvasElement | null>(null)
-let timelineHits: any[] = []
+let timelineHits: { x: number; y: number; w: number; h: number; data: any }[] = []
 let animFrameId: number | null = null
+const tooltip = ref<{ x: number; y: number; data: any } | null>(null)
 
 const TYPE_COLORS: Record<string, string> = {
   post: '#f59e0b', content_gen: '#22c55e', publish_draft: '#a855f7',
@@ -439,6 +440,7 @@ function renderTimeline() {
     ctx.globalAlpha = 0.8
     ctx.fillRect(x, ph.y - 5, w, 14)
     ctx.globalAlpha = 1
+    timelineHits.push({ x, y: ph.y - 5, w, h: 14, data: { kind: 'past', run } })
   }
 
   // Currently running - glowing block
@@ -473,6 +475,7 @@ function renderTimeline() {
     const elapsed = Math.max(0, Math.floor((Date.now() - new Date(job.started_at.replace(' ', 'T')).getTime()) / 1000))
     const elStr = elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m`
     ctx.fillText(`\u25B6 ${elStr}`, x + 2, ph.y + 5)
+    timelineHits.push({ x, y: ph.y - 6, w, h: 16, data: { kind: 'active', job, elapsed } })
   }
 
   // Future - outlined blocks
@@ -506,6 +509,7 @@ function renderTimeline() {
     if (shortLabel) ctx.fillText(shortLabel, x + w / 2, ph.y + 2)
     ctx.globalAlpha = 1
     ctx.textBaseline = 'alphabetic'
+    timelineHits.push({ x, y: ph.y - 5, w, h: 14, data: { kind: 'future', fut } })
   }
 
   // Legend
@@ -524,6 +528,29 @@ function renderTimeline() {
   if (activeQ.length) {
     animFrameId = requestAnimationFrame(() => renderTimeline())
   }
+}
+
+function onTimelineMove(ev: MouseEvent) {
+  const canvas = timelineCanvas.value
+  if (!canvas) return
+  const rect = canvas.getBoundingClientRect()
+  const x = ev.clientX - rect.left
+  const y = ev.clientY - rect.top
+  const hit = timelineHits.find(h => x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h)
+  if (hit) {
+    canvas.style.cursor = 'pointer'
+    // Clamp x so the tooltip never overflows the right edge of the viewport
+    const tx = Math.min(ev.clientX + 14, window.innerWidth - 280)
+    tooltip.value = { x: tx, y: ev.clientY + 14, data: hit.data }
+  } else {
+    canvas.style.cursor = 'default'
+    tooltip.value = null
+  }
+}
+
+function onTimelineLeave() {
+  tooltip.value = null
+  if (timelineCanvas.value) timelineCanvas.value.style.cursor = 'default'
 }
 
 // Rerender timeline when data or window changes
@@ -598,7 +625,69 @@ onUnmounted(() => {
         <span class="section-subtitle">{{ phoneList.length }} device{{ phoneList.length !== 1 ? 's' : '' }}</span>
       </div>
       <div class="timeline-canvas-wrap">
-        <canvas ref="timelineCanvas" height="160" style="width: 100%; cursor: default" />
+        <canvas
+          ref="timelineCanvas"
+          height="160"
+          style="width: 100%; cursor: default"
+          @mousemove="onTimelineMove"
+          @mouseleave="onTimelineLeave"
+        />
+        <!-- Hover tooltip -->
+        <div
+          v-if="tooltip"
+          :style="{
+            position: 'fixed',
+            left: tooltip.x + 'px',
+            top: tooltip.y + 'px',
+            zIndex: 1000,
+            background: 'var(--bg-card, #141e17)',
+            border: '1px solid var(--border, #1e2e22)',
+            borderRadius: '6px',
+            padding: '8px 10px',
+            fontSize: '11px',
+            color: 'var(--text-1, #e8ede9)',
+            maxWidth: '260px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            pointerEvents: 'none',
+            fontFamily: 'JetBrains Mono, monospace',
+            lineHeight: 1.5,
+          }"
+        >
+          <template v-if="tooltip.data.kind === 'past'">
+            <div style="font-weight: 600; margin-bottom: 4px">
+              {{ tooltip.data.run.schedule_name || tooltip.data.run.job_type }}
+            </div>
+            <div style="opacity: 0.7">type: {{ tooltip.data.run.job_type }}</div>
+            <div style="opacity: 0.7">status:
+              <span :style="{ color: tooltip.data.run.status === 'completed' ? '#22c55e' : tooltip.data.run.status === 'failed' ? '#ef4444' : '#f59e0b' }">
+                {{ tooltip.data.run.status }}
+              </span>
+            </div>
+            <div style="opacity: 0.7">started: {{ tooltip.data.run.started_at }}</div>
+            <div style="opacity: 0.7">duration: {{ fmtDuration(tooltip.data.run.duration_s) }}</div>
+            <div style="opacity: 0.7">phone: {{ tooltip.data.run.phone_serial?.slice(-6) || '—' }}</div>
+            <div v-if="tooltip.data.run.exit_code != null" style="opacity: 0.7">exit: {{ tooltip.data.run.exit_code }}</div>
+            <div v-if="tooltip.data.run.error_msg" style="color: #ef4444; margin-top: 4px">{{ tooltip.data.run.error_msg.slice(0, 100) }}</div>
+          </template>
+          <template v-else-if="tooltip.data.kind === 'active'">
+            <div style="font-weight: 600; margin-bottom: 4px; color: #22c55e">
+              ▶ {{ tooltip.data.job.schedule_name || tooltip.data.job.job_type }} (running)
+            </div>
+            <div style="opacity: 0.7">type: {{ tooltip.data.job.job_type }}</div>
+            <div style="opacity: 0.7">started: {{ tooltip.data.job.started_at }}</div>
+            <div style="opacity: 0.7">elapsed: {{ fmtDuration(tooltip.data.elapsed) }}</div>
+            <div style="opacity: 0.7">phone: {{ tooltip.data.job.phone_serial?.slice(-6) || '—' }}</div>
+          </template>
+          <template v-else-if="tooltip.data.kind === 'future'">
+            <div style="font-weight: 600; margin-bottom: 4px">
+              ⏰ {{ tooltip.data.fut.schedule_name || tooltip.data.fut.job_type }}
+            </div>
+            <div style="opacity: 0.7">type: {{ tooltip.data.fut.job_type }}</div>
+            <div style="opacity: 0.7">scheduled: {{ tooltip.data.fut.time }}</div>
+            <div style="opacity: 0.7">phone: {{ tooltip.data.fut.phone_serial?.slice(-6) || '—' }}</div>
+            <div v-if="tooltip.data.fut.is_past" style="color: #f59e0b">missed (in past)</div>
+          </template>
+        </div>
       </div>
     </div>
 
