@@ -388,7 +388,14 @@ class Device:
         time.sleep(0.5)
         self.adb("shell", "am", "force-stop", TIKTOK_PKG)
         time.sleep(1)
-        self.adb("shell", "am", "start", "-n", activity)
+        # Try the canonical MainActivity first; fall back to LAUNCHER intent
+        # (which is what 'tap the icon' uses — works on Samsung where the
+        # explicit activity start sometimes lands in background only).
+        out = self.adb("shell", "am", "start", "-n", activity, timeout=10) or ""
+        time.sleep(2)
+        if "Error" in out or "Activity not started" in out or self.screen_type(self.dump_xml()) == "unknown":
+            self.adb("shell", "monkey", "-p", TIKTOK_PKG, "-c",
+                     "android.intent.category.LAUNCHER", "1", timeout=10)
         time.sleep(3)
         # TikTok sometimes restores a previous creation session — back out until home
         for _ in range(8):
