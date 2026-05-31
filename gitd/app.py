@@ -16,6 +16,7 @@ from gitd.routers.creator import router as creator_router
 from gitd.routers.emulators import pool_router as emulator_pool_router
 from gitd.routers.emulators import router as emulators_router
 from gitd.routers.explorer import router as explorer_router
+from gitd.routers.marketing_jobs import router as marketing_jobs_router
 from gitd.routers.misc import router as misc_router
 from gitd.routers.phone import router as phone_router
 from gitd.routers.scheduler import router as scheduler_router
@@ -111,6 +112,7 @@ def create_app() -> FastAPI:
     app.include_router(tools_hub_router)
     app.include_router(bot_router)
     app.include_router(scheduler_router)
+    app.include_router(marketing_jobs_router)
     app.include_router(tests_router)
     app.include_router(emulators_router)
     app.include_router(emulator_pool_router)
