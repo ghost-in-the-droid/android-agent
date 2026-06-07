@@ -56,8 +56,9 @@ labels vary by device state and OS version.
 
 Read or set plain-text clipboard contents. Android uses the existing Portal /
 ADB clipboard helpers. iOS uses Appium's clipboard extension endpoints through
-the active WebDriverAgent session. `paste_text` remains Android-only/planned on
-iOS until focused-field paste behavior is reliable.
+the active WebDriverAgent session. `paste_text` on iOS sets the clipboard and
+then inserts text through WDA into the focused field; this provides the same
+agent outcome, but it is not a native keyboard paste shortcut.
 
 ### `search_apps(device, query)` / `list_apps(device)` / `list_packages(device)`
 

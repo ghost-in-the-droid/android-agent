@@ -455,6 +455,7 @@ def _chat_claude_code(session: ChatSession, user_message: str):
         key_tools = """Key tools:
 - get_screen_tree: read what's on screen before tapping
 - tap_element(idx), tap(x,y), swipe(x1,y1,x2,y2), type_text(text): interact with UI
+- paste_text(text): insert longer text into the focused field
 - screenshot: see the screen visually
 - launch_app(package): open an iOS app by bundle id, e.g. com.google.chrome.ios
 - open_camera(mode): open iOS Camera; mode photo/video/selfie/selfie_video, optional timer_s=3|10
