@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from gitd.models.base import get_db
+from gitd.bots.common.device import is_ios_ref
 from gitd.services._job_helpers import _enqueue_job
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ class EnqueueRequest(BaseModel):
     video_path: str = Field(..., description="Absolute path to the video file on this machine")
     caption: str = ""
     hashtags: str = ""
-    phone_serial: str = Field(..., description="ADB serial of the phone to post from")
+    phone_serial: str = Field(..., description="Android ADB serial of the phone to post from")
     tts_text: Optional[str] = None
     scheduled_at: Optional[str] = Field(None, description="ISO timestamp; informational only — runs ASAP")
     account: Optional[str] = Field(None, description="Expected active TikTok account on the phone")
@@ -55,6 +56,16 @@ def enqueue_marketing_job(req: EnqueueRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"video_path does not exist: {req.video_path}")
     if not req.phone_serial:
         raise HTTPException(status_code=400, detail="phone_serial required")
+    if is_ios_ref(req.phone_serial):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "ok": False,
+                "error": "unsupported_platform",
+                "platform": "ios",
+                "message": "TikTok marketing post jobs are Android-only until the iOS TikTok workflow is ported",
+            },
+        )
 
     # Hard-force draft. If the caller asked for publish, log a warning so we
     # can see attempts in the log, but never honor it.
