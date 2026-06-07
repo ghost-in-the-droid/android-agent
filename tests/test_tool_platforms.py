@@ -42,12 +42,14 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("get_notifications", "ios") is True
     assert supports_platform("open_notifications", "ios") is True
     assert supports_platform("clear_notifications", "ios") is True
+    assert supports_platform("open_camera", "ios") is True
 
     assert tool_platform_info("shell").support == "android_only"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
     assert tool_platform_info("clipboard_set").support == "cross_platform"
     assert tool_platform_info("list_apps").support == "cross_platform"
     assert tool_platform_info("get_notifications").support == "cross_platform"
+    assert tool_platform_info("open_camera").support == "cross_platform"
 
 
 def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
@@ -91,6 +93,7 @@ def test_tools_for_device_filters_by_platform():
     assert "get_notifications" in ios_names
     assert "open_notifications" in ios_names
     assert "clear_notifications" in ios_names
+    assert "open_camera" in ios_names
 
     assert "shell" in android_names
     assert "get_current_url" not in android_names
@@ -140,6 +143,23 @@ def test_ios_app_listing_tools_use_ios_inventory(monkeypatch):
     assert packages == ["com.google.chrome.ios", "com.zhiliaoapp.musically"]
 
 
+def test_ios_open_camera_tool_uses_ios_backend(monkeypatch):
+    class FakeIOSDevice:
+        def open_camera(self, mode="photo", timer_s=0):
+            return {
+                "mode": mode,
+                "selected_mode": True,
+                "switched_camera": True,
+                "timer_set": True,
+            }
+
+    monkeypatch.setattr("gitd.services.agent_tools.get_device", lambda device: FakeIOSDevice())
+
+    result = execute_tool("open_camera", {"device": "ios:abc123", "mode": "selfie", "timer_s": 3})
+
+    assert result == "Opened iOS Camera - selfie"
+
+
 def test_platform_prompts_do_not_offer_android_only_tools_to_ios():
     ios_tools = tools_for_device("ios:abc123")
     ios_tool_list = tool_prompt_list(ios_tools)
@@ -150,7 +170,7 @@ def test_platform_prompts_do_not_offer_android_only_tools_to_ios():
     assert "extract_articles" in ios_system
     assert "shell:" not in ios_system
     assert "launch_intent:" not in ios_system
-    assert "open_camera:" not in ios_system
+    assert "open_camera:" in ios_system
     assert "Android-only concepts" in ios_system
 
     android_system = system_prompt_for_device(

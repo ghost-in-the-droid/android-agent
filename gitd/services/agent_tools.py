@@ -658,6 +658,20 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                     return f"ERROR launching {pkg}: {out.strip()[:200]}"
                 return f"Launched {pkg} ({launcher})" + (" [fresh]" if fresh else "")
         elif name == "open_camera":
+            if is_ios_ref(device):
+                result = get_device(device).open_camera(
+                    mode=args.get("mode", "photo"),
+                    timer_s=int(args.get("timer_s", 0)),
+                )
+                warnings = []
+                if not result.get("selected_mode"):
+                    warnings.append("mode control not found")
+                if result.get("switched_camera") is False:
+                    warnings.append("front camera switch not found")
+                if result.get("timer_set") is False:
+                    warnings.append("timer control not found")
+                suffix = f" ({'; '.join(warnings)})" if warnings else ""
+                return f"Opened iOS Camera - {result['mode']}{suffix}"
             dev = Device(device)
             mode = args.get("mode", "photo").lower()
             timer_s = int(args.get("timer_s", 0))

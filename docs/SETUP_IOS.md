@@ -154,6 +154,7 @@ Supported on iOS:
 - `tap`, `tap_element`, `swipe`, `type_text`, `long_press`
 - `press_key` for `HOME`, `ENTER`, and best-effort `BACK`
 - `launch_app`
+- `open_camera` for Camera launch plus best-effort Photo/Video/Selfie/timer controls
 - `search_apps`, `list_apps`, `list_packages` for configured/common iOS bundle IDs verified through Appium
 - `clipboard_get`, `clipboard_set`
 - `open_notifications`, `get_notifications`, and best-effort `clear_notifications` through Notification Center UI automation
