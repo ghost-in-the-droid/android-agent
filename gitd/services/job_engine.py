@@ -275,6 +275,18 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
 _TIKTOK_JOB_TYPES = {"crawl", "outreach", "post", "publish_draft", "perf_scan", "engage", "inbox_scan"}
 
 
+def _job_platform_preflight(phone: str | None, job_type: str) -> str | None:
+    if not phone:
+        return None
+    try:
+        from gitd.bots.common.device import is_ios_ref
+    except Exception:
+        return None
+    if is_ios_ref(phone) and job_type in _TIKTOK_JOB_TYPES:
+        return f"{job_type} jobs are Android-only until the iOS TikTok workflow is ported"
+    return None
+
+
 def _account_preflight(phone: str | None, job_type: str, config: dict) -> str | None:
     """Verify the expected TikTok account is active before running.
 
@@ -327,6 +339,12 @@ def _launch_scheduled_job(db, job_row: dict):
     job_id = job_row["id"]
     phone = job_row.get("phone_serial")
     config = json.loads(job_row.get("config_json") or "{}")
+
+    platform_err = _job_platform_preflight(phone, job_row["job_type"])
+    if platform_err:
+        finish_job(db, job_id, "failed", error_msg=f"preflight: {platform_err}")
+        archive_to_runs(db, job_id)
+        return
 
     # Pre-flight: refuse to start if the wrong TikTok account is active.
     preflight_err = _account_preflight(phone, job_row["job_type"], config)
