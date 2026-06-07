@@ -129,7 +129,7 @@ python scripts/ios_chrome_news_smoke.py \
 
 The script saves screenshots plus `result.json` in the output directory. It is a product-path smoke: it uses launch/open URL, visible-text extraction, article candidate extraction, tap, and browser-back primitives.
 
-The demo skill is still named `safari` for compatibility, but it can launch any configured iOS browser bundle id:
+The demo skill is still named `safari` for compatibility, but it now defaults to Chrome and can launch any configured iOS browser bundle id:
 
 ```bash
 IOS_BUNDLE_ID="com.google.chrome.ios" \

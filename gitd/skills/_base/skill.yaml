@@ -1,7 +1,9 @@
 name: base
-description: Shared actions usable by any Android app skill
+description: Shared actions usable by Android app skills
 version: "1.0.0"
 app_package: null
+platforms:
+  - android
 exports:
   actions:
     - tap_element

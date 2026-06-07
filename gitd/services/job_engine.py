@@ -302,6 +302,26 @@ def _account_preflight(phone: str | None, job_type: str, config: dict) -> str | 
     return check["reason"] or "account mismatch"
 
 
+def _skill_platform_preflight(phone: str | None, job_type: str, config: dict) -> str | None:
+    if job_type not in ("skill_workflow", "skill_action"):
+        return None
+    try:
+        import yaml
+
+        from gitd.skills.platforms import skill_platform_error, skill_supports_device
+
+        skill_name = config.get("skill", "tiktok")
+        meta_path = _SCRIPT_DIR / "skills" / skill_name / "skill.yaml"
+        meta = yaml.safe_load(meta_path.read_text()) if meta_path.exists() else {}
+        meta = meta or {}
+        device = phone or _BOT_DEVICE
+        if not skill_supports_device(meta, device):
+            return skill_platform_error(skill_name, meta, device)["message"]
+    except Exception as exc:
+        logger.warning("skill platform preflight skipped: %s", exc)
+    return None
+
+
 def _launch_scheduled_job(db, job_row: dict):
     """Launch a queued job subprocess."""
     job_id = job_row["id"]
@@ -312,6 +332,11 @@ def _launch_scheduled_job(db, job_row: dict):
     preflight_err = _account_preflight(phone, job_row["job_type"], config)
     if preflight_err:
         finish_job(db, job_id, "failed", error_msg=f"preflight: {preflight_err}")
+        archive_to_runs(db, job_id)
+        return
+    skill_preflight_err = _skill_platform_preflight(phone, job_row["job_type"], config)
+    if skill_preflight_err:
+        finish_job(db, job_id, "failed", error_msg=f"preflight: {skill_preflight_err}")
         archive_to_runs(db, job_id)
         return
 

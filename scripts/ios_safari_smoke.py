@@ -29,7 +29,7 @@ def main() -> int:
     parser.add_argument("--device", default=os.getenv("IOS_DEVICE_UDID", ""), help="iOS UDID or ios:<udid>")
     parser.add_argument(
         "--bundle-id",
-        default=os.getenv("IOS_BUNDLE_ID", "com.apple.mobilesafari"),
+        default=os.getenv("IOS_BUNDLE_ID", "com.google.chrome.ios"),
         help="iOS bundle id to launch, for example com.google.chrome.ios",
     )
     parser.add_argument(

@@ -8,6 +8,7 @@ import json
 
 from gitd.services import device_context as ctx
 from gitd.bots.common.device import get_device, is_ios_ref
+from gitd.skills.platforms import skill_platform_error_text, skill_supports_device
 from gitd.services.tool_platforms import platform_error_text, supports_platform
 
 # ── Tool registry ────────────────────────────────────────────────────────────
@@ -379,7 +380,13 @@ TOOLS = [
     {
         "name": "list_skills",
         "description": "List installed automation skills with actions and workflows.",
-        "input_schema": {"type": "object", "properties": {}},
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string", "description": "Optional device ref used to include platform support flags."},
+                "supported_only": {"type": "boolean", "default": False},
+            },
+        },
     },
     {
         "name": "run_skill",
@@ -955,20 +962,36 @@ def _execute_tool_inner(name: str, args: dict) -> str:
 
             skills = _load_all_skills()
             result = []
+            target_device = args.get("device") or device
+            supported_only = bool(args.get("supported_only"))
             for sname, info in skills.items():
+                supported = skill_supports_device(info.get("metadata") or {}, target_device) if target_device else None
+                if supported_only and supported is False:
+                    continue
                 s = _load_skill(sname)
                 entry = {
                     "name": info["name"],
                     "app_package": info.get("app_package", ""),
+                    "android_package": info.get("android_package", ""),
                     "ios_bundle_id": info.get("ios_bundle_id", ""),
                     "platforms": info.get("platforms", []),
+                    "supports_android": info.get("supports_android", False),
+                    "supports_ios": info.get("supports_ios", False),
                 }
+                if supported is not None:
+                    entry["supported_on_device"] = supported
                 if s and not isinstance(s, dict):
                     entry["workflows"] = s.list_workflows()
                     entry["actions"] = s.list_actions()
                 result.append(entry)
             return json.dumps(result, indent=2)
         elif name == "run_skill":
+            from gitd.routers.skills import _load_all_skills
+
+            skills = _load_all_skills()
+            skill_info = skills.get(args["skill"])
+            if skill_info and not skill_supports_device(skill_info.get("metadata") or {}, device):
+                return skill_platform_error_text(args["skill"], skill_info.get("metadata") or {}, device)
             runner = __import__("pathlib").Path(__file__).parent.parent / "skills" / "_run_skill.py"
             params = json.dumps(args.get("params", {}))
             r = subprocess.run(

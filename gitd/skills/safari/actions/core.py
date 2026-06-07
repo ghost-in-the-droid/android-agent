@@ -7,7 +7,7 @@ import time
 from gitd.bots.common.device import is_ios_ref
 from gitd.skills.base import Action, ActionResult
 
-DEFAULT_BROWSER_BUNDLE_ID = "com.apple.mobilesafari"
+DEFAULT_BROWSER_BUNDLE_ID = "com.google.chrome.ios"
 
 
 def _default_bundle_id() -> str:
