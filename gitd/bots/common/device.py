@@ -5,10 +5,8 @@ handled by the Appium/WebDriverAgent iOS backend.
 """
 from __future__ import annotations
 
-import os
-
 from gitd.bots.common.adb import Device, list_connected
-from gitd.bots.common.ios import IOSDevice, IOS_PREFIX, is_ios_ref, strip_ios_prefix
+from gitd.bots.common.ios import IOSDevice, IOS_PREFIX, configured_ios_udids, is_ios_ref, probe_ios_device
 
 
 def platform_for_device(device: str | None) -> str:
@@ -27,23 +25,35 @@ def require_android_device(device: str, tool_name: str) -> None:
 
 
 def ios_refs_from_env() -> list[str]:
-    values: list[str] = []
-    single = os.getenv("IOS_DEVICE_UDID", "").strip()
-    if single:
-        values.append(single)
-    multi = os.getenv("IOS_DEVICE_UDIDS", "").strip()
-    if multi:
-        values.extend(v.strip() for v in multi.split(",") if v.strip())
+    return [f"{IOS_PREFIX}{udid}" for udid in configured_ios_udids()]
 
-    refs: list[str] = []
-    seen: set[str] = set()
-    for value in values:
-        udid = strip_ios_prefix(value)
-        if not udid or udid in seen:
-            continue
-        seen.add(udid)
-        refs.append(f"{IOS_PREFIX}{udid}")
-    return refs
+
+def list_configured_ios_devices(*, deep_probe: bool = False) -> list[dict]:
+    devices: list[dict] = []
+    for ref in ios_refs_from_env():
+        try:
+            status = probe_ios_device(ref, deep=deep_probe).to_dict()
+        except Exception as e:
+            status = {
+                "platform": "ios",
+                "device": ref,
+                "udid": ref.removeprefix(IOS_PREFIX),
+                "state": "session_error",
+                "message": str(e),
+            }
+        devices.append(
+            {
+                "serial": ref,
+                "model": "iOS device",
+                "connection": "appium-wda",
+                "platform": "ios",
+                "status": status.get("state", "session_error"),
+                "status_message": status.get("message", ""),
+                "appium_url": status.get("appium_url", ""),
+                "details": status,
+            }
+        )
+    return devices
 
 
 def list_connected_device_refs() -> list[str]:

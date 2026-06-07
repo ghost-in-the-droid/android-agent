@@ -1,10 +1,18 @@
 import base64
+import json
 import os
 
 import pytest
 
 from gitd.bots.common.device import get_device, ios_refs_from_env, platform_for_device
-from gitd.bots.common.ios import IOSDevice, ios_xml_to_elements, normalize_wda_xml
+from gitd.bots.common.ios import (
+    IOSDevice,
+    configured_ios_udids,
+    ios_config_for_udid,
+    ios_xml_to_elements,
+    normalize_wda_xml,
+    visible_text_entries_from_xml,
+)
 
 
 RAW_WDA_XML = """<?xml version="1.0" encoding="UTF-8"?>
@@ -74,6 +82,34 @@ def test_factory_routes_ios_prefix(monkeypatch):
     assert dev.udid == "abc123"
 
 
+def test_per_device_ios_config_from_json(monkeypatch):
+    monkeypatch.delenv("IOS_DEVICE_UDID", raising=False)
+    monkeypatch.delenv("IOS_DEVICE_UDIDS", raising=False)
+    monkeypatch.setenv(
+        "IOS_DEVICES_JSON",
+        json.dumps(
+            {
+                "abc123": {
+                    "appium_url": "http://127.0.0.1:4725",
+                    "bundle_id": "com.google.chrome.ios",
+                    "mjpeg_server_port": 9101,
+                    "wda_launch_timeout": 180000,
+                    "allow_provisioning_device_registration": True,
+                }
+            }
+        ),
+    )
+
+    assert configured_ios_udids() == ["abc123"]
+    cfg = ios_config_for_udid("ios:abc123")
+    assert cfg.appium_url == "http://127.0.0.1:4725"
+    assert cfg.bundle_id == "com.google.chrome.ios"
+    assert cfg.mjpeg_server_port == 9101
+    assert cfg.capabilities()["appium:mjpegServerPort"] == 9101
+    assert cfg.capabilities()["appium:wdaLaunchTimeout"] == 180000
+    assert cfg.capabilities()["appium:allowProvisioningDeviceRegistration"] is True
+
+
 def test_session_creation_uses_appium_xcuitest_payload(monkeypatch):
     IOSDevice._sessions.clear()
     calls = []
@@ -95,6 +131,39 @@ def test_session_creation_uses_appium_xcuitest_payload(monkeypatch):
     assert body["appium:automationName"] == "XCUITest"
     assert body["appium:udid"] == "abc123"
     assert body["appium:bundleId"] == "com.apple.mobilesafari"
+
+
+def test_stale_appium_session_is_evicted_and_recreated(monkeypatch):
+    IOSDevice._sessions.clear()
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append({"method": method, "url": url, "json": json})
+        if url.endswith("/session/session-old/source"):
+            return FakeResponse(
+                {"value": {"error": "invalid session id", "message": "Session does not exist"}},
+                status_code=404,
+                text="invalid session id",
+            )
+        if method == "POST" and url.endswith("/session"):
+            return FakeResponse({"value": {"sessionId": "session-new"}})
+        if url.endswith("/session/session-new/source"):
+            return FakeResponse({"value": RAW_WDA_XML})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-old"
+    IOSDevice._sessions[dev._config] = "session-old"
+
+    assert dev._request("GET", "/session/session-old/source") == RAW_WDA_XML
+    assert dev._session_id == "session-new"
+    assert IOSDevice._sessions[dev._config] == "session-new"
+    assert [c["url"] for c in calls] == [
+        "http://appium.local/session/session-old/source",
+        "http://appium.local/session",
+        "http://appium.local/session/session-new/source",
+    ]
 
 
 def test_session_creation_includes_real_device_signing_capabilities(monkeypatch):
@@ -124,6 +193,35 @@ def test_session_creation_includes_real_device_signing_capabilities(monkeypatch)
     assert body["appium:wdaLaunchTimeout"] == 180000
     assert body["appium:wdaStartupRetries"] == 1
     assert body["appium:wdaStartupRetryInterval"] == 10000
+
+
+def test_probe_classifies_unreachable_appium(monkeypatch):
+    def fake_request(method, url, json=None, timeout=None):
+        raise __import__("requests").ConnectionError("connection refused")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    status = IOSDevice("ios:abc123", appium_url="http://appium.local").probe(deep=True)
+
+    assert status.state == "appium_down"
+    assert "unreachable" in status.message.lower()
+
+
+def test_visible_text_entries_filter_controls_and_offscreen_nodes():
+    raw = """<?xml version="1.0" encoding="UTF-8"?>
+<AppiumAUT>
+  <XCUIElementTypeApplication type="XCUIElementTypeApplication" name="Chrome" label="Chrome" enabled="true" visible="true" x="0" y="0" width="393" height="852">
+    <XCUIElementTypeButton type="XCUIElementTypeButton" name="Tabs" label="Tabs" enabled="true" visible="true" x="0" y="0" width="60" height="44"/>
+    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" name="World leaders meet for climate talks today" label="World leaders meet for climate talks today" enabled="true" visible="true" x="10" y="120" width="360" height="44"/>
+    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" name="Offscreen article should not appear" label="Offscreen article should not appear" enabled="true" visible="true" x="10" y="900" width="360" height="44"/>
+    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" name="Hidden article should not appear" label="Hidden article should not appear" enabled="true" visible="false" x="10" y="180" width="360" height="44"/>
+  </XCUIElementTypeApplication>
+</AppiumAUT>
+"""
+    xml = normalize_wda_xml(raw)
+
+    entries = visible_text_entries_from_xml(xml, screen_size=(393, 852))
+
+    assert [entry["text"] for entry in entries] == ["World leaders meet for climate talks today"]
 
 
 def test_take_screenshot_decodes_base64(monkeypatch):
