@@ -684,12 +684,22 @@ def device_health(device: str) -> dict:
     """Comprehensive device health check. Returns status for every subsystem."""
     if is_ios_ref(device):
         try:
-            state = get_device(device).get_phone_state()
+            status = get_device(device).probe(deep=True).to_dict()
             return {
                 "serial": device,
-                "connection": {"type": "appium-wda", "status": "connected"},
+                "connection": {"type": "appium-wda", "status": status.get("state", "session_error")},
                 "platform": "ios",
-                "device_info": state,
+                "appium": {
+                    "url": status.get("appium_url", ""),
+                    "session_id": status.get("session_id", ""),
+                    "message": status.get("message", ""),
+                },
+                "wda": {
+                    "active_app": status.get("active_app") or {},
+                    "screen_size": status.get("screen_size") or {},
+                    "checks": status.get("checks") or {},
+                },
+                "device_info": status,
             }
         except Exception as e:
             return {

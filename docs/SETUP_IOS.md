@@ -34,9 +34,35 @@ export IOS_DEVICE_NAME="My iPhone"
 export IOS_PLATFORM_VERSION="18.5"
 export IOS_BUNDLE_ID="com.google.chrome.ios" # or another installed iOS app bundle id
 export IOS_WDA_URL="http://127.0.0.1:8100"
+export IOS_MJPEG_SERVER_PORT="9100"
 ```
 
 `IOS_WDA_URL` lets Ghost/Appium attach to an already-running WebDriverAgent in a later setup. The default path lets Appium create and manage the WDA session.
+
+For multiple iPhones, use `IOS_DEVICE_UDIDS` plus a JSON config blob or file:
+
+```bash
+export IOS_DEVICE_UDIDS="00008110-0012345678901234,00008101-0098765432109876"
+export IOS_DEVICES_JSON='{
+  "00008110-0012345678901234": {
+    "appium_url": "http://127.0.0.1:4723",
+    "bundle_id": "com.google.chrome.ios",
+    "mjpeg_server_port": 9100,
+    "wda_launch_timeout": 180000
+  },
+  "00008101-0098765432109876": {
+    "appium_url": "http://127.0.0.1:4725",
+    "bundle_id": "com.apple.mobilesafari",
+    "mjpeg_server_port": 9101
+  }
+}'
+```
+
+Equivalent file-based setup:
+
+```bash
+export IOS_CONFIG_FILE="$PWD/config/ios-devices.json"
+```
 
 ## Real Device Signing Notes
 
@@ -85,8 +111,23 @@ From MCP, use:
 ```text
 list_devices()
 launch_app("ios:<udid>", "com.google.chrome.ios")
+open_url("ios:<udid>", "https://text.npr.org/", "com.google.chrome.ios")
+extract_articles("ios:<udid>", 5)
 get_screen_tree("ios:<udid>")
 ```
+
+Chrome/news workflow smoke:
+
+```bash
+IOS_DEVICE_UDID="<udid>" IOS_BUNDLE_ID="com.google.chrome.ios" \
+python scripts/ios_chrome_news_smoke.py \
+  --url https://text.npr.org/ \
+  --max-headlines 5 \
+  --max-articles 3 \
+  --out-dir data/ios_chrome_news_smoke
+```
+
+The script saves screenshots plus `result.json` in the output directory. It is a product-path smoke: it uses launch/open URL, visible-text extraction, article candidate extraction, tap, and browser-back primitives.
 
 The demo skill is still named `safari` for compatibility, but it can launch any configured iOS browser bundle id:
 
@@ -108,6 +149,9 @@ Supported on iOS:
 - `press_key` for `HOME`, `ENTER`, and best-effort `BACK`
 - `launch_app`
 - `get_phone_state`, `classify_screen`, `find_on_screen`, OCR if RapidOCR is installed
+- Browser primitives: `open_url`, `web_search`, `browser_back`, `get_current_url`, `wait_for_text`, `extract_visible_text`, `extract_articles`
+- REST browser routes under `/api/phone/browser/*`
+- `/api/phone/stream?device=ios:<udid>` with WDA MJPEG mode when requested and screenshot polling fallback
 
 Android-only for now:
 
@@ -122,4 +166,7 @@ Android-only for now:
 - `xcodebuild failed`: fix WDA signing in Xcode.
 - Session hangs on real device: unlock the iPhone and accept trust/automation prompts.
 - Taps land in the wrong place: compare screenshot dimensions and WDA window rect in `get_phone_state`; Ghost scales WDA points to screenshot pixels and converts back for gestures.
-- Stale session: restart Appium or call the smoke script with `--close`.
+- Stale session: call `/api/phone/health/ios:<udid>/fix` with `{"issue":"reset_session"}`, restart Appium, or call the smoke script with `--close`.
+- `appium_down` from `/api/phone/health/ios:<udid>` means Ghost cannot reach `IOS_APPIUM_URL`.
+- `wda_signing_failed` means Appium reached Xcode/WDA but signing/provisioning is still incomplete.
+- `locked` means the phone is locked, untrusted, missing Developer Mode, or blocked on an automation/trust prompt.
