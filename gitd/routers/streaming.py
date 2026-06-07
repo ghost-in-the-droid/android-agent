@@ -1,6 +1,7 @@
 """Streaming routes: MJPEG phone stream, WebRTC signaling."""
 
 import asyncio
+import base64
 import hashlib
 import json
 import subprocess
@@ -9,6 +10,8 @@ import urllib.request
 
 from fastapi import APIRouter, Body, HTTPException, Request
 from starlette.responses import StreamingResponse
+
+from gitd.bots.common.device import get_device, is_ios_ref
 
 router = APIRouter(tags=["streaming"])
 
@@ -31,6 +34,10 @@ def _stable_ws_port(serial: str) -> int:
     return 19000 + int(hashlib.md5(serial.encode()).hexdigest()[:3], 16) % 1000
 
 
+def _ios_unsupported(feature: str) -> dict:
+    return {"ok": False, "platform": "ios", "error": f"{feature} is Android-only and is not supported for iOS devices"}
+
+
 # ── MJPEG Stream ────────────────────────────────────────────────────────────
 
 
@@ -39,6 +46,41 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
     """Stream phone screen via MJPEG."""
     fps = max(1, min(fps, 60))
     quality = max(1, min(quality, 31))
+    if is_ios_ref(device):
+        frame_delay = max(0.05, 1.0 / min(fps, 10))
+
+        def gen_ios_mjpeg():
+            url = get_device(device).mjpeg_url
+            try:
+                with urllib.request.urlopen(url, timeout=10) as resp:
+                    while True:
+                        chunk = resp.read(16384)
+                        if not chunk:
+                            break
+                        yield chunk
+            except Exception:
+                yield from gen_ios_screencap()
+
+        def gen_ios_screencap():
+            from gitd.services.device_context import screenshot
+
+            while True:
+                try:
+                    result = screenshot(device, half_res=True, quality=45)
+                    frame = base64.b64decode(result["image"])
+                    yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+                except Exception:
+                    time.sleep(0.5)
+                    continue
+                time.sleep(frame_delay)
+
+        gen = gen_ios_mjpeg if mode in {"mjpeg", "wda", "wda-mjpeg"} else gen_ios_screencap
+        return StreamingResponse(
+            gen(),
+            media_type="multipart/x-mixed-replace; boundary=frame",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "X-Phone-Platform": "ios"},
+        )
+
     dev_args = ["-s", device] if device else []
 
     def gen_h264():
@@ -195,6 +237,8 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
 @router.get("/api/phone/portal-status/{device}", summary="Check Portal Health")
 def portal_status(device: str):
     """Check Portal health on a device: process, accessibility service, HTTP API."""
+    if is_ios_ref(device):
+        return _ios_unsupported("Portal status")
     import urllib.error
 
     from gitd.bots.common.adb import Device
@@ -252,6 +296,8 @@ def portal_status(device: str):
 @router.post("/api/phone/portal-fix/{device}", summary="Auto-Fix Phone Portal")
 def portal_fix(device: str):
     """Auto-fix Portal: wake screen, enable accessibility service, restart."""
+    if is_ios_ref(device):
+        return _ios_unsupported("Portal fix")
     import urllib.error
 
     from gitd.bots.common.adb import _stable_port

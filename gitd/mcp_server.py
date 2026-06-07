@@ -400,9 +400,63 @@ def web_search(device: str, query: str, engine: str = "google") -> str:
         engine: "google" (default), "ddg" / "duckduckgo", "bing", or "brave".
     """
     if is_ios_ref(device):
-        return _ios_unsupported("web_search")
+        from gitd.services.browser import dumps, web_search as _web_search
+
+        return dumps(_web_search(device, query, engine=engine))
     from gitd.services.web_search import open_search
     return open_search(device, query, engine=engine)
+
+
+@mcp.tool()
+def open_url(device: str, url: str, bundle_id: str = "") -> str:
+    """Open a URL in the platform browser.
+
+    On iOS this uses Appium/WDA and defaults to the configured browser bundle
+    id, usually com.google.chrome.ios or com.apple.mobilesafari.
+    """
+    from gitd.services.browser import dumps, open_url as _open_url
+
+    return dumps(_open_url(device, url, bundle_id=bundle_id or None))
+
+
+@mcp.tool()
+def browser_back(device: str) -> str:
+    """Navigate back in the current browser/app context."""
+    from gitd.services.browser import dumps, browser_back as _browser_back
+
+    return dumps(_browser_back(device))
+
+
+@mcp.tool()
+def get_current_url(device: str) -> str:
+    """Get the current browser URL when the platform exposes it."""
+    from gitd.services.browser import dumps, get_current_url as _get_current_url
+
+    return dumps(_get_current_url(device))
+
+
+@mcp.tool()
+def wait_for_text(device: str, text: str, timeout: float = 12.0) -> str:
+    """Wait until text appears on screen and return visible text context."""
+    from gitd.services.browser import dumps, wait_for_text as _wait_for_text
+
+    return dumps(_wait_for_text(device, text, timeout=timeout))
+
+
+@mcp.tool()
+def extract_visible_text(device: str, max_lines: int = 200, include_controls: bool = False) -> str:
+    """Extract visible text from the current screen with browser chrome filtered by default."""
+    from gitd.services.browser import dumps, extract_visible_text as _extract_visible_text
+
+    return dumps(_extract_visible_text(device, max_lines=max_lines, include_controls=include_controls))
+
+
+@mcp.tool()
+def extract_articles(device: str, max_items: int = 5) -> str:
+    """Extract likely visible article/headline candidates from the current browser page."""
+    from gitd.services.browser import dumps, extract_articles as _extract_articles
+
+    return dumps(_extract_articles(device, max_items=max_items))
 
 
 @mcp.tool()

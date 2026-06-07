@@ -262,8 +262,70 @@ TOOLS = [
                 "device": {"type": "string"},
                 "query": {"type": "string"},
                 "engine": {"type": "string", "description": "Search engine: google, ddg, bing, brave. Default google."},
+                "bundle_id": {"type": "string", "description": "Optional iOS browser bundle id override."},
             },
             "required": ["device", "query"],
+        },
+    },
+    {
+        "name": "open_url",
+        "description": "Open a URL in the platform browser. On iOS, uses Appium/WDA and the configured browser bundle id.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "url": {"type": "string"},
+                "bundle_id": {"type": "string", "description": "Optional iOS browser bundle id override."},
+            },
+            "required": ["device", "url"],
+        },
+    },
+    {
+        "name": "browser_back",
+        "description": "Navigate back in the current browser/app context.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "get_current_url",
+        "description": "Get the current browser URL when the platform exposes it.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "wait_for_text",
+        "description": "Wait until text appears on screen and return visible text context.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "text": {"type": "string"},
+                "timeout": {"type": "number", "default": 12.0},
+            },
+            "required": ["device", "text"],
+        },
+    },
+    {
+        "name": "extract_visible_text",
+        "description": "Extract visible text from the current screen. Browser controls are filtered by default.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "max_lines": {"type": "integer", "default": 200},
+                "include_controls": {"type": "boolean", "default": False},
+            },
+            "required": ["device"],
+        },
+    },
+    {
+        "name": "extract_articles",
+        "description": "Extract likely visible article/headline candidates from the current browser page.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "max_items": {"type": "integer", "default": 5},
+            },
+            "required": ["device"],
         },
     },
     # Shell
@@ -347,12 +409,22 @@ TOOLS = [
 
 # ── Tool execution ───────────────────────────────────────────────────────────
 
-_UI_ACTION_TOOLS = {"tap", "tap_element", "swipe", "type_text", "press_key", "long_press", "launch_app"}
+_UI_ACTION_TOOLS = {
+    "tap",
+    "tap_element",
+    "swipe",
+    "type_text",
+    "press_key",
+    "long_press",
+    "launch_app",
+    "open_url",
+    "web_search",
+    "browser_back",
+    "wait_for_text",
+}
 _ANDROID_ONLY_TOOLS = {
     "open_camera",
     "speak_text",
-    "force_stop",
-    "web_search",
     "list_apps",
     "search_apps",
     "list_packages",
@@ -743,12 +815,56 @@ def _execute_tool_inner(name: str, args: dict) -> str:
 
             return _speak(device, args["text"], float(args.get("rate", 1.0)))
         elif name == "force_stop":
+            if is_ios_ref(device):
+                get_device(device).terminate_app(args["package"])
+                return f"Stopped iOS app {args['package']}"
             Device(device).adb("shell", "am", "force-stop", args["package"])
             return f"Stopped {args['package']}"
         elif name == "web_search":
+            if is_ios_ref(device):
+                from gitd.services.browser import dumps, web_search as _web_search
+
+                return dumps(
+                    _web_search(
+                        device,
+                        args["query"],
+                        engine=args.get("engine", "google"),
+                        bundle_id=args.get("bundle_id") or None,
+                    )
+                )
             from gitd.services.web_search import open_search
 
             return open_search(device, args["query"], engine=args.get("engine", "google"))
+        elif name == "open_url":
+            from gitd.services.browser import dumps, open_url as _open_url
+
+            return dumps(_open_url(device, args["url"], bundle_id=args.get("bundle_id") or None))
+        elif name == "browser_back":
+            from gitd.services.browser import dumps, browser_back as _browser_back
+
+            return dumps(_browser_back(device))
+        elif name == "get_current_url":
+            from gitd.services.browser import dumps, get_current_url as _get_current_url
+
+            return dumps(_get_current_url(device))
+        elif name == "wait_for_text":
+            from gitd.services.browser import dumps, wait_for_text as _wait_for_text
+
+            return dumps(_wait_for_text(device, args["text"], timeout=float(args.get("timeout", 12.0))))
+        elif name == "extract_visible_text":
+            from gitd.services.browser import dumps, extract_visible_text as _extract_visible_text
+
+            return dumps(
+                _extract_visible_text(
+                    device,
+                    max_lines=int(args.get("max_lines", 200)),
+                    include_controls=bool(args.get("include_controls", False)),
+                )
+            )
+        elif name == "extract_articles":
+            from gitd.services.browser import dumps, extract_articles as _extract_articles
+
+            return dumps(_extract_articles(device, max_items=int(args.get("max_items", 5))))
         elif name == "list_apps" or name == "search_apps":
             out = Device(device).adb("shell", "pm", "list", "packages", timeout=10)
             pkgs = [p.replace("package:", "").strip() for p in out.splitlines() if p.startswith("package:")]

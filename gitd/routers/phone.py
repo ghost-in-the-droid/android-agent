@@ -9,11 +9,15 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from gitd.models.base import get_db
-from gitd.bots.common.device import get_device, ios_refs_from_env, is_ios_ref
+from gitd.bots.common.device import get_device, is_ios_ref, list_configured_ios_devices
 
 router = APIRouter(prefix="/api/phone", tags=["phone"])
 
 _last_wifi_reconnect: float = 0
+
+
+def _ios_unsupported(feature: str) -> dict:
+    return {"ok": False, "platform": "ios", "error": f"{feature} is Android-only and is not supported for iOS devices"}
 
 
 def _try_wifi_reconnect(db: Session):
@@ -110,9 +114,9 @@ def phone_devices(db: Session = Depends(get_db)):
         usb_models = {d["model"] for d in devices if d["connection"] == "usb"}
         devices = [d for d in devices if d["connection"] == "usb" or d["model"] not in usb_models]
 
-        for serial in ios_refs_from_env():
-            if not any(d["serial"] == serial for d in devices):
-                devices.append({"serial": serial, "model": "iOS device", "connection": "appium-wda"})
+        for ios_device in list_configured_ios_devices(deep_probe=False):
+            if not any(d["serial"] == ios_device["serial"] for d in devices):
+                devices.append(ios_device)
 
         registry_rows = db.execute(text("SELECT * FROM phones")).mappings().all()
         registry = {r["serial"]: dict(r) for r in registry_rows}
@@ -286,9 +290,82 @@ def api_phone_launch(data: dict = Body({})):
     return {"ok": True}
 
 
+@router.post("/browser/open-url", summary="Open URL In Browser")
+def api_phone_browser_open_url(data: dict = Body({})):
+    """Open a URL in the platform browser."""
+    from gitd.services.browser import open_url
+
+    device = data.get("device", "")
+    url = data.get("url", "")
+    if not device or not url:
+        raise HTTPException(status_code=400, detail="device and url required")
+    return open_url(device, url, bundle_id=data.get("bundle_id") or None)
+
+
+@router.post("/browser/search", summary="Search Web In Browser")
+def api_phone_browser_search(data: dict = Body({})):
+    """Open a web search in the platform browser."""
+    from gitd.services.browser import web_search
+
+    device = data.get("device", "")
+    query = data.get("query", "")
+    if not device or not query:
+        raise HTTPException(status_code=400, detail="device and query required")
+    return web_search(device, query, engine=data.get("engine", "google"), bundle_id=data.get("bundle_id") or None)
+
+
+@router.post("/browser/back", summary="Navigate Browser Back")
+def api_phone_browser_back(data: dict = Body({})):
+    """Navigate back in the browser/app context."""
+    from gitd.services.browser import browser_back
+
+    device = data.get("device", "")
+    if not device:
+        raise HTTPException(status_code=400, detail="device required")
+    return browser_back(device)
+
+
+@router.get("/browser/current-url/{device}", summary="Get Current Browser URL")
+def api_phone_browser_current_url(device: str):
+    """Return the current browser URL when available."""
+    from gitd.services.browser import get_current_url
+
+    return get_current_url(device)
+
+
+@router.post("/browser/wait-for-text", summary="Wait For Browser Text")
+def api_phone_browser_wait_for_text(data: dict = Body({})):
+    """Wait for text to appear on screen."""
+    from gitd.services.browser import wait_for_text
+
+    device = data.get("device", "")
+    text_value = data.get("text", "")
+    if not device or not text_value:
+        raise HTTPException(status_code=400, detail="device and text required")
+    return wait_for_text(device, text_value, timeout=float(data.get("timeout", 12.0)))
+
+
+@router.get("/browser/visible-text/{device}", summary="Extract Browser Visible Text")
+def api_phone_browser_visible_text(device: str, max_lines: int = 200, include_controls: bool = False):
+    """Extract visible text from the current screen."""
+    from gitd.services.browser import extract_visible_text
+
+    return extract_visible_text(device, max_lines=max_lines, include_controls=include_controls)
+
+
+@router.get("/browser/articles/{device}", summary="Extract Browser Articles")
+def api_phone_browser_articles(device: str, max_items: int = 5):
+    """Extract likely visible article/headline candidates from the current page."""
+    from gitd.services.browser import extract_articles
+
+    return extract_articles(device, max_items=max_items)
+
+
 @router.post("/reconnect/{device}", summary="Reconnect Phone Portal")
 def api_phone_reconnect(device: str):
     """Clear Portal cache for a device and re-establish connection."""
+    if is_ios_ref(device):
+        return _ios_unsupported("Portal reconnect")
     from gitd.bots.common.adb import Device
 
     dev = Device(device)
@@ -301,10 +378,16 @@ def api_phone_reconnect(device: str):
 @router.post("/force-stop", summary="Force Stop App On Phone")
 def api_phone_force_stop(data: dict = Body({})):
     """Force-stop an app by package name on a device."""
+    device = data.get("device", "")
+    pkg = data.get("package", "")
+    if is_ios_ref(device):
+        if not pkg:
+            raise HTTPException(status_code=400, detail="package required")
+        get_device(device).terminate_app(pkg)
+        return {"ok": True, "platform": "ios", "bundle_id": pkg}
     from gitd.bots.common.adb import Device
 
-    dev = Device(data.get("device", ""))
-    pkg = data.get("package", "")
+    dev = Device(device)
     if not pkg:
         raise HTTPException(status_code=400, detail="package required")
     dev.adb("shell", "am", "force-stop", pkg)
@@ -408,6 +491,8 @@ def api_phone_classify(device: str):
 @router.post("/overlay/{device}", summary="Toggle Phone Overlay")
 def api_phone_overlay(device: str, data: dict = Body({})):
     """Toggle Droidrun Portal overlay on/off."""
+    if is_ios_ref(device):
+        return _ios_unsupported("Portal overlay")
     import json as _json
     import urllib.request
 
@@ -435,6 +520,8 @@ def api_phone_overlay(device: str, data: dict = Body({})):
 @router.get("/packages/{device}", summary="List Installed Packages")
 def api_phone_packages(device: str, all: str = ""):
     """List installed packages on device."""
+    if is_ios_ref(device):
+        return {"packages": [], "count": 0, "platform": "ios", "error": "Package listing is not implemented for iOS yet"}
     from gitd.bots.common.adb import Device
 
     dev = Device(device)
@@ -461,6 +548,12 @@ def api_phone_health(device: str):
 @router.post("/health/{device}/fix", summary="Auto-Fix Device Issue")
 def api_phone_health_fix(device: str, data: dict = Body({})):
     """Fix a specific device issue (portal_service, portal_install, screen_capture)."""
+    if is_ios_ref(device):
+        issue = data.get("issue", "")
+        if issue in {"reset_session", "appium_session", "wda_session"}:
+            get_device(device).reset_session()
+            return {"ok": True, "platform": "ios", "message": "iOS Appium session reset"}
+        return _ios_unsupported(f"health fix '{issue}'")
     from gitd.routers.streaming import portal_fix
 
     issue = data.get("issue", "")
@@ -485,6 +578,8 @@ def api_wireless_enable(data: dict = Body({}), db: Session = Depends(get_db)):
     device = data.get("device", "")
     if not device:
         raise HTTPException(status_code=400, detail="device serial required")
+    if is_ios_ref(device):
+        return _ios_unsupported("Wireless ADB")
     result = wireless_enable(device)
     if result.get("ok"):
         # Persist in DB
@@ -532,6 +627,8 @@ def api_wireless_disconnect(data: dict = Body({})):
     device = data.get("device", "")
     if not device:
         raise HTTPException(status_code=400, detail="device required")
+    if is_ios_ref(device):
+        return _ios_unsupported("Wireless ADB disconnect")
     return wireless_disconnect(device)
 
 
