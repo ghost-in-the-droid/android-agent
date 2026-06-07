@@ -74,6 +74,9 @@ _CROSS_PLATFORM = {
     "run_action": "Runs platform-aware skill actions when supported.",
     "clipboard_get": "Uses Android clipboard helpers or Appium clipboard extensions on iOS.",
     "clipboard_set": "Uses Android clipboard helpers or Appium clipboard extensions on iOS.",
+    "get_notifications": "Android dumpsys notifications or iOS Notification Center text extraction through WDA.",
+    "open_notifications": "Android statusbar expansion or iOS Notification Center swipe gesture.",
+    "clear_notifications": "Android notification service clear or best-effort iOS Clear control tap.",
     "lookup_lead": "Device-neutral marketing data lookup.",
     "list_unread_leads": "Device-neutral marketing inbox lookup.",
     "wait": "Device-neutral delay.",
@@ -86,9 +89,6 @@ _IOS_SUPPORTED = {
 _IOS_PLANNED = {
     "open_camera": "Feasible through iOS bundle launch and camera UI automation, not implemented yet.",
     "paste_text": "Depends on iOS clipboard support and paste gesture/key fallback.",
-    "get_notifications": "Needs Notification Center gesture/source extraction.",
-    "open_notifications": "Needs iOS notification gesture support.",
-    "clear_notifications": "Needs iOS notification UI automation.",
     "explore_app": "Needs explorer state identity based on bundle id, tree hash, and screenshot hash.",
     "create_skill": "Needs platform compatibility metadata and iOS element recording.",
 }

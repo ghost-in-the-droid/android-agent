@@ -238,6 +238,18 @@ _IOS_APP_STATE_NAMES = {
     4: "running_foreground",
 }
 
+_IOS_NOTIFICATION_SKIP_TEXT = {
+    "clear",
+    "clear all",
+    "notification center",
+    "notifications",
+    "no notifications",
+    "no older notifications",
+    "scheduled summary",
+    "today",
+    "earlier",
+}
+
 _WEB_TEXT_JS = r"""
 const maxEntries = arguments[0] || 300;
 const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
@@ -1308,6 +1320,74 @@ class IOSDevice:
             if len(titles) >= max_items:
                 break
         return titles
+
+    def open_notifications(self, delay=1.0) -> bool:
+        width, height = self.get_screen_size()
+        x = max(1, width // 2)
+        self.swipe(x, max(1, int(height * 0.02)), x, int(height * 0.62), ms=650, delay=delay)
+        return True
+
+    def close_notifications(self, delay=0.5) -> bool:
+        width, height = self.get_screen_size()
+        x = max(1, width // 2)
+        self.swipe(x, int(height * 0.78), x, int(height * 0.08), ms=450, delay=delay)
+        return True
+
+    def get_notifications(self) -> list[dict[str, Any]]:
+        self.open_notifications(delay=0.8)
+        lines: list[str] = []
+        seen: set[str] = set()
+        for entry in self.native_text_entries(include_controls=True, max_entries=120):
+            text = re.sub(r"\s+", " ", str(entry.get("text") or "")).strip()
+            if not text:
+                continue
+            key = text.lower()
+            if key in _IOS_NOTIFICATION_SKIP_TEXT or key in seen:
+                continue
+            seen.add(key)
+            lines.append(text)
+
+        notifications: list[dict[str, Any]] = []
+        for idx in range(0, len(lines), 2):
+            notifications.append(
+                {
+                    "package": "",
+                    "title": lines[idx],
+                    "text": lines[idx + 1] if idx + 1 < len(lines) else "",
+                    "time": "",
+                    "platform": "ios",
+                    "source": "notification_center",
+                }
+            )
+        return notifications
+
+    def clear_notifications(self, delay=0.8) -> bool:
+        self.open_notifications(delay=0.5)
+        xml = self.dump_xml()
+        for node in self.nodes(xml):
+            parts = [self.node_text(node), self.node_content_desc(node), self.node_rid(node)]
+            labels = {part.strip().lower() for part in parts if part.strip()}
+            label = " ".join(parts).strip().lower()
+            if labels & {"clear", "clear all"} or "clear all" in label:
+                if not self.tap_node(node, delay=delay):
+                    continue
+                try:
+                    updated_xml = self.dump_xml()
+                    for confirm_node in self.nodes(updated_xml):
+                        confirm_parts = [
+                            self.node_text(confirm_node),
+                            self.node_content_desc(confirm_node),
+                            self.node_rid(confirm_node),
+                        ]
+                        confirm_labels = {part.strip().lower() for part in confirm_parts if part.strip()}
+                        confirm = " ".join(confirm_parts).strip().lower()
+                        if confirm_labels & {"clear", "clear all"} or "clear all" in confirm:
+                            self.tap_node(confirm_node, delay=delay)
+                            break
+                except Exception:
+                    pass
+                return True
+        return False
 
     def get_phone_state(self) -> dict:
         rect = self._window_rect()

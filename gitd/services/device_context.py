@@ -539,6 +539,11 @@ def clipboard_set(device: str, text: str) -> bool:
 def get_notifications(device: str) -> list[dict]:
     """Get active notifications from the notification panel.
     Returns [{package, title, text, time}]."""
+    if is_ios_ref(device):
+        try:
+            return get_device(device).get_notifications()
+        except Exception:
+            return []
     dev = Device(device)
     try:
         out = dev.adb("shell", "dumpsys", "notification", "--noredact", timeout=10)
@@ -567,6 +572,11 @@ def get_notifications(device: str) -> list[dict]:
 
 def open_notifications(device: str) -> bool:
     """Pull down the notification shade."""
+    if is_ios_ref(device):
+        try:
+            return bool(get_device(device).open_notifications())
+        except Exception:
+            return False
     dev = Device(device)
     try:
         dev.adb("shell", "cmd", "statusbar", "expand-notifications", timeout=3)
@@ -577,6 +587,11 @@ def open_notifications(device: str) -> bool:
 
 def clear_notifications(device: str) -> bool:
     """Dismiss all notifications."""
+    if is_ios_ref(device):
+        try:
+            return bool(get_device(device).clear_notifications())
+        except Exception:
+            return False
     dev = Device(device)
     try:
         dev.adb("shell", "service", "call", "notification", "1", timeout=3)

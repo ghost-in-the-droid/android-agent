@@ -156,6 +156,7 @@ Supported on iOS:
 - `launch_app`
 - `search_apps`, `list_apps`, `list_packages` for configured/common iOS bundle IDs verified through Appium
 - `clipboard_get`, `clipboard_set`
+- `open_notifications`, `get_notifications`, and best-effort `clear_notifications` through Notification Center UI automation
 - `get_phone_state`, `classify_screen`, `find_on_screen`, OCR if RapidOCR is installed
 - Browser primitives: `open_url`, `web_search`, `browser_back`, `get_current_url`, `wait_for_text`, `extract_visible_text`, `extract_articles`
 - REST browser routes under `/api/phone/browser/*`
@@ -164,7 +165,7 @@ Supported on iOS:
 Android-only for now:
 
 - ADB shell commands and Android intents
-- Portal overlay, Portal TTS, paste shortcut, notifications
+- Portal overlay, Portal TTS, paste shortcut
 - Play Store helpers and arbitrary full-device package enumeration
 - TikTok Android flows
 
