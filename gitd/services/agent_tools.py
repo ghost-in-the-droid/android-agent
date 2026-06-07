@@ -430,6 +430,22 @@ def _ios_unsupported(tool_name: str) -> str:
     return platform_error_text(tool_name, "ios")
 
 
+def tools_for_device(device: str | None) -> list[dict]:
+    """Return the tools that should be offered to an agent for this device."""
+    if not device:
+        return list(TOOLS)
+    platform = "ios" if is_ios_ref(device) else "android"
+    return [tool for tool in TOOLS if supports_platform(tool["name"], platform)]
+
+
+def tool_prompt_list(tools: list[dict]) -> str:
+    """Compact tool list for text-only providers."""
+    return "\n".join(
+        f"- {t['name']}: {t['description']}  params: {list(t.get('input_schema', {}).get('properties', {}).keys())}"
+        for t in tools
+    )
+
+
 def execute_tool(name: str, args: dict) -> str:
     """Execute a tool call and return result as string.
     UI actions auto-append the screen tree so the agent sees the result immediately."""

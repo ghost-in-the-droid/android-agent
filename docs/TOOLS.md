@@ -21,6 +21,11 @@ Every public tool has an explicit platform classification exposed at
 | `ios_supported` | Implemented for iOS, while Android support is not exposed through this tool yet. |
 | `ios_planned` | Android implementation exists; iOS replacement is planned but not implemented. |
 
+Agent chat sessions filter their offered tool schemas by device ref. Android
+serials receive Android-supported tools; `ios:<udid>` sessions receive only
+iOS-supported and cross-platform tools. The full catalog remains visible in
+the tools hub for auditing.
+
 ## App lifecycle
 
 ### `launch_app(device, package, fresh=false)`
