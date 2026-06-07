@@ -18,7 +18,7 @@ template, KV cache hashing, multi-turn coherence, and the stop button.
 | `c1823b7` | Chat path loads disk-persist KV cache before generateStart |
 | `64769e9` | Rename `gemma-4-e2b-gguf` → `gemma-4-e2b-q4km-gguf` |
 | `2096c08` | **Stop button actually stops claude** (orphan subproc fix) |
-| `06fea2f` | WIP: vLLM provider for remote-gpu via SSH tunnel + adb reverse |
+| `06fea2f` | WIP: vLLM provider for remote GPU via SSH tunnel + adb reverse |
 
 ## The big-deal fixes
 

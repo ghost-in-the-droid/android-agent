@@ -414,12 +414,12 @@ def seed_default_strategies(conn: sqlite3.Connection):
     conn.executemany(
         "INSERT INTO outreach_strategies (name, description, message_template) VALUES (?, ?, ?)",
         [
-            ("Free credits offer",
-             "Offer free <our-product> credits in exchange for a post",
-             "Hey {name}! Love your content 🐾 We built an AI tool that turns pet photos into viral videos — want to try it for free? example.com"),
-            ("Collab ask",
-             "Direct collaboration ask",
-             "Hey {name}! We'd love to collab with you on <our-product> — AI pet video generation. Interested?"),
+            ("Generic friendly",
+             "Friendly intro template — customize for your use case",
+             "Hi {name}! Reaching out about a collab — let me know if interested."),
+            ("Generic collab",
+             "Direct collaboration ask — replace with your own messaging",
+             "Hey {name}! Would you be open to a small collab? Happy to share details."),
         ],
     )
     conn.commit()
