@@ -196,8 +196,14 @@ Share text:    action=android.intent.action.SEND extras='{"android.intent.extra.
 
 | tool | purpose |
 |---|---|
-| `get_notifications(device)` | JSON of active notifications. |
-| `open_notifications(device)` | Pull down the shade. |
+| `get_notifications(device)` | JSON of active notifications. Android uses dumpsys; iOS opens Notification Center and extracts visible text through WDA. |
+| `open_notifications(device)` | Pull down the shade or iOS Notification Center. |
+| `clear_notifications(device)` | Dismiss visible notifications when the platform exposes a clear control. |
+
+iOS notification support is UI-driven. `get_notifications` returns visible
+Notification Center text grouped into `{title, text}` records without package
+identity, and `clear_notifications` only succeeds when a visible Clear/Clear All
+control is present.
 
 ---
 

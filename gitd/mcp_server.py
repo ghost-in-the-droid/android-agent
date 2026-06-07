@@ -380,19 +380,22 @@ def paste_text(device: str, text: str) -> str:
 @mcp.tool()
 def get_notifications(device: str) -> str:
     """Get active notifications. Returns JSON array of {package, title, text}."""
-    if is_ios_ref(device):
-        return _ios_unsupported("get_notifications")
     from gitd.services.device_context import get_notifications as _notif
     return json.dumps(_notif(device), indent=2)
 
 
 @mcp.tool()
 def open_notifications(device: str) -> str:
-    """Pull down the notification shade."""
-    if is_ios_ref(device):
-        return _ios_unsupported("open_notifications")
+    """Pull down the notification shade or iOS Notification Center."""
     from gitd.services.device_context import open_notifications as _open
     return "Notification shade opened" if _open(device) else "Failed"
+
+
+@mcp.tool()
+def clear_notifications(device: str) -> str:
+    """Dismiss visible notifications when the platform exposes a clear control."""
+    from gitd.services.device_context import clear_notifications as _clear
+    return "Notifications cleared" if _clear(device) else "Failed"
 
 
 @mcp.tool()

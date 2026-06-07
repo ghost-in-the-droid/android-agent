@@ -376,6 +376,16 @@ TOOLS = [
         "description": "List active notifications.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
+    {
+        "name": "open_notifications",
+        "description": "Open the platform notification shade or Notification Center.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "clear_notifications",
+        "description": "Dismiss visible notifications when the platform exposes a clear control.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
     # Skills
     {
         "name": "list_skills",
@@ -963,6 +973,10 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return "Clipboard set"
         elif name == "get_notifications":
             return json.dumps(ctx.get_notifications(device), indent=2)
+        elif name == "open_notifications":
+            return "Notification shade opened" if ctx.open_notifications(device) else "Failed"
+        elif name == "clear_notifications":
+            return "Notifications cleared" if ctx.clear_notifications(device) else "Failed"
         elif name == "list_skills":
             from gitd.routers.skills import _load_all_skills, _load_skill
 

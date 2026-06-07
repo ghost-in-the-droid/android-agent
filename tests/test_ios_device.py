@@ -438,6 +438,73 @@ def test_clipboard_set_encodes_appium_payload(monkeypatch):
     assert base64.b64decode(calls[0]["json"]["content"]).decode() == "hello iOS"
 
 
+def test_ios_open_notifications_swipes_from_status_bar(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    calls = []
+
+    monkeypatch.setattr(dev, "get_screen_size", lambda: (390, 844))
+    monkeypatch.setattr(
+        dev,
+        "swipe",
+        lambda x1, y1, x2, y2, ms=500, delay=0.5: calls.append(
+            {"x1": x1, "y1": y1, "x2": x2, "y2": y2, "ms": ms, "delay": delay}
+        ),
+    )
+
+    assert dev.open_notifications() is True
+    assert calls == [{"x1": 195, "y1": 16, "x2": 195, "y2": 523, "ms": 650, "delay": 1.0}]
+
+
+def test_ios_get_notifications_groups_visible_notification_center_text(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+
+    monkeypatch.setattr(dev, "open_notifications", lambda delay=0.8: True)
+    monkeypatch.setattr(
+        dev,
+        "native_text_entries",
+        lambda include_controls=True, max_entries=120: [
+            {"text": "Notification Center"},
+            {"text": "Slack"},
+            {"text": "New message from Dana"},
+            {"text": "Calendar"},
+            {"text": "Standup in 10 minutes"},
+            {"text": "Clear"},
+        ],
+    )
+
+    assert dev.get_notifications() == [
+        {
+            "package": "",
+            "title": "Slack",
+            "text": "New message from Dana",
+            "time": "",
+            "platform": "ios",
+            "source": "notification_center",
+        },
+        {
+            "package": "",
+            "title": "Calendar",
+            "text": "Standup in 10 minutes",
+            "time": "",
+            "platform": "ios",
+            "source": "notification_center",
+        },
+    ]
+
+
+def test_ios_clear_notifications_taps_visible_clear_control(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    xml = '<hierarchy><node text="Clear" content-desc="Clear" resource-id="Clear" bounds="[10,10][90,50]"/></hierarchy>'
+    taps = []
+
+    monkeypatch.setattr(dev, "open_notifications", lambda delay=0.5: True)
+    monkeypatch.setattr(dev, "dump_xml", lambda: xml)
+    monkeypatch.setattr(dev, "tap_node", lambda node, delay=0.8: taps.append(node) or True)
+
+    assert dev.clear_notifications() is True
+    assert len(taps) >= 1
+
+
 @pytest.mark.skipif(
     not (os.getenv("IOS_APPIUM_URL") and os.getenv("IOS_DEVICE_UDID")),
     reason="set IOS_APPIUM_URL and IOS_DEVICE_UDID to run live iOS integration test",

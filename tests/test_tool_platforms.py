@@ -39,22 +39,38 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("list_apps", "ios") is True
     assert supports_platform("search_apps", "ios") is True
     assert supports_platform("list_packages", "ios") is True
+    assert supports_platform("get_notifications", "ios") is True
+    assert supports_platform("open_notifications", "ios") is True
+    assert supports_platform("clear_notifications", "ios") is True
 
     assert tool_platform_info("shell").support == "android_only"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
     assert tool_platform_info("clipboard_set").support == "cross_platform"
     assert tool_platform_info("list_apps").support == "cross_platform"
+    assert tool_platform_info("get_notifications").support == "cross_platform"
 
 
 def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     monkeypatch.setattr("gitd.services.device_context.clipboard_get", lambda device: "ios clipboard")
+    monkeypatch.setattr(
+        "gitd.services.device_context.get_notifications",
+        lambda device: [{"title": "Slack", "text": "New message", "platform": "ios"}],
+    )
+    monkeypatch.setattr("gitd.services.device_context.open_notifications", lambda device: True)
+    monkeypatch.setattr("gitd.services.device_context.clear_notifications", lambda device: True)
 
     shell = execute_tool("shell", {"device": "ios:abc123", "command": "ls"})
     clipboard = execute_tool("clipboard_get", {"device": "ios:abc123"})
+    notifications = json.loads(execute_tool("get_notifications", {"device": "ios:abc123"}))
+    opened = execute_tool("open_notifications", {"device": "ios:abc123"})
+    cleared = execute_tool("clear_notifications", {"device": "ios:abc123"})
     unknown = execute_tool("does_not_exist", {"device": "ios:abc123"})
 
     assert shell.startswith("ERROR: shell is Android-only")
     assert clipboard == "ios clipboard"
+    assert notifications == [{"title": "Slack", "text": "New message", "platform": "ios"}]
+    assert opened == "Notification shade opened"
+    assert cleared == "Notifications cleared"
     assert unknown == "Unknown tool: does_not_exist"
 
 
@@ -72,6 +88,9 @@ def test_tools_for_device_filters_by_platform():
     assert "list_apps" in ios_names
     assert "search_apps" in ios_names
     assert "list_packages" in ios_names
+    assert "get_notifications" in ios_names
+    assert "open_notifications" in ios_names
+    assert "clear_notifications" in ios_names
 
     assert "shell" in android_names
     assert "get_current_url" not in android_names
