@@ -2,6 +2,9 @@ name: tiktok
 description: TikTok automation skill — upload, crawl, outreach, engage, analytics
 version: "1.0.0"
 app_package: com.zhiliaoapp.musically
+android_package: com.zhiliaoapp.musically
+platforms:
+  - android
 app_version_tested: "44.3.3"
 exports:
   actions:

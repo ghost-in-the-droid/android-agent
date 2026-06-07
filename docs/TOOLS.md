@@ -117,6 +117,34 @@ web_search(device, "self-hosted langfuse", engine="ddg") # → Chrome / DuckDuck
 Both work through `gitd/services/browser.py` when the model is `claude-code`
 (MCP) or `on-device` Gemma.
 
+## Skills
+
+Skill metadata is platform-aware. `skill.yaml` can declare:
+
+```yaml
+platforms: ["android"]          # or ["ios"], or ["android", "ios"]
+app_package: com.example.app    # legacy Android package field
+android_package: com.example.app
+ios_bundle_id: com.google.chrome.ios
+```
+
+Legacy skills without `platforms` remain Android skills unless they declare an
+`ios_bundle_id`. REST, MCP, scheduler jobs, and in-process agent tools all
+reject unsupported device refs before starting the skill runner.
+
+### `list_skills(device=None, supported_only=false)`
+
+Returns installed skills with `platforms`, `supports_android`, `supports_ios`,
+Android package, iOS bundle id, actions, and workflows. Supplying `device`
+adds `supported_on_device`; `supported_only=true` filters incompatible skills
+for the target device.
+
+### `run_skill(device, skill, workflow, params={})`
+
+Runs a workflow only when the skill supports the target platform. Android-only
+skills return a stable unsupported-platform error for `ios:<udid>` instead of
+being queued and failing later.
+
 ## Intents (escape hatch)
 
 ### `launch_intent(device, action, data, package, extras)`

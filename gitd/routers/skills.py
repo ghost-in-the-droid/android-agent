@@ -13,6 +13,12 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from gitd.models.base import get_db
+from gitd.skills.platforms import (
+    normalize_platforms,
+    skill_platform_error,
+    skill_platform_summary,
+    skill_supports_device,
+)
 
 router = APIRouter(prefix="/api/skills", tags=["skills"])
 
@@ -46,6 +52,16 @@ def _fetch_cached(url: str, cache_key: str) -> list:
 _SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
 
 
+def _require_skill_supports_device(name: str, device: str) -> dict:
+    skills = _load_all_skills()
+    if name not in skills:
+        raise HTTPException(status_code=404, detail=f'Skill "{name}" not found')
+    meta = skills[name].get("metadata") or {}
+    if not skill_supports_device(meta, device):
+        raise HTTPException(status_code=400, detail=skill_platform_error(name, meta, device))
+    return meta
+
+
 def _load_all_skills() -> dict:
     """Load all installed skills from gitd/skills/."""
     results = {}
@@ -62,14 +78,21 @@ def _load_all_skills() -> dict:
                 if (d / "elements_ios.yaml").exists():
                     elements_ios = yaml.safe_load((d / "elements_ios.yaml").read_text()) or {}
                 popups = meta.get("popup_detectors", [])
+                platform_summary = skill_platform_summary(meta)
                 results[d.name] = {
                     "name": meta.get("name", d.name),
                     "description": meta.get("description", ""),
                     "version": meta.get("version", "0.0.0"),
-                    "app_package": meta.get("app_package", ""),
-                    "ios_bundle_id": meta.get("ios_bundle_id", ""),
+                    "app_package": platform_summary["app_package"],
+                    "android_package": platform_summary["android_package"],
+                    "ios_bundle_id": platform_summary["ios_bundle_id"],
+                    "platforms": platform_summary["platforms"],
+                    "supports_android": platform_summary["supports_android"],
+                    "supports_ios": platform_summary["supports_ios"],
+                    "platform_limitations": platform_summary["platform_limitations"],
                     "dir": d.name,
                     "elements_count": len(elements),
+                    "elements_android_count": len(elements),
                     "elements_ios_count": len(elements_ios),
                     "popup_count": len(popups),
                     "popup_detectors": popups,
@@ -99,10 +122,12 @@ def _load_skill(name: str):
 
 
 @router.get("", summary="List All Installed Skills")
-def api_skills_list():
+def api_skills_list(device: str = ""):
     """List all installed skills."""
     skills = _load_all_skills()
     for name, info in skills.items():
+        if device:
+            info["supported_on_device"] = skill_supports_device(info.get("metadata") or {}, device)
         try:
             s = _load_skill(name)
             if s is None:
@@ -242,12 +267,14 @@ def api_skill_runs(device: str = "", skill: str = "", limit: int = 50, db: Sessi
 
 
 @router.get("/{name}", summary="Get Skill Detail")
-def api_skill_detail(name: str):
+def api_skill_detail(name: str, device: str = ""):
     """Skill detail."""
     skills = _load_all_skills()
     if name not in skills:
         raise HTTPException(status_code=404, detail=f'Skill "{name}" not found')
     info = skills[name]
+    if device:
+        info["supported_on_device"] = skill_supports_device(info.get("metadata") or {}, device)
     try:
         s = _load_skill(name)
         if s is None:
@@ -317,6 +344,7 @@ def api_skill_run(name: str, data: dict = Body({})):
         raise HTTPException(status_code=400, detail="workflow name required")
     if not device_serial:
         raise HTTPException(status_code=400, detail="device serial required")
+    _require_skill_supports_device(name, device_serial)
 
     from gitd.models import SessionLocal
     from gitd.services.db_helpers import enqueue_job
@@ -346,6 +374,7 @@ def api_skill_run_action(name: str, data: dict = Body({})):
         raise HTTPException(status_code=400, detail="action name required")
     if not device_serial:
         raise HTTPException(status_code=400, detail="device serial required")
+    _require_skill_supports_device(name, device_serial)
 
     from gitd.models import SessionLocal
     from gitd.services.db_helpers import enqueue_job
@@ -377,6 +406,7 @@ def api_skill_verify(name: str, data: dict = Body({})):
         raise HTTPException(status_code=400, detail="device serial required")
     if not workflow_name and not action_name:
         raise HTTPException(status_code=400, detail="workflow or action name required")
+    _require_skill_supports_device(name, device_serial)
 
     import subprocess
 
@@ -424,6 +454,9 @@ def api_skills_create_from_recording(data: dict = Body({})):
     name = data.get("name", "new_skill").strip().lower().replace(" ", "_")
     steps = data.get("steps", [])
     app_package = data.get("app_package", "")
+    android_package = data.get("android_package", app_package)
+    ios_bundle_id = data.get("ios_bundle_id", "")
+    platforms = normalize_platforms(data.get("platforms")) or (["ios"] if ios_bundle_id and not app_package else ["android"])
 
     if not name or not steps:
         raise HTTPException(status_code=400, detail="name and steps required")
@@ -439,11 +472,19 @@ def api_skills_create_from_recording(data: dict = Body({})):
         "name": name,
         "version": "1.0.0",
         "app_package": app_package,
+        "android_package": android_package,
+        "ios_bundle_id": ios_bundle_id,
+        "platforms": platforms,
         "description": f"Auto-generated skill from {len(steps)} recorded steps",
     }
     (skill_dir / "skill.yaml").write_text(yaml.dump(meta, default_flow_style=False))
     (skill_dir / "workflows" / "recorded.json").write_text(json.dumps(steps, indent=2))
     (skill_dir / "__init__.py").write_text(f'"""Skill: {name} -- auto-generated from recording."""\n')
+    elements_android = data.get("elements_android") or data.get("elements")
+    if elements_android is not None:
+        (skill_dir / "elements.yaml").write_text(yaml.dump(elements_android, default_flow_style=False))
+    if data.get("elements_ios") is not None:
+        (skill_dir / "elements_ios.yaml").write_text(yaml.dump(data["elements_ios"], default_flow_style=False))
 
     return {"ok": True, "skill": name, "steps": len(steps), "dir": str(skill_dir)}
 
@@ -475,14 +516,25 @@ def api_skill_update(name: str, data: dict = Body({})):
         meta["name"] = data["name"]
     if data.get("description"):
         meta["description"] = data["description"]
-    if data.get("app_package"):
+    if "platforms" in data:
+        meta["platforms"] = normalize_platforms(data.get("platforms"))
+    if "app_package" in data:
         meta["app_package"] = data["app_package"]
+    if "android_package" in data:
+        meta["android_package"] = data["android_package"]
+    if "ios_bundle_id" in data:
+        meta["ios_bundle_id"] = data["ios_bundle_id"]
     meta_path.write_text(yaml.dump(meta, default_flow_style=False))
 
     if data.get("steps"):
         rec_dir = skill_dir / "workflows"
         rec_dir.mkdir(exist_ok=True)
         (rec_dir / "recorded.json").write_text(json.dumps(data["steps"], indent=2))
+    if "elements" in data or "elements_android" in data:
+        elements_android = data.get("elements_android") if "elements_android" in data else data.get("elements")
+        (skill_dir / "elements.yaml").write_text(yaml.dump(elements_android or {}, default_flow_style=False))
+    if "elements_ios" in data:
+        (skill_dir / "elements_ios.yaml").write_text(yaml.dump(data.get("elements_ios") or {}, default_flow_style=False))
 
     return {"ok": True, "steps": len(data.get("steps", []))}
 

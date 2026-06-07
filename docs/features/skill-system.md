@@ -62,8 +62,9 @@ return success (with total completed_steps)
 
 ```
 skills/tiktok/
-├── skill.yaml           # metadata: name, version, app_package, description, exports
-├── elements.yaml        # 41 UI elements with fallback locator chains
+├── skill.yaml           # metadata: name, version, platforms, packages/bundle ids, exports
+├── elements.yaml        # Android UI elements with fallback locator chains
+├── elements_ios.yaml    # optional iOS UI elements for the same named locators
 ├── __init__.py          # load() function — registers all actions + workflows
 ├── actions/
 │   ├── __init__.py      # re-exports all action classes
@@ -84,7 +85,24 @@ skills/tiktok/
 | `Element` | Locator chain: `content_desc → text → resource_id → class_name → (x, y)`. `find(device, xml) → (cx, cy)` |
 | `Action` (abstract) | `precondition()`, `execute() → ActionResult` (must implement), `postcondition()`, `rollback()`. `run()` orchestrates with retry (max_retries=2, retry_delay=1.0s). |
 | `Workflow` | `steps() → list[Action]` (override). `run()` executes all steps, stops on first failure. |
-| `Skill` | Loads `skill.yaml` + `elements.yaml`. `register_action/workflow()`, `get_action/workflow(name, device)`, `list_actions/workflows()`. Properties: `name`, `app_package`, `version`. |
+| `Skill` | Loads `skill.yaml`, `elements.yaml`, and `elements_ios.yaml` when needed. `register_action/workflow()`, `get_action/workflow(name, device)`, `list_actions/workflows()`. Properties: `name`, `app_package`, `android_package`, `ios_bundle_id`, `platforms`, `version`. |
+
+## Platform Metadata
+
+Skills can declare platform compatibility explicitly:
+
+```yaml
+platforms:
+  - android
+app_package: com.zhiliaoapp.musically
+android_package: com.zhiliaoapp.musically
+ios_bundle_id: com.google.chrome.ios
+```
+
+Legacy skills without `platforms` are treated as Android skills unless they
+declare `ios_bundle_id`. REST, MCP, scheduler jobs, and direct skill runner
+execution reject unsupported device refs with a stable `unsupported_platform`
+error before starting device automation.
 
 ## TikTok Actions (13)
 

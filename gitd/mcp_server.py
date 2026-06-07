@@ -20,6 +20,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gitd.bots.common.adb import Device
 from gitd.bots.common.device import get_device, is_ios_ref, list_connected_device_refs
+from gitd.skills.platforms import (
+    skill_platform_error_text,
+    skill_platform_summary,
+    skill_supports_device,
+)
 from gitd.services.tool_platforms import platform_error_text
 
 mcp = FastMCP(
@@ -34,6 +39,15 @@ mcp = FastMCP(
 
 def _ios_unsupported(tool_name: str) -> str:
     return platform_error_text(tool_name, "ios")
+
+
+def _load_skill_metadata(skill: str) -> dict:
+    import yaml
+
+    meta_path = Path(__file__).parent / "skills" / skill / "skill.yaml"
+    if not meta_path.exists():
+        return {}
+    return yaml.safe_load(meta_path.read_text()) or {}
 
 
 # ── Tier 1: Raw Android Control ──────────────────────────────────────────
@@ -490,8 +504,8 @@ def find_on_screen(device: str, text: str) -> str:
 
 
 @mcp.tool()
-def list_skills() -> str:
-    """List all installed Android automation skills with their actions and workflows.
+def list_skills(device: str = "") -> str:
+    """List all installed mobile automation skills with their actions, workflows, and platform support.
     Use this to discover what high-level automations are available.
     Prefer using run_workflow() over raw tap/swipe when a skill exists for the task."""
     import yaml
@@ -502,12 +516,19 @@ def list_skills() -> str:
         meta_path = d / "skill.yaml"
         if d.is_dir() and meta_path.exists() and not d.name.startswith("__"):
             meta = yaml.safe_load(meta_path.read_text()) or {}
+            platform_summary = skill_platform_summary(meta)
             info = {
                 "name": meta.get("name", d.name),
-                "app_package": meta.get("app_package"),
-                "ios_bundle_id": meta.get("ios_bundle_id"),
+                "app_package": platform_summary["app_package"],
+                "android_package": platform_summary["android_package"],
+                "ios_bundle_id": platform_summary["ios_bundle_id"],
+                "platforms": platform_summary["platforms"],
+                "supports_android": platform_summary["supports_android"],
+                "supports_ios": platform_summary["supports_ios"],
                 "description": meta.get("description", ""),
             }
+            if device:
+                info["supported_on_device"] = skill_supports_device(meta, device)
             # Try loading runtime actions/workflows
             try:
                 mod = importlib.import_module(f"gitd.skills.{d.name}")
@@ -541,6 +562,9 @@ def run_workflow(device: str, skill: str, workflow: str, params: str = "{}") -> 
       run_workflow("SERIAL", "send_gmail_email", "recorded", '{"subject": "Hello", "body": "Test"}')
 
     params is a JSON string of keyword arguments for the workflow."""
+    meta = _load_skill_metadata(skill)
+    if not skill_supports_device(meta, device):
+        return skill_platform_error_text(skill, meta, device)
     parsed_params = json.loads(params)
     runner = Path(__file__).parent / "skills" / "_run_skill.py"
     result = subprocess.run(
@@ -578,6 +602,9 @@ def run_action(device: str, skill: str, action: str, params: str = "{}") -> str:
     Examples:
       run_action("SERIAL", "tiktok", "open_app", '{}')
       run_action("SERIAL", "tiktok", "type_and_search", '{"query": "cats"}')"""
+    meta = _load_skill_metadata(skill)
+    if not skill_supports_device(meta, device):
+        return skill_platform_error_text(skill, meta, device)
     parsed_params = json.loads(params)
     runner = Path(__file__).parent / "skills" / "_run_skill.py"
     result = subprocess.run(

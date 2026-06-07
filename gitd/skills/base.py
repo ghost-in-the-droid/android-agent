@@ -17,6 +17,13 @@ from typing import Any
 
 from gitd.bots.common.adb import Device
 from gitd.bots.common.device import is_ios_ref
+from gitd.skills.platforms import (
+    skill_android_package,
+    skill_ios_bundle_id,
+    skill_platforms,
+    skill_supports_device,
+    skill_target_for_device,
+)
 
 log = logging.getLogger(__name__)
 
@@ -490,11 +497,19 @@ class Skill:
 
     @property
     def app_package(self) -> str:
-        return self.metadata.get('app_package', '')
+        return skill_android_package(self.metadata)
+
+    @property
+    def android_package(self) -> str:
+        return skill_android_package(self.metadata)
 
     @property
     def ios_bundle_id(self) -> str:
-        return self.metadata.get('ios_bundle_id', '')
+        return skill_ios_bundle_id(self.metadata)
+
+    @property
+    def platforms(self) -> list[str]:
+        return skill_platforms(self.metadata)
 
     @property
     def version(self) -> str:
@@ -524,11 +539,12 @@ class Skill:
             return cls
         wf = cls(device, self._elements_for_device(device), **kwargs)
         wf._popup_detectors = self.popup_detectors or None
-        if _device_is_ios(device) and self.ios_bundle_id:
-            wf.app_package = self.ios_bundle_id
-        else:
-            wf.app_package = self.metadata.get('app_package', '') or ''
+        wf.app_package = skill_target_for_device(self.metadata, getattr(device, 'serial', str(device))) or ''
         return wf
+
+    def supports_device(self, device: Device | str | None) -> bool:
+        serial = getattr(device, 'serial', device)
+        return skill_supports_device(self.metadata, str(serial) if serial else None)
 
     def list_actions(self) -> list[str]:
         return list(self._actions.keys())
