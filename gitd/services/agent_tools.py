@@ -232,12 +232,12 @@ TOOLS = [
     },
     {
         "name": "list_apps",
-        "description": "List installed apps with human-readable names and package names. Returns [{name, package}]. Use search_apps for faster lookup.",
+        "description": "List installed apps with human-readable names and Android package names or iOS bundle ids. Returns [{name, package}]. Use search_apps for faster lookup.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
         "name": "search_apps",
-        "description": "Search installed apps by name. E.g. search_apps('tiktok') returns matching apps with package names. Case-insensitive.",
+        "description": "Search installed apps by name. Returns Android package names or iOS bundle ids. Case-insensitive.",
         "input_schema": {
             "type": "object",
             "properties": {"device": {"type": "string"}, "query": {"type": "string"}},
@@ -881,6 +881,9 @@ def _execute_tool_inner(name: str, args: dict) -> str:
 
             return dumps(_extract_articles(device, max_items=int(args.get("max_items", 5))))
         elif name == "list_apps" or name == "search_apps":
+            if is_ios_ref(device):
+                query = args.get("query", "") if name == "search_apps" else ""
+                return json.dumps(get_device(device).list_apps(query=query), indent=2)
             out = Device(device).adb("shell", "pm", "list", "packages", timeout=10)
             pkgs = [p.replace("package:", "").strip() for p in out.splitlines() if p.startswith("package:")]
             # Known app names for common packages
@@ -937,6 +940,9 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 apps = [a for a in apps if query in a["name"].lower() or query in a["package"].lower()]
             return json.dumps(apps, indent=2)
         elif name == "list_packages":
+            if is_ios_ref(device):
+                apps = get_device(device).list_apps()
+                return json.dumps([app["bundle_id"] for app in apps][:50], indent=2)
             out = Device(device).adb("shell", "pm", "list", "packages", "-3", timeout=15)
             pkgs = [p.replace("package:", "").strip() for p in out.splitlines() if p.startswith("package:")]
             return json.dumps(pkgs[:50])

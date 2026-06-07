@@ -53,7 +53,15 @@ iOS until focused-field paste behavior is reliable.
 
 ### `search_apps(device, query)` / `list_apps(device)` / `list_packages(device)`
 
-Find package names. Use `search_apps` first, fall back to `list_apps`.
+Find Android package names or iOS bundle IDs. Use `search_apps` first, fall
+back to `list_apps`.
+
+Android uses `pm list packages`. iOS cannot provide arbitrary full-device app
+enumeration through WDA, so Ghost combines configured bundle IDs
+(`IOS_KNOWN_APPS_JSON` or per-device `known_apps`) with common bundle IDs and
+verifies them with Appium `mobile: queryAppState` when possible. Unverified iOS
+results include `verified=false` and a `verification_error` instead of silently
+pretending the device was fully enumerated.
 
 ## Web
 

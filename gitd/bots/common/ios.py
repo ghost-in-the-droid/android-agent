@@ -94,6 +94,7 @@ class IOSDeviceConfig:
     wda_connection_timeout: int = 0
     wda_startup_retries: int = 0
     wda_startup_retry_interval: int = 0
+    known_apps: tuple[tuple[str, str], ...] = ()
 
     def capabilities(self) -> dict[str, Any]:
         caps: dict[str, Any] = {}
@@ -171,6 +172,8 @@ _CONFIG_ENV_FIELDS = {
     "IOS_WDA_CONNECTION_TIMEOUT": "wda_connection_timeout",
     "IOS_WDA_STARTUP_RETRIES": "wda_startup_retries",
     "IOS_WDA_STARTUP_RETRY_INTERVAL": "wda_startup_retry_interval",
+    "IOS_KNOWN_APPS_JSON": "known_apps",
+    "IOS_APPS_JSON": "known_apps",
 }
 
 _INT_CONFIG_FIELDS = {
@@ -201,6 +204,38 @@ _BROWSER_CONTROL_TEXT = {
     "done",
     "cancel",
     "search or type web address",
+}
+
+_COMMON_IOS_APPS: tuple[tuple[str, str], ...] = (
+    ("Chrome", "com.google.chrome.ios"),
+    ("Safari", "com.apple.mobilesafari"),
+    ("Settings", "com.apple.Preferences"),
+    ("Camera", "com.apple.camera"),
+    ("Photos", "com.apple.mobileslideshow"),
+    ("Messages", "com.apple.MobileSMS"),
+    ("Phone", "com.apple.mobilephone"),
+    ("Mail", "com.apple.mobilemail"),
+    ("App Store", "com.apple.AppStore"),
+    ("Gmail", "com.google.Gmail"),
+    ("Google Maps", "com.google.Maps"),
+    ("Google Photos", "com.google.photos"),
+    ("YouTube", "com.google.ios.youtube"),
+    ("TikTok", "com.zhiliaoapp.musically"),
+    ("Instagram", "com.burbn.instagram"),
+    ("Facebook", "com.facebook.Facebook"),
+    ("Messenger", "com.facebook.Messenger"),
+    ("WhatsApp", "net.whatsapp.WhatsApp"),
+    ("X", "com.atebits.Tweetie2"),
+    ("Reddit", "com.reddit.Reddit"),
+    ("Spotify", "com.spotify.client"),
+)
+
+_IOS_APP_STATE_NAMES = {
+    0: "not_installed",
+    1: "not_running",
+    2: "running_background_suspended",
+    3: "running_background",
+    4: "running_foreground",
 }
 
 _WEB_TEXT_JS = r"""
@@ -273,6 +308,8 @@ def _as_bool(value: Any) -> bool:
 def _clean_config_value(field_name: str, value: Any) -> Any:
     if value in ("", None):
         return None
+    if field_name == "known_apps":
+        return _normalize_ios_app_inventory(value)
     if field_name in _BOOL_CONFIG_FIELDS:
         return _as_bool(value)
     if field_name in _INT_CONFIG_FIELDS:
@@ -283,6 +320,86 @@ def _clean_config_value(field_name: str, value: Any) -> Any:
         except (TypeError, ValueError):
             return None
     return str(value)
+
+
+def _looks_like_bundle_id(value: str) -> bool:
+    return "." in value and not any(ch.isspace() for ch in value)
+
+
+def _guess_ios_app_name(bundle_id: str) -> str:
+    for name, known_bundle_id in _COMMON_IOS_APPS:
+        if known_bundle_id == bundle_id:
+            return name
+    parts = [p for p in re.split(r"[.\-_]+", bundle_id) if p]
+    ignored = {"ios", "iphone", "ipad", "client", "app", "mobile"}
+    token = next((part for part in reversed(parts) if part.lower() not in ignored), bundle_id)
+    if token.isupper():
+        return token
+    return token.replace("_", " ").replace("-", " ").title()
+
+
+def _normalize_ios_app_inventory(value: Any) -> tuple[tuple[str, str], ...]:
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return ()
+        if raw.startswith("{") or raw.startswith("["):
+            try:
+                value = json.loads(raw)
+            except json.JSONDecodeError:
+                return ()
+        else:
+            value = [item.strip() for item in raw.split(",") if item.strip()]
+
+    rows: list[tuple[str, str]] = []
+    if isinstance(value, dict):
+        items = value.items()
+        for raw_name, raw_bundle_id in items:
+            if isinstance(raw_bundle_id, dict):
+                name = str(raw_bundle_id.get("name") or raw_name or "").strip()
+                bundle_id = str(
+                    raw_bundle_id.get("bundle_id")
+                    or raw_bundle_id.get("bundleId")
+                    or raw_bundle_id.get("package")
+                    or raw_bundle_id.get("app_package")
+                    or raw_bundle_id.get("id")
+                    or ""
+                ).strip()
+            else:
+                left = str(raw_name or "").strip()
+                right = str(raw_bundle_id or "").strip()
+                if _looks_like_bundle_id(left) and not _looks_like_bundle_id(right):
+                    name, bundle_id = right or _guess_ios_app_name(left), left
+                else:
+                    name, bundle_id = left, right
+            if bundle_id:
+                rows.append((name or _guess_ios_app_name(bundle_id), bundle_id))
+    elif isinstance(value, list | tuple):
+        for item in value:
+            if isinstance(item, dict):
+                bundle_id = str(
+                    item.get("bundle_id")
+                    or item.get("bundleId")
+                    or item.get("package")
+                    or item.get("app_package")
+                    or item.get("id")
+                    or ""
+                ).strip()
+                name = str(item.get("name") or item.get("label") or "").strip()
+            else:
+                bundle_id = str(item or "").strip()
+                name = ""
+            if bundle_id:
+                rows.append((name or _guess_ios_app_name(bundle_id), bundle_id))
+
+    out: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for name, bundle_id in rows:
+        if bundle_id in seen:
+            continue
+        seen.add(bundle_id)
+        out.append((name, bundle_id))
+    return tuple(out)
 
 
 def _load_ios_devices_blob() -> dict[str, Any]:
@@ -898,6 +1015,82 @@ class IOSDevice:
         self._execute_mobile("mobile: terminateApp", {"bundleId": bundle_id})
         time.sleep(delay)
         return bundle_id
+
+    def _candidate_apps(self) -> list[dict[str, str]]:
+        candidates: list[dict[str, str]] = []
+        seen: set[str] = set()
+
+        def add(name: str, bundle_id: str, source: str) -> None:
+            if not bundle_id or bundle_id in seen:
+                return
+            seen.add(bundle_id)
+            candidates.append(
+                {
+                    "name": name or _guess_ios_app_name(bundle_id),
+                    "package": bundle_id,
+                    "bundle_id": bundle_id,
+                    "platform": "ios",
+                    "source": source,
+                }
+            )
+
+        for name, bundle_id in self.config.known_apps:
+            add(name, bundle_id, "configured")
+        add(_guess_ios_app_name(self.bundle_id), self.bundle_id, "default")
+        for name, bundle_id in _COMMON_IOS_APPS:
+            add(name, bundle_id, "common")
+        return candidates
+
+    def app_state(self, bundle_id: str) -> int:
+        value = self._execute_mobile("mobile: queryAppState", {"bundleId": bundle_id})
+        if isinstance(value, dict):
+            value = value.get("state", value.get("appState", value.get("value", 0)))
+        return _intish(value)
+
+    def is_app_installed(self, bundle_id: str) -> bool:
+        return self.app_state(bundle_id) > 0
+
+    def list_apps(self, query: str = "", *, verify: bool = True) -> list[dict[str, Any]]:
+        """Return known iOS apps, verifying installation through Appium when possible.
+
+        iOS does not expose Android-style arbitrary package enumeration to a host
+        controller.  This method combines user-configured bundle IDs and common
+        bundle IDs, then uses Appium's queryAppState extension to filter installed
+        apps when WDA is available.
+        """
+        needle = (query or "").strip().lower()
+        apps: list[dict[str, Any]] = []
+        verification_error = ""
+
+        for candidate in self._candidate_apps():
+            searchable = " ".join([candidate["name"], candidate["package"], candidate["bundle_id"]]).lower()
+            if needle and needle not in searchable:
+                continue
+
+            app = dict(candidate)
+            app["verified"] = False
+            app["installed"] = None
+
+            if verify:
+                if verification_error:
+                    app["verification_error"] = verification_error
+                else:
+                    try:
+                        state = self.app_state(candidate["bundle_id"])
+                        if state <= 0:
+                            continue
+                        app["verified"] = True
+                        app["installed"] = True
+                        app["app_state"] = state
+                        app["app_state_name"] = _IOS_APP_STATE_NAMES.get(state, "unknown")
+                    except Exception as e:
+                        verification_error = str(e)
+                        app["verification_error"] = verification_error
+            apps.append(app)
+
+        source_order = {"configured": 0, "default": 1, "common": 2}
+        apps.sort(key=lambda item: (source_order.get(str(item.get("source")), 9), str(item.get("name", "")).lower()))
+        return apps
 
     def clipboard_get(self) -> str:
         value = self._request(

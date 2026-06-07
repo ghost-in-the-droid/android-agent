@@ -92,6 +92,10 @@ def test_per_device_ios_config_from_json(monkeypatch):
                 "abc123": {
                     "appium_url": "http://127.0.0.1:4725",
                     "bundle_id": "com.google.chrome.ios",
+                    "known_apps": [
+                        {"name": "Chrome", "bundle_id": "com.google.chrome.ios"},
+                        {"name": "NPR", "bundleId": "org.npr.NPR"},
+                    ],
                     "mjpeg_server_port": 9101,
                     "wda_launch_timeout": 180000,
                     "allow_provisioning_device_registration": True,
@@ -104,10 +108,79 @@ def test_per_device_ios_config_from_json(monkeypatch):
     cfg = ios_config_for_udid("ios:abc123")
     assert cfg.appium_url == "http://127.0.0.1:4725"
     assert cfg.bundle_id == "com.google.chrome.ios"
+    assert cfg.known_apps == (("Chrome", "com.google.chrome.ios"), ("NPR", "org.npr.NPR"))
     assert cfg.mjpeg_server_port == 9101
     assert cfg.capabilities()["appium:mjpegServerPort"] == 9101
     assert cfg.capabilities()["appium:wdaLaunchTimeout"] == 180000
     assert cfg.capabilities()["appium:allowProvisioningDeviceRegistration"] is True
+
+
+def test_ios_known_apps_env_accepts_name_to_bundle_mapping(monkeypatch):
+    monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+    monkeypatch.setenv("IOS_KNOWN_APPS_JSON", json.dumps({"Chrome": "com.google.chrome.ios", "NPR": "org.npr.NPR"}))
+
+    cfg = ios_config_for_udid("ios:abc123")
+
+    assert cfg.known_apps == (("Chrome", "com.google.chrome.ios"), ("NPR", "org.npr.NPR"))
+
+
+def test_list_apps_verifies_known_ios_bundles_with_appium(monkeypatch):
+    monkeypatch.delenv("IOS_BUNDLE_ID", raising=False)
+    monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+    monkeypatch.delenv("IOS_KNOWN_APPS_JSON", raising=False)
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append({"method": method, "url": url, "json": json})
+        if url.endswith("/session/session-1/execute/sync"):
+            assert json["script"] == "mobile: queryAppState"
+            bundle_id = json["args"][0]["bundleId"]
+            state = 4 if bundle_id == "com.google.chrome.ios" else 0
+            return FakeResponse({"value": state})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-1"
+
+    chrome = dev.list_apps(query="chrome")
+    tiktok = dev.list_apps(query="tiktok")
+
+    assert chrome == [
+        {
+            "name": "Chrome",
+            "package": "com.google.chrome.ios",
+            "bundle_id": "com.google.chrome.ios",
+            "platform": "ios",
+            "source": "common",
+            "verified": True,
+            "installed": True,
+            "app_state": 4,
+            "app_state_name": "running_foreground",
+        }
+    ]
+    assert tiktok == []
+    assert len(calls) == 2
+
+
+def test_list_apps_returns_unverified_candidates_when_appium_is_unavailable(monkeypatch):
+    monkeypatch.delenv("IOS_BUNDLE_ID", raising=False)
+    monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+    monkeypatch.delenv("IOS_KNOWN_APPS_JSON", raising=False)
+
+    def fake_request(method, url, json=None, timeout=None):
+        raise __import__("requests").ConnectionError("connection refused")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+
+    apps = dev.list_apps(query="chrome")
+
+    assert apps[0]["name"] == "Chrome"
+    assert apps[0]["bundle_id"] == "com.google.chrome.ios"
+    assert apps[0]["verified"] is False
+    assert apps[0]["installed"] is None
+    assert "connection refused" in apps[0]["verification_error"]
 
 
 def test_session_creation_uses_appium_xcuitest_payload(monkeypatch):
