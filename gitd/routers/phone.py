@@ -9,6 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from gitd.models.base import get_db
+from gitd.bots.common.device import get_device, ios_refs_from_env, is_ios_ref
 
 router = APIRouter(prefix="/api/phone", tags=["phone"])
 
@@ -45,62 +46,82 @@ def _try_wifi_reconnect(db: Session):
 def phone_devices(db: Session = Depends(get_db)):
     """List ADB-connected devices with model info and nicknames."""
     try:
+        devices = []
+        adb_error = ""
         # Try reconnecting known WiFi devices that aren't currently connected
         _try_wifi_reconnect(db)
 
-        out = subprocess.check_output(["adb", "devices", "-l"], timeout=5).decode()
-        devices = []
-        for line in out.strip().split("\n")[1:]:
-            line = line.strip()
-            if not line:
-                continue
-            parts = line.split()
-            if len(parts) < 2 or parts[1] not in ("device", "recovery", "sideload"):
-                continue
-            serial = parts[0]
-            model = ""
-            if "model:" in line:
-                model = line.split("model:")[1].split()[0].replace("_", " ")
-            now_str = __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            is_wifi = ":" in serial
+        try:
+            out = subprocess.check_output(["adb", "devices", "-l"], timeout=5).decode()
+        except Exception as e:
+            out = ""
+            adb_error = str(e)
+        if out:
+            for line in out.strip().split("\n")[1:]:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split()
+                if len(parts) < 2 or parts[1] not in ("device", "recovery", "sideload"):
+                    continue
+                serial = parts[0]
+                model = ""
+                if "model:" in line:
+                    model = line.split("model:")[1].split()[0].replace("_", " ")
+                now_str = __import__("datetime").datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                is_wifi = ":" in serial
 
-            # Save WiFi IP to DB for auto-reconnect
-            wifi_ip = serial.split(":")[0] if is_wifi else None
-            wifi_port = int(serial.split(":")[1]) if is_wifi and ":" in serial else None
-            conn_type = "wifi" if is_wifi else "usb"
+                # Save WiFi IP to DB for auto-reconnect
+                wifi_ip = serial.split(":")[0] if is_wifi else None
+                wifi_port = int(serial.split(":")[1]) if is_wifi and ":" in serial else None
+                conn_type = "wifi" if is_wifi else "usb"
 
-            if is_wifi:
-                # For WiFi devices, also update the USB entry if we know the model
+                if is_wifi:
+                    # For WiFi devices, also update the USB entry if we know the model
+                    db.execute(
+                        text("""
+                        UPDATE phones SET wifi_ip=:ip, wifi_port=:port, connection_type=:conn
+                        WHERE model=:model AND wifi_ip IS NULL
+                    """),
+                        {"ip": wifi_ip, "port": wifi_port, "conn": conn_type, "model": model},
+                    )
+
                 db.execute(
                     text("""
-                    UPDATE phones SET wifi_ip=:ip, wifi_port=:port, connection_type=:conn
-                    WHERE model=:model AND wifi_ip IS NULL
+                    INSERT INTO phones (serial, model, first_seen, last_seen, wifi_ip, wifi_port, connection_type)
+                    VALUES (:serial, :model, :now, :now, :ip, :port, :conn)
+                    ON CONFLICT(serial) DO UPDATE SET model=:model, last_seen=:now,
+                        wifi_ip=COALESCE(:ip, wifi_ip), wifi_port=COALESCE(:port, wifi_port),
+                        connection_type=:conn
                 """),
-                    {"ip": wifi_ip, "port": wifi_port, "conn": conn_type, "model": model},
+                    {
+                        "serial": serial,
+                        "model": model,
+                        "now": now_str,
+                        "ip": wifi_ip,
+                        "port": wifi_port,
+                        "conn": conn_type,
+                    },
                 )
-
-            db.execute(
-                text("""
-                INSERT INTO phones (serial, model, first_seen, last_seen, wifi_ip, wifi_port, connection_type)
-                VALUES (:serial, :model, :now, :now, :ip, :port, :conn)
-                ON CONFLICT(serial) DO UPDATE SET model=:model, last_seen=:now,
-                    wifi_ip=COALESCE(:ip, wifi_ip), wifi_port=COALESCE(:port, wifi_port),
-                    connection_type=:conn
-            """),
-                {"serial": serial, "model": model, "now": now_str, "ip": wifi_ip, "port": wifi_port, "conn": conn_type},
-            )
-            db.commit()
-            devices.append({"serial": serial, "model": model or serial, "connection": conn_type})
+                db.commit()
+                devices.append({"serial": serial, "model": model or serial, "connection": conn_type})
 
         # Deduplicate: if same model has both USB and WiFi, keep USB only
         usb_models = {d["model"] for d in devices if d["connection"] == "usb"}
         devices = [d for d in devices if d["connection"] == "usb" or d["model"] not in usb_models]
 
+        for serial in ios_refs_from_env():
+            if not any(d["serial"] == serial for d in devices):
+                devices.append({"serial": serial, "model": "iOS device", "connection": "appium-wda"})
+
         registry_rows = db.execute(text("SELECT * FROM phones")).mappings().all()
         registry = {r["serial"]: dict(r) for r in registry_rows}
         for d in devices:
             d["nickname"] = registry.get(d["serial"], {}).get("nickname", "")
-        return {"devices": devices}
+        response = {"devices": devices}
+        if adb_error:
+            response["adb_error"] = adb_error
+        return response
     except Exception as e:
         return {"devices": [], "error": str(e)}
 
@@ -124,6 +145,23 @@ def phone_input(data: dict = Body({})):
     """Send a tap, swipe, keyevent, or text input to a device."""
     device = data.get("device")
     action = data.get("action")
+    if is_ios_ref(device):
+        dev = get_device(device)
+        try:
+            if action == "tap":
+                dev.tap(int(data["x"]), int(data["y"]))
+            elif action == "swipe":
+                dur = int(data.get("duration", 300))
+                dev.swipe(int(data["x1"]), int(data["y1"]), int(data["x2"]), int(data["y2"]), ms=dur)
+            elif action == "keyevent":
+                dev.press_key(str(data["keycode"]))
+            elif action == "text":
+                dev.type_text(data["text"])
+            else:
+                return {"ok": False, "error": "unknown action"}
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
     cmd = ["adb"]
     if device:
         cmd += ["-s", device]
@@ -168,19 +206,26 @@ def api_phone_tap(data: dict = Body({})):
     """Tap at coordinates or send a keyevent to a device."""
     from gitd.bots.common.adb import Device
 
-    dev = Device(data.get("device", ""))
+    device = data.get("device", "")
+    dev = get_device(device)
     if data.get("keyevent"):
-        dev.adb("shell", "input", "keyevent", data["keyevent"])
+        if is_ios_ref(device):
+            dev.press_key(str(data["keyevent"]))
+        else:
+            dev.adb("shell", "input", "keyevent", data["keyevent"])
     else:
         x, y = int(data.get("x", 0)), int(data.get("y", 0))
         stream_w = int(data.get("stream_w", 0))
         stream_h = int(data.get("stream_h", 0))
         if stream_w and stream_h:
             try:
-                out = dev.adb("shell", "wm", "size", timeout=3)
-                m = re.search(r"(\d+)x(\d+)", out)
-                if m:
-                    real_w, real_h = int(m.group(1)), int(m.group(2))
+                if is_ios_ref(device):
+                    real_w, real_h = dev.get_screen_size()
+                else:
+                    out = Device(device).adb("shell", "wm", "size", timeout=3)
+                    m = re.search(r"(\d+)x(\d+)", out)
+                    real_w, real_h = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+                if real_w and real_h:
                     x = int(x * real_w / stream_w)
                     y = int(y * real_h / stream_h)
             except Exception:
@@ -192,20 +237,20 @@ def api_phone_tap(data: dict = Body({})):
 @router.post("/type", summary="Type Text On Phone")
 def api_phone_type(data: dict = Body({})):
     """Type text into the focused input field on a device."""
-    from gitd.bots.common.adb import Device
-
-    dev = Device(data.get("device", ""))
-    text_val = data.get("text", "").replace(" ", "%s")
-    dev.adb("shell", "input", "text", text_val)
+    device = data.get("device", "")
+    dev = get_device(device)
+    text_val = data.get("text", "")
+    if is_ios_ref(device):
+        dev.type_text(text_val)
+    else:
+        dev.adb("shell", "input", "text", text_val.replace(" ", "%s"))
     return {"ok": True}
 
 
 @router.post("/back", summary="Press Back Button")
 def api_phone_back(data: dict = Body({})):
     """Press the Android back button on a device."""
-    from gitd.bots.common.adb import Device
-
-    dev = Device(data.get("device", ""))
+    dev = get_device(data.get("device", ""))
     dev.back(delay=0.3)
     return {"ok": True}
 
@@ -213,26 +258,31 @@ def api_phone_back(data: dict = Body({})):
 @router.post("/key", summary="Send Keyevent To Phone")
 def api_phone_key(data: dict = Body({})):
     """Send a keyevent to device."""
-    from gitd.bots.common.adb import Device
-
-    dev = Device(data.get("device", ""))
+    device = data.get("device", "")
+    dev = get_device(device)
     key = data.get("key", "")
     if not key:
         raise HTTPException(status_code=400, detail="key required")
-    if not key.startswith("KEYCODE_"):
+    if is_ios_ref(device):
+        dev.press_key(key)
+    elif not key.startswith("KEYCODE_"):
         key = "KEYCODE_" + key
-    dev.adb("shell", "input", "keyevent", key)
+        dev.adb("shell", "input", "keyevent", key)
+    else:
+        dev.adb("shell", "input", "keyevent", key)
     return {"ok": True}
 
 
 @router.post("/launch", summary="Launch App On Phone")
 def api_phone_launch(data: dict = Body({})):
     """Launch an app by package name on a device."""
-    from gitd.bots.common.adb import Device
-
-    dev = Device(data.get("device", ""))
+    device = data.get("device", "")
+    dev = get_device(device)
     pkg = data.get("package", "")
-    dev.adb("shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1")
+    if is_ios_ref(device):
+        dev.launch_app(pkg)
+    else:
+        dev.adb("shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1")
     return {"ok": True}
 
 
@@ -266,17 +316,21 @@ def api_phone_swipe(data: dict = Body({})):
     """Perform a swipe gesture on a device with coordinate scaling."""
     from gitd.bots.common.adb import Device
 
-    dev = Device(data.get("device", ""))
+    device = data.get("device", "")
+    dev = get_device(device)
     x1, y1 = int(data.get("x1", 540)), int(data.get("y1", 1600))
     x2, y2 = int(data.get("x2", 540)), int(data.get("y2", 400))
     stream_w = int(data.get("stream_w", 0))
     stream_h = int(data.get("stream_h", 0))
     if stream_w and stream_h:
         try:
-            out = dev.adb("shell", "wm", "size", timeout=3)
-            m = re.search(r"(\d+)x(\d+)", out)
-            if m:
-                real_w, real_h = int(m.group(1)), int(m.group(2))
+            if is_ios_ref(device):
+                real_w, real_h = dev.get_screen_size()
+            else:
+                out = Device(device).adb("shell", "wm", "size", timeout=3)
+                m = re.search(r"(\d+)x(\d+)", out)
+                real_w, real_h = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+            if real_w and real_h:
                 x1 = int(x1 * real_w / stream_w)
                 y1 = int(y1 * real_h / stream_h)
                 x2 = int(x2 * real_w / stream_w)

@@ -7,6 +7,7 @@ Tool schemas are in Anthropic's tool format and auto-converted for other provide
 import json
 
 from gitd.services import device_context as ctx
+from gitd.bots.common.device import get_device, is_ios_ref
 
 # ── Tool registry ────────────────────────────────────────────────────────────
 
@@ -347,6 +348,24 @@ TOOLS = [
 # ── Tool execution ───────────────────────────────────────────────────────────
 
 _UI_ACTION_TOOLS = {"tap", "tap_element", "swipe", "type_text", "press_key", "long_press", "launch_app"}
+_ANDROID_ONLY_TOOLS = {
+    "open_camera",
+    "speak_text",
+    "force_stop",
+    "web_search",
+    "list_apps",
+    "search_apps",
+    "list_packages",
+    "shell",
+    "paste_text",
+    "clipboard_get",
+    "clipboard_set",
+    "get_notifications",
+}
+
+
+def _ios_unsupported(tool_name: str) -> str:
+    return f"ERROR: {tool_name} is Android-only and is not supported for iOS device refs"
 
 
 def execute_tool(name: str, args: dict) -> str:
@@ -376,6 +395,9 @@ def _execute_tool_inner(name: str, args: dict) -> str:
     device = args.get("device", "")
 
     try:
+        if is_ios_ref(device) and name in _ANDROID_ONLY_TOOLS:
+            return _ios_unsupported(name)
+
         if name == "screenshot":
             r = ctx.screenshot(device)
             return json.dumps(
@@ -407,7 +429,7 @@ def _execute_tool_inner(name: str, args: dict) -> str:
         elif name == "ocr_region":
             return json.dumps(ctx.ocr_region(device, args["x1"], args["y1"], args["x2"], args["y2"]), indent=2)
         elif name == "tap":
-            Device(device).tap(args["x"], args["y"])
+            get_device(device).tap(args["x"], args["y"])
             return f"Tapped ({args['x']}, {args['y']})"
         elif name == "tap_element":
             elements = ctx.get_interactive_elements(device)
@@ -415,25 +437,41 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             if 0 <= idx < len(elements):
                 el = elements[idx]
                 cx, cy = el["center"]["x"], el["center"]["y"]
-                Device(device).tap(cx, cy)
+                get_device(device).tap(cx, cy)
                 return f"Tapped element #{idx} '{el.get('text') or el.get('content_desc') or el.get('resource_id', '')}' at ({cx}, {cy})"
             return f"Element index {idx} out of range (0-{len(elements) - 1})"
         elif name == "swipe":
-            Device(device).swipe(args["x1"], args["y1"], args["x2"], args["y2"], ms=args.get("duration_ms", 500))
+            get_device(device).swipe(args["x1"], args["y1"], args["x2"], args["y2"], ms=args.get("duration_ms", 500))
             return f"Swiped ({args['x1']},{args['y1']}) -> ({args['x2']},{args['y2']})"
         elif name == "type_text":
-            Device(device).adb("shell", "input", "text", args["text"].replace(" ", "%s"))
+            if is_ios_ref(device):
+                get_device(device).type_text(args["text"])
+            else:
+                Device(device).adb("shell", "input", "text", args["text"].replace(" ", "%s"))
             return f"Typed: {args['text']}"
         elif name == "press_key":
             key = args["key"]
-            if not key.startswith("KEYCODE_"):
+            if is_ios_ref(device):
+                get_device(device).press_key(key)
+            elif not key.startswith("KEYCODE_"):
                 key = "KEYCODE_" + key
-            Device(device).adb("shell", "input", "keyevent", key)
+                Device(device).adb("shell", "input", "keyevent", key)
+            else:
+                Device(device).adb("shell", "input", "keyevent", key)
             return f"Pressed {key}"
         elif name == "long_press":
-            Device(device).long_press(args["x"], args["y"], duration_ms=args.get("duration_ms", 1000))
+            get_device(device).long_press(args["x"], args["y"], duration_ms=args.get("duration_ms", 1000))
             return f"Long pressed ({args['x']}, {args['y']})"
         elif name == "launch_app":
+            if is_ios_ref(device):
+                bundle_id = args["package"]
+                if bool(args.get("fresh", False)):
+                    try:
+                        get_device(device).terminate_app(bundle_id)
+                    except Exception:
+                        pass
+                get_device(device).launch_app(bundle_id)
+                return f"Launched iOS app {bundle_id}" + (" [fresh]" if args.get("fresh", False) else "")
             dev = Device(device)
             pkg = args["package"]
             fresh = bool(args.get("fresh", False))
@@ -795,7 +833,11 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             result = []
             for sname, info in skills.items():
                 s = _load_skill(sname)
-                entry = {"name": info["name"], "app_package": info.get("app_package", "")}
+                entry = {
+                    "name": info["name"],
+                    "app_package": info.get("app_package", ""),
+                    "ios_bundle_id": info.get("ios_bundle_id", ""),
+                }
                 if s and not isinstance(s, dict):
                     entry["workflows"] = s.list_workflows()
                     entry["actions"] = s.list_actions()
