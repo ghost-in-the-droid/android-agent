@@ -44,6 +44,13 @@ The LLM picks based on context: a benchmark task or "open Reddit fresh" → `fre
 
 Kill an app outright. No relaunch.
 
+### `clipboard_get(device)` / `clipboard_set(device, text)`
+
+Read or set plain-text clipboard contents. Android uses the existing Portal /
+ADB clipboard helpers. iOS uses Appium's clipboard extension endpoints through
+the active WebDriverAgent session. `paste_text` remains Android-only/planned on
+iOS until focused-field paste behavior is reliable.
+
 ### `search_apps(device, query)` / `list_apps(device)` / `list_packages(device)`
 
 Find package names. Use `search_apps` first, fall back to `list_apps`.

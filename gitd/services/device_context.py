@@ -483,6 +483,11 @@ def classify_screen(device: str) -> dict:
 
 def clipboard_get(device: str) -> str:
     """Get current clipboard text from device."""
+    if is_ios_ref(device):
+        try:
+            return get_device(device).clipboard_get()
+        except Exception:
+            return ""
     dev = Device(device)
     try:
         return dev.adb("shell", "am", "broadcast", "-a", "clipper.get", timeout=3).strip()
@@ -499,6 +504,11 @@ def clipboard_get(device: str) -> str:
 
 def clipboard_set(device: str, text: str) -> bool:
     """Set clipboard text on device via Ghost portal (ClipboardManager)."""
+    if is_ios_ref(device):
+        try:
+            return bool(get_device(device).clipboard_set(text))
+        except Exception:
+            return False
     dev = Device(device)
     port = dev._ensure_portal_forward()
     if port:

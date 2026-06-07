@@ -899,6 +899,34 @@ class IOSDevice:
         time.sleep(delay)
         return bundle_id
 
+    def clipboard_get(self) -> str:
+        value = self._request(
+            "POST",
+            self._session_path("/appium/device/get_clipboard"),
+            {"contentType": "plaintext"},
+        )
+        if not value:
+            return ""
+        if isinstance(value, str):
+            try:
+                return base64.b64decode(value, validate=True).decode("utf-8")
+            except Exception:
+                return value
+        return str(value)
+
+    def clipboard_set(self, text: str) -> bool:
+        content = base64.b64encode(text.encode("utf-8")).decode("ascii")
+        self._request(
+            "POST",
+            self._session_path("/appium/device/set_clipboard"),
+            {
+                "content": content,
+                "contentType": "plaintext",
+                "label": "Ghost in the Droid",
+            },
+        )
+        return True
+
     def open_url(self, url: str, delay=2.0):
         normalized_url = _normalize_url(url)
         try:

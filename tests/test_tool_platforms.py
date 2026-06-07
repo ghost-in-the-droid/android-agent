@@ -33,20 +33,23 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("get_current_url", "ios") is True
     assert supports_platform("get_current_url", "android") is False
     assert supports_platform("shell", "ios") is False
-    assert supports_platform("clipboard_get", "ios") is False
+    assert supports_platform("clipboard_get", "ios") is True
+    assert supports_platform("clipboard_set", "ios") is True
 
     assert tool_platform_info("shell").support == "android_only"
-    assert tool_platform_info("clipboard_get").support == "ios_planned"
-    assert platform_error("clipboard_get", "ios")["support"] == "ios_planned"
+    assert tool_platform_info("clipboard_get").support == "cross_platform"
+    assert tool_platform_info("clipboard_set").support == "cross_platform"
 
 
-def test_execute_tool_uses_platform_registry_for_ios_errors():
+def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
+    monkeypatch.setattr("gitd.services.device_context.clipboard_get", lambda device: "ios clipboard")
+
     shell = execute_tool("shell", {"device": "ios:abc123", "command": "ls"})
     clipboard = execute_tool("clipboard_get", {"device": "ios:abc123"})
     unknown = execute_tool("does_not_exist", {"device": "ios:abc123"})
 
     assert shell.startswith("ERROR: shell is Android-only")
-    assert clipboard.startswith("ERROR: clipboard_get is not supported for ios yet")
+    assert clipboard == "ios clipboard"
     assert unknown == "Unknown tool: does_not_exist"
 
 
@@ -58,7 +61,8 @@ def test_tools_for_device_filters_by_platform():
     assert "extract_articles" in ios_names
     assert "shell" not in ios_names
     assert "launch_intent" not in ios_names
-    assert "clipboard_get" not in ios_names
+    assert "clipboard_get" in ios_names
+    assert "clipboard_set" in ios_names
     assert "get_current_url" in ios_names
 
     assert "shell" in android_names

@@ -332,6 +332,39 @@ def test_launch_app_uses_mobile_launch_app(monkeypatch):
     }
 
 
+def test_clipboard_get_decodes_appium_base64(monkeypatch):
+    def fake_request(method, url, json=None, timeout=None):
+        assert method == "POST"
+        assert url.endswith("/session/session-1/appium/device/get_clipboard")
+        assert json == {"contentType": "plaintext"}
+        return FakeResponse({"value": base64.b64encode("hello iOS".encode()).decode()})
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-1"
+
+    assert dev.clipboard_get() == "hello iOS"
+
+
+def test_clipboard_set_encodes_appium_payload(monkeypatch):
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append({"method": method, "url": url, "json": json})
+        return FakeResponse({"value": None})
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-1"
+
+    assert dev.clipboard_set("hello iOS") is True
+    assert calls[0]["method"] == "POST"
+    assert calls[0]["url"].endswith("/session/session-1/appium/device/set_clipboard")
+    assert calls[0]["json"]["contentType"] == "plaintext"
+    assert calls[0]["json"]["label"] == "Ghost in the Droid"
+    assert base64.b64decode(calls[0]["json"]["content"]).decode() == "hello iOS"
+
+
 @pytest.mark.skipif(
     not (os.getenv("IOS_APPIUM_URL") and os.getenv("IOS_DEVICE_UDID")),
     reason="set IOS_APPIUM_URL and IOS_DEVICE_UDID to run live iOS integration test",
