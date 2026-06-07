@@ -18,7 +18,8 @@ from mcp.server.fastmcp import FastMCP
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from gitd.bots.common.adb import Device, list_connected
+from gitd.bots.common.adb import Device
+from gitd.bots.common.device import get_device, is_ios_ref, list_connected_device_refs
 
 mcp = FastMCP(
     "android-agent",
@@ -30,22 +31,29 @@ mcp = FastMCP(
 )
 
 
+def _ios_unsupported(tool_name: str) -> str:
+    return f"ERROR: {tool_name} is Android-only and is not supported for iOS device refs"
+
+
 # ── Tier 1: Raw Android Control ──────────────────────────────────────────
 
 
 @mcp.tool()
 def list_devices() -> str:
-    """List all connected Android devices with serial numbers and models.
+    """List connected Android ADB devices and configured iOS Appium devices.
     Call this first to get the device serial you need for other tools."""
-    devices = list_connected()
+    devices = list_connected_device_refs()
     if not devices:
-        return "No devices connected. Check USB cables and ADB authorization."
+        return "No devices connected. Check ADB authorization, or set IOS_DEVICE_UDID for iOS."
     result = []
     for serial in devices:
-        try:
-            model = Device(serial).adb("shell", "getprop", "ro.product.model", timeout=3).strip()
-        except Exception:
-            model = "unknown"
+        if is_ios_ref(serial):
+            model = "iOS via Appium/WDA"
+        else:
+            try:
+                model = Device(serial).adb("shell", "getprop", "ro.product.model", timeout=3).strip()
+            except Exception:
+                model = "unknown"
         result.append(f"{serial} ({model})")
     return "\n".join(result)
 
@@ -54,6 +62,8 @@ def list_devices() -> str:
 def screenshot(device: str) -> str:
     """Take a screenshot of the device screen. Returns base64-encoded PNG.
     Use this to SEE what's on screen before deciding what to tap."""
+    if is_ios_ref(device):
+        return base64.b64encode(get_device(device).take_screenshot()).decode()
     raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
     return base64.b64encode(raw).decode()
 
@@ -63,51 +73,14 @@ def get_elements(device: str, interactive_only: bool = True) -> str:
     """Get all UI elements on the current screen as a JSON array.
     Each element has: idx, text, content_desc, resource_id, class, bounds, center, clickable, scrollable.
     Use element idx with tap_element(). Call this to understand the screen layout before acting."""
-    dev = Device(device)
-    xml = dev.dump_xml()
-    if not xml:
-        return "[]"
-
-    elements = []
-    for node in dev.nodes(xml):
-        text = dev.node_text(node) or ""
-        desc = dev.node_content_desc(node) or ""
-        rid = dev.node_rid(node) or ""
-        cls_m = re.search(r'class="([^"]*)"', node)
-        cls = cls_m.group(1).split(".")[-1] if cls_m else ""
-        clickable = 'clickable="true"' in node
-        scrollable = 'scrollable="true"' in node
-
-        if interactive_only and not clickable and not scrollable and not text and not desc:
-            continue
-
-        bounds = dev.node_bounds(node)
-        if not bounds:
-            continue
-        x1, y1, x2, y2 = bounds
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-
-        elements.append(
-            {
-                "idx": len(elements),
-                "text": text,
-                "content_desc": desc,
-                "resource_id": rid.split("/")[-1] if "/" in rid else rid,
-                "class": cls,
-                "bounds": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
-                "center": {"x": cx, "y": cy},
-                "clickable": clickable,
-                "scrollable": scrollable,
-            }
-        )
-
-    return json.dumps(elements, indent=2)
+    from gitd.services.device_context import get_interactive_elements
+    return json.dumps(get_interactive_elements(device, interactive_only=interactive_only), indent=2)
 
 
 @mcp.tool()
 def tap(device: str, x: int, y: int) -> str:
     """Tap at exact pixel coordinates (x, y) on the device screen."""
-    Device(device).tap(x, y)
+    get_device(device).tap(x, y)
     return f"Tapped ({x}, {y})"
 
 
@@ -115,30 +88,15 @@ def tap(device: str, x: int, y: int) -> str:
 def tap_element(device: str, idx: int) -> str:
     """Tap a UI element by its index from get_elements().
     Call get_elements() first to see what's on screen and get element indices."""
-    dev = Device(device)
-    xml = dev.dump_xml()
-    if not xml:
-        return "Error: could not dump UI"
-
-    elements = []
-    for node in dev.nodes(xml):
-        text = dev.node_text(node) or ""
-        desc = dev.node_content_desc(node) or ""
-        clickable = 'clickable="true"' in node
-        scrollable = 'scrollable="true"' in node
-        if not clickable and not scrollable and not text and not desc:
-            continue
-        bounds = dev.node_bounds(node)
-        if not bounds:
-            continue
-        elements.append({"node": node, "bounds": bounds})
+    from gitd.services.device_context import get_interactive_elements
+    elements = get_interactive_elements(device)
 
     if idx < 0 or idx >= len(elements):
         return f"Error: element idx {idx} out of range (0-{len(elements) - 1})"
 
-    x1, y1, x2, y2 = elements[idx]["bounds"]
-    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-    dev.tap(cx, cy)
+    center = elements[idx]["center"]
+    cx, cy = center["x"], center["y"]
+    get_device(device).tap(cx, cy)
     return f"Tapped element #{idx} at ({cx}, {cy})"
 
 
@@ -147,7 +105,7 @@ def swipe(device: str, x1: int, y1: int, x2: int, y2: int, duration_ms: int = 50
     """Swipe from (x1,y1) to (x2,y2). Use for scrolling, pulling down notifications, etc.
     Common patterns: scroll down = swipe(dev, 540, 1400, 540, 600)
                      scroll up   = swipe(dev, 540, 600, 540, 1400)"""
-    Device(device).swipe(x1, y1, x2, y2, ms=duration_ms)
+    get_device(device).swipe(x1, y1, x2, y2, ms=duration_ms)
     return f"Swiped ({x1},{y1}) -> ({x2},{y2}) in {duration_ms}ms"
 
 
@@ -156,7 +114,10 @@ def type_text(device: str, text: str) -> str:
     """Type ASCII text into the currently focused input field.
     Tap an input field first to focus it. Spaces are supported.
     For emoji/unicode, use type_unicode() instead."""
-    Device(device).adb("shell", "input", "text", text.replace(" ", "%s"))
+    if is_ios_ref(device):
+        get_device(device).type_text(text)
+    else:
+        Device(device).adb("shell", "input", "text", text.replace(" ", "%s"))
     return f"Typed: {text}"
 
 
@@ -164,21 +125,27 @@ def type_text(device: str, text: str) -> str:
 def type_unicode(device: str, text: str) -> str:
     """Type unicode text (emoji, CJK, accented chars) via ADBKeyboard broadcast.
     Requires ADBKeyboard APK installed. Use type_text() for plain ASCII."""
-    Device(device).type_unicode(text)
+    if is_ios_ref(device):
+        get_device(device).type_text(text)
+    else:
+        Device(device).type_unicode(text)
     return f"Typed (unicode): {text}"
 
 
 @mcp.tool()
 def press_back(device: str) -> str:
     """Press the Android Back button."""
-    Device(device).back()
+    get_device(device).back()
     return "Pressed Back"
 
 
 @mcp.tool()
 def press_home(device: str) -> str:
     """Press the Android Home button. Returns to home screen."""
-    Device(device).adb("shell", "input", "keyevent", "KEYCODE_HOME")
+    if is_ios_ref(device):
+        get_device(device).press_key("HOME")
+    else:
+        Device(device).adb("shell", "input", "keyevent", "KEYCODE_HOME")
     return "Pressed Home"
 
 
@@ -186,6 +153,9 @@ def press_home(device: str) -> str:
 def press_key(device: str, key: str) -> str:
     """Send a key event. key examples: POWER, VOLUME_UP, VOLUME_DOWN, ENTER, TAB, MENU.
     Full list: KEYCODE_ prefix is added automatically if missing."""
+    if is_ios_ref(device):
+        get_device(device).press_key(key)
+        return f"Sent {key}"
     if not key.startswith("KEYCODE_"):
         key = "KEYCODE_" + key
     Device(device).adb("shell", "input", "keyevent", key)
@@ -243,6 +213,8 @@ def speak_text(device: str, text: str, rate: float = 1.0) -> str:
         text:   Text to speak.
         rate:   Speech rate multiplier (0.5 = slow, 1.0 = normal, 1.5 = fast).
     """
+    if is_ios_ref(device):
+        return _ios_unsupported("speak_text")
     from gitd.services.device_context import speak_text as _speak
     return _speak(device, text, rate)
 
@@ -266,7 +238,7 @@ def list_apps(device: str) -> str:
 @mcp.tool()
 def long_press(device: str, x: int, y: int, duration_ms: int = 1000) -> str:
     """Long press at coordinates. Use for context menus, drag initiation, etc."""
-    Device(device).long_press(x, y, duration_ms=duration_ms)
+    get_device(device).long_press(x, y, duration_ms=duration_ms)
     return f"Long pressed ({x}, {y}) for {duration_ms}ms"
 
 
@@ -354,6 +326,8 @@ def toggle_overlay(device: str, visible: bool = True) -> str:
     """Toggle the numbered element overlay on the device screen.
     When on, interactive elements get visible numbered labels that match get_elements() indices.
     Useful for visual debugging or when sending screenshots to a vision model."""
+    if is_ios_ref(device):
+        return _ios_unsupported("toggle_overlay")
     from gitd.services.device_context import toggle_overlay as _toggle
     ok = _toggle(device, visible)
     return f"Overlay {'enabled' if visible else 'disabled'}" if ok else "Failed — Portal not available"
@@ -362,6 +336,8 @@ def toggle_overlay(device: str, visible: bool = True) -> str:
 @mcp.tool()
 def clipboard_get(device: str) -> str:
     """Get the current clipboard text from the device."""
+    if is_ios_ref(device):
+        return _ios_unsupported("clipboard_get")
     from gitd.services.device_context import clipboard_get as _get
     return _get(device) or "(empty)"
 
@@ -369,6 +345,8 @@ def clipboard_get(device: str) -> str:
 @mcp.tool()
 def clipboard_set(device: str, text: str) -> str:
     """Set clipboard text on the device. Use with press_key(PASTE) to paste into fields."""
+    if is_ios_ref(device):
+        return _ios_unsupported("clipboard_set")
     from gitd.services.device_context import clipboard_set as _set
     return f"Clipboard set" if _set(device, text) else "Failed"
 
@@ -378,6 +356,8 @@ def paste_text(device: str, text: str) -> str:
     """Set clipboard text and immediately paste it into the currently focused field.
     Equivalent to clipboard_set + press_key(PASTE) in one call.
     Tap the target input field first to focus it, then call this."""
+    if is_ios_ref(device):
+        return _ios_unsupported("paste_text")
     from gitd.services.device_context import clipboard_set as _set
     from gitd.bots.common.adb import Device
     if not _set(device, text):
@@ -389,6 +369,8 @@ def paste_text(device: str, text: str) -> str:
 @mcp.tool()
 def get_notifications(device: str) -> str:
     """Get active notifications. Returns JSON array of {package, title, text}."""
+    if is_ios_ref(device):
+        return _ios_unsupported("get_notifications")
     from gitd.services.device_context import get_notifications as _notif
     return json.dumps(_notif(device), indent=2)
 
@@ -396,6 +378,8 @@ def get_notifications(device: str) -> str:
 @mcp.tool()
 def open_notifications(device: str) -> str:
     """Pull down the notification shade."""
+    if is_ios_ref(device):
+        return _ios_unsupported("open_notifications")
     from gitd.services.device_context import open_notifications as _open
     return "Notification shade opened" if _open(device) else "Failed"
 
@@ -415,6 +399,8 @@ def web_search(device: str, query: str, engine: str = "google") -> str:
         query: Free-text search terms (don't pre-escape — handled here).
         engine: "google" (default), "ddg" / "duckduckgo", "bing", or "brave".
     """
+    if is_ios_ref(device):
+        return _ios_unsupported("web_search")
     from gitd.services.web_search import open_search
     return open_search(device, query, engine=engine)
 
@@ -427,6 +413,8 @@ def launch_intent(device: str, action: str = "", data: str = "",
       Open a URL: action="android.intent.action.VIEW" data="https://google.com"
       Open Settings: package="com.android.settings"
       Share text: action="android.intent.action.SEND" extras='{"android.intent.extra.TEXT": "hello"}'"""
+    if is_ios_ref(device):
+        return _ios_unsupported("launch_intent")
     from gitd.services.device_context import launch_intent as _intent
     parsed_extras = json.loads(extras) if extras and extras != "{}" else None
     return _intent(device, action=action, data=data, package=package, extras=parsed_extras)
@@ -462,6 +450,7 @@ def list_skills() -> str:
             info = {
                 "name": meta.get("name", d.name),
                 "app_package": meta.get("app_package"),
+                "ios_bundle_id": meta.get("ios_bundle_id"),
                 "description": meta.get("description", ""),
             }
             # Try loading runtime actions/workflows
@@ -571,6 +560,8 @@ def explore_app(device: str, package: str, max_depth: int = 2, max_states: int =
     Launches the app, taps every interactive element, builds a state graph.
     Returns JSON with discovered screens, elements, and transitions.
     Use this to understand an unfamiliar app before writing automation for it."""
+    if is_ios_ref(device):
+        return _ios_unsupported("explore_app")
     script = Path(__file__).parent / "skills" / "auto_creator.py"
     result = subprocess.run(
         [

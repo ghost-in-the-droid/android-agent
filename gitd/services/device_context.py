@@ -17,6 +17,7 @@ import subprocess
 import urllib.request
 
 from gitd.bots.common.adb import Device
+from gitd.bots.common.device import get_device, is_ios_ref
 
 # ── Phone state ──────────────────────────────────────────────────────────────
 
@@ -24,6 +25,8 @@ from gitd.bots.common.adb import Device
 def get_phone_state(device: str) -> dict:
     """Current app, package, activity, keyboard state, focused element.
     Uses Portal if available, falls back to dumpsys."""
+    if is_ios_ref(device):
+        return get_device(device).get_phone_state()
     dev = Device(device)
     port = dev._ensure_portal_forward()
     if port:
@@ -50,11 +53,17 @@ def get_phone_state(device: str) -> dict:
 # ── Screenshots ──────────────────────────────────────────────────────────────
 
 
+def _raw_screenshot_bytes(device: str) -> bytes:
+    if is_ios_ref(device):
+        return get_device(device).take_screenshot()
+    return subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+
+
 def screenshot(device: str, half_res: bool = True, quality: int = 50) -> dict:
     """Take screenshot via ADB screencap. Returns {image: base64, width, height}."""
     from PIL import Image
 
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = _raw_screenshot_bytes(device)
     img = Image.open(io.BytesIO(raw)).convert("RGB")
     if half_res:
         img = img.resize((img.width // 2, img.height // 2), Image.NEAREST)
@@ -74,7 +83,7 @@ def screenshot_annotated(device: str) -> dict:
     from PIL import Image, ImageDraw, ImageFont
 
     # Take screenshot
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = _raw_screenshot_bytes(device)
     img = Image.open(io.BytesIO(raw)).convert("RGB")
     draw = ImageDraw.Draw(img)
 
@@ -141,7 +150,7 @@ def screenshot_cropped(device: str, x1: int, y1: int, x2: int, y2: int, quality:
     Coordinates are in device pixels. Returns {image: base64, width, height}."""
     from PIL import Image
 
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = _raw_screenshot_bytes(device)
     img = Image.open(io.BytesIO(raw)).convert("RGB")
     cropped = img.crop((x1, y1, x2, y2))
     buf = io.BytesIO()
@@ -158,7 +167,7 @@ def screenshot_cropped(device: str, x1: int, y1: int, x2: int, y2: int, quality:
 
 def get_screen_xml(device: str, max_length: int = 50000) -> str:
     """Raw UI XML dump from uiautomator. Use get_screen_tree() for LLM-friendly format."""
-    dev = Device(device)
+    dev = get_device(device)
     xml = dev.dump_xml()
     return xml[:max_length] if xml else ""
 
@@ -166,7 +175,7 @@ def get_screen_xml(device: str, max_length: int = 50000) -> str:
 def get_interactive_elements(device: str, interactive_only: bool = True) -> list[dict]:
     """Interactive UI elements as a JSON-serializable list.
     Each element: {idx, text, content_desc, resource_id, class, bounds, center, clickable, scrollable}."""
-    dev = Device(device)
+    dev = get_device(device)
     xml = dev.dump_xml()
     if not xml:
         return []
@@ -217,7 +226,7 @@ def get_screen_tree(device: str, max_nodes: int = 80) -> str:
     """
     import xml.etree.ElementTree as ET
 
-    dev = Device(device)
+    dev = get_device(device)
     xml_str = dev.dump_xml()
     if not xml_str:
         return "(empty screen)"
@@ -321,7 +330,7 @@ def _get_ocr():
 
 def ocr_screen(device: str) -> list[dict]:
     """OCR the full device screen. Returns [{text, conf, x, y}] sorted top-to-bottom."""
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = _raw_screenshot_bytes(device)
     ocr = _get_ocr()
     result = ocr(raw)
     if not result or not result.txts:
@@ -341,7 +350,7 @@ def ocr_region(device: str, x1: int, y1: int, x2: int, y2: int) -> list[dict]:
     Returns [{text, conf, x, y, w, h}] where x/y are relative to the crop."""
     from PIL import Image
 
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = _raw_screenshot_bytes(device)
     img = Image.open(io.BytesIO(raw))
     cropped = img.crop((x1, y1, x2, y2))
     ocr = _get_ocr()
@@ -417,7 +426,7 @@ def classify_screen(device: str) -> dict:
     screen_type is one of: home, search, profile, settings, dialog, error, loading, unknown.
     Uses XML heuristics — no LLM needed."""
     state = get_phone_state(device)
-    dev = Device(device)
+    dev = get_device(device)
     xml = dev.dump_xml() or ""
 
     pkg = state.get("packageName", "")
@@ -608,7 +617,7 @@ def find_on_screen(device: str, text: str) -> dict | None:
     """Find specific text on screen and return its location.
     Searches XML elements first (fast), falls back to OCR (slower).
     Returns {text, x, y, w, h, method} or None if not found."""
-    dev = Device(device)
+    dev = get_device(device)
     xml = dev.dump_xml()
     if xml:
         # Search in XML text + content-desc
@@ -673,6 +682,22 @@ def build_llm_context(
 
 def device_health(device: str) -> dict:
     """Comprehensive device health check. Returns status for every subsystem."""
+    if is_ios_ref(device):
+        try:
+            state = get_device(device).get_phone_state()
+            return {
+                "serial": device,
+                "connection": {"type": "appium-wda", "status": "connected"},
+                "platform": "ios",
+                "device_info": state,
+            }
+        except Exception as e:
+            return {
+                "serial": device,
+                "connection": {"type": "appium-wda", "status": "error"},
+                "platform": "ios",
+                "error": str(e),
+            }
     dev = Device(device)
     health = {"serial": device}
 
