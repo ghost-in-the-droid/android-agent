@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { api } from '@/composables/useApi'
 import PhoneStreamWidget from '@/components/PhoneStreamWidget.vue'
 
@@ -11,7 +11,7 @@ interface AppState {
   transitions: Record<string, string>
 }
 
-const devices = ref<{serial: string; nickname?: string}[]>([])
+const devices = ref<{serial: string; nickname?: string; platform?: string; status?: string}[]>([])
 const runs = ref<ExplorerRun[]>([])
 const pkg = ref('')
 const device = ref('')
@@ -24,6 +24,12 @@ const settle = ref(1.5)
 const running = ref(false)
 const jobId = ref<number | null>(null)
 const progress = ref({ states_found: 0, transitions: 0, current_depth: 0, log_tail: [] as string[] })
+const selectedDeviceIsIos = computed(() => {
+  const selected = devices.value.find(d => d.serial === device.value)
+  return selected?.platform === 'ios' || device.value.startsWith('ios:')
+})
+const packageLabel = computed(() => selectedDeviceIsIos.value ? 'Bundle ID' : 'Package')
+const packagePlaceholder = computed(() => selectedDeviceIsIos.value ? 'com.google.chrome.ios' : 'com.zhiliaoapp.musically')
 
 const cleanLogs = computed(() => {
   return progress.value.log_tail.map(line => {
@@ -53,6 +59,12 @@ async function loadRuns() {
 
 async function loadPackages() {
   if (!device.value) return
+  if (selectedDeviceIsIos.value) {
+    installedPackages.value = []
+    filteredPackages.value = []
+    showPkgDropdown.value = false
+    return
+  }
   try {
     const resp = await api(`/api/phone/packages/${device.value}`)
     installedPackages.value = resp.packages || resp || []
@@ -142,6 +154,9 @@ onMounted(async () => {
   await Promise.all([loadDevices(), loadRuns()])
   await loadPackages()
 })
+watch(device, () => {
+  loadPackages()
+})
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer)
 })
@@ -154,6 +169,7 @@ onUnmounted(() => {
     <div class="flex items-center gap-2 mb-4">
       <h2 class="text-lg font-bold" style="color: var(--text-1)">⛏️ Skill-Miner</h2>
       <span v-if="installedPackages.length" class="text-xs px-2 py-0.5 rounded-full" style="background: var(--bg-deep); color: var(--text-4); border: 1px solid var(--border)">{{ installedPackages.length }} packages</span>
+      <span v-else-if="selectedDeviceIsIos" class="text-xs px-2 py-0.5 rounded-full" style="background: var(--bg-deep); color: var(--text-4); border: 1px solid var(--border)">iOS bundle id</span>
       <span class="text-xs ml-auto flex items-center gap-1.5" :style="{ color: running ? '#f59e0b' : 'var(--text-4)' }">
         <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%" :style="{ background: running ? '#f59e0b' : '#64748b' }"></span>
         {{ running ? 'exploring...' : 'idle' }}
@@ -164,10 +180,10 @@ onUnmounted(() => {
     <div class="card mb-4">
       <div class="flex gap-3 mb-3 items-end flex-wrap">
         <div style="position: relative; min-width: 200px; max-width: 260px; flex: 1">
-          <label class="block text-xs mb-1" style="color: var(--text-3)">Package</label>
+          <label class="block text-xs mb-1" style="color: var(--text-3)">{{ packageLabel }}</label>
           <input v-model="pkg" @input="onPkgInput" @focus="onPkgInput" @blur="hidePkgDropdown" class="w-full px-3 py-2 rounded-lg text-sm"
             style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-1)"
-            placeholder="com.zhiliaoapp.musically" />
+            :placeholder="packagePlaceholder" />
           <div v-if="showPkgDropdown" class="absolute left-0 right-0 mt-1 rounded-lg overflow-auto z-10"
             style="background: var(--bg-card); border: 1px solid var(--border); max-height: 200px; box-shadow: 0 4px 12px rgba(0,0,0,0.3)">
             <div v-for="p in filteredPackages" :key="p" @mousedown="selectPkg(p)"
@@ -180,7 +196,9 @@ onUnmounted(() => {
           <label class="block text-xs mb-1" style="color: var(--text-3)">Device</label>
           <select v-model="device" class="w-full px-3 py-2 rounded-lg text-sm"
             style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-1)">
-            <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ d.nickname || d.serial }}</option>
+            <option v-for="d in devices" :key="d.serial" :value="d.serial">
+              {{ (d.nickname || d.serial) + ((d.platform === 'ios' || d.serial.startsWith('ios:')) ? ' (iOS)' : ' (Android)') }}
+            </option>
           </select>
         </div>
         <div class="flex gap-2">

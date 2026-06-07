@@ -10,6 +10,7 @@ from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import FileResponse
 
 from gitd.config import settings
+from gitd.bots.common.device import is_ios_ref
 
 router = APIRouter(prefix="/api/explorer", tags=["explorer"])
 
@@ -31,6 +32,7 @@ def explorer_start(data: dict = Body({})):
     if not package:
         raise HTTPException(status_code=400, detail="package is required")
     device = data.get("device", _BOT_DEVICE)
+    platform = "ios" if is_ios_ref(device) else "android"
     max_depth = int(data.get("max_depth", 3))
     max_states = int(data.get("max_states", 20))
     settle = float(data.get("settle", 1.5))
@@ -70,11 +72,12 @@ def explorer_start(data: dict = Body({})):
         "pid": proc.pid,
         "package": package,
         "device": device,
+        "platform": platform,
         "log_file": log_file,
         "output_dir": output_dir,
         "max_states": max_states,
     }
-    return {"ok": True, "pid": proc.pid, "output_dir": output_dir}
+    return {"ok": True, "pid": proc.pid, "output_dir": output_dir, "platform": platform}
 
 
 @router.post("/stop", summary="Stop App Exploration")
@@ -109,6 +112,7 @@ def explorer_status():
         "running": is_running,
         "pid": _active_proc.get("pid"),
         "package": package,
+        "platform": _active_proc.get("platform", "android"),
         "max_states": _active_proc.get("max_states", 20),
         "states_found": 0,
         "transitions": 0,

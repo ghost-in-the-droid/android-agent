@@ -21,7 +21,7 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any
 
-from gitd.bots.common.adb import Device
+from gitd.bots.common.device import is_ios_ref
 
 log = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class Macro:
 class MacroRecorder:
     """Records and replays sequences of device actions."""
 
-    def __init__(self, dev: Device):
+    def __init__(self, dev: Any):
         self.dev = dev
         self._recording = False
         self._start_time = 0.0
@@ -141,7 +141,10 @@ class MacroRecorder:
 
     def type_text(self, text: str, delay=0.3):
         self.record_step("type", text=text)
-        self.dev.adb("shell", "input", "text", text.replace(" ", "%s"))
+        if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "type_text"):
+            self.dev.type_text(text)
+        else:
+            self.dev.adb("shell", "input", "text", text.replace(" ", "%s"))
         time.sleep(delay)
 
     def back(self, delay=1.0):
@@ -150,7 +153,10 @@ class MacroRecorder:
 
     def home(self, delay=0.5):
         self.record_step("home")
-        self.dev.adb("shell", "input", "keyevent", "KEYCODE_HOME")
+        if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "press_key"):
+            self.dev.press_key("HOME")
+        else:
+            self.dev.adb("shell", "input", "keyevent", "KEYCODE_HOME")
         time.sleep(delay)
 
     def wait(self, seconds: float):
@@ -182,12 +188,18 @@ class MacroRecorder:
                 self.dev.swipe(p["x1"], p["y1"], p["x2"], p["y2"],
                               ms=p.get("ms", 500), delay=0)
             elif action == "type":
-                self.dev.adb("shell", "input", "text",
-                            p["text"].replace(" ", "%s"))
+                if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "type_text"):
+                    self.dev.type_text(p["text"])
+                else:
+                    self.dev.adb("shell", "input", "text",
+                                p["text"].replace(" ", "%s"))
             elif action == "back":
                 self.dev.back(delay=0)
             elif action == "home":
-                self.dev.adb("shell", "input", "keyevent", "KEYCODE_HOME")
+                if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "press_key"):
+                    self.dev.press_key("HOME")
+                else:
+                    self.dev.adb("shell", "input", "keyevent", "KEYCODE_HOME")
             elif action == "wait":
                 time.sleep(p.get("seconds", 1.0) / speed)
             else:
