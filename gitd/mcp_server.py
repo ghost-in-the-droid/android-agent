@@ -351,8 +351,6 @@ def toggle_overlay(device: str, visible: bool = True) -> str:
 @mcp.tool()
 def clipboard_get(device: str) -> str:
     """Get the current clipboard text from the device."""
-    if is_ios_ref(device):
-        return _ios_unsupported("clipboard_get")
     from gitd.services.device_context import clipboard_get as _get
     return _get(device) or "(empty)"
 
@@ -360,8 +358,6 @@ def clipboard_get(device: str) -> str:
 @mcp.tool()
 def clipboard_set(device: str, text: str) -> str:
     """Set clipboard text on the device. Use with press_key(PASTE) to paste into fields."""
-    if is_ios_ref(device):
-        return _ios_unsupported("clipboard_set")
     from gitd.services.device_context import clipboard_set as _set
     return f"Clipboard set" if _set(device, text) else "Failed"
 
