@@ -1104,6 +1104,67 @@ class IOSDevice:
         apps.sort(key=lambda item: (source_order.get(str(item.get("source")), 9), str(item.get("name", "")).lower()))
         return apps
 
+    def _tap_labeled_control(self, targets: tuple[str, ...], *, xml: str | None = None, delay=0.8) -> bool:
+        target_patterns = [re.compile(rf"\b{re.escape(target.lower())}\b") for target in targets if target]
+        if not target_patterns:
+            return False
+        xml = xml or self.dump_xml()
+        for node in self.nodes(xml):
+            labels = [
+                self.node_text(node).lower(),
+                self.node_content_desc(node).lower(),
+                self.node_rid(node).lower(),
+            ]
+            combined = " ".join(label for label in labels if label)
+            if any(pattern.search(combined) for pattern in target_patterns):
+                if self.tap_node(node, delay=delay):
+                    return True
+        return False
+
+    def open_camera(self, mode: str = "photo", timer_s: int = 0, delay=1.5) -> dict[str, Any]:
+        normalized_mode = (mode or "photo").lower()
+        if normalized_mode not in {"photo", "video", "selfie", "selfie_video"}:
+            normalized_mode = "photo"
+
+        self.launch_app("com.apple.camera", delay=delay)
+
+        needs_video = normalized_mode in {"video", "selfie_video"}
+        needs_front = normalized_mode in {"selfie", "selfie_video"}
+        selected_mode = True
+        switched_camera = False
+        timer_set = False
+        selected_timer = 0
+
+        if needs_video:
+            selected_mode = self._tap_labeled_control(("video",), delay=0.6)
+        elif normalized_mode in {"photo", "selfie"}:
+            self._tap_labeled_control(("photo",), delay=0.4)
+
+        if needs_front:
+            switched_camera = self._tap_labeled_control(
+                ("switch camera", "camera chooser", "flip camera", "front camera"),
+                delay=0.8,
+            )
+
+        if timer_s > 0:
+            selected_timer = 3 if int(timer_s) <= 3 else 10
+            if self._tap_labeled_control(("timer",), delay=0.5):
+                timer_set = self._tap_labeled_control(
+                    (f"{selected_timer}s", f"{selected_timer} s", f"{selected_timer} seconds", str(selected_timer)),
+                    delay=0.5,
+                )
+
+        return {
+            "platform": "ios",
+            "bundle_id": "com.apple.camera",
+            "mode": normalized_mode,
+            "opened": True,
+            "selected_mode": selected_mode,
+            "switched_camera": switched_camera if needs_front else None,
+            "timer_s": selected_timer,
+            "timer_set": timer_set if selected_timer else None,
+        }
+
     def clipboard_get(self) -> str:
         value = self._request(
             "POST",

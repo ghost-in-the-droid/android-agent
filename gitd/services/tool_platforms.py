@@ -58,6 +58,7 @@ _CROSS_PLATFORM = {
     "press_key": "Shared key facade with per-platform key support.",
     "launch_app": "Launches Android packages or iOS bundle ids.",
     "force_stop": "Force-stops Android packages or terminates iOS bundle ids.",
+    "open_camera": "Android camera launcher or best-effort iOS Camera app launch/mode selection.",
     "long_press": "Routes to ADB/Portal or WDA pointer actions.",
     "web_search": "Android VIEW intent or iOS Appium browser navigation.",
     "open_url": "Android VIEW intent or iOS Appium browser navigation.",
@@ -87,7 +88,6 @@ _IOS_SUPPORTED = {
 }
 
 _IOS_PLANNED = {
-    "open_camera": "Feasible through iOS bundle launch and camera UI automation, not implemented yet.",
     "paste_text": "Depends on iOS clipboard support and paste gesture/key fallback.",
     "explore_app": "Needs explorer state identity based on bundle id, tree hash, and screenshot hash.",
     "create_skill": "Needs platform compatibility metadata and iOS element recording.",

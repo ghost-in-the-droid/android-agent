@@ -455,6 +455,39 @@ def test_ios_open_notifications_swipes_from_status_bar(monkeypatch):
     assert calls == [{"x1": 195, "y1": 16, "x2": 195, "y2": 523, "ms": 650, "delay": 1.0}]
 
 
+def test_ios_open_camera_launches_camera_and_taps_mode_controls(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    xml = """
+    <hierarchy>
+      <node text="Video" content-desc="Video" resource-id="Video" bounds="[10,10][90,50]"/>
+      <node text="Switch Camera" content-desc="Switch Camera" resource-id="Switch Camera" bounds="[100,10][180,50]"/>
+      <node text="Timer" content-desc="Timer" resource-id="Timer" bounds="[190,10][260,50]"/>
+      <node text="3s" content-desc="3s" resource-id="3s" bounds="[270,10][320,50]"/>
+    </hierarchy>
+    """
+    launched = []
+    taps = []
+
+    monkeypatch.setattr(dev, "launch_app", lambda bundle_id, delay=1.5: launched.append((bundle_id, delay)) or bundle_id)
+    monkeypatch.setattr(dev, "dump_xml", lambda: xml)
+    monkeypatch.setattr(dev, "tap_node", lambda node, delay=0.8: taps.append(dev.node_text(node)) or True)
+
+    result = dev.open_camera(mode="selfie_video", timer_s=2)
+
+    assert launched == [("com.apple.camera", 1.5)]
+    assert result == {
+        "platform": "ios",
+        "bundle_id": "com.apple.camera",
+        "mode": "selfie_video",
+        "opened": True,
+        "selected_mode": True,
+        "switched_camera": True,
+        "timer_s": 3,
+        "timer_set": True,
+    }
+    assert taps == ["Video", "Switch Camera", "Timer", "3s"]
+
+
 def test_ios_get_notifications_groups_visible_notification_center_text(monkeypatch):
     dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
 

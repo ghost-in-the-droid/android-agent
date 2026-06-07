@@ -101,7 +101,8 @@ def chat_claude_code(session: ChatSession, user_message: str):
             "- For browser/news/web tasks, prefer open_url, web_search, wait_for_text, "
             "extract_visible_text, extract_articles, and browser_back before manual coordinate tapping.\n"
             "- launch_app expects an iOS bundle id, for example com.google.chrome.ios.\n"
-            "- Do not use Android-only tools such as open_camera, speak_text, shell, launch_intent, "
+            "- For camera/photo/video tasks, use open_camera with mode photo, video, selfie, or selfie_video.\n"
+            "- Do not use Android-only tools such as speak_text, shell, launch_intent, "
             "Portal overlay, Play Store, or package-manager commands."
         )
         system_prompt = (

@@ -457,6 +457,7 @@ def _chat_claude_code(session: ChatSession, user_message: str):
 - tap_element(idx), tap(x,y), swipe(x1,y1,x2,y2), type_text(text): interact with UI
 - screenshot: see the screen visually
 - launch_app(package): open an iOS app by bundle id, e.g. com.google.chrome.ios
+- open_camera(mode): open iOS Camera; mode photo/video/selfie/selfie_video, optional timer_s=3|10
 - open_url(url), web_search(query), extract_visible_text, extract_articles, browser_back: browser/web workflows
 - press_home / press_back: navigation"""
     else:

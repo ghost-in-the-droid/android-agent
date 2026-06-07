@@ -44,6 +44,14 @@ The LLM picks based on context: a benchmark task or "open Reddit fresh" → `fre
 
 Kill an app outright. No relaunch.
 
+### `open_camera(device, mode="photo", timer_s=0)`
+
+Open the platform camera app. Android uses its OEM camera launcher flow. iOS
+launches `com.apple.camera` through Appium/WDA and then taps visible Camera UI
+controls for `photo`, `video`, `selfie`, `selfie_video`, and timer values. iOS
+mode, front-camera, and timer selection are best-effort because Apple Camera UI
+labels vary by device state and OS version.
+
 ### `clipboard_get(device)` / `clipboard_set(device, text)`
 
 Read or set plain-text clipboard contents. Android uses the existing Portal /
