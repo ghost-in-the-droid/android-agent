@@ -8,8 +8,10 @@ interface SkillWorkflow { name: string; description: string }
 interface PopupDetector { detect: string; button: string; label: string; method?: string; notes?: string }
 interface SkillInfo {
   dir: string; name: string; version: string; app_package: string | null
+  android_package?: string | null; ios_bundle_id?: string | null
+  platforms?: string[]; supports_android?: boolean; supports_ios?: boolean
   description: string; actions: string[] | SkillAction[]; workflows: string[] | SkillWorkflow[]
-  elements_count: number; popup_count?: number; popup_detectors?: PopupDetector[]
+  elements_count: number; elements_ios_count?: number; popup_count?: number; popup_detectors?: PopupDetector[]
   metadata: any; default_params?: Record<string, Record<string, any>>
 }
 interface SkillDetail extends SkillInfo {
@@ -26,10 +28,12 @@ const filteredSkills = computed(() => {
   return skills.value.filter(s =>
     (s.name || s.dir || '').toLowerCase().includes(q) ||
     (s.description || '').toLowerCase().includes(q) ||
-    (s.app_package || '').toLowerCase().includes(q)
+    (s.app_package || '').toLowerCase().includes(q) ||
+    (s.android_package || '').toLowerCase().includes(q) ||
+    (s.ios_bundle_id || '').toLowerCase().includes(q)
   )
 })
-const devices = ref<{serial: string; nickname?: string}[]>([])
+const devices = ref<{serial: string; nickname?: string; platform?: string; status?: string; status_message?: string}[]>([])
 const runModal = ref(false)
 const runTarget = ref({ type: '', name: '' })
 const runDevice = ref('')
@@ -65,10 +69,43 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   fail: { bg: '#ef444422', text: '#f87171' },
   partial: { bg: '#f59e0b22', text: '#fbbf24' },
   untested: { bg: '#64748b22', text: '#94a3b8' },
+  unsupported: { bg: '#33415544', text: '#64748b' },
+}
+
+function devicePlatform(device: string | { serial: string; platform?: string } | undefined): 'android' | 'ios' {
+  const serial = typeof device === 'string' ? device : (device?.serial || '')
+  const platform = typeof device === 'string' ? '' : (device?.platform || '')
+  return platform === 'ios' || serial.startsWith('ios:') ? 'ios' : 'android'
+}
+
+function skillSupportsDevice(skill: SkillInfo | null | undefined, device: string | { serial: string; platform?: string } | undefined): boolean {
+  if (!skill || !device) return true
+  const platforms = skill.platforms || []
+  if (!platforms.length) return true
+  return platforms.includes(devicePlatform(device))
+}
+
+function skillTargetLabel(skill: SkillInfo | null | undefined): string {
+  if (!skill) return 'universal'
+  if (skill.supports_ios && !skill.supports_android) return skill.ios_bundle_id || 'iOS app'
+  if (skill.supports_android && !skill.supports_ios) return skill.android_package || skill.app_package || 'Android app'
+  if (skill.supports_android && skill.supports_ios) return 'Android + iOS'
+  return skill.app_package || skill.ios_bundle_id || 'universal'
+}
+
+function platformLabel(skill: SkillInfo | null | undefined): string {
+  const platforms = skill?.platforms || []
+  return platforms.length ? platforms.map(p => p.toUpperCase()).join(' / ') : 'ANDROID'
+}
+
+function skillDeviceStatus(skill: SkillInfo, device: string): string {
+  if (!skillSupportsDevice(skill, device)) return 'unsupported'
+  return compatStatus(skill.dir, device)
 }
 
 async function verifySkill(skillName: string, device: string) {
   if (!device) return
+  if (!skillSupportsDevice(selected.value, device)) return
   verifying.value = true
   verifyLog.value = ''
   runDevice.value = device
@@ -141,7 +178,8 @@ function workflowCount(s: SkillInfo) {
 
 function openRun(type: 'workflow' | 'action', name: string) {
   runTarget.value = { type, name }
-  runDevice.value = devices.value[0]?.serial || ''
+  const compatible = devices.value.find(d => skillSupportsDevice(selected.value, d))
+  runDevice.value = compatible?.serial || devices.value[0]?.serial || ''
   runResult.value = ''
   // Pre-fill default params from skill metadata
   const dp = (selected.value as any)?.default_params as Record<string, any> | undefined
@@ -153,6 +191,10 @@ function openRun(type: 'workflow' | 'action', name: string) {
 
 async function executeRun() {
   const skill = selected.value?.dir || selected.value?.name
+  if (!skillSupportsDevice(selected.value, runDevice.value)) {
+    runResult.value = `Unsupported: ${selected.value?.name || skill} does not support ${devicePlatform(runDevice.value)}`
+    return
+  }
   const endpoint = runTarget.value.type === 'workflow'
     ? `/api/skills/${skill}/run`
     : `/api/skills/${skill}/run-action`
@@ -214,7 +256,9 @@ const filteredRegistry = computed(() => {
   return registry.value.filter((s: any) =>
     (s.name || '').toLowerCase().includes(q) ||
     (s.description || '').toLowerCase().includes(q) ||
-    (s.app_package || '').toLowerCase().includes(q)
+    (s.app_package || '').toLowerCase().includes(q) ||
+    (s.android_package || '').toLowerCase().includes(q) ||
+    (s.ios_bundle_id || '').toLowerCase().includes(q)
   )
 })
 
@@ -255,7 +299,8 @@ onUnmounted(() => {
             <h2 class="sh-detail-name">{{ selected.name }}</h2>
             <div class="sh-detail-meta">
               <span class="sh-version-badge">v{{ selected.version || '1.0.0' }}</span>
-              <span class="sh-pkg">{{ selected.app_package || 'universal' }}</span>
+              <span class="sh-platform-badge">{{ platformLabel(selected) }}</span>
+              <span class="sh-pkg">{{ skillTargetLabel(selected) }}</span>
             </div>
           </div>
         </div>
@@ -310,14 +355,14 @@ onUnmounted(() => {
                 <div class="sh-compat-row-top">
                   <span class="sh-compat-device">{{ d.nickname || d.serial?.slice(0, 10) }}</span>
                   <span class="sh-compat-status"
-                    :style="{ background: STATUS_COLORS[compatStatus(selected.dir, d.serial)]?.bg,
-                              color: STATUS_COLORS[compatStatus(selected.dir, d.serial)]?.text }">
-                    {{ compatStatus(selected.dir, d.serial).toUpperCase() }}
+                    :style="{ background: STATUS_COLORS[skillDeviceStatus(selected, d.serial)]?.bg,
+                              color: STATUS_COLORS[skillDeviceStatus(selected, d.serial)]?.text }">
+                    {{ skillDeviceStatus(selected, d.serial).toUpperCase() }}
                   </span>
                   <div class="sh-compat-actions">
-                    <button class="sh-verify-btn" :disabled="verifying"
+                    <button class="sh-verify-btn" :disabled="verifying || !skillSupportsDevice(selected, d)"
                       @click="verifySkill(selected.dir, d.serial)"
-                      title="Run all workflows on this device to test if they work. Results are saved per-device.">
+                      :title="skillSupportsDevice(selected, d) ? 'Run all workflows on this device to test if they work. Results are saved per-device.' : 'This skill does not support this device platform.'">
                       {{ verifying ? 'Testing...' : 'Verify' }}
                     </button>
                     <button v-if="compatFor(selected.dir, d.serial).length"
@@ -341,6 +386,7 @@ onUnmounted(() => {
           <div class="sh-section" v-if="selected.elements_count">
             <h3 class="sh-section-title">Elements <span class="sh-count-badge">{{ selected.elements_count }}</span></h3>
             <p class="sh-elements-note">UI element definitions with fallback locator chains.</p>
+            <p v-if="selected.elements_ios_count" class="sh-elements-note">{{ selected.elements_ios_count }} iOS element definitions available.</p>
           </div>
 
           <!-- Popup Detectors -->
@@ -441,7 +487,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Package -->
-            <div class="sh-card-pkg">{{ s.app_package || 'universal' }}</div>
+            <div class="sh-card-pkg">{{ skillTargetLabel(s) }}</div>
 
             <!-- Description -->
             <div class="sh-card-desc">{{ s.description }}</div>
@@ -451,6 +497,8 @@ onUnmounted(() => {
               <span class="sh-stat-pill">{{ actionCount(s) }} actions</span>
               <span class="sh-stat-pill">{{ workflowCount(s) }} workflows</span>
               <span class="sh-stat-pill">{{ s.elements_count || 0 }} elements</span>
+              <span class="sh-stat-pill" v-if="s.elements_ios_count">{{ s.elements_ios_count }} iOS elements</span>
+              <span class="sh-platform-badge">{{ platformLabel(s) }}</span>
               <span v-if="s.popup_count" class="sh-stat-pill">{{ s.popup_count }} popups</span>
             </div>
 
@@ -458,10 +506,10 @@ onUnmounted(() => {
             <div v-if="compatFor(s.dir).length" class="sh-card-compat">
               <span v-for="d in devices" :key="d.serial"
                 class="sh-compat-inline-badge"
-                :style="{ background: STATUS_COLORS[compatStatus(s.dir, d.serial)]?.bg,
-                          color: STATUS_COLORS[compatStatus(s.dir, d.serial)]?.text }"
+                :style="{ background: STATUS_COLORS[skillDeviceStatus(s, d.serial)]?.bg,
+                          color: STATUS_COLORS[skillDeviceStatus(s, d.serial)]?.text }"
                 :title="d.nickname || d.serial">
-                {{ (d.nickname || d.serial?.slice(0, 6)) }}: {{ compatStatus(s.dir, d.serial) }}
+                {{ (d.nickname || d.serial?.slice(0, 6)) }}: {{ skillDeviceStatus(s, d.serial) }}
               </span>
             </div>
           </div>
@@ -558,8 +606,8 @@ onUnmounted(() => {
           <label class="block text-xs mb-1" style="color: var(--text-3)">Device</label>
           <select v-model="runDevice" class="w-full px-3 py-2 rounded-lg text-sm"
             style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-1)">
-            <option v-for="d in devices" :key="d.serial" :value="d.serial">
-              {{ d.nickname || d.serial }}
+            <option v-for="d in devices" :key="d.serial" :value="d.serial" :disabled="!skillSupportsDevice(selected, d)">
+              {{ (d.nickname || d.serial) + (skillSupportsDevice(selected, d) ? '' : ' (unsupported)') }}
             </option>
           </select>
         </div>
@@ -760,6 +808,15 @@ onUnmounted(() => {
   border-radius: 6px;
   background: color-mix(in srgb, var(--_text-4) 12%, transparent);
   color: var(--_text-3);
+}
+.sh-platform-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, #38bdf8 14%, transparent);
+  color: #67e8f9;
 }
 .sh-card-compat {
   display: flex;
