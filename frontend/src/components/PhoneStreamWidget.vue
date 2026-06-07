@@ -16,7 +16,7 @@
  * Emits:
  *   tap(x, y, streamW, streamH)  — user clicked/tapped on the stream
  */
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { api } from '@/composables/useApi'
 
 const props = withDefaults(defineProps<{
@@ -50,11 +50,36 @@ const mjpegUrl = ref('')
 const overlayOn = ref(false)
 let timer: number | null = null
 
+const isIos = computed(() => props.serial?.startsWith('ios:') || false)
+const platformLabel = computed(() => isIos.value ? 'iOS' : 'Android')
+const streamMode = computed(() => isIos.value ? 'mjpeg' : props.mode)
+const keyButtons = computed(() => {
+  if (isIos.value) {
+    return [
+      { label: 'Back', value: 'BACK', title: 'Back' },
+      { label: 'Home', value: 'HOME', title: 'Home' },
+      { label: 'Enter', value: 'ENTER', title: 'Enter' },
+    ]
+  }
+  const keys: { label: string; value: number; title: string }[] = [
+    { label: '\u25C0', value: 4, title: 'Back' },
+    { label: '\u2302', value: 3, title: 'Home' },
+    { label: '\u25A6', value: 187, title: 'Recents' },
+    { label: '\u23FB', value: 26, title: 'Power' },
+  ]
+  if (props.showVolume) {
+    keys.push({ label: 'Vol+', value: 24, title: 'Volume up' })
+    keys.push({ label: 'Vol-', value: 25, title: 'Volume down' })
+  }
+  return keys
+})
+
 function startStream() {
   if (streaming.value) return
   streaming.value = true
-  if (props.mode === 'mjpeg') {
-    mjpegUrl.value = `/api/phone/stream?device=${encodeURIComponent(props.serial)}&fps=5`
+  if (streamMode.value === 'mjpeg') {
+    const modeParam = isIos.value ? '&mode=wda-mjpeg' : ''
+    mjpegUrl.value = `/api/phone/stream?device=${encodeURIComponent(props.serial)}&fps=5${modeParam}`
   } else {
     pollFrame()
     timer = window.setInterval(pollFrame, props.fps)
@@ -81,7 +106,7 @@ async function pollFrame() {
   } catch {}
 }
 
-function sendKey(key: number) {
+function sendKey(key: number | string) {
   if (!props.serial) return
   api('/api/phone/input', {
     method: 'POST',
@@ -90,6 +115,7 @@ function sendKey(key: number) {
 }
 
 async function toggleOverlayFn() {
+  if (isIos.value) return
   overlayOn.value = !overlayOn.value
   await api(`/api/phone/overlay/${props.serial}`, {
     method: 'POST', body: JSON.stringify({ visible: overlayOn.value })
@@ -133,14 +159,11 @@ defineExpose({ startStream, stopStream, streaming })
     <div class="psw-header">
       <span class="psw-status-dot" :style="{ background: streaming ? '#22c55e' : '#475569' }" :title="streaming ? 'Streaming' : 'Idle'"></span>
       <span class="psw-label">{{ label || serial?.slice(0, 10) || 'No device' }}</span>
+      <span class="psw-platform">{{ platformLabel }}</span>
       <div class="psw-keys" v-if="showKeys">
-        <button class="psw-key" @click="sendKey(4)" title="Back">&#x25C0;</button>
-        <button class="psw-key" @click="sendKey(3)" title="Home">&#x2302;</button>
-        <button class="psw-key" @click="sendKey(187)" title="Recents">&#x25A6;</button>
-        <button class="psw-key" @click="sendKey(26)" title="Power">&#x23FB;</button>
-        <button v-if="showVolume" class="psw-key" @click="sendKey(24)" title="Vol+">&#x1F50A;</button>
-        <button v-if="showVolume" class="psw-key" @click="sendKey(25)" title="Vol-">&#x1F509;</button>
-        <button v-if="showOverlay" class="psw-key"
+        <button v-for="key in keyButtons" :key="String(key.value)" class="psw-key"
+          @click="sendKey(key.value)" :title="key.title">{{ key.label }}</button>
+        <button v-if="showOverlay && !isIos" class="psw-key"
           :style="{ background: overlayOn ? '#fbbf24' : '', color: overlayOn ? '#000' : '#fbbf24' }"
           @click="toggleOverlayFn" title="Toggle Overlay">&#x1F522;</button>
       </div>
@@ -151,9 +174,9 @@ defineExpose({ startStream, stopStream, streaming })
     </div>
     <!-- Stream area -->
     <div class="psw-stream">
-      <img v-if="streaming && mode === 'screenshot' && streamImg" :src="streamImg" class="psw-img"
+      <img v-if="streaming && streamMode === 'screenshot' && streamImg" :src="streamImg" class="psw-img"
         @click="handleClick" />
-      <img v-else-if="streaming && mode === 'mjpeg' && mjpegUrl" :src="mjpegUrl" class="psw-img"
+      <img v-else-if="streaming && streamMode === 'mjpeg' && mjpegUrl" :src="mjpegUrl" class="psw-img"
         draggable="false" @click="handleClick" @dragstart.prevent />
       <div v-else class="psw-placeholder">
         <slot name="placeholder">Click Stream to watch</slot>
@@ -194,9 +217,19 @@ defineExpose({ startStream, stopStream, streaming })
   font-weight: 600;
   color: var(--text-3, #94a3b8);
 }
+.psw-platform {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #1f2937;
+  color: #cbd5e1;
+}
 .psw-keys {
   display: flex;
   gap: 2px;
+  flex-wrap: wrap;
 }
 .psw-key {
   padding: 2px 5px;
@@ -243,6 +276,7 @@ defineExpose({ startStream, stopStream, streaming })
 /* Compact mode */
 .psw--compact .psw-header { padding: 4px 8px; }
 .psw--compact .psw-label { font-size: 9px; }
+.psw--compact .psw-platform { font-size: 8px; padding: 1px 4px; }
 .psw--compact .psw-key { padding: 1px 4px; font-size: 9px; }
 .psw--compact .psw-stream-btn { font-size: 8px; padding: 1px 6px; }
 </style>
