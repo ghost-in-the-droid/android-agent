@@ -46,7 +46,7 @@ strategy used, and the latest message exchanged.
 ## Reply detection cadence
 
 The phone's TikTok inbox is scanned automatically every hour at :30
-(8:30–22:30) on the ASUS as `@<our-product>`. Data lives in:
+(8:30–22:30) on the primary device. Data lives in:
 - `inbox_snapshots` — one row per scan with rollup counts
 - `inbox_replies`  — one row per conversation, updated each scan
 
