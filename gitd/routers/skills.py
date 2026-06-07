@@ -58,14 +58,19 @@ def _load_all_skills() -> dict:
                 elements = {}
                 if (d / "elements.yaml").exists():
                     elements = yaml.safe_load((d / "elements.yaml").read_text()) or {}
+                elements_ios = {}
+                if (d / "elements_ios.yaml").exists():
+                    elements_ios = yaml.safe_load((d / "elements_ios.yaml").read_text()) or {}
                 popups = meta.get("popup_detectors", [])
                 results[d.name] = {
                     "name": meta.get("name", d.name),
                     "description": meta.get("description", ""),
                     "version": meta.get("version", "0.0.0"),
                     "app_package": meta.get("app_package", ""),
+                    "ios_bundle_id": meta.get("ios_bundle_id", ""),
                     "dir": d.name,
                     "elements_count": len(elements),
+                    "elements_ios_count": len(elements_ios),
                     "popup_count": len(popups),
                     "popup_detectors": popups,
                     "metadata": meta,
