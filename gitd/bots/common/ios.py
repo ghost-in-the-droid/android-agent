@@ -203,6 +203,56 @@ _BROWSER_CONTROL_TEXT = {
     "search or type web address",
 }
 
+_WEB_TEXT_JS = r"""
+const maxEntries = arguments[0] || 300;
+const clean = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+const visible = (el) => {
+  const style = window.getComputedStyle(el);
+  if (!style || style.visibility === 'hidden' || style.display === 'none') return false;
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return false;
+  if (rect.bottom < 0 || rect.right < 0) return false;
+  if (rect.top > window.innerHeight || rect.left > window.innerWidth) return false;
+  return true;
+};
+const nodes = Array.from(document.querySelectorAll(
+  'article h1, article h2, article h3, h1, h2, h3, [role="heading"], a, p'
+));
+const seen = new Set();
+const entries = [];
+for (const el of nodes) {
+  if (!visible(el)) continue;
+  const text = clean(el.innerText || el.textContent);
+  if (!text || text.length < 2) continue;
+  const rect = el.getBoundingClientRect();
+  const key = `${text}:${Math.round(rect.top)}:${Math.round(rect.left)}`;
+  if (seen.has(key)) continue;
+  seen.add(key);
+  const anchor = el.closest('a') || (el.tagName === 'A' ? el : null);
+  entries.push({
+    text,
+    tag: String(el.tagName || '').toLowerCase(),
+    role: el.getAttribute('role') || '',
+    href: anchor ? anchor.href || '' : '',
+    bounds: {
+      x1: Math.round(rect.left),
+      y1: Math.round(rect.top),
+      x2: Math.round(rect.right),
+      y2: Math.round(rect.bottom),
+    },
+    provenance: 'web_context',
+  });
+  if (entries.length >= maxEntries) break;
+}
+return {
+  url: window.location ? window.location.href : '',
+  title: document.title || '',
+  bodyText: document.body ? clean(document.body.innerText || document.body.textContent) : '',
+  viewport: {width: window.innerWidth, height: window.innerHeight},
+  entries,
+};
+"""
+
 
 def strip_ios_prefix(device: str) -> str:
     return device[len(IOS_PREFIX) :] if device.startswith(IOS_PREFIX) else device
@@ -653,6 +703,15 @@ class IOSDevice:
         value = self._request("GET", self._session_path("/contexts"))
         return [str(v) for v in value] if isinstance(value, list) else []
 
+    def get_web_contexts(self) -> list[str]:
+        return [ctx for ctx in self.get_contexts() if ctx.upper().startswith("WEBVIEW")]
+
+    def _return_to_native_context(self) -> None:
+        try:
+            self._set_context("NATIVE_APP")
+        except IOSBackendError:
+            pass
+
     def _window_rect(self) -> dict:
         if self._window_rect_cache is None:
             value = self._request("GET", self._session_path("/window/rect"))
@@ -855,25 +914,14 @@ class IOSDevice:
 
     def _open_url_in_web_context(self, url: str, delay=2.0) -> bool:
         try:
-            original = ""
-            for ctx in self.get_contexts():
-                if ctx.upper().startswith("WEBVIEW"):
-                    original = ctx
-                    self._set_context(ctx)
-                    self._request("POST", self._session_path("/url"), {"url": url})
-                    time.sleep(delay)
-                    try:
-                        self._set_context("NATIVE_APP")
-                    except IOSBackendError:
-                        pass
-                    return True
-            if original:
-                self._set_context(original)
+            for ctx in self.get_web_contexts():
+                self._set_context(ctx)
+                self._request("POST", self._session_path("/url"), {"url": url})
+                time.sleep(delay)
+                self._return_to_native_context()
+                return True
         except IOSBackendError:
-            try:
-                self._set_context("NATIVE_APP")
-            except IOSBackendError:
-                pass
+            self._return_to_native_context()
         return False
 
     def _open_url_via_address_bar(self, url: str, delay=2.0) -> None:
@@ -923,11 +971,69 @@ class IOSDevice:
                 return value
         except IOSBackendError:
             pass
+        snapshot = self.web_text_snapshot(max_entries=1)
+        if snapshot.get("url"):
+            return str(snapshot["url"])
         for entry in self.visible_text_entries(include_controls=True):
             text = entry["text"]
             if "." in text and " " not in text and len(text) > 3:
                 return text
         return ""
+
+    def web_text_snapshot(self, max_entries: int = 300) -> dict[str, Any]:
+        """Return visible DOM text when Appium exposes a WebView context."""
+        for ctx in self.get_web_contexts():
+            try:
+                self._set_context(ctx)
+                value = self._execute_script(_WEB_TEXT_JS, [max_entries])
+                if isinstance(value, dict):
+                    value["context"] = ctx
+                    return value
+            except IOSBackendError:
+                continue
+            finally:
+                self._return_to_native_context()
+        return {}
+
+    def web_text_entries(self, max_entries: int = 300) -> list[dict[str, Any]]:
+        snapshot = self.web_text_snapshot(max_entries=max_entries)
+        entries = snapshot.get("entries") if isinstance(snapshot, dict) else None
+        if not isinstance(entries, list):
+            return []
+        out: list[dict[str, Any]] = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            text = str(entry.get("text") or "").strip()
+            if not text:
+                continue
+            bounds = entry.get("bounds") if isinstance(entry.get("bounds"), dict) else {}
+            x1 = _intish(bounds.get("x1"))
+            y1 = _intish(bounds.get("y1"))
+            x2 = _intish(bounds.get("x2"))
+            y2 = _intish(bounds.get("y2"))
+            out.append(
+                {
+                    "text": text,
+                    "bounds": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+                    "center": {"x": (x1 + x2) // 2, "y": (y1 + y2) // 2},
+                    "class": entry.get("tag", ""),
+                    "resource_id": "",
+                    "content_desc": "",
+                    "provenance": "web_context",
+                    "url": str(entry.get("href") or ""),
+                    "role": str(entry.get("role") or ""),
+                }
+            )
+        return out
+
+    def native_text_entries(self, *, include_controls: bool = False, max_entries: int = 300) -> list[dict[str, Any]]:
+        return visible_text_entries_from_xml(
+            self.dump_xml(),
+            screen_size=self.get_screen_size(),
+            include_controls=include_controls,
+            max_entries=max_entries,
+        )
 
     def wait_for_text(self, text: str, timeout=12, interval=1.0) -> str:
         needle = text.lower()
@@ -942,19 +1048,22 @@ class IOSDevice:
         raise TimeoutError(f"Timed out ({timeout}s) waiting for visible text: {text!r}")
 
     def visible_text_entries(self, *, include_controls: bool = False, max_entries: int = 300) -> list[dict[str, Any]]:
-        return visible_text_entries_from_xml(
-            self.dump_xml(),
-            screen_size=self.get_screen_size(),
-            include_controls=include_controls,
-            max_entries=max_entries,
-        )
+        web_entries = self.web_text_entries(max_entries=max_entries)
+        if web_entries:
+            if include_controls:
+                return web_entries[:max_entries]
+            return [e for e in web_entries if not _looks_like_browser_control(e["text"])][:max_entries]
+        return self.native_text_entries(include_controls=include_controls, max_entries=max_entries)
 
     def extract_visible_text(self, *, include_controls: bool = False, max_lines: int = 200) -> str:
         lines = [entry["text"] for entry in self.visible_text_entries(include_controls=include_controls)]
         return "\n".join(lines[:max_lines])
 
     def extract_articles(self, max_items: int = 5) -> list[dict[str, Any]]:
-        entries = self.visible_text_entries(include_controls=False)
+        web_entries = self.web_text_entries(max_entries=300)
+        entries = [entry for entry in web_entries if entry.get("url")]
+        if not entries:
+            entries = self.native_text_entries(include_controls=False, max_entries=300)
         titles: list[dict[str, Any]] = []
         seen: set[str] = set()
         for entry in entries:
@@ -968,10 +1077,11 @@ class IOSDevice:
             titles.append(
                 {
                     "title": text,
+                    "url": entry.get("url", ""),
                     "bounds": entry["bounds"],
                     "center": entry["center"],
                     "class": entry["class"],
-                    "provenance": "native",
+                    "provenance": entry.get("provenance", "native"),
                 }
             )
             if len(titles) >= max_items:

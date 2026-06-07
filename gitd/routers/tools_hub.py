@@ -10,6 +10,7 @@ router = APIRouter(prefix="/api/tools", tags=["tools-hub"])
 def _get_all_tools() -> list[dict]:
     """Return all tools grouped by category."""
     from gitd.services.agent_tools import TOOLS
+    from gitd.services.tool_platforms import tool_platform_info
 
     CATEGORIES = {
         "Screen Reading": [
@@ -24,6 +25,15 @@ def _get_all_tools() -> list[dict]:
             "ocr_screen",
             "ocr_region",
             "get_screen_xml",
+        ],
+        "Web": [
+            "web_search",
+            "open_url",
+            "browser_back",
+            "get_current_url",
+            "wait_for_text",
+            "extract_visible_text",
+            "extract_articles",
         ],
         "Input": ["tap", "tap_element", "swipe", "type_text", "press_key", "long_press"],
         "App Management": ["launch_app", "force_stop", "list_packages", "launch_intent"],
@@ -123,6 +133,7 @@ def _get_all_tools() -> list[dict]:
                         "description": t.get("description", ""),
                         "params": params,
                         "category": cat,
+                        "platform_support": tool_platform_info(name).to_dict(),
                     }
                 )
         result.append({"category": cat, "tools": tools})
@@ -133,6 +144,22 @@ def _get_all_tools() -> list[dict]:
 def list_tools():
     """List all available agent tools grouped by category."""
     return _get_all_tools()
+
+
+@router.get("/platforms", summary="List Tool Platform Support")
+def list_tool_platforms():
+    """List platform support classification for every known agent/MCP tool."""
+    from gitd.services.tool_platforms import TOOL_PLATFORM_SUPPORT
+
+    return {
+        "tools": [info.to_dict() for _, info in sorted(TOOL_PLATFORM_SUPPORT.items())],
+        "categories": {
+            "cross_platform": "Works on Android and iOS, or is device-neutral.",
+            "android_only": "Intentionally Android-only; no iOS equivalent is planned for this tool shape.",
+            "ios_supported": "Implemented for iOS, but Android parity is not exposed through this tool yet.",
+            "ios_planned": "Android implementation exists; iOS replacement is planned but not implemented.",
+        },
+    }
 
 
 @router.post("/test", summary="Test a Tool")

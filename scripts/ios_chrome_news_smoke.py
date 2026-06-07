@@ -45,6 +45,9 @@ def _snippet(text: str, max_chars: int = 1800) -> str:
 
 
 def _tap_article(dev: IOSDevice, article: dict[str, Any]) -> None:
+    if article.get("url"):
+        dev.open_url(str(article["url"]), delay=1.5)
+        return
     center = article.get("center") or {}
     if center.get("x") is not None and center.get("y") is not None:
         dev.tap(int(center["x"]), int(center["y"]), delay=1.5)

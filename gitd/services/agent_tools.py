@@ -8,6 +8,7 @@ import json
 
 from gitd.services import device_context as ctx
 from gitd.bots.common.device import get_device, is_ios_ref
+from gitd.services.tool_platforms import platform_error_text, supports_platform
 
 # ── Tool registry ────────────────────────────────────────────────────────────
 
@@ -409,6 +410,7 @@ TOOLS = [
 
 # ── Tool execution ───────────────────────────────────────────────────────────
 
+_KNOWN_TOOL_NAMES = {tool["name"] for tool in TOOLS}
 _UI_ACTION_TOOLS = {
     "tap",
     "tap_element",
@@ -422,22 +424,10 @@ _UI_ACTION_TOOLS = {
     "browser_back",
     "wait_for_text",
 }
-_ANDROID_ONLY_TOOLS = {
-    "open_camera",
-    "speak_text",
-    "list_apps",
-    "search_apps",
-    "list_packages",
-    "shell",
-    "paste_text",
-    "clipboard_get",
-    "clipboard_set",
-    "get_notifications",
-}
 
 
 def _ios_unsupported(tool_name: str) -> str:
-    return f"ERROR: {tool_name} is Android-only and is not supported for iOS device refs"
+    return platform_error_text(tool_name, "ios")
 
 
 def execute_tool(name: str, args: dict) -> str:
@@ -467,7 +457,9 @@ def _execute_tool_inner(name: str, args: dict) -> str:
     device = args.get("device", "")
 
     try:
-        if is_ios_ref(device) and name in _ANDROID_ONLY_TOOLS:
+        if name not in _KNOWN_TOOL_NAMES:
+            return f"Unknown tool: {name}"
+        if is_ios_ref(device) and not supports_platform(name, "ios"):
             return _ios_unsupported(name)
 
         if name == "screenshot":
@@ -953,6 +945,7 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                     "name": info["name"],
                     "app_package": info.get("app_package", ""),
                     "ios_bundle_id": info.get("ios_bundle_id", ""),
+                    "platforms": info.get("platforms", []),
                 }
                 if s and not isinstance(s, dict):
                     entry["workflows"] = s.list_workflows()
