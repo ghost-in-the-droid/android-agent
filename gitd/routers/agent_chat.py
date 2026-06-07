@@ -230,9 +230,9 @@ def warmup_on_device(data: dict = Body({})):
 
     Body: {"device": "<adb_serial>", "model": "gemma-4-e2b-q4km-gguf"}
     """
-    from gitd.services.agent_chat import DEFAULT_SYSTEM
+    from gitd.services.agent_chat import DEFAULT_SYSTEM, system_prompt_for_device
     from gitd.services.agent_chat_ondevice import _kotlin_llm
-    from gitd.services.agent_tools import TOOLS
+    from gitd.services.agent_tools import tool_prompt_list, tools_for_device
 
     device = (data.get("device") or "").strip()
     model_id = (data.get("model") or "").strip()
@@ -259,11 +259,8 @@ def warmup_on_device(data: dict = Body({})):
         ondevice_stable_prefix,
     )
 
-    tool_list = "\n".join(
-        f"- {t['name']}: {t['description']}  params: {list(t.get('input_schema', {}).get('properties', {}).keys())}"
-        for t in TOOLS
-    )
-    system = DEFAULT_SYSTEM.replace("{tool_list}", tool_list)
+    system = DEFAULT_SYSTEM.replace("{tool_list}", tool_prompt_list(tools_for_device(device)))
+    system = system_prompt_for_device(device, system)
     stable_prefix = ondevice_stable_prefix(system, device)
     cache_path = _kv_cache_path(model_id, stable_prefix)
 
