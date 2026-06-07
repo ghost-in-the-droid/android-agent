@@ -1,4 +1,5 @@
 import ast
+import json
 from pathlib import Path
 
 from gitd.services.agent_chat import DEFAULT_SYSTEM, openai_tools_for_device, platform_context, system_prompt_for_device
@@ -35,10 +36,14 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("shell", "ios") is False
     assert supports_platform("clipboard_get", "ios") is True
     assert supports_platform("clipboard_set", "ios") is True
+    assert supports_platform("list_apps", "ios") is True
+    assert supports_platform("search_apps", "ios") is True
+    assert supports_platform("list_packages", "ios") is True
 
     assert tool_platform_info("shell").support == "android_only"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
     assert tool_platform_info("clipboard_set").support == "cross_platform"
+    assert tool_platform_info("list_apps").support == "cross_platform"
 
 
 def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
@@ -64,9 +69,56 @@ def test_tools_for_device_filters_by_platform():
     assert "clipboard_get" in ios_names
     assert "clipboard_set" in ios_names
     assert "get_current_url" in ios_names
+    assert "list_apps" in ios_names
+    assert "search_apps" in ios_names
+    assert "list_packages" in ios_names
 
     assert "shell" in android_names
     assert "get_current_url" not in android_names
+
+
+def test_ios_app_listing_tools_use_ios_inventory(monkeypatch):
+    class FakeIOSDevice:
+        def list_apps(self, query="", verify=True):
+            apps = [
+                {
+                    "name": "Chrome",
+                    "package": "com.google.chrome.ios",
+                    "bundle_id": "com.google.chrome.ios",
+                    "platform": "ios",
+                    "verified": True,
+                    "installed": True,
+                },
+                {
+                    "name": "TikTok",
+                    "package": "com.zhiliaoapp.musically",
+                    "bundle_id": "com.zhiliaoapp.musically",
+                    "platform": "ios",
+                    "verified": True,
+                    "installed": True,
+                },
+            ]
+            if query:
+                needle = query.lower()
+                apps = [app for app in apps if needle in app["name"].lower() or needle in app["bundle_id"].lower()]
+            return apps
+
+    monkeypatch.setattr("gitd.services.agent_tools.get_device", lambda device: FakeIOSDevice())
+
+    search = json.loads(execute_tool("search_apps", {"device": "ios:abc123", "query": "chrome"}))
+    packages = json.loads(execute_tool("list_packages", {"device": "ios:abc123"}))
+
+    assert search == [
+        {
+            "name": "Chrome",
+            "package": "com.google.chrome.ios",
+            "bundle_id": "com.google.chrome.ios",
+            "platform": "ios",
+            "verified": True,
+            "installed": True,
+        }
+    ]
+    assert packages == ["com.google.chrome.ios", "com.zhiliaoapp.musically"]
 
 
 def test_platform_prompts_do_not_offer_android_only_tools_to_ios():

@@ -35,9 +35,11 @@ export IOS_PLATFORM_VERSION="18.5"
 export IOS_BUNDLE_ID="com.google.chrome.ios" # or another installed iOS app bundle id
 export IOS_WDA_URL="http://127.0.0.1:8100"
 export IOS_MJPEG_SERVER_PORT="9100"
+export IOS_KNOWN_APPS_JSON='{"Chrome":"com.google.chrome.ios","TikTok":"com.zhiliaoapp.musically"}'
 ```
 
 `IOS_WDA_URL` lets Ghost/Appium attach to an already-running WebDriverAgent in a later setup. The default path lets Appium create and manage the WDA session.
+`IOS_KNOWN_APPS_JSON` augments iOS app discovery. iOS does not expose Android-style full package enumeration, so Ghost combines configured bundle IDs and common bundle IDs, then verifies them through Appium when WDA is available.
 
 For multiple iPhones, use `IOS_DEVICE_UDIDS` plus a JSON config blob or file:
 
@@ -47,6 +49,10 @@ export IOS_DEVICES_JSON='{
   "00008110-0012345678901234": {
     "appium_url": "http://127.0.0.1:4723",
     "bundle_id": "com.google.chrome.ios",
+    "known_apps": [
+      {"name": "Chrome", "bundle_id": "com.google.chrome.ios"},
+      {"name": "NPR", "bundle_id": "org.npr.NPR"}
+    ],
     "mjpeg_server_port": 9100,
     "wda_launch_timeout": 180000
   },
@@ -148,6 +154,7 @@ Supported on iOS:
 - `tap`, `tap_element`, `swipe`, `type_text`, `long_press`
 - `press_key` for `HOME`, `ENTER`, and best-effort `BACK`
 - `launch_app`
+- `search_apps`, `list_apps`, `list_packages` for configured/common iOS bundle IDs verified through Appium
 - `clipboard_get`, `clipboard_set`
 - `get_phone_state`, `classify_screen`, `find_on_screen`, OCR if RapidOCR is installed
 - Browser primitives: `open_url`, `web_search`, `browser_back`, `get_current_url`, `wait_for_text`, `extract_visible_text`, `extract_articles`
@@ -158,7 +165,7 @@ Android-only for now:
 
 - ADB shell commands and Android intents
 - Portal overlay, Portal TTS, paste shortcut, notifications
-- Play Store helpers and installed package search
+- Play Store helpers and arbitrary full-device package enumeration
 - TikTok Android flows
 
 ## Troubleshooting

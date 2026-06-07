@@ -179,11 +179,11 @@ def press_key(device: str, key: str) -> str:
 
 @mcp.tool()
 def launch_app(device: str, package: str, fresh: bool = False) -> str:
-    """Launch an Android app by package name. Use search_apps() to find the package name.
+    """Launch an app by Android package name or iOS bundle id. Use search_apps() to find it.
 
     Args:
-        device: ADB serial.
-        package: App package name, e.g. "com.android.chrome".
+        device: ADB serial or ios:<udid>.
+        package: App package name or iOS bundle id, e.g. "com.android.chrome" or "com.google.chrome.ios".
         fresh: If True, force-stop the app first (cold start, clears in-memory
             state — back stack, unsaved drafts, login flow position, etc.).
             If False (default), reuses any existing background instance (warm
@@ -236,7 +236,7 @@ def speak_text(device: str, text: str, rate: float = 1.0) -> str:
 
 @mcp.tool()
 def search_apps(device: str, query: str) -> str:
-    """Search installed apps by name. Case-insensitive. Returns matching apps with package names.
+    """Search installed apps by name. Case-insensitive. Returns Android packages or iOS bundle ids.
     Example: search_apps('tiktok') → [{"name": "TikTok", "package": "com.zhiliaoapp.musically"}]"""
     from gitd.services.agent_tools import execute_tool
     return execute_tool("search_apps", {"device": device, "query": query})
@@ -244,8 +244,8 @@ def search_apps(device: str, query: str) -> str:
 
 @mcp.tool()
 def list_apps(device: str) -> str:
-    """List all installed apps with human-readable names and package names.
-    Returns [{name, package}] sorted alphabetically. Use search_apps() for faster lookup."""
+    """List installed apps with human-readable names and package names or bundle ids.
+    iOS is limited to configured/common bundle ids verified through Appium."""
     from gitd.services.agent_tools import execute_tool
     return execute_tool("list_apps", {"device": device})
 

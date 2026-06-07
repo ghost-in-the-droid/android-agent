@@ -521,7 +521,15 @@ def api_phone_overlay(device: str, data: dict = Body({})):
 def api_phone_packages(device: str, all: str = ""):
     """List installed packages on device."""
     if is_ios_ref(device):
-        return {"packages": [], "count": 0, "platform": "ios", "error": "Package listing is not implemented for iOS yet"}
+        apps = get_device(device).list_apps(verify=True)
+        packages = [app["bundle_id"] for app in apps]
+        return {
+            "packages": packages,
+            "apps": apps,
+            "count": len(packages),
+            "platform": "ios",
+            "note": "iOS app inventory is limited to configured/common bundle ids verified through Appium when available.",
+        }
     from gitd.bots.common.adb import Device
 
     dev = Device(device)

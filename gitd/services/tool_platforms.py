@@ -65,6 +65,9 @@ _CROSS_PLATFORM = {
     "wait_for_text": "Android screen search or iOS visible text wait.",
     "extract_visible_text": "Android normalized text extraction or iOS native/web text extraction.",
     "extract_articles": "Best-effort article/headline extraction on either platform.",
+    "search_apps": "Android package manager or iOS configured/common bundle inventory with Appium verification.",
+    "list_apps": "Android package manager or iOS configured/common bundle inventory with Appium verification.",
+    "list_packages": "Android package manager or iOS configured/common bundle inventory with Appium verification.",
     "list_skills": "Lists skills with platform metadata.",
     "run_skill": "Runs platform-aware skills when the skill supports the target platform.",
     "run_workflow": "Runs platform-aware skills when the skill supports the target platform.",
@@ -82,9 +85,6 @@ _IOS_SUPPORTED = {
 
 _IOS_PLANNED = {
     "open_camera": "Feasible through iOS bundle launch and camera UI automation, not implemented yet.",
-    "search_apps": "Needs iOS app inventory via Appium/idb/simctl or host tooling.",
-    "list_apps": "Needs iOS app inventory via Appium/idb/simctl or host tooling.",
-    "list_packages": "Needs iOS app inventory via Appium/idb/simctl or host tooling.",
     "paste_text": "Depends on iOS clipboard support and paste gesture/key fallback.",
     "get_notifications": "Needs Notification Center gesture/source extraction.",
     "open_notifications": "Needs iOS notification gesture support.",
