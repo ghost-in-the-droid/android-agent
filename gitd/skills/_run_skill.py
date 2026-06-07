@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from gitd.bots.common.adb import Device
+from gitd.bots.common.device import get_device, is_ios_ref
 
 
 # ── Skill run tracking ──────────────────────────────────────────────────
@@ -27,9 +27,9 @@ def _record_start(device: str, skill: str, target_type: str, target_name: str,
             meta_path = Path(__file__).parent / skill / 'skill.yaml'
             if meta_path.exists():
                 meta = yaml.safe_load(meta_path.read_text()) or {}
-                pkg = meta.get('app_package')
+                pkg = meta.get('ios_bundle_id') if is_ios_ref(device) else meta.get('app_package')
                 if pkg:
-                    app_ver = Device(device).get_app_version(pkg)
+                    app_ver = get_device(device).get_app_version(pkg)
         except Exception:
             pass
         row = SkillRun(
@@ -127,7 +127,7 @@ def main():
     import time
 
     params = json.loads(args.params)
-    dev = Device(args.device)
+    dev = get_device(args.device)
 
     # Build engine config from CLI flags
     from gitd.skills.base import EngineConfig
@@ -164,7 +164,10 @@ def main():
         meta_path = skill_dir / 'skill.yaml'
         if meta_path.exists():
             meta = yaml.safe_load(meta_path.read_text()) or {}
-            wf.app_package = meta.get('app_package', '') or ''
+            if is_ios_ref(args.device):
+                wf.app_package = meta.get('ios_bundle_id') or meta.get('app_package', '') or ''
+            else:
+                wf.app_package = meta.get('app_package', '') or ''
             wf._popup_detectors = meta.get('popup_detectors') or None
         if engine_cfg:
             wf.engine = engine_cfg
@@ -210,14 +213,13 @@ def main():
         sys.exit(0 if result.success else 1)
 
     elif args.action:
-        action_cls = s.get_action(args.action)
-        if not action_cls:
+        action = s.get_action(args.action, dev, **params)
+        if not action:
             dur = (_time.time() - t0) * 1000
             _record_finish(run_id, False, dur, f'Action not found: {args.action}')
             print(f'Action not found: {args.action}', file=sys.stderr)
             sys.exit(1)
         print(f'Running action: {args.action}')
-        action = action_cls(dev, s.elements, **params)
         result = action.run()
         dur = (_time.time() - t0) * 1000
         _record_finish(run_id, result.success, dur, result.error)

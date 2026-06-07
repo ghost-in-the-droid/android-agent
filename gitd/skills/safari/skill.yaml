@@ -1,0 +1,27 @@
+name: safari
+description: Configurable iOS browser smoke automation
+version: "0.1.0"
+app_package: ""
+ios_bundle_id: ""
+
+exports:
+  actions:
+    - open_browser
+    - open_safari
+    - open_url
+    - verify_page
+  workflows:
+    - open_ghost_site
+
+default_params:
+  actions:
+    open_browser:
+      bundle_id: "com.apple.mobilesafari"
+    open_url:
+      url: "https://ghostinthedroid.com"
+    verify_page:
+      expected: "ghostinthedroid"
+  workflows:
+    open_ghost_site:
+      url: "https://ghostinthedroid.com"
+      bundle_id: "com.apple.mobilesafari"

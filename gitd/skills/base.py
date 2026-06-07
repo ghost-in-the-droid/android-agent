@@ -16,8 +16,13 @@ from pathlib import Path
 from typing import Any
 
 from gitd.bots.common.adb import Device
+from gitd.bots.common.device import is_ios_ref
 
 log = logging.getLogger(__name__)
+
+
+def _device_is_ios(device: Any) -> bool:
+    return is_ios_ref(getattr(device, 'serial', str(device)))
 
 
 # ── Result ────────────────────────────────────────────────────────────────────
@@ -216,6 +221,14 @@ class Workflow:
         """Phase 0-2: Wake screen, back-spam to home, press Home."""
         cfg = self.engine
         dev = self.device
+        if _device_is_ios(dev):
+            log.info(f'[{self.name}] Returning iOS device to Home')
+            try:
+                dev.press_key('HOME')
+            except Exception:
+                pass
+            time.sleep(cfg.home_settle)
+            return
         log.info(f'[{self.name}] Waking screen, back ×{cfg.back_count}')
         dev.adb('shell', 'input', 'keyevent', 'KEYCODE_WAKEUP')
         time.sleep(0.5)
@@ -231,6 +244,10 @@ class Workflow:
             return
         dev = self.device
         log.info(f'[{self.name}] Launching {self.app_package}')
+        if _device_is_ios(dev):
+            dev.launch_app(self.app_package)
+            time.sleep(self.engine.launch_settle)
+            return
         dev.adb('shell', 'monkey', '-p', self.app_package,
                 '-c', 'android.intent.category.LAUNCHER', '1')
         time.sleep(self.engine.launch_settle)
@@ -241,6 +258,8 @@ class Workflow:
             return False
         xml = self.device.dump_xml()
         if not xml:
+            return False
+        if not hasattr(self.device, 'dismiss_popups'):
             return False
         dismissed = self.device.dismiss_popups(xml, popups=self._popup_detectors)
         if dismissed:
@@ -313,8 +332,11 @@ class RecordedStepAction(Action):
         if action in ('launch', 'open_app'):
             pkg = step.get('package', '')
             if pkg:
-                self.device.adb('shell', 'am', 'start', '-a', 'android.intent.action.MAIN',
-                                '-c', 'android.intent.category.LAUNCHER', pkg)
+                if _device_is_ios(self.device) and hasattr(self.device, 'launch_app'):
+                    self.device.launch_app(pkg)
+                else:
+                    self.device.adb('shell', 'am', 'start', '-a', 'android.intent.action.MAIN',
+                                    '-c', 'android.intent.category.LAUNCHER', pkg)
         elif action == 'tap' and step.get('element_idx') is not None:
             import re
             import xml.etree.ElementTree as ET
@@ -355,14 +377,19 @@ class RecordedStepAction(Action):
             self.device.tap(step['x'], step['y'])
         elif action == 'type' and step.get('text'):
             text = step['text']
-            if all(ord(c) < 128 for c in text):
+            if _device_is_ios(self.device) and hasattr(self.device, 'type_text'):
+                self.device.type_text(text)
+            elif all(ord(c) < 128 for c in text):
                 self.device.adb('shell', 'input', 'text', text.replace(' ', '%s'))
             else:
                 self.device.type_unicode(text)
         elif action == 'back':
             self.device.back()
         elif action == 'home':
-            self.device.adb('shell', 'input', 'keyevent', 'KEYCODE_HOME')
+            if _device_is_ios(self.device) and hasattr(self.device, 'press_key'):
+                self.device.press_key('HOME')
+            else:
+                self.device.adb('shell', 'input', 'keyevent', 'KEYCODE_HOME')
         elif action == 'swipe':
             self.device.swipe(step.get('x1', 0), step.get('y1', 0),
                               step.get('x2', 0), step.get('y2', 0))
@@ -371,9 +398,13 @@ class RecordedStepAction(Action):
         elif action == 'key':
             key = step.get('key', '')
             if key:
-                if not key.startswith('KEYCODE_'):
+                if _device_is_ios(self.device) and hasattr(self.device, 'press_key'):
+                    self.device.press_key(key)
+                elif not key.startswith('KEYCODE_'):
                     key = 'KEYCODE_' + key
-                self.device.adb('shell', 'input', 'keyevent', key)
+                    self.device.adb('shell', 'input', 'keyevent', key)
+                else:
+                    self.device.adb('shell', 'input', 'keyevent', key)
         else:
             log.warning(f'Unknown recorded action: {action}')
 
@@ -414,6 +445,7 @@ class Skill:
         self.skill_dir = Path(skill_dir)
         self.metadata: dict = {}
         self.elements: dict[str, Element] = {}
+        self._elements_by_file: dict[str, dict[str, Element]] = {}
         self.popup_detectors: list[dict] = []
         self._actions: dict[str, type[Action]] = {}
         self._workflows: dict[str, type[Workflow]] = {}
@@ -430,12 +462,27 @@ class Skill:
                      f' ({len(self.popup_detectors)} popup detectors)')
 
     def _load_elements(self):
-        path = self.skill_dir / 'elements.yaml'
+        self.elements = self._load_elements_file('elements.yaml')
+
+    def _load_elements_file(self, filename: str) -> dict[str, Element]:
+        path = self.skill_dir / filename
+        elements: dict[str, Element] = {}
         if path.exists():
             raw = yaml.safe_load(path.read_text()) or {}
             for name, locators in raw.items():
-                self.elements[name] = Element.from_dict(name, locators)
-            log.info(f'Loaded {len(self.elements)} elements for {self.name}')
+                elements[name] = Element.from_dict(name, locators)
+            log.info(f'Loaded {len(elements)} elements from {filename} for {self.name}')
+        self._elements_by_file[filename] = elements
+        return elements
+
+    def _elements_for_device(self, device: Device | None) -> dict[str, Element]:
+        if device and _device_is_ios(device):
+            if 'elements_ios.yaml' not in self._elements_by_file:
+                self._load_elements_file('elements_ios.yaml')
+            ios_elements = self._elements_by_file.get('elements_ios.yaml', {})
+            if ios_elements:
+                return ios_elements
+        return self.elements
 
     @property
     def name(self) -> str:
@@ -444,6 +491,10 @@ class Skill:
     @property
     def app_package(self) -> str:
         return self.metadata.get('app_package', '')
+
+    @property
+    def ios_bundle_id(self) -> str:
+        return self.metadata.get('ios_bundle_id', '')
 
     @property
     def version(self) -> str:
@@ -461,7 +512,7 @@ class Skill:
             return None
         if not device:
             return cls
-        action = cls(device, self.elements, **kwargs)
+        action = cls(device, self._elements_for_device(device), **kwargs)
         action._popup_detectors = self.popup_detectors or None
         return action
 
@@ -471,9 +522,12 @@ class Skill:
             return None
         if not device:
             return cls
-        wf = cls(device, self.elements, **kwargs)
+        wf = cls(device, self._elements_for_device(device), **kwargs)
         wf._popup_detectors = self.popup_detectors or None
-        wf.app_package = self.metadata.get('app_package', '') or ''
+        if _device_is_ios(device) and self.ios_bundle_id:
+            wf.app_package = self.ios_bundle_id
+        else:
+            wf.app_package = self.metadata.get('app_package', '') or ''
         return wf
 
     def list_actions(self) -> list[str]:
