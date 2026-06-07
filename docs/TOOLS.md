@@ -11,16 +11,26 @@ Both paths execute the same underlying logic — for tools with non-trivial
 behavior (e.g. `web_search`) they share a service module so there's one
 implementation, not two drifts.
 
+Every public tool has an explicit platform classification exposed at
+`GET /api/tools/platforms`:
+
+| classification | meaning |
+|---|---|
+| `cross_platform` | Works on Android and iOS, or is device-neutral. |
+| `android_only` | Intentionally Android-only; no iOS equivalent is planned for this tool shape. |
+| `ios_supported` | Implemented for iOS, while Android support is not exposed through this tool yet. |
+| `ios_planned` | Android implementation exists; iOS replacement is planned but not implemented. |
+
 ## App lifecycle
 
 ### `launch_app(device, package, fresh=false)`
 
-Launch an Android app by package name.
+Launch an Android app by package name or an iOS app by bundle id.
 
 | arg | type | required | default | notes |
 |---|---|---|---|---|
-| `device` | str | yes | — | ADB serial |
-| `package` | str | yes | — | e.g. `com.android.chrome` |
+| `device` | str | yes | — | ADB serial or `ios:<udid>` |
+| `package` | str | yes | — | Android package or iOS bundle id, e.g. `com.android.chrome`, `com.google.chrome.ios` |
 | `fresh` | bool | no | `false` | If `true`, force-stop the app first (cold start). Use for benchmarks or when prior in-app state would interfere. If `false` (default), warm start — resumes wherever the user left off. |
 
 The LLM picks based on context: a benchmark task or "open Reddit fresh" → `fresh=true`. "Go back to Chrome" / general use → `fresh=false`.
@@ -35,6 +45,21 @@ Find package names. Use `search_apps` first, fall back to `list_apps`.
 
 ## Web
 
+The web tools are the first iOS release-quality workflow surface. On Android
+they use `VIEW` intents and normalized screen extraction. On iOS they use
+Appium/WebDriverAgent, prefer WebView JavaScript extraction when Chrome exposes
+a `WEBVIEW_*` context, and fall back to native accessibility XML.
+
+### `open_url(device, url, bundle_id=None)`
+
+Open a URL in the platform browser.
+
+| arg | type | required | default | notes |
+|---|---|---|---|---|
+| `device` | str | yes | — | ADB serial or `ios:<udid>` |
+| `url` | str | yes | — | Adds `https://` if no scheme is supplied. |
+| `bundle_id` | str | no | configured iOS bundle | iOS override, e.g. `com.google.chrome.ios`. |
+
 ### `web_search(device, query, engine="google")`
 
 Open a search results page in whatever browser is on the device. Faster than
@@ -43,13 +68,23 @@ Open a search results page in whatever browser is on the device. Faster than
 
 | arg | type | required | default | notes |
 |---|---|---|---|---|
-| `device` | str | yes | — | ADB serial |
+| `device` | str | yes | — | ADB serial or `ios:<udid>` |
 | `query` | str | yes | — | Free-text. Don't pre-URL-encode — the tool handles it. |
 | `engine` | str | no | `"google"` | One of `google`, `ddg` / `duckduckgo`, `bing`, `brave`. |
 
+### Browser Readback
+
+| tool | purpose |
+|---|---|
+| `browser_back(device)` | Navigate back in the active browser/app context. |
+| `get_current_url(device)` | Current iOS browser URL when WebDriver/WebView exposes it. |
+| `wait_for_text(device, text, timeout=12)` | Wait for visible text before continuing. |
+| `extract_visible_text(device, max_lines=200)` | Return visible page text with browser controls filtered by default. |
+| `extract_articles(device, max_items=5)` | Return likely headlines/articles. iOS returns URLs when WebView extraction exposes anchors. |
+
 #### How fallback works
 
-Implemented in `gitd/services/web_search.py:open_search`:
+Android implementation in `gitd/services/web_search.py:open_search`:
 
 1. Build the search URL: e.g. `https://www.google.com/search?q=<urlencoded>`.
 2. One ADB call probes installed packages: `pm list packages` → set.
@@ -74,7 +109,8 @@ web_search(device, "best gemma 4 benchmarks")            # → Chrome / Google
 web_search(device, "self-hosted langfuse", engine="ddg") # → Chrome / DuckDuckGo
 ```
 
-Both work the same when the model is `claude-code` (MCP) or `on-device` Gemma.
+Both work through `gitd/services/browser.py` when the model is `claude-code`
+(MCP) or `on-device` Gemma.
 
 ## Intents (escape hatch)
 

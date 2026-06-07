@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gitd.bots.common.adb import Device
 from gitd.bots.common.device import get_device, is_ios_ref, list_connected_device_refs
+from gitd.services.tool_platforms import platform_error_text
 
 mcp = FastMCP(
     "android-agent",
@@ -32,7 +33,7 @@ mcp = FastMCP(
 
 
 def _ios_unsupported(tool_name: str) -> str:
-    return f"ERROR: {tool_name} is Android-only and is not supported for iOS device refs"
+    return platform_error_text(tool_name, "ios")
 
 
 # ── Tier 1: Raw Android Control ──────────────────────────────────────────

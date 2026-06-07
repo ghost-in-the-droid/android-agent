@@ -224,6 +224,59 @@ def test_visible_text_entries_filter_controls_and_offscreen_nodes():
     assert [entry["text"] for entry in entries] == ["World leaders meet for climate talks today"]
 
 
+def test_web_context_entries_prefer_dom_text_and_article_urls(monkeypatch):
+    calls = []
+    snapshot = {
+        "url": "https://text.npr.org/",
+        "title": "NPR",
+        "bodyText": "Top Stories\nWorld leaders meet for climate talks today",
+        "entries": [
+            {
+                "text": "World leaders meet for climate talks today",
+                "tag": "a",
+                "href": "https://text.npr.org/article/123",
+                "bounds": {"x1": 10, "y1": 100, "x2": 350, "y2": 140},
+                "provenance": "web_context",
+            }
+        ],
+    }
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append({"method": method, "url": url, "json": json})
+        if url.endswith("/session/session-1/contexts"):
+            return FakeResponse({"value": ["NATIVE_APP", "WEBVIEW_1"]})
+        if url.endswith("/session/session-1/context"):
+            return FakeResponse({"value": None})
+        if url.endswith("/session/session-1/execute/sync"):
+            assert "document.querySelectorAll" in json["script"]
+            return FakeResponse({"value": snapshot})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-1"
+
+    entries = dev.web_text_entries()
+    articles = dev.extract_articles(max_items=1)
+
+    assert entries[0]["text"] == "World leaders meet for climate talks today"
+    assert entries[0]["url"] == "https://text.npr.org/article/123"
+    assert entries[0]["provenance"] == "web_context"
+    assert articles == [
+        {
+            "title": "World leaders meet for climate talks today",
+            "url": "https://text.npr.org/article/123",
+            "bounds": {"x1": 10, "y1": 100, "x2": 350, "y2": 140},
+            "center": {"x": 180, "y": 120},
+            "class": "a",
+            "provenance": "web_context",
+        }
+    ]
+    context_names = [call["json"]["name"] for call in calls if call["url"].endswith("/context")]
+    assert "WEBVIEW_1" in context_names
+    assert context_names[-1] == "NATIVE_APP"
+
+
 def test_take_screenshot_decodes_base64(monkeypatch):
     def fake_request(method, url, json=None, timeout=None):
         assert method == "GET"
