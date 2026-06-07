@@ -36,6 +36,7 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("shell", "ios") is False
     assert supports_platform("clipboard_get", "ios") is True
     assert supports_platform("clipboard_set", "ios") is True
+    assert supports_platform("paste_text", "ios") is True
     assert supports_platform("list_apps", "ios") is True
     assert supports_platform("search_apps", "ios") is True
     assert supports_platform("list_packages", "ios") is True
@@ -47,6 +48,7 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert tool_platform_info("shell").support == "android_only"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
     assert tool_platform_info("clipboard_set").support == "cross_platform"
+    assert tool_platform_info("paste_text").support == "cross_platform"
     assert tool_platform_info("list_apps").support == "cross_platform"
     assert tool_platform_info("get_notifications").support == "cross_platform"
     assert tool_platform_info("open_camera").support == "cross_platform"
@@ -86,6 +88,7 @@ def test_tools_for_device_filters_by_platform():
     assert "launch_intent" not in ios_names
     assert "clipboard_get" in ios_names
     assert "clipboard_set" in ios_names
+    assert "paste_text" in ios_names
     assert "get_current_url" in ios_names
     assert "list_apps" in ios_names
     assert "search_apps" in ios_names
@@ -158,6 +161,22 @@ def test_ios_open_camera_tool_uses_ios_backend(monkeypatch):
     result = execute_tool("open_camera", {"device": "ios:abc123", "mode": "selfie", "timer_s": 3})
 
     assert result == "Opened iOS Camera - selfie"
+
+
+def test_ios_paste_text_tool_uses_ios_backend(monkeypatch):
+    calls = []
+
+    class FakeIOSDevice:
+        def paste_text(self, text):
+            calls.append(text)
+            return True
+
+    monkeypatch.setattr("gitd.services.agent_tools.get_device", lambda device: FakeIOSDevice())
+
+    result = execute_tool("paste_text", {"device": "ios:abc123", "text": "hello"})
+
+    assert result == "Inserted text on iOS: hello"
+    assert calls == ["hello"]
 
 
 def test_platform_prompts_do_not_offer_android_only_tools_to_ios():

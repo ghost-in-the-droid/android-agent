@@ -368,7 +368,8 @@ def paste_text(device: str, text: str) -> str:
     Equivalent to clipboard_set + press_key(PASTE) in one call.
     Tap the target input field first to focus it, then call this."""
     if is_ios_ref(device):
-        return _ios_unsupported("paste_text")
+        get_device(device).paste_text(text)
+        return f"Inserted text on iOS: {text[:60]}{'...' if len(text) > 60 else ''}"
     from gitd.services.device_context import clipboard_set as _set
     from gitd.bots.common.adb import Device
     if not _set(device, text):

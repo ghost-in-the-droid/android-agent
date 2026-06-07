@@ -974,6 +974,10 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             out = Device(device).adb("shell", *args["command"].split(), timeout=15)
             return out[:3000]
         elif name == "paste_text":
+            if is_ios_ref(device):
+                get_device(device).paste_text(args["text"])
+                t = args["text"]
+                return f"Inserted text on iOS: {t[:60]}{'...' if len(t) > 60 else ''}"
             from gitd.bots.common.adb import Device as _Dev
 
             ctx.clipboard_set(device, args["text"])

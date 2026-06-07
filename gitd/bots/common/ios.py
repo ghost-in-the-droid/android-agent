@@ -1193,6 +1193,11 @@ class IOSDevice:
         )
         return True
 
+    def paste_text(self, text: str, delay=0.3) -> bool:
+        self.clipboard_set(text)
+        self.type_text(text, delay=delay)
+        return True
+
     def open_url(self, url: str, delay=2.0):
         normalized_url = _normalize_url(url)
         try:

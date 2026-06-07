@@ -438,6 +438,17 @@ def test_clipboard_set_encodes_appium_payload(monkeypatch):
     assert base64.b64decode(calls[0]["json"]["content"]).decode() == "hello iOS"
 
 
+def test_ios_paste_text_sets_clipboard_and_inserts_text(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    calls = []
+
+    monkeypatch.setattr(dev, "clipboard_set", lambda text: calls.append(("clipboard", text)) or True)
+    monkeypatch.setattr(dev, "type_text", lambda text, delay=0.3: calls.append(("type", text, delay)))
+
+    assert dev.paste_text("hello iOS") is True
+    assert calls == [("clipboard", "hello iOS"), ("type", "hello iOS", 0.3)]
+
+
 def test_ios_open_notifications_swipes_from_status_bar(monkeypatch):
     dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
     calls = []
