@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from gitd.bots.common.device import get_device
 from gitd.bots.common.ios import IOS_PREFIX
 from gitd.services.browser import read_news
+from gitd.services.device_context import device_health
 
 
 def _device_ref(value: str) -> str:
@@ -37,6 +38,7 @@ def main() -> int:
     parser.add_argument("--max-articles", type=int, default=3)
     parser.add_argument("--wait", type=float, default=2.0)
     parser.add_argument("--out-dir", default="data/ios_chrome_news_smoke")
+    parser.add_argument("--skip-health", action="store_true", help="Skip the Appium/WDA health preflight")
     parser.add_argument("--close", action="store_true", help="Delete the Appium session before exiting")
     args = parser.parse_args()
 
@@ -50,6 +52,26 @@ def main() -> int:
     try:
         out_dir.mkdir(parents=True, exist_ok=True)
         result_path = out_dir / "result.json"
+        health_path = out_dir / "health.json"
+        preflight_health = None
+        if not args.skip_health:
+            preflight_health = device_health(device)
+            health_path.write_text(json.dumps(preflight_health, indent=2), encoding="utf-8")
+            state = str(preflight_health.get("connection", {}).get("status") or "")
+            if state != "available":
+                result = {
+                    "ok": False,
+                    "platform": "ios",
+                    "device": device,
+                    "stage": "health",
+                    "error": "iOS Appium/WDA health preflight is not available",
+                    "health": preflight_health,
+                    "health_json": str(health_path),
+                    "result_json": str(result_path),
+                }
+                result_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
+                print(json.dumps(result, indent=2))
+                return 1
         result = read_news(
             device,
             args.url,
@@ -60,6 +82,9 @@ def main() -> int:
             save_screenshots=True,
             out_dir=str(out_dir),
         )
+        if preflight_health is not None:
+            result["health"] = preflight_health
+            result["health_json"] = str(health_path)
         result["result_json"] = str(result_path)
         result_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
         print(json.dumps(result, indent=2))
