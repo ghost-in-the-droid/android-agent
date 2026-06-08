@@ -62,7 +62,9 @@ def test_tools_hub_exposes_platform_support(client):
     assert create_skill["platform_support"]["ios"] is True
     assert create_skill_params["steps"]["type"] == "array"
     assert "Recorded step list" in create_skill_params["steps"]["description"]
-    assert create_skill_params["elements_ios"]["type"] == "object"
+    assert create_skill_params["elements_ios"]["type"] == ["object", "array"]
+    assert create_skill_params["elements_ios"]["items"] == {"type": "object"}
+    assert create_skill_params["elements_android"]["type"] == ["object", "array"]
     assert create_skill_params["platforms"]["items"] == {"type": "string"}
     assert lookup_lead["platform_support"]["support"] == "cross_platform"
     assert lookup_lead["platform_support"]["ios"] is True

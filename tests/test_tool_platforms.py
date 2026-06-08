@@ -324,7 +324,7 @@ def test_agent_create_skill_uses_shared_creator(monkeypatch):
                 "app_package": "com.google.chrome.ios",
                 "steps": [{"action": "launch", "package": "com.google.chrome.ios"}],
                 "platforms": ["ios"],
-                "elements_ios": {"address_bar": {"text": "Search"}},
+                "elements_ios": [{"text": "Search", "class": "XCUIElementTypeTextField"}],
             },
         )
     )
@@ -334,7 +334,7 @@ def test_agent_create_skill_uses_shared_creator(monkeypatch):
     assert captured["name"] == "ios_agent_demo"
     assert captured["app_package"] == "com.google.chrome.ios"
     assert captured["platforms"] == ["ios"]
-    assert captured["elements_ios"] == {"address_bar": {"text": "Search"}}
+    assert captured["elements_ios"] == [{"text": "Search", "class": "XCUIElementTypeTextField"}]
 
 
 def test_agent_explore_app_uses_auto_creator_subprocess(monkeypatch):
