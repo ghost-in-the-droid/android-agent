@@ -50,6 +50,25 @@ def _safe_recording_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_") or "device"
 
 
+def _recording_device_ref(device_safe: str) -> str:
+    if device_safe.startswith("ios_") and len(device_safe) > 4:
+        return "ios:" + device_safe[4:]
+    return device_safe
+
+
+def _parse_recording_name(filename: str) -> dict[str, str]:
+    stem = Path(filename).stem
+    match = re.match(r"^(?P<device>.+?)_(?P<date>\d{8})_(?P<time>\d{6})(?:_(?P<test>.*))?$", stem)
+    if not match:
+        return {"device_ref": "", "device_safe": "", "test_name": stem}
+    device_safe = match.group("device")
+    return {
+        "device_ref": _recording_device_ref(device_safe),
+        "device_safe": device_safe,
+        "test_name": match.group("test") or "",
+    }
+
+
 def _pytest_cmd(node: str, *, retry: bool = False) -> list[str]:
     cmd = [sys.executable, "-u", "-m", "pytest", "-v", "--tb=short", "-s"]
     if retry:
@@ -339,7 +358,8 @@ def tr_recordings():
                 }
             except Exception:
                 pass
-        serial = f.stem.split("_")[0] if "_" in f.stem else ""
+        parsed = _parse_recording_name(f.name)
+        device_ref = parsed["device_ref"]
         recs.append(
             {
                 "name": f.name,
@@ -348,7 +368,11 @@ def tr_recordings():
                 "has_log": log_file.exists(),
                 "has_overlay": overlay_file.exists(),
                 "result": result,
-                "device": _device_label(serial),
+                "device": _device_label(device_ref),
+                "device_ref": device_ref,
+                "device_label": _device_label(device_ref),
+                "platform": "ios" if is_ios_ref(device_ref) else "android",
+                "test_name": parsed["test_name"],
             }
         )
     return recs

@@ -96,6 +96,33 @@ def test_recording_names_are_filesystem_safe():
     assert test_runner._safe_recording_name("ios:abc123/test name") == "ios_abc123_test_name"
 
 
+def test_recording_metadata_restores_ios_device_ref():
+    info = test_runner._parse_recording_name("ios_abc123_20260608_123456_chrome_news.mp4")
+
+    assert info["device_ref"] == "ios:abc123"
+    assert info["device_safe"] == "ios_abc123"
+    assert info["test_name"] == "chrome_news"
+
+
+def test_recordings_list_includes_ios_metadata(tmp_path, monkeypatch):
+    recording = tmp_path / "ios_abc123_20260608_123456_chrome_news.mp4"
+    recording.write_bytes(b"mp4")
+    (tmp_path / "ios_abc123_20260608_123456_chrome_news.log").write_text("1 passed\n")
+    monkeypatch.setattr(test_runner, "_TR_RECORDINGS_DIR", tmp_path)
+    monkeypatch.setattr(test_runner, "_device_label", lambda serial: f"label:{serial}")
+
+    result = test_runner.tr_recordings()
+
+    assert len(result) == 1
+    assert result[0]["device_ref"] == "ios:abc123"
+    assert result[0]["device_label"] == "label:ios:abc123"
+    assert result[0]["device"] == "label:ios:abc123"
+    assert result[0]["platform"] == "ios"
+    assert result[0]["test_name"] == "chrome_news"
+    assert result[0]["has_log"] is True
+    assert result[0]["result"]["passed"] == 1
+
+
 def test_test_runner_uses_current_interpreter_for_pytest():
     cmd = test_runner._pytest_cmd("tests/test_ios_device.py::test_factory_routes_ios_prefix", retry=True)
 
