@@ -89,6 +89,18 @@ curl -X POST http://localhost:5055/api/phone/recording/stop \
 curl http://localhost:5055/api/phone/recordings
 ```
 
+### Streaming metadata
+
+Inspect the effective streaming mode before opening the MJPEG response. iOS
+returns WDA MJPEG settings, screenshot-polling fallback, health/fix links, and
+Portal/WebRTC unsupported flags.
+
+```bash
+curl "http://localhost:5055/api/phone/stream-info?device=ios:<udid>&mode=mjpeg&fps=5" | python3 -m json.tool
+
+curl "http://localhost:5055/api/phone/stream?device=ios:<udid>&mode=wda-mjpeg&fps=5"
+```
+
 ### Clipboard and notifications
 
 These routes work for Android serials and `ios:<udid>` device refs:

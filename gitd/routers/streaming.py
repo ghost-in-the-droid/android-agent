@@ -6,6 +6,7 @@ import hashlib
 import json
 import subprocess
 import time
+import urllib.parse
 import urllib.request
 
 from fastapi import APIRouter, Body, HTTPException, Request
@@ -63,6 +64,74 @@ def _ios_stream_fallback(device: str, feature: str) -> dict:
 
 
 # ── MJPEG Stream ────────────────────────────────────────────────────────────
+
+
+def _phone_stream_url(device: str, *, fps: int, mode: str) -> str:
+    query = urllib.parse.urlencode({"device": device, "fps": fps, "mode": mode})
+    return f"/api/phone/stream?{query}"
+
+
+def _stream_health_links(device: str) -> dict:
+    health_endpoint = f"/api/phone/health/{device}"
+    return {
+        "health_endpoint": health_endpoint,
+        "fix_endpoint": f"{health_endpoint}/fix",
+        "fix_tool": "fix_device_health",
+    }
+
+
+@router.get("/api/phone/stream-info", summary="Describe Effective Phone Stream Mode")
+def phone_stream_info(device: str = "", fps: int = 30, quality: int = 8, mode: str = "screencap"):
+    """Return stream metadata without opening the streaming response."""
+    fps = max(1, min(fps, 60))
+    quality = max(1, min(quality, 31))
+    if is_ios_ref(device):
+        ios_dev = get_device(device)
+        requested_mode = mode or "mjpeg"
+        effective_mode = "wda-mjpeg" if requested_mode in {"mjpeg", "wda", "wda-mjpeg"} else "screenshot-polling"
+        stream_mode = "wda-mjpeg" if effective_mode == "wda-mjpeg" else "screencap"
+        return {
+            "ok": True,
+            "device": device,
+            "platform": "ios",
+            "requested_mode": requested_mode,
+            "effective_mode": effective_mode,
+            "recommended_mode": "wda-mjpeg",
+            "fallback_mode": "screenshot-polling",
+            "stream_url": _phone_stream_url(device, fps=min(fps, 10), mode=stream_mode),
+            "mjpeg_url": ios_dev.mjpeg_url,
+            "mjpeg_settings": getattr(ios_dev, "mjpeg_settings", {}) or {},
+            "fps": min(fps, 10),
+            "quality": quality,
+            "portal_supported": False,
+            "webrtc_supported": False,
+            "control_supported": True,
+            "unsupported_actions": ["portal", "webrtc", "wireless_adb", "overlay"],
+            "recovery": {
+                **_stream_health_links(device),
+                "common_fixes": ["start_appium", "reset_session", "restart_remote_xpc_tunnel"],
+            },
+        }
+
+    requested_mode = mode or "screencap"
+    effective_mode = "portal" if requested_mode == "portal" else ("h264" if requested_mode == "h264" else "screencap")
+    return {
+        "ok": True,
+        "device": device,
+        "platform": "android",
+        "requested_mode": requested_mode,
+        "effective_mode": effective_mode,
+        "recommended_mode": "portal",
+        "fallback_mode": "screencap",
+        "stream_url": _phone_stream_url(device, fps=fps, mode=effective_mode),
+        "fps": fps,
+        "quality": quality,
+        "portal_supported": True,
+        "webrtc_supported": True,
+        "control_supported": True,
+        "unsupported_actions": [],
+        "recovery": _stream_health_links(device),
+    }
 
 
 @router.get("/api/phone/stream", summary="Stream Phone Screen MJPEG")
