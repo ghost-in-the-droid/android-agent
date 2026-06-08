@@ -957,71 +957,10 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 )
             )
         elif name == "list_apps" or name == "search_apps":
-            if is_ios_ref(device):
-                query = args.get("query", "") if name == "search_apps" else ""
-                return json.dumps(get_device(device).list_apps(query=query), indent=2)
-            out = Device(device).adb("shell", "pm", "list", "packages", timeout=10)
-            pkgs = [p.replace("package:", "").strip() for p in out.splitlines() if p.startswith("package:")]
-            # Known app names for common packages
-            KNOWN = {
-                "com.zhiliaoapp.musically": "TikTok",
-                "com.instagram.android": "Instagram",
-                "com.facebook.katana": "Facebook",
-                "com.facebook.orca": "Messenger",
-                "com.whatsapp": "WhatsApp",
-                "com.twitter.android": "X (Twitter)",
-                "com.snapchat.android": "Snapchat",
-                "com.google.android.youtube": "YouTube",
-                "com.google.android.apps.youtube.music": "YouTube Music",
-                "com.google.android.apps.maps": "Google Maps",
-                "com.google.android.gm": "Gmail",
-                "com.google.android.apps.photos": "Google Photos",
-                "com.google.android.apps.docs": "Google Drive",
-                "com.android.chrome": "Chrome",
-                "com.android.vending": "Play Store",
-                "org.telegram.messenger": "Telegram",
-                "com.discord": "Discord",
-                "com.reddit.frontpage": "Reddit",
-                "com.spotify.music": "Spotify",
-                "com.amazon.mShop.android.shopping": "Amazon",
-                "com.tinder": "Tinder",
-                "com.bumble.app": "Bumble",
-                "co.hinge.app": "Hinge",
-                "com.nordvpn.android": "NordVPN",
-                "com.anydesk.adcontrol.ad1": "AnyDesk",
-                "com.google.android.calendar": "Calendar",
-                "com.google.android.contacts": "Contacts",
-                "com.google.android.dialer": "Phone",
-                "com.android.camera": "Camera",
-                "com.sec.android.app.camera": "Camera",
-                "com.android.settings": "Settings",
-                "com.android.calculator2": "Calculator",
-                "com.android.deskclock": "Clock",
-                "com.sec.android.gallery3d": "Gallery",
-                "com.samsung.android.messaging": "Messages",
-                "com.samsung.android.dialer": "Phone",
-                "com.samsung.android.app.notes": "Samsung Notes",
-            }
-            apps = []
-            for pkg in pkgs:
-                name_guess = KNOWN.get(pkg, "")
-                if not name_guess:
-                    # Derive from package: com.example.myapp → myapp, capitalize
-                    last = pkg.split(".")[-1]
-                    name_guess = last.replace("_", " ").replace("-", " ").title()
-                apps.append({"name": name_guess, "package": pkg})
-            apps.sort(key=lambda a: a["name"].lower())
-            if name == "search_apps":
-                query = args.get("query", "").lower()
-                apps = [a for a in apps if query in a["name"].lower() or query in a["package"].lower()]
-            return json.dumps(apps, indent=2)
+            query = args.get("query", "") if name == "search_apps" else ""
+            return json.dumps(ctx.list_apps(device, query=query), indent=2)
         elif name == "list_packages":
-            if is_ios_ref(device):
-                apps = get_device(device).list_apps()
-                return json.dumps([app["bundle_id"] for app in apps][:50], indent=2)
-            out = Device(device).adb("shell", "pm", "list", "packages", "-3", timeout=15)
-            pkgs = [p.replace("package:", "").strip() for p in out.splitlines() if p.startswith("package:")]
-            return json.dumps(pkgs[:50])
+            return json.dumps(ctx.list_packages(device)[:50], indent=2)
         elif name == "shell":
             out = Device(device).adb("shell", *args["command"].split(), timeout=15)
             return out[:3000]

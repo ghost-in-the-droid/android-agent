@@ -158,7 +158,7 @@ def test_ios_app_listing_tools_use_ios_inventory(monkeypatch):
                 apps = [app for app in apps if needle in app["name"].lower() or needle in app["bundle_id"].lower()]
             return apps
 
-    monkeypatch.setattr("gitd.services.agent_tools.get_device", lambda device: FakeIOSDevice())
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
 
     search = json.loads(execute_tool("search_apps", {"device": "ios:abc123", "query": "chrome"}))
     packages = json.loads(execute_tool("list_packages", {"device": "ios:abc123"}))

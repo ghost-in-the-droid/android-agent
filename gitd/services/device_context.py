@@ -140,6 +140,100 @@ def app_state(device: str, package: str) -> dict:
     }
 
 
+_ANDROID_APP_NAMES = {
+    "com.zhiliaoapp.musically": "TikTok",
+    "com.instagram.android": "Instagram",
+    "com.facebook.katana": "Facebook",
+    "com.facebook.orca": "Messenger",
+    "com.whatsapp": "WhatsApp",
+    "com.twitter.android": "X (Twitter)",
+    "com.snapchat.android": "Snapchat",
+    "com.google.android.youtube": "YouTube",
+    "com.google.android.apps.youtube.music": "YouTube Music",
+    "com.google.android.apps.maps": "Google Maps",
+    "com.google.android.gm": "Gmail",
+    "com.google.android.apps.photos": "Google Photos",
+    "com.google.android.apps.docs": "Google Drive",
+    "com.android.chrome": "Chrome",
+    "com.android.vending": "Play Store",
+    "org.telegram.messenger": "Telegram",
+    "com.discord": "Discord",
+    "com.reddit.frontpage": "Reddit",
+    "com.spotify.music": "Spotify",
+    "com.amazon.mShop.android.shopping": "Amazon",
+    "com.tinder": "Tinder",
+    "com.bumble.app": "Bumble",
+    "co.hinge.app": "Hinge",
+    "com.nordvpn.android": "NordVPN",
+    "com.anydesk.adcontrol.ad1": "AnyDesk",
+    "com.google.android.calendar": "Calendar",
+    "com.google.android.contacts": "Contacts",
+    "com.google.android.dialer": "Phone",
+    "com.android.camera": "Camera",
+    "com.sec.android.app.camera": "Camera",
+    "com.android.settings": "Settings",
+    "com.android.calculator2": "Calculator",
+    "com.android.deskclock": "Clock",
+    "com.sec.android.gallery3d": "Gallery",
+    "com.samsung.android.messaging": "Messages",
+    "com.samsung.android.dialer": "Phone",
+    "com.samsung.android.app.notes": "Samsung Notes",
+}
+
+
+def _guess_android_app_name(package: str) -> str:
+    known = _ANDROID_APP_NAMES.get(package)
+    if known:
+        return known
+    last = package.split(".")[-1] if package else ""
+    return last.replace("_", " ").replace("-", " ").title() or package
+
+
+def list_apps(device: str, query: str = "", *, verify: bool = True, include_system: bool = True) -> list[dict]:
+    """Return app inventory entries with a stable {name, package, platform} shape."""
+    needle = (query or "").strip().lower()
+    if is_ios_ref(device):
+        apps = get_device(device).list_apps(query=query, verify=verify)
+        return [
+            {
+                **app,
+                "package": app.get("package") or app.get("bundle_id", ""),
+                "bundle_id": app.get("bundle_id") or app.get("package", ""),
+                "platform": "ios",
+            }
+            for app in apps
+        ]
+
+    dev = Device(device)
+    args = ["shell", "pm", "list", "packages"]
+    if not include_system:
+        args.append("-3")
+    raw = dev.adb(*args, timeout=15)
+    packages = sorted(pkg.replace("package:", "").strip() for pkg in raw.splitlines() if pkg.startswith("package:"))
+    apps = []
+    for package in packages:
+        entry = {
+            "name": _guess_android_app_name(package),
+            "package": package,
+            "bundle_id": "",
+            "platform": "android",
+            "verified": True,
+            "installed": True,
+        }
+        if needle and needle not in entry["name"].lower() and needle not in package.lower():
+            continue
+        apps.append(entry)
+    apps.sort(key=lambda app: (app["name"].lower(), app["package"]))
+    return apps
+
+
+def list_packages(device: str, *, include_system: bool = False) -> list[str]:
+    apps = list_apps(device, include_system=include_system)
+    if is_ios_ref(device):
+        return [app["bundle_id"] for app in apps if app.get("bundle_id")]
+    return [app["package"] for app in apps if app.get("package")]
+
+
 # ── Screenshots ──────────────────────────────────────────────────────────────
 
 

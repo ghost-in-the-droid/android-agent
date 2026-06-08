@@ -87,6 +87,9 @@ verifies them with Appium `mobile: queryAppState` when possible. Unverified iOS
 results include `verified=false` and a `verification_error` instead of silently
 pretending the device was fully enumerated.
 
+REST equivalents are `GET /api/phone/apps/{device}?query=...` for rich app
+entries and `GET /api/phone/packages/{device}` for package or bundle IDs.
+
 ## Web
 
 The web tools are the first iOS release-quality workflow surface. On Android

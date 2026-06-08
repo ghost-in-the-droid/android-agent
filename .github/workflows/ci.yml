@@ -53,6 +53,7 @@ jobs:
           python -m pytest
           tests/api/test_streaming.py
           tests/api/test_phone_app_state.py
+          tests/api/test_phone_apps.py
           tests/api/test_phone_clipboard_notifications.py
           tests/test_creator_ios.py
           tests/test_ios_job_guards.py
