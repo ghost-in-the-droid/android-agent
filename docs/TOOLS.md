@@ -111,7 +111,7 @@ started exposing readable WebView text.
 | `url` | str | yes | — | Adds `https://` if no scheme is supplied. |
 | `bundle_id` | str | no | configured iOS bundle | iOS override, e.g. `com.google.chrome.ios`. |
 
-### `web_search(device, query, engine="google")`
+### `web_search(device, query, engine="google", bundle_id=None)`
 
 Open a search results page in whatever browser is on the device. Faster than
 `launch_app(chrome) → tap_element(address bar) → type_text → press_enter`
@@ -122,6 +122,7 @@ Open a search results page in whatever browser is on the device. Faster than
 | `device` | str | yes | — | ADB serial or `ios:<udid>` |
 | `query` | str | yes | — | Free-text. Don't pre-URL-encode — the tool handles it. |
 | `engine` | str | no | `"google"` | One of `google`, `ddg` / `duckduckgo`, `bing`, `brave`. |
+| `bundle_id` | str | no | configured iOS bundle | iOS override, e.g. `com.google.chrome.ios`. |
 
 ### Browser Readback
 

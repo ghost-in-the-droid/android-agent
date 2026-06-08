@@ -498,7 +498,7 @@ def clear_notifications(device: str) -> str:
 
 
 @mcp.tool()
-def web_search(device: str, query: str, engine: str = "google") -> str:
+def web_search(device: str, query: str, engine: str = "google", bundle_id: str = "") -> str:
     """Open a web search in whatever browser is on the device.
 
     Faster than: launch Chrome → tap address bar → type → submit. Useful when
@@ -511,12 +511,13 @@ def web_search(device: str, query: str, engine: str = "google") -> str:
         device: ADB serial or ios:<udid>.
         query: Free-text search terms (don't pre-escape — handled here).
         engine: "google" (default), "ddg" / "duckduckgo", "bing", or "brave".
+        bundle_id: Optional iOS browser bundle id override, e.g. com.google.chrome.ios.
     """
     if is_ios_ref(device):
         from gitd.services.browser import dumps
         from gitd.services.browser import web_search as _web_search
 
-        return dumps(_web_search(device, query, engine=engine))
+        return dumps(_web_search(device, query, engine=engine, bundle_id=bundle_id or None))
     from gitd.services.web_search import open_search
     return open_search(device, query, engine=engine)
 
