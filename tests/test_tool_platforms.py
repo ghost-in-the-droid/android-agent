@@ -278,6 +278,9 @@ def test_platform_prompts_do_not_offer_android_only_tools_to_ios():
     assert "shell:" not in ios_system
     assert "launch_intent:" not in ios_system
     assert "open_camera:" in ios_system
+    assert "standard Android intents" not in ios_system
+    assert "camera package name" not in ios_system
+    assert "Use search_apps to find the package name" not in ios_system
     assert "Android-only concepts" in ios_system
 
     android_system = system_prompt_for_device(
