@@ -23,12 +23,14 @@ def test_tools_hub_exposes_platform_support(client):
     app_state = next(tool for tool in app_management["tools"] if tool["name"] == "app_state")
     explore_app = next(tool for tool in app_management["tools"] if tool["name"] == "explore_app")
     paste_text = next(tool for tool in clipboard["tools"] if tool["name"] == "paste_text")
+    open_notifications = next(tool for tool in clipboard["tools"] if tool["name"] == "open_notifications")
     run_workflow = next(tool for tool in skills["tools"] if tool["name"] == "run_workflow")
     run_action = next(tool for tool in skills["tools"] if tool["name"] == "run_action")
     create_skill = next(tool for tool in skills["tools"] if tool["name"] == "create_skill")
     lookup_lead = next(tool for tool in marketing["tools"] if tool["name"] == "lookup_lead")
     list_unread_leads = next(tool for tool in marketing["tools"] if tool["name"] == "list_unread_leads")
     list_devices = next(tool for tool in device_tools["tools"] if tool["name"] == "list_devices")
+    toggle_overlay = next(tool for tool in device_tools["tools"] if tool["name"] == "toggle_overlay")
     create_skill_params = {param["name"]: param for param in create_skill["params"]}
 
     assert open_url["platform_support"]["support"] == "cross_platform"
@@ -54,6 +56,9 @@ def test_tools_hub_exposes_platform_support(client):
     assert explore_app["platform_support"]["ios"] is True
     assert paste_text["platform_support"]["support"] == "cross_platform"
     assert paste_text["platform_support"]["ios"] is True
+    assert open_notifications["platform_support"]["support"] == "cross_platform"
+    assert open_notifications["platform_support"]["ios"] is True
+    assert "Notification Center" in open_notifications["description"]
     assert run_workflow["platform_support"]["support"] == "cross_platform"
     assert run_workflow["platform_support"]["ios"] is True
     assert run_action["platform_support"]["support"] == "cross_platform"
@@ -72,6 +77,9 @@ def test_tools_hub_exposes_platform_support(client):
     assert list_unread_leads["platform_support"]["ios"] is True
     assert list_devices["platform_support"]["support"] == "cross_platform"
     assert list_devices["platform_support"]["ios"] is True
+    assert toggle_overlay["platform_support"]["support"] == "android_only"
+    assert toggle_overlay["platform_support"]["ios"] is False
+    assert "Android-only" in toggle_overlay["description"]
 
 
 def test_tools_platforms_endpoint(client):
