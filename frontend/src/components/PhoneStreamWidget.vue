@@ -139,6 +139,13 @@ async function pollFrame() {
 
 function sendKey(key: number | string) {
   if (!props.serial) return
+  if (typeof key === 'string') {
+    api('/api/phone/key', {
+      method: 'POST',
+      body: JSON.stringify({ device: props.serial, key })
+    })
+    return
+  }
   api('/api/phone/input', {
     method: 'POST',
     body: JSON.stringify({ device: props.serial, action: 'keyevent', keycode: key })
