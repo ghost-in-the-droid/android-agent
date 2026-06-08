@@ -38,6 +38,25 @@ def _ios_unsupported(feature: str) -> dict:
     return {"ok": False, "platform": "ios", "error": f"{feature} is Android-only and is not supported for iOS devices"}
 
 
+def _ios_stream_fallback(device: str, feature: str) -> dict:
+    return {
+        "ok": False,
+        "platform": "ios",
+        "error": f"{feature} uses Android Portal/WebRTC and is not supported for iOS devices",
+        "stream_fallback": {
+            "endpoint": "/api/phone/stream",
+            "device": device,
+            "recommended_mode": "mjpeg",
+            "fallback_mode": "screencap",
+            "url": f"/api/phone/stream?device={device}&mode=mjpeg",
+        },
+        "recovery": {
+            "health_endpoint": f"/api/phone/health/{device}",
+            "message": "Use WDA MJPEG for iOS live view, or screenshot polling if Appium/WDA MJPEG is unavailable.",
+        },
+    }
+
+
 # ── MJPEG Stream ────────────────────────────────────────────────────────────
 
 
@@ -444,6 +463,8 @@ def _webrtc_signal_sync(data: dict):
 
     if not device or not method:
         raise HTTPException(status_code=400, detail="device and method required")
+    if is_ios_ref(device):
+        return _ios_stream_fallback(device, "WebRTC signaling")
 
     from gitd.bots.common.adb import Device
 
@@ -537,6 +558,8 @@ def webrtc_ws_send(data: dict = Body({})):
 
     if not device:
         raise HTTPException(status_code=400, detail="device required")
+    if is_ios_ref(device):
+        return _ios_stream_fallback(device, "Portal WebSocket")
 
     import websocket as ws_client
 
@@ -578,6 +601,8 @@ def webrtc_ws_send(data: dict = Body({})):
 def webrtc_ws_poll(data: dict = Body({})):
     """Poll for pending WebSocket messages from Portal."""
     device = data.get("device", "")
+    if is_ios_ref(device):
+        return _ios_stream_fallback(device, "Portal WebSocket polling")
     relay = _ws_relays.get(device)
     if not relay or not relay["ws"].connected:
         return {"ok": False, "responses": []}

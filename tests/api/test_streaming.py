@@ -1,4 +1,4 @@
-from gitd.routers.streaming import phone_stream
+from gitd.routers.streaming import _webrtc_signal_sync, phone_stream, webrtc_ws_poll, webrtc_ws_send
 
 
 def test_ios_stream_headers_expose_effective_wda_mjpeg_mode():
@@ -20,3 +20,32 @@ def test_android_stream_headers_expose_effective_mode():
 
     assert response.headers["x-phone-platform"] == "android"
     assert response.headers["x-phone-stream-mode"] == "h264"
+
+
+def test_ios_webrtc_signal_returns_wda_stream_fallback():
+    response = _webrtc_signal_sync({"device": "ios:abc123", "method": "stream/start", "params": {}})
+
+    assert response["ok"] is False
+    assert response["platform"] == "ios"
+    assert "WebRTC" in response["error"]
+    assert response["stream_fallback"]["recommended_mode"] == "mjpeg"
+    assert response["stream_fallback"]["url"] == "/api/phone/stream?device=ios:abc123&mode=mjpeg"
+    assert response["recovery"]["health_endpoint"] == "/api/phone/health/ios:abc123"
+
+
+def test_ios_webrtc_ws_send_returns_wda_stream_fallback():
+    response = webrtc_ws_send({"device": "ios:abc123", "message": {"type": "ping"}})
+
+    assert response["ok"] is False
+    assert response["platform"] == "ios"
+    assert "Portal WebSocket" in response["error"]
+    assert response["stream_fallback"]["fallback_mode"] == "screencap"
+
+
+def test_ios_webrtc_ws_poll_returns_wda_stream_fallback():
+    response = webrtc_ws_poll({"device": "ios:abc123"})
+
+    assert response["ok"] is False
+    assert response["platform"] == "ios"
+    assert "Portal WebSocket polling" in response["error"]
+    assert response["stream_fallback"]["endpoint"] == "/api/phone/stream"

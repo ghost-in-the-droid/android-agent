@@ -210,6 +210,8 @@ Supported on iOS:
 - Browser primitives: `open_url`, `web_search`, `browser_back`, `get_current_url`, `wait_for_text`, `extract_visible_text`, `extract_articles`
 - REST browser routes under `/api/phone/browser/*`
 - `/api/phone/stream?device=ios:<udid>` with WDA MJPEG mode when requested and screenshot polling fallback
+- Portal/WebRTC signaling endpoints return a structured `stream_fallback`
+  payload for iOS that points clients to `/api/phone/stream?mode=mjpeg`
 - Test-runner recordings through WDA MJPEG plus `ffmpeg`
 
 Android-only for now:
