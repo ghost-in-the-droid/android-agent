@@ -978,6 +978,8 @@ function iosRecoveryAction(serial: string): string {
 
 function iosRecoveryCanApplyFix(serial: string): boolean {
   if (!serial || !isIosDevice(serial)) return false
+  const recovery = iosRecovery(serial)
+  if (recovery?.auto_fixable === false || recovery?.manual_action_required === true) return false
   return IOS_AUTO_FIXES.has(iosRecoveryAction(serial))
 }
 
@@ -995,6 +997,8 @@ function iosRecoveryActionLabel(serial: string): string {
 
 function iosRecoveryActionTitle(serial: string): string {
   const action = iosRecoveryAction(serial)
+  const recovery = iosRecovery(serial)
+  if (recovery?.auto_fixable === false || recovery?.manual_action_required === true) return 'Manual recovery is required; copy the recovery commands below'
   if (action === 'start_appium') return 'Start local Appium when IOS_APPIUM_URL points to localhost'
   if (action === 'restart_remote_xpc_tunnel') return 'Restart the XCUITest RemoteXPC tunnel when the process is owned by this user'
   if (action) return `Apply iOS health fix: ${action}`

@@ -157,7 +157,9 @@ The Phone Admin dashboard reads the same health payload. For iOS devices it
 shows Appium/WDA health dots, recovery steps, and an action button when
 `recommended_fix` is one of `reset_session`, `appium_session`, `wda_session`,
 `start_appium`, or `restart_remote_xpc_tunnel`. The button calls
-`/api/phone/health/<device>/fix`; manual recovery states still show steps only.
+`/api/phone/health/<device>/fix` only when the recovery payload is
+`auto_fixable`; manual recovery states still show steps and copyable commands
+only.
 `start_appium` is automatic only for local HTTP Appium URLs such as
 `http://127.0.0.1:4723`; remote or HTTPS Appium URLs return manual steps. If
 `appium` is not directly on `PATH`, set `IOS_APPIUM_COMMAND` to the executable
@@ -311,7 +313,9 @@ Android-only for now:
 - Health responses include `connection.status`, `recommended_fix`, and a
   `recovery.steps` list. iOS RemoteXPC failures also include
   `recovery.commands` with copyable shell commands when Ghost cannot apply the
-  fix automatically. The dashboard and `fix_device_health` can apply the
+  fix automatically. `recovery.auto_fixable=false` and
+  `recovery.manual_action_required=true` mean the dashboard should not show a
+  one-click fix button. The dashboard and `fix_device_health` can apply the
   supported automatic fixes; manual states should show the recovery steps.
 - `Could not create Appium iOS session`: confirm Appium is running and `IOS_APPIUM_URL` is correct.
 - `appium_down`: use `fix_device_health("ios:<udid>", "start_appium")` or the
