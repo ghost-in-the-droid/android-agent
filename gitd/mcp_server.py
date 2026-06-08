@@ -642,7 +642,7 @@ def run_workflow(device: str, skill: str, workflow: str, params: str = "{}") -> 
     runner = Path(__file__).parent / "skills" / "_run_skill.py"
     result = subprocess.run(
         [
-            "python3",
+            sys.executable,
             "-u",
             str(runner),
             "--skill",
@@ -682,7 +682,7 @@ def run_action(device: str, skill: str, action: str, params: str = "{}") -> str:
     runner = Path(__file__).parent / "skills" / "_run_skill.py"
     result = subprocess.run(
         [
-            "python3",
+            sys.executable,
             "-u",
             str(runner),
             "--skill",
@@ -718,7 +718,7 @@ def explore_app(device: str, package: str, max_depth: int = 2, max_states: int =
     script = Path(__file__).parent / "skills" / "auto_creator.py"
     result = subprocess.run(
         [
-            "python3",
+            sys.executable,
             "-u",
             str(script),
             "--package",

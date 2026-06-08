@@ -5,6 +5,7 @@ Tool schemas are in Anthropic's tool format and auto-converted for other provide
 """
 
 import json
+import sys
 
 from gitd.services import device_context as ctx
 from gitd.bots.common.device import get_device, is_ios_ref
@@ -1059,7 +1060,7 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             params = json.dumps(args.get("params", {}))
             r = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "-u",
                     str(runner),
                     "--skill",
