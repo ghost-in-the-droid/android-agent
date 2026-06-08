@@ -299,6 +299,77 @@ def test_scheduler_allows_ios_app_explore_schedule_and_run_now():
         db.close()
 
 
+def test_scheduler_restart_preserves_ios_schedule_timeout():
+    client = TestClient(app)
+    db = SessionLocal()
+    sid = None
+    run_id = None
+    new_job_id = None
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    config = {"skill": "safari", "workflow": "read_news", "params": {"url": "https://text.npr.org/"}}
+    try:
+        sid = create_scheduled_job(
+            db,
+            name="ios news short timeout",
+            job_type="skill_workflow",
+            phone_serial="ios:abc123",
+            schedule_type="interval",
+            interval_minutes=60,
+            config_json=config,
+            max_duration_s=300,
+            is_enabled=1,
+        )
+        db.execute(
+            text(
+                "INSERT INTO job_runs "
+                "(scheduled_job_id, phone_serial, job_type, priority, config_json, status, "
+                "enqueued_at, started_at, finished_at, duration_s, trigger) "
+                "VALUES (:sid, :phone, :job_type, :priority, :config_json, :status, "
+                ":enqueued_at, :started_at, :finished_at, :duration_s, :trigger)"
+            ),
+            {
+                "sid": sid,
+                "phone": "ios:abc123",
+                "job_type": "skill_workflow",
+                "priority": 1,
+                "config_json": json.dumps(config),
+                "status": "completed",
+                "enqueued_at": now,
+                "started_at": now,
+                "finished_at": now,
+                "duration_s": 15,
+                "trigger": "manual",
+            },
+        )
+        run_id = db.execute(text("SELECT last_insert_rowid()")).scalar()
+        db.commit()
+
+        response = client.post(f"/api/scheduler/runs/{run_id}/restart")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["platform"] == "ios"
+        new_job_id = body["new_job_id"]
+
+        row = (
+            db.execute(text("SELECT * FROM job_queue WHERE id = :id"), {"id": new_job_id})
+            .mappings()
+            .one()
+        )
+        assert row["phone_serial"] == "ios:abc123"
+        assert row["job_type"] == "skill_workflow"
+        assert row["priority"] == 1
+        assert row["max_duration_s"] == 300
+    finally:
+        if new_job_id:
+            db.execute(text("DELETE FROM job_queue WHERE id = :id"), {"id": new_job_id})
+        if run_id:
+            db.execute(text("DELETE FROM job_runs WHERE id = :id"), {"id": run_id})
+        if sid:
+            db.execute(text("DELETE FROM scheduled_jobs WHERE id = :id"), {"id": sid})
+        db.commit()
+        db.close()
+
+
 def test_scheduler_update_rejects_moving_android_only_job_to_ios():
     client = TestClient(app)
     sid = None
