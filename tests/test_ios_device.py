@@ -366,6 +366,30 @@ def test_per_device_ios_config_from_json(monkeypatch):
     assert cfg.capabilities()["appium:allowProvisioningDeviceRegistration"] is True
 
 
+def test_ios_config_infers_host_name_and_platform_version(monkeypatch):
+    monkeypatch.delenv("IOS_DEVICE_NAME", raising=False)
+    monkeypatch.delenv("IOS_PLATFORM_VERSION", raising=False)
+    monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+    monkeypatch.delenv("IOS_CONFIG_FILE", raising=False)
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.discover_host_ios_devices",
+        lambda include_simulators=True: [
+            {
+                "udid": "00008110-0016443101D0401E",
+                "name": "blah_mad",
+                "platform_version": "26.5",
+                "source": "host",
+                "state": "connected",
+            }
+        ],
+    )
+
+    cfg = ios_config_for_udid("ios:00008110-0016443101D0401E")
+
+    assert cfg.device_name == "blah_mad"
+    assert cfg.platform_version == "26.5"
+
+
 def test_ios_mjpeg_url_uses_appium_host_and_explicit_override():
     remote = IOSDevice("ios:abc123", appium_url="https://appium.example.test:4723")
     remote.mjpeg_server_port = 9123
@@ -535,6 +559,44 @@ def test_session_creation_includes_real_device_signing_capabilities(monkeypatch)
     assert body["appium:wdaStartupRetryInterval"] == 10000
 
 
+def test_session_creation_uses_host_discovered_platform_version(monkeypatch):
+    IOSDevice._sessions.clear()
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append({"method": method, "url": url, "json": json, "timeout": timeout})
+        return FakeResponse({"value": {"sessionId": "session-1"}})
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.discover_host_ios_devices",
+        lambda include_simulators=True: [
+            {
+                "udid": "00008110-0016443101D0401E",
+                "name": "blah_mad",
+                "platform_version": "26.5",
+                "source": "host",
+                "state": "connected",
+            }
+        ],
+    )
+    monkeypatch.delenv("IOS_DEVICE_NAME", raising=False)
+    monkeypatch.delenv("IOS_PLATFORM_VERSION", raising=False)
+    monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+    monkeypatch.delenv("IOS_CONFIG_FILE", raising=False)
+    dev = IOSDevice(
+        "ios:00008110-0016443101D0401E",
+        appium_url="http://appium.local",
+        bundle_id="com.google.chrome.ios",
+        timeout=1,
+    )
+
+    assert dev._ensure_session() == "session-1"
+    body = calls[0]["json"]["capabilities"]["alwaysMatch"]
+    assert body["appium:deviceName"] == "blah_mad"
+    assert body["appium:platformVersion"] == "26.5"
+
+
 def test_probe_classifies_unreachable_appium(monkeypatch):
     def fake_request(method, url, json=None, timeout=None):
         raise __import__("requests").ConnectionError("connection refused")
@@ -567,6 +629,15 @@ def test_ios_error_classifier_keeps_wda_signing_failures_actionable():
 
     assert state == "wda_signing_failed"
     assert "WebDriverAgent signing" in details
+
+
+def test_ios_error_classifier_promotes_remote_xpc_tunnel_failures():
+    state, details = classify_ios_error(
+        RuntimeError("Could not create Appium iOS session (500): Could not find the expected device 'abc123'")
+    )
+
+    assert state == "remote_xpc_tunnel_unavailable"
+    assert "RemoteXPC tunnel" in details
 
 
 def test_ios_device_health_promotes_stable_wda_fields(monkeypatch):
@@ -615,6 +686,47 @@ def test_ios_device_health_promotes_stable_wda_fields(monkeypatch):
     assert health["wda"]["mjpeg_settings"] == {"mjpegServerFramerate": 12, "mjpegScalingFactor": 60.0}
     assert health["recommended_fix"] == ""
     assert health["recovery"] == {"code": "", "summary": "iOS Appium/WDA session is usable.", "steps": []}
+
+
+def test_ios_device_health_includes_recovery_steps_for_remote_xpc_tunnel(monkeypatch):
+    class ProbeStatus:
+        def to_dict(self):
+            return {
+                "device": "ios:abc123",
+                "udid": "abc123",
+                "state": "remote_xpc_tunnel_unavailable",
+                "message": "RemoteXPC tunnel or usbmux device listing is unavailable",
+                "appium_url": "http://appium.local",
+                "session_id": "",
+                "active_app": None,
+                "screen_size": None,
+                "checks": {"appium_status_code": 200},
+            }
+
+    class FakeIOSDevice:
+        def probe(self, deep=True):
+            assert deep is True
+            return ProbeStatus()
+
+        @property
+        def mjpeg_url(self):
+            return "http://appium.local:9100"
+
+        @property
+        def mjpeg_settings(self):
+            return {}
+
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
+
+    from gitd.services.device_context import device_health
+
+    health = device_health("ios:abc123")
+
+    assert health["connection"]["status"] == "remote_xpc_tunnel_unavailable"
+    assert health["appium"]["reachable"] is False
+    assert health["recommended_fix"] == "restart_remote_xpc_tunnel"
+    assert health["recovery"]["state"] == "remote_xpc_tunnel_unavailable"
+    assert any("tunnel-creation" in step for step in health["recovery"]["steps"])
 
 
 def test_ios_device_health_includes_recovery_steps_for_wda_signing_failure(monkeypatch):

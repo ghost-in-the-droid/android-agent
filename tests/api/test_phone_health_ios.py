@@ -6,6 +6,7 @@ import pytest
     [
         ("start_appium", "appium_down"),
         ("check_ios_device_config", "configured_unreachable"),
+        ("restart_remote_xpc_tunnel", "remote_xpc_tunnel_unavailable"),
         ("unlock_and_trust_device", "locked"),
         ("fix_wda_signing", "wda_signing_failed"),
     ],

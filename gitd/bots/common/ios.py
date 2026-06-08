@@ -53,6 +53,10 @@ _ELEMENT_ID_KEYS = (
 )
 _IOS_DEVICE_NAME_RE = re.compile(r"\b(iPhone|iPad|iPod)\b", re.I)
 _IOS_HARDWARE_UDID_RE = re.compile(r"^(?:[A-F0-9]{40}|[A-F0-9]{8}-[A-F0-9]{16})$", re.I)
+_IOS_SIMULATOR_UDID_RE = re.compile(
+    r"^[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}$",
+    re.I,
+)
 _MAC_HOST_NAME_RE = re.compile(r"\b(Mac|MacBook|iMac|Mac mini|Mac Studio|Laptop|Desktop)\b", re.I)
 
 
@@ -498,6 +502,16 @@ def _load_ios_devices_blob() -> dict[str, Any]:
     return {}
 
 
+def _host_device_config_for_udid(udid: str) -> dict[str, str]:
+    if not (_IOS_HARDWARE_UDID_RE.match(udid) or _IOS_SIMULATOR_UDID_RE.match(udid)):
+        return {}
+    try:
+        devices = discover_host_ios_devices(include_simulators=True)
+    except Exception:
+        return {}
+    return next((item for item in devices if item.get("udid") == udid), {})
+
+
 def _config_dict_for_udid(udid: str) -> dict[str, Any]:
     clean_udid = strip_ios_prefix(udid)
     cfg: dict[str, Any] = {"udid": clean_udid}
@@ -517,6 +531,12 @@ def _config_dict_for_udid(udid: str) -> dict[str, Any]:
             value = _clean_config_value(field_name, raw_value_item)
             if value is not None:
                 cfg[field_name] = value
+
+    host = _host_device_config_for_udid(clean_udid)
+    if host.get("name") and not cfg.get("device_name"):
+        cfg["device_name"] = host["name"]
+    if host.get("platform_version") and not cfg.get("platform_version"):
+        cfg["platform_version"] = host["platform_version"]
     return cfg
 
 
@@ -2112,6 +2132,12 @@ def classify_ios_error(exc: Exception) -> tuple[str, str]:
         or "ui automation" in lower
     ):
         return "locked", f"Device is locked, not trusted, or blocked by iOS automation permissions: {message}"
+    if (
+        "remote xpc" in lower
+        or "remotexpc" in lower
+        or "could not find the expected device" in lower
+    ):
+        return "remote_xpc_tunnel_unavailable", f"RemoteXPC tunnel or usbmux device listing is unavailable: {message}"
     if "connection refused" in lower or "failed to establish" in lower or "timed out" in lower:
         return "appium_down", f"Appium is unreachable: {message}"
     if "code sign" in lower or "signing" in lower or "provision" in lower or "xcodebuild" in lower:
