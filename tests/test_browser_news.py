@@ -96,6 +96,38 @@ def test_read_news_opens_headlines_and_extracts_article_snippets(monkeypatch, tm
     assert (tmp_path / "article_1.png").read_bytes() == b"fake-png"
 
 
+def test_read_news_retries_until_headlines_and_article_text_are_ready(monkeypatch):
+    class DelayedNewsDevice(FakeNewsIOSDevice):
+        def __init__(self):
+            super().__init__()
+            self.article_extraction_calls = 0
+            self.text_calls: dict[str, int] = {}
+
+        def extract_articles(self, max_items=5):
+            self.article_extraction_calls += 1
+            if self.article_extraction_calls == 1:
+                return []
+            return super().extract_articles(max_items=max_items)
+
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            calls = self.text_calls.get(self.current_url, 0)
+            self.text_calls[self.current_url] = calls + 1
+            if self.current_url.endswith("/article/1") and calls == 0:
+                return ""
+            return super().extract_visible_text(max_lines=max_lines, include_controls=include_controls)
+
+    fake = DelayedNewsDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=1, max_articles=1, wait_s=1)
+
+    assert result["ok"] is True
+    assert fake.article_extraction_calls == 2
+    assert fake.text_calls["https://text.npr.org/article/1"] == 2
+    assert result["articles"][0]["body_snippet"] == "First article title\nFirst article body line."
+
+
 def test_read_news_android_returns_explicit_unsupported():
     result = read_news("emulator-5554", "https://text.npr.org/")
 
