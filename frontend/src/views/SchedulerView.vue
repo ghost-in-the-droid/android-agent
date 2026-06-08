@@ -74,7 +74,7 @@ type ExtractionEvidence = {
   [key: string]: any
 }
 
-const DEFAULT_IOS_TEMPLATE_ID = 'tiktok_profile_smoke'
+const DEFAULT_IOS_TEMPLATE_ID = 'chrome_browser_smoke'
 
 const JOB_TYPE_OPTIONS: JobTypeOption[] = [
   { value: 'post', label: 'Post', android: true, ios: false },
@@ -84,6 +84,25 @@ const JOB_TYPE_OPTIONS: JobTypeOption[] = [
 ]
 
 const IOS_SCHEDULE_TEMPLATES: IosScheduleTemplate[] = [
+  {
+    id: 'chrome_browser_smoke',
+    label: 'Chrome News',
+    name: 'iOS Chrome News',
+    max_duration_s: 600,
+    config: {
+      skill: 'safari',
+      workflow: 'read_news',
+      params: {
+        url: 'https://text.npr.org/',
+        max_headlines: 5,
+        max_articles: 3,
+        wait_s: 2,
+        bundle_id: 'com.google.chrome.ios',
+        save_screenshots: true,
+        out_dir: 'data/ios_chrome_news_smoke',
+      },
+    },
+  },
   {
     id: 'tiktok_profile_smoke',
     label: 'TikTok Profile Smoke',
@@ -115,24 +134,6 @@ const IOS_SCHEDULE_TEMPLATES: IosScheduleTemplate[] = [
       skill: 'tiktok_ios',
       workflow: 'open_app_smoke',
       params: {},
-    },
-  },
-  {
-    id: 'chrome_browser_smoke',
-    label: 'Chrome Browser Smoke',
-    name: 'iOS Chrome Browser Smoke',
-    max_duration_s: 300,
-    config: {
-      skill: 'safari',
-      workflow: 'read_news',
-      params: {
-        url: 'https://text.npr.org/',
-        max_headlines: 5,
-        max_articles: 3,
-        bundle_id: 'com.google.chrome.ios',
-        save_screenshots: true,
-        out_dir: 'data/ios_chrome_news_smoke',
-      },
     },
   },
 ]
@@ -328,7 +329,7 @@ const jobTypeOptions = computed(() =>
 
 const schedulePlatformNotice = computed(() => {
   if (!selectedScheduleIsIos.value) return ''
-  return 'iOS schedules currently run supported skill workflows. TikTok post and publish jobs stay Android-only until the iOS upload flow is ported.'
+  return 'iOS schedules default to the Chrome/news workflow and can run supported skill workflows or app exploration. TikTok post and publish jobs stay Android-only until the iOS upload flow is ported.'
 })
 
 const currentIosTemplateId = computed(() => {
