@@ -1025,6 +1025,7 @@ def test_ios_device_health_promotes_stable_wda_fields(monkeypatch):
     assert health["appium"]["reachable"] is True
     assert health["appium"]["session_id"] == "session-1"
     assert health["wda"]["session"] == "session-1"
+    assert health["wda"]["ready"] is True
     assert health["wda"]["screenshot_ok"] is True
     assert health["wda"]["source_ok"] is True
     assert health["wda"]["active_app"]["bundleId"] == "com.google.chrome.ios"
@@ -1077,7 +1078,9 @@ def test_ios_device_health_includes_recovery_steps_for_remote_xpc_tunnel(monkeyp
     health = device_health("ios:abc123")
 
     assert health["connection"]["status"] == "remote_xpc_tunnel_unavailable"
-    assert health["appium"]["reachable"] is False
+    assert health["appium"]["reachable"] is True
+    assert health["appium"]["status_code"] == 200
+    assert health["wda"]["ready"] is False
     assert health["recommended_fix"] == "restart_remote_xpc_tunnel"
     assert health["recovery"]["state"] == "remote_xpc_tunnel_unavailable"
     assert health["recovery"]["processes"][0]["pid"] == 1234

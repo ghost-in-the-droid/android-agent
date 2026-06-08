@@ -974,6 +974,10 @@ def ios_device_health(device: str, ios_dev=None) -> dict:
         checks = status.get("checks") or {}
         screenshot_bytes = checks.get("screenshot_bytes") or 0
         source_bytes = checks.get("source_bytes") or 0
+        appium_status_code = checks.get("appium_status_code")
+        appium_reachable = state != "appium_down"
+        if isinstance(appium_status_code, int):
+            appium_reachable = appium_status_code < 400
         recovery = _ios_recovery_for_state(state)
         if state == "remote_xpc_tunnel_unavailable":
             try:
@@ -988,13 +992,14 @@ def ios_device_health(device: str, ios_dev=None) -> dict:
             "appium": {
                 "url": status.get("appium_url", ""),
                 "session_id": status.get("session_id", ""),
-                "reachable": state
-                not in {"appium_down", "configured_unreachable", "remote_xpc_tunnel_unavailable"},
+                "reachable": appium_reachable,
                 "state": state,
                 "message": status.get("message", ""),
+                "status_code": appium_status_code,
             },
             "wda": {
                 "session": status.get("session_id", ""),
+                "ready": state == "available",
                 "active_app": status.get("active_app") or {},
                 "screen_size": status.get("screen_size") or {},
                 "screenshot_ok": bool(screenshot_bytes),
