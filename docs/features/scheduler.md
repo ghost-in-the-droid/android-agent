@@ -18,6 +18,7 @@ Per-phone job queue with priority-based scheduling, preemption, timeout enforcem
 - Full job CRUD via REST API
 - Log file capture per job (`/tmp/sched_job_<id>.log`)
 - Job summary parsing from `[done]` markers in logs
+- Skill workflow result parsing from `Data: {...}` log payloads
 - Protection: never preempts post/publish_draft jobs (interrupting corrupts state)
 
 **Limitations:**
@@ -97,6 +98,13 @@ The dashboard schedule form detects iOS devices and pre-fills one of these valid
 
 Real iPhone execution still depends on Appium/WebDriverAgent being healthy for the target UDID.
 
+Completed skill jobs that emit structured `Data: {...}` output can be queried
+without scraping logs:
+
+```bash
+curl http://localhost:5055/api/scheduler/history/<run_id>/result | python3 -m json.tool
+```
+
 ## Files
 
 | File | Purpose |
@@ -122,6 +130,7 @@ Real iPhone execution still depends on Appium/WebDriverAgent being healthy for t
 | POST | `/api/scheduler/runs/<id>/restart` | Re-enqueue a completed/failed job |
 | GET | `/api/scheduler/history` | All archived job runs |
 | GET | `/api/scheduler/history/<id>/logs` | Logs for an archived run |
+| GET | `/api/scheduler/history/<id>/result` | Structured skill result parsed from run logs |
 | GET | `/api/scheduler/timeline` | 24h timeline data (runs + upcoming schedules) |
 
 ## Database Tables
