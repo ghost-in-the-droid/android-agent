@@ -18,6 +18,7 @@ import urllib.request
 
 from gitd.bots.common.adb import Device
 from gitd.bots.common.device import get_device, is_ios_ref
+from gitd.bots.common.ios import remote_xpc_manual_recovery
 
 # ── Phone state ──────────────────────────────────────────────────────────────
 
@@ -974,6 +975,11 @@ def ios_device_health(device: str, ios_dev=None) -> dict:
         screenshot_bytes = checks.get("screenshot_bytes") or 0
         source_bytes = checks.get("source_bytes") or 0
         recovery = _ios_recovery_for_state(state)
+        if state == "remote_xpc_tunnel_unavailable":
+            try:
+                recovery = remote_xpc_manual_recovery(status.get("udid") or device, checks.get("remote_xpc_tunnel") or {})
+            except Exception:
+                recovery = _ios_recovery_for_state(state)
         recommended_fix = recovery.get("code", "")
         return {
             "serial": device,

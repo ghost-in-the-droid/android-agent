@@ -1011,7 +1011,10 @@ def test_ios_device_health_includes_recovery_steps_for_remote_xpc_tunnel(monkeyp
                 "session_id": "",
                 "active_app": None,
                 "screen_size": None,
-                "checks": {"appium_status_code": 200},
+                "checks": {
+                    "appium_status_code": 200,
+                    "remote_xpc_tunnel": {"required": True, "state": "stale", "ok": False, "checked_ports": [42314]},
+                },
             }
 
     class FakeIOSDevice:
@@ -1028,6 +1031,11 @@ def test_ios_device_health_includes_recovery_steps_for_remote_xpc_tunnel(monkeyp
             return {}
 
     monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
+    monkeypatch.setattr(
+        "gitd.bots.common.ios._remote_xpc_tunnel_processes",
+        lambda udid: [{"pid": 1234, "uid": 0, "command": "appium driver run xcuitest tunnel-creation --udid abc123"}],
+    )
+    monkeypatch.setattr("gitd.bots.common.ios.os.getuid", lambda: 501)
 
     from gitd.services.device_context import device_health
 
@@ -1037,7 +1045,12 @@ def test_ios_device_health_includes_recovery_steps_for_remote_xpc_tunnel(monkeyp
     assert health["appium"]["reachable"] is False
     assert health["recommended_fix"] == "restart_remote_xpc_tunnel"
     assert health["recovery"]["state"] == "remote_xpc_tunnel_unavailable"
-    assert any("tunnel-creation" in step for step in health["recovery"]["steps"])
+    assert health["recovery"]["processes"][0]["pid"] == 1234
+    assert health["recovery"]["steps"] == [
+        "Stop the stale process ids with sudo: 1234",
+        "Run: sudo appium driver run xcuitest tunnel-creation --udid abc123",
+        "Verify: http://127.0.0.1:42314/remotexpc/tunnels/abc123",
+    ]
 
 
 def test_ios_device_health_includes_recovery_steps_for_wda_signing_failure(monkeypatch):
