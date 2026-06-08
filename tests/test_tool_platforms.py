@@ -39,6 +39,10 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("device_health", "android") is True
     assert supports_platform("fix_device_health", "ios") is True
     assert supports_platform("fix_device_health", "android") is True
+    assert supports_platform("get_screen_xml", "ios") is True
+    assert supports_platform("press_back", "ios") is True
+    assert supports_platform("press_home", "ios") is True
+    assert supports_platform("type_unicode", "ios") is True
     assert supports_platform("get_current_url", "ios") is True
     assert supports_platform("get_current_url", "android") is False
     assert supports_platform("shell", "ios") is False
@@ -61,6 +65,10 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert tool_platform_info("shell").support == "android_only"
     assert tool_platform_info("device_health").support == "cross_platform"
     assert tool_platform_info("fix_device_health").support == "cross_platform"
+    assert tool_platform_info("get_screen_xml").support == "cross_platform"
+    assert tool_platform_info("press_back").support == "cross_platform"
+    assert tool_platform_info("press_home").support == "cross_platform"
+    assert tool_platform_info("type_unicode").support == "cross_platform"
     assert tool_platform_info("start_screen_recording").support == "cross_platform"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
     assert tool_platform_info("clipboard_set").support == "cross_platform"
@@ -203,6 +211,7 @@ def test_tools_for_device_filters_by_platform():
     assert "start_screen_recording" in ios_names
     assert "stop_screen_recording" in ios_names
     assert "screen_recording_status" in ios_names
+    assert "get_screen_xml" in ios_names
     assert "device_health" in ios_names
     assert "fix_device_health" in ios_names
     assert "extract_articles" in ios_names
@@ -211,6 +220,9 @@ def test_tools_for_device_filters_by_platform():
     assert "clipboard_get" in ios_names
     assert "clipboard_set" in ios_names
     assert "paste_text" in ios_names
+    assert "press_back" in ios_names
+    assert "press_home" in ios_names
+    assert "type_unicode" in ios_names
     assert "get_current_url" in ios_names
     assert "list_apps" in ios_names
     assert "search_apps" in ios_names
@@ -224,6 +236,10 @@ def test_tools_for_device_filters_by_platform():
     assert "read_news" in ios_names
 
     assert "shell" in android_names
+    assert "get_screen_xml" in android_names
+    assert "press_back" in android_names
+    assert "press_home" in android_names
+    assert "type_unicode" in android_names
     assert "start_screen_recording" in android_names
     assert "device_health" in android_names
     assert "fix_device_health" in android_names
@@ -310,6 +326,35 @@ def test_ios_paste_text_tool_uses_ios_backend(monkeypatch):
     assert calls == ["hello"]
 
 
+def test_ios_agent_primitive_aliases_use_ios_backend(monkeypatch):
+    calls = []
+
+    class FakeIOSDevice:
+        def type_text(self, text):
+            calls.append(("type", text))
+
+        def back(self):
+            calls.append(("back",))
+
+        def press_key(self, key):
+            calls.append(("key", key))
+
+    monkeypatch.setattr("gitd.services.agent_tools.get_device", lambda device: FakeIOSDevice())
+    monkeypatch.setattr("gitd.services.agent_tools.ctx.get_screen_tree", lambda device: "(empty screen)")
+    monkeypatch.setattr("gitd.services.agent_tools.ctx.get_screen_xml", lambda device: "<hierarchy />")
+
+    typed = execute_tool("type_unicode", {"device": "ios:abc123", "text": "cafe\u0301"})
+    back = execute_tool("press_back", {"device": "ios:abc123"})
+    home = execute_tool("press_home", {"device": "ios:abc123"})
+    xml = execute_tool("get_screen_xml", {"device": "ios:abc123"})
+
+    assert typed == "Typed (unicode): cafe\u0301"
+    assert back == "Pressed Back"
+    assert home == "Pressed Home"
+    assert xml == "<hierarchy />"
+    assert calls == [("type", "cafe\u0301"), ("back",), ("key", "HOME")]
+
+
 def test_platform_prompts_do_not_offer_android_only_tools_to_ios():
     ios_tools = tools_for_device("ios:abc123")
     ios_tool_list = tool_prompt_list(ios_tools)
@@ -349,10 +394,18 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "device_health" in ios_names
     assert "fix_device_health" in ios_names
     assert "shell" not in ios_names
+    assert "press_back" in ios_names
+    assert "press_home" in ios_names
+    assert "type_unicode" in ios_names
+    assert "get_screen_xml" in ios_names
     assert "get_current_url" in ios_names
     assert "read_news" in ios_names
     assert "shell" in android_names
     assert "device_health" in android_names
     assert "fix_device_health" in android_names
+    assert "press_back" in android_names
+    assert "press_home" in android_names
+    assert "type_unicode" in android_names
+    assert "get_screen_xml" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names

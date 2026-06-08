@@ -5,6 +5,7 @@ def test_tools_hub_exposes_platform_support(client):
     categories = response.json()
     web = next(category for category in categories if category["category"] == "Web")
     screen = next(category for category in categories if category["category"] == "Screen Reading")
+    input_tools = next(category for category in categories if category["category"] == "Input")
     app_management = next(category for category in categories if category["category"] == "App Management")
     clipboard = next(category for category in categories if category["category"] == "Clipboard & Notifications")
     open_url = next(tool for tool in web["tools"] if tool["name"] == "open_url")
@@ -13,6 +14,9 @@ def test_tools_hub_exposes_platform_support(client):
     device_health = next(tool for tool in screen["tools"] if tool["name"] == "device_health")
     fix_device_health = next(tool for tool in screen["tools"] if tool["name"] == "fix_device_health")
     start_recording = next(tool for tool in screen["tools"] if tool["name"] == "start_screen_recording")
+    type_unicode = next(tool for tool in input_tools["tools"] if tool["name"] == "type_unicode")
+    press_back = next(tool for tool in input_tools["tools"] if tool["name"] == "press_back")
+    press_home = next(tool for tool in input_tools["tools"] if tool["name"] == "press_home")
     app_state = next(tool for tool in app_management["tools"] if tool["name"] == "app_state")
     explore_app = next(tool for tool in app_management["tools"] if tool["name"] == "explore_app")
     paste_text = next(tool for tool in clipboard["tools"] if tool["name"] == "paste_text")
@@ -28,6 +32,12 @@ def test_tools_hub_exposes_platform_support(client):
     assert fix_device_health["platform_support"]["ios"] is True
     assert start_recording["platform_support"]["support"] == "cross_platform"
     assert start_recording["platform_support"]["ios"] is True
+    assert type_unicode["platform_support"]["support"] == "cross_platform"
+    assert type_unicode["platform_support"]["ios"] is True
+    assert press_back["platform_support"]["support"] == "cross_platform"
+    assert press_back["platform_support"]["ios"] is True
+    assert press_home["platform_support"]["support"] == "cross_platform"
+    assert press_home["platform_support"]["ios"] is True
     assert app_state["platform_support"]["support"] == "cross_platform"
     assert app_state["platform_support"]["ios"] is True
     assert explore_app["platform_support"]["support"] == "cross_platform"
