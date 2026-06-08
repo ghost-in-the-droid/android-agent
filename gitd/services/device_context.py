@@ -709,21 +709,41 @@ def device_health(device: str) -> dict:
     """Comprehensive device health check. Returns status for every subsystem."""
     if is_ios_ref(device):
         try:
-            status = get_device(device).probe(deep=True).to_dict()
+            ios_dev = get_device(device)
+            status = ios_dev.probe(deep=True).to_dict()
+            state = status.get("state", "session_error")
+            checks = status.get("checks") or {}
+            screenshot_bytes = checks.get("screenshot_bytes") or 0
+            source_bytes = checks.get("source_bytes") or 0
+            recommended_fix = {
+                "appium_down": "start_appium",
+                "configured_unreachable": "check_ios_device_config",
+                "locked": "unlock_and_trust_device",
+                "wda_signing_failed": "fix_wda_signing",
+                "session_error": "reset_session",
+                "error": "reset_session",
+            }.get(state, "")
             return {
                 "serial": device,
-                "connection": {"type": "appium-wda", "status": status.get("state", "session_error")},
+                "connection": {"type": "appium-wda", "status": state},
                 "platform": "ios",
                 "appium": {
                     "url": status.get("appium_url", ""),
                     "session_id": status.get("session_id", ""),
+                    "reachable": state not in {"appium_down", "configured_unreachable"},
+                    "state": state,
                     "message": status.get("message", ""),
                 },
                 "wda": {
+                    "session": status.get("session_id", ""),
                     "active_app": status.get("active_app") or {},
                     "screen_size": status.get("screen_size") or {},
+                    "screenshot_ok": bool(screenshot_bytes),
+                    "source_ok": bool(source_bytes),
+                    "mjpeg_url": ios_dev.mjpeg_url(),
                     "checks": status.get("checks") or {},
                 },
+                "recommended_fix": recommended_fix,
                 "device_info": status,
             }
         except Exception as e:
@@ -731,6 +751,9 @@ def device_health(device: str) -> dict:
                 "serial": device,
                 "connection": {"type": "appium-wda", "status": "error"},
                 "platform": "ios",
+                "appium": {"reachable": False, "message": str(e), "state": "error"},
+                "wda": {"session": "", "screenshot_ok": False, "source_ok": False, "checks": {"error": str(e)}},
+                "recommended_fix": "reset_session",
                 "error": str(e),
             }
     dev = Device(device)

@@ -279,6 +279,47 @@ def test_probe_classifies_unreachable_appium(monkeypatch):
     assert "unreachable" in status.message.lower()
 
 
+def test_ios_device_health_promotes_stable_wda_fields(monkeypatch):
+    class ProbeStatus:
+        def to_dict(self):
+            return {
+                "device": "ios:abc123",
+                "udid": "abc123",
+                "state": "available",
+                "message": "iOS Appium/WDA session is usable",
+                "appium_url": "http://appium.local",
+                "session_id": "session-1",
+                "active_app": {"name": "Chrome", "bundleId": "com.google.chrome.ios"},
+                "screen_size": {"width": 393, "height": 852},
+                "checks": {"screenshot_bytes": 68, "source_bytes": 2048},
+            }
+
+    class FakeIOSDevice:
+        def probe(self, deep=True):
+            assert deep is True
+            return ProbeStatus()
+
+        def mjpeg_url(self):
+            return "http://appium.local/session/session-1/appium/device/screen_stream"
+
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
+
+    from gitd.services.device_context import device_health
+
+    health = device_health("ios:abc123")
+
+    assert health["platform"] == "ios"
+    assert health["connection"] == {"type": "appium-wda", "status": "available"}
+    assert health["appium"]["reachable"] is True
+    assert health["appium"]["session_id"] == "session-1"
+    assert health["wda"]["session"] == "session-1"
+    assert health["wda"]["screenshot_ok"] is True
+    assert health["wda"]["source_ok"] is True
+    assert health["wda"]["active_app"]["bundleId"] == "com.google.chrome.ios"
+    assert health["wda"]["mjpeg_url"].endswith("/screen_stream")
+    assert health["recommended_fix"] == ""
+
+
 def test_visible_text_entries_filter_controls_and_offscreen_nodes():
     raw = """<?xml version="1.0" encoding="UTF-8"?>
 <AppiumAUT>
