@@ -42,6 +42,7 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("list_apps", "ios") is True
     assert supports_platform("search_apps", "ios") is True
     assert supports_platform("list_packages", "ios") is True
+    assert supports_platform("app_state", "ios") is True
     assert supports_platform("get_notifications", "ios") is True
     assert supports_platform("open_notifications", "ios") is True
     assert supports_platform("clear_notifications", "ios") is True
@@ -57,6 +58,7 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert tool_platform_info("clipboard_set").support == "cross_platform"
     assert tool_platform_info("paste_text").support == "cross_platform"
     assert tool_platform_info("list_apps").support == "cross_platform"
+    assert tool_platform_info("app_state").support == "cross_platform"
     assert tool_platform_info("get_notifications").support == "cross_platform"
     assert tool_platform_info("open_camera").support == "cross_platform"
     assert tool_platform_info("explore_app").support == "cross_platform"
@@ -116,6 +118,7 @@ def test_tools_for_device_filters_by_platform():
     assert "list_apps" in ios_names
     assert "search_apps" in ios_names
     assert "list_packages" in ios_names
+    assert "app_state" in ios_names
     assert "get_notifications" in ios_names
     assert "open_notifications" in ios_names
     assert "clear_notifications" in ios_names
@@ -124,6 +127,7 @@ def test_tools_for_device_filters_by_platform():
 
     assert "shell" in android_names
     assert "device_health" in android_names
+    assert "app_state" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names
 

@@ -236,6 +236,15 @@ TOOLS = [
         },
     },
     {
+        "name": "app_state",
+        "description": "Check whether an Android package or iOS bundle id is installed, running, or foreground.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"device": {"type": "string"}, "package": {"type": "string"}},
+            "required": ["device", "package"],
+        },
+    },
+    {
         "name": "list_apps",
         "description": "List installed apps with human-readable names and Android package names or iOS bundle ids. Returns [{name, package}]. Use search_apps for faster lookup.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
@@ -886,6 +895,8 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 return f"Stopped iOS app {args['package']}"
             Device(device).adb("shell", "am", "force-stop", args["package"])
             return f"Stopped {args['package']}"
+        elif name == "app_state":
+            return json.dumps(ctx.app_state(device, args["package"]), indent=2)
         elif name == "web_search":
             if is_ios_ref(device):
                 from gitd.services.browser import dumps, web_search as _web_search

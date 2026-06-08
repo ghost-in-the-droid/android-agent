@@ -50,6 +50,96 @@ def get_phone_state(device: str) -> dict:
     return {}
 
 
+_APP_STATE_NAMES = {
+    0: "not_installed",
+    1: "not_running",
+    2: "running_background_suspended",
+    3: "running_background",
+    4: "running_foreground",
+}
+
+
+def _android_current_package(dev: Device) -> str:
+    try:
+        out = dev.adb("shell", "dumpsys", "window", "windows", timeout=5)
+        m = re.search(r"mCurrentFocus.*?(\S+)/\S+", out)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    try:
+        out = dev.adb("shell", "dumpsys", "activity", "activities", timeout=5)
+        m = re.search(r"mResumedActivity.*?\s([A-Za-z0-9_.]+)/\S+", out)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    return ""
+
+
+def app_state(device: str, package: str) -> dict:
+    """Return installed/running/foreground state for an Android package or iOS bundle id."""
+    if not package:
+        return {
+            "ok": False,
+            "device": device,
+            "platform": "ios" if is_ios_ref(device) else "android",
+            "error": "package required",
+        }
+
+    if is_ios_ref(device):
+        ios_dev = get_device(device)
+        raw_state = int(ios_dev.app_state(package))
+        state = _APP_STATE_NAMES.get(raw_state, "unknown")
+        return {
+            "ok": True,
+            "device": device,
+            "platform": "ios",
+            "package": package,
+            "bundle_id": package,
+            "state": state,
+            "raw_state": raw_state,
+            "installed": raw_state > 0,
+            "running": raw_state in {2, 3, 4},
+            "foreground": raw_state == 4,
+            "source": "appium_queryAppState",
+        }
+
+    dev = Device(device)
+    installed = False
+    running = False
+    foreground = False
+    current_package = _android_current_package(dev)
+    try:
+        installed = bool(dev.adb("shell", "pm", "path", package, timeout=5).strip())
+    except Exception:
+        installed = False
+    if current_package == package:
+        installed = True
+        foreground = True
+    if installed:
+        try:
+            running = bool(dev.adb("shell", "pidof", package, timeout=5).strip())
+        except Exception:
+            running = False
+        if foreground:
+            running = True
+    raw_state = 0 if not installed else (4 if foreground else (3 if running else 1))
+    return {
+        "ok": True,
+        "device": device,
+        "platform": "android",
+        "package": package,
+        "state": _APP_STATE_NAMES[raw_state],
+        "raw_state": raw_state,
+        "installed": installed,
+        "running": running,
+        "foreground": foreground,
+        "current_package": current_package,
+        "source": "adb",
+    }
+
+
 # ── Screenshots ──────────────────────────────────────────────────────────────
 
 

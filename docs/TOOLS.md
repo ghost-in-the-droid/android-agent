@@ -48,6 +48,14 @@ The LLM picks based on context: a benchmark task or "open Reddit fresh" → `fre
 
 Kill an app outright. No relaunch.
 
+### `app_state(device, package)`
+
+Check whether an Android package or iOS bundle id is installed, running, or
+foreground. iOS uses Appium `mobile: queryAppState`; Android uses `pm path`,
+`pidof`, and the current foreground window. REST equivalents are
+`GET /api/phone/app-state/{device}?package=...` and
+`POST /api/phone/app-state`.
+
 ### `open_camera(device, mode="photo", timer_s=0)`
 
 Open the platform camera app. Android uses its OEM camera launcher flow. iOS
