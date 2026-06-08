@@ -84,6 +84,10 @@ The **Tests** tab in the Vue dashboard provides a GUI for device tests:
 4. Click **Run** -- live log streaming shows progress
 5. View screen recordings in the Recordings library
 
+For `ios:<udid>` devices, the runner records through the WDA MJPEG stream and
+passes both `DEVICE=ios:<udid>` and `IOS_DEVICE_UDID=<udid>` to pytest so live
+iOS tests can use the same selected phone.
+
 ---
 
 ## Writing Tests
