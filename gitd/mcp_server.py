@@ -417,6 +417,18 @@ def screen_recording_status(device: str) -> str:
 
 
 @mcp.tool()
+def get_stream_info(device: str, mode: str = "mjpeg", fps: int = 5, quality: int = 8) -> str:
+    """Return effective stream metadata without opening the stream.
+
+    iOS reports WDA MJPEG URL/settings, screenshot fallback, and unsupported
+    Portal/WebRTC actions. Android reports Portal/H264/screencap metadata.
+    """
+    from gitd.routers.streaming import phone_stream_info
+
+    return json.dumps(phone_stream_info(device=device, mode=mode, fps=fps, quality=quality), indent=2)
+
+
+@mcp.tool()
 def ocr_screen(device: str) -> str:
     """OCR the entire device screen using RapidOCR. Returns all visible text with positions.
     Use this when UI elements are rendered as images/canvas (e.g., analytics dashboards,

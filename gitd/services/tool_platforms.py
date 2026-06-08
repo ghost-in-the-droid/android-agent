@@ -43,6 +43,7 @@ _CROSS_PLATFORM = {
     "start_screen_recording": "Android adb screenrecord or iOS WDA MJPEG captured through ffmpeg.",
     "stop_screen_recording": "Stops Android adb screenrecord or iOS WDA MJPEG/ffmpeg recording.",
     "screen_recording_status": "Reports active cross-platform phone screen recording status.",
+    "get_stream_info": "Returns effective Android Portal/H264/screencap or iOS WDA MJPEG stream metadata.",
     "get_elements": "Uses normalized Android/iOS element shape.",
     "get_screen_tree": "Uses normalized Android/iOS XML.",
     "get_screen_xml": "Returns Android uiautomator XML or normalized iOS WDA XML.",

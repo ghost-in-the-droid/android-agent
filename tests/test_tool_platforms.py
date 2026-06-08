@@ -46,6 +46,8 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("start_screen_recording", "ios") is True
     assert supports_platform("stop_screen_recording", "ios") is True
     assert supports_platform("screen_recording_status", "ios") is True
+    assert supports_platform("get_stream_info", "ios") is True
+    assert supports_platform("get_stream_info", "android") is True
     assert supports_platform("open_url", "ios") is True
     assert supports_platform("device_health", "ios") is True
     assert supports_platform("device_health", "android") is True
@@ -82,6 +84,7 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert tool_platform_info("press_home").support == "cross_platform"
     assert tool_platform_info("type_unicode").support == "cross_platform"
     assert tool_platform_info("start_screen_recording").support == "cross_platform"
+    assert tool_platform_info("get_stream_info").support == "cross_platform"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
     assert tool_platform_info("clipboard_set").support == "cross_platform"
     assert tool_platform_info("paste_text").support == "cross_platform"
@@ -136,6 +139,16 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
             "manual_action_required": True,
         },
     )
+    monkeypatch.setattr(
+        "gitd.routers.streaming.phone_stream_info",
+        lambda **kwargs: {
+            "ok": True,
+            "device": kwargs["device"],
+            "platform": "ios",
+            "effective_mode": "wda-mjpeg",
+            "stream_url": "/api/phone/stream?device=ios%3Aabc123&fps=5&mode=wda-mjpeg",
+        },
+    )
 
     shell = execute_tool("shell", {"device": "ios:abc123", "command": "ls"})
     clipboard = execute_tool("clipboard_get", {"device": "ios:abc123"})
@@ -144,6 +157,7 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     cleared = execute_tool("clear_notifications", {"device": "ios:abc123"})
     health = json.loads(execute_tool("device_health", {"device": "ios:abc123"}))
     fix = json.loads(execute_tool("fix_device_health", {"device": "ios:abc123", "issue": "fix_wda_signing"}))
+    stream_info = json.loads(execute_tool("get_stream_info", {"device": "ios:abc123", "mode": "mjpeg"}))
     unknown = execute_tool("does_not_exist", {"device": "ios:abc123"})
     android_current_url = execute_tool("get_current_url", {"device": "emulator-5554"})
     android_news = execute_tool(
@@ -160,6 +174,8 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     assert health["recommended_fix"] == "fix_wda_signing"
     assert fix["issue"] == "fix_wda_signing"
     assert fix["manual_action_required"] is True
+    assert stream_info["effective_mode"] == "wda-mjpeg"
+    assert stream_info["stream_url"].endswith("mode=wda-mjpeg")
     assert unknown == "Unknown tool: does_not_exist"
     assert android_current_url == "ERROR: get_current_url is currently implemented only for iOS"
     assert android_news == "ERROR: read_news is currently implemented only for iOS"
@@ -356,6 +372,7 @@ def test_tools_for_device_filters_by_platform():
     assert "start_screen_recording" in ios_names
     assert "stop_screen_recording" in ios_names
     assert "screen_recording_status" in ios_names
+    assert "get_stream_info" in ios_names
     assert "get_screen_xml" in ios_names
     assert "device_health" in ios_names
     assert "fix_device_health" in ios_names
@@ -397,6 +414,7 @@ def test_tools_for_device_filters_by_platform():
     assert "lookup_lead" in android_names
     assert "list_unread_leads" in android_names
     assert "start_screen_recording" in android_names
+    assert "get_stream_info" in android_names
     assert "device_health" in android_names
     assert "fix_device_health" in android_names
     assert "app_state" in android_names
