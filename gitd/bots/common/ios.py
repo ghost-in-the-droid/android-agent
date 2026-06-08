@@ -670,6 +670,7 @@ def remote_xpc_manual_recovery(udid: str, tunnel: dict[str, Any] | None = None) 
     current_uid = os.getuid()
     foreign = [proc for proc in processes if proc["uid"] != current_uid]
     stale = foreign or processes
+    auto_fixable = not foreign
     registry_ports = tunnel.get("checked_ports") if isinstance(tunnel, dict) else None
     ports = registry_ports or list(_remote_xpc_registry_ports())
     registry_port = ports[0] if ports else _REMOTE_XPC_REGISTRY_PORTS[0]
@@ -686,6 +687,11 @@ def remote_xpc_manual_recovery(udid: str, tunnel: dict[str, Any] | None = None) 
         kill_command = f"{kill_prefix} {' '.join(str(proc['pid']) for proc in stale)}"
     start_command = f"sudo {_appium_command_display()} driver run xcuitest tunnel-creation --udid {clean_udid}"
     verify_command = f"curl -s {verify_url}"
+    summary = (
+        "Ghost can restart the stale XCUITest tunnel; manual commands are provided as a fallback."
+        if auto_fixable
+        else "Stop the stale XCUITest tunnel process with sudo, then start a fresh tunnel."
+    )
     steps.extend(
         [
             f"Run: {start_command}",
@@ -695,7 +701,10 @@ def remote_xpc_manual_recovery(udid: str, tunnel: dict[str, Any] | None = None) 
     return {
         "code": "restart_remote_xpc_tunnel",
         "state": "remote_xpc_tunnel_unavailable",
-        "summary": "Stop the stale XCUITest tunnel process with sudo, then start a fresh tunnel.",
+        "summary": summary,
+        "auto_fixable": auto_fixable,
+        "manual_action_required": not auto_fixable,
+        "requires_sudo": bool(foreign),
         "steps": steps,
         "processes": processes,
         "foreign_processes": foreign,

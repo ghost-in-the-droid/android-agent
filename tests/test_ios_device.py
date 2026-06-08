@@ -1206,6 +1206,10 @@ def test_restart_remote_xpc_tunnel_returns_manual_action_for_foreign_process(mon
     assert result["manual_action_required"] is True
     assert result["processes"][0]["uid"] == 0
     assert result["recovery"]["code"] == "restart_remote_xpc_tunnel"
+    assert result["recovery"]["auto_fixable"] is False
+    assert result["recovery"]["manual_action_required"] is True
+    assert result["recovery"]["requires_sudo"] is True
+    assert result["recovery"]["summary"] == "Stop the stale XCUITest tunnel process with sudo, then start a fresh tunnel."
     assert "sudo appium driver run xcuitest tunnel-creation --udid abc123" in result["recovery"]["steps"][1]
     assert result["recovery"]["kill_command"] == "sudo kill 1234"
     assert result["recovery"]["commands"] == [
@@ -1223,6 +1227,10 @@ def test_remote_xpc_manual_recovery_honors_appium_command_override(monkeypatch):
 
     assert recovery["start_command"] == "sudo npx appium driver run xcuitest tunnel-creation --udid abc123"
     assert recovery["commands"][0] == "sudo npx appium driver run xcuitest tunnel-creation --udid abc123"
+    assert recovery["auto_fixable"] is True
+    assert recovery["manual_action_required"] is False
+    assert recovery["requires_sudo"] is False
+    assert recovery["summary"] == "Ghost can restart the stale XCUITest tunnel; manual commands are provided as a fallback."
 
 
 def test_ios_error_classifier_promotes_real_device_readiness_failures():
@@ -1354,6 +1362,9 @@ def test_ios_device_health_includes_recovery_steps_for_remote_xpc_tunnel(monkeyp
     assert health["wda"]["ready"] is False
     assert health["recommended_fix"] == "restart_remote_xpc_tunnel"
     assert health["recovery"]["state"] == "remote_xpc_tunnel_unavailable"
+    assert health["recovery"]["auto_fixable"] is False
+    assert health["recovery"]["manual_action_required"] is True
+    assert health["recovery"]["requires_sudo"] is True
     assert health["recovery"]["processes"][0]["pid"] == 1234
     assert health["recovery"]["steps"] == [
         "Stop the stale process ids with sudo: 1234",
