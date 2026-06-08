@@ -4,9 +4,9 @@ import { api } from '@/composables/useApi'
 
 const devices = ref<any[]>([])
 const selectedDevice = ref('')
-const selectedIsIos = computed(() => selectedDevice.value.startsWith('ios:'))
-const hasIosDevices = computed(() => devices.value.some(d => isIosSerial(d.serial)))
-const hasAndroidDevices = computed(() => devices.value.some(d => !isIosSerial(d.serial)))
+const selectedIsIos = computed(() => isIosDevice(selectedDevice.value))
+const hasIosDevices = computed(() => devices.value.some(d => isIosDevice(d.serial)))
+const hasAndroidDevices = computed(() => devices.value.some(d => !isIosDevice(d.serial)))
 const streaming = ref(false)
 const subTab = ref<'single' | 'multi'>('single')
 const nickname = ref('')
@@ -65,26 +65,37 @@ type NewsResult = {
   extraction?: any
 }
 
-function isIosSerial(serial: string): boolean {
-  return serial.startsWith('ios:')
+function isIosSerial(serial: string | null | undefined): boolean {
+  return !!serial && serial.startsWith('ios:')
+}
+
+function devicePlatform(serial: string | null | undefined): 'ios' | 'android' {
+  const row = devices.value.find((d: any) => d.serial === serial)
+  const platform = String(row?.platform || row?.device_platform || '').toLowerCase()
+  if (platform === 'ios' || platform === 'android') return platform
+  return isIosSerial(serial) ? 'ios' : 'android'
+}
+
+function isIosDevice(serial: string | null | undefined): boolean {
+  return devicePlatform(serial) === 'ios'
 }
 
 function mjpegStreamUrl(serial: string): string {
-  const modeParam = isIosSerial(serial) ? '&mode=wda-mjpeg' : ''
+  const modeParam = isIosDevice(serial) ? '&mode=wda-mjpeg' : ''
   return `/api/phone/stream?device=${encodeURIComponent(serial)}&fps=5${modeParam}`
 }
 
 function effectiveStreamMode(serial: string, mode: 'rtc' | 'mjpeg'): 'rtc' | 'mjpeg' {
-  return isIosSerial(serial) ? 'mjpeg' : mode
+  return isIosDevice(serial) ? 'mjpeg' : mode
 }
 
 function streamModeText(serial: string, mode: 'rtc' | 'mjpeg'): string {
   if (mode === 'rtc') return 'WebRTC'
-  return isIosSerial(serial) ? 'WDA MJPEG' : 'MJPEG'
+  return isIosDevice(serial) ? 'WDA MJPEG' : 'MJPEG'
 }
 
 function streamModeTitle(serial: string, mode: 'rtc' | 'mjpeg'): string {
-  if (isIosSerial(serial)) return 'iOS streams through WebDriverAgent MJPEG'
+  if (isIosDevice(serial)) return 'iOS streams through WebDriverAgent MJPEG'
   return mode === 'rtc' ? 'Android Portal WebRTC stream' : 'Android MJPEG fallback stream'
 }
 
@@ -106,11 +117,11 @@ function applyIosStreamFallback(serial: string, fallback?: any) {
 }
 
 function blackWarningText(serial: string): string {
-  return isIosSerial(serial) ? 'WDA stream stalled' : 'FLAG_SECURE - switch to MJPEG'
+  return isIosDevice(serial) ? 'WDA stream stalled' : 'FLAG_SECURE - switch to MJPEG'
 }
 
 function streamPlaceholderText(serial: string): string {
-  return isIosSerial(serial) ? 'Press play for WDA MJPEG' : 'Press WebRTC or MJPEG'
+  return isIosDevice(serial) ? 'Press play for WDA MJPEG' : 'Press WebRTC or MJPEG'
 }
 
 function uuid(): string {
@@ -128,7 +139,7 @@ async function rtcFixPortal(serial: string) {
 
 async function rtcStart(serial: string, _reconnectAttempt = 0) {
   console.log(`[RTC ${serial}] rtcStart called (attempt=${_reconnectAttempt})`)
-  if (isIosSerial(serial)) {
+  if (isIosDevice(serial)) {
     applyIosStreamFallback(serial)
     return
   }
@@ -279,7 +290,7 @@ function rtcStop(serial: string) {
 function sendInput(_serial: string, _msg: object): boolean {
   // DataChannel input disabled — portal can't exec shell "input" commands
   // without root. Will implement via AccessibilityService dispatchGesture() later.
-  // For now, always fall through to HTTP → backend → ADB.
+  // For now, always fall through to HTTP → backend platform control.
   return false
 }
 
@@ -366,7 +377,7 @@ function sendKeyTo(serial: string, key: number | string) {
 }
 
 function hardwareKeys(serial: string): { label: string; key: number | string; title: string }[] {
-  if (isIosSerial(serial)) {
+  if (isIosDevice(serial)) {
     return [
       { label: 'Back', key: 'BACK', title: 'Back' },
       { label: 'Home', key: 'HOME', title: 'Home' },
@@ -436,7 +447,7 @@ function recordingTinyText(serial: string): string {
 
 function recordingTitle(serial: string): string {
   if (recordingState.value[serial]) return 'Stop screen recording and save MP4'
-  return isIosSerial(serial) ? 'Record WDA MJPEG stream to MP4' : 'Record Android screen to MP4'
+  return isIosDevice(serial) ? 'Record WDA MJPEG stream to MP4' : 'Record Android screen to MP4'
 }
 
 async function toggleRecording(serial: string) {
@@ -578,7 +589,7 @@ function clearBlackCheck(serial: string) {
 
 function reconnectStream(serial: string) {
   streamFrozen.value[serial] = false
-  if (isIosSerial(serial)) {
+  if (isIosDevice(serial)) {
     if (streaming.value && serial === selectedDevice.value) {
       stopStream()
       singleStreamMode.value = 'mjpeg'
@@ -596,7 +607,7 @@ function reconnectStream(serial: string) {
 /* ── toggle stream mode (switch while streaming) ────────────────────── */
 function toggleMultiMode(serial: string) {
   if (!multiStreaming.value[serial]) return
-  if (isIosSerial(serial)) return
+  if (isIosDevice(serial)) return
   const newMode = multiStreamMode.value[serial] === 'rtc' ? 'mjpeg' : 'rtc'
   stopMultiStream(serial)
   startMultiStream(serial, newMode)
@@ -614,7 +625,7 @@ function toggleSingleMode() {
 const overlayOn = ref<Record<string, boolean>>({})
 
 async function toggleOverlay(serial: string) {
-  if (isIosSerial(serial)) return
+  if (isIosDevice(serial)) return
   overlayOn.value[serial] = !overlayOn.value[serial]
   await api(`/api/phone/overlay/${serial}`, {
     method: 'POST', body: JSON.stringify({ visible: overlayOn.value[serial] })
@@ -819,7 +830,7 @@ function iosRecoveryAction(serial: string): string {
 }
 
 function iosRecoveryCanApplyFix(serial: string): boolean {
-  if (!serial || !isIosSerial(serial)) return false
+  if (!serial || !isIosDevice(serial)) return false
   return IOS_AUTO_FIXES.has(iosRecoveryAction(serial))
 }
 
@@ -1193,7 +1204,7 @@ async function loadDevices() {
     if (devices.value.length && !selectedDevice.value) selectedDevice.value = devices.value[0].serial
     statusText.value = devices.value.length ? `${devices.value.length} device(s)` : 'No devices'
     refreshAllRecordingStatus()
-  } catch (e: any) { statusText.value = e.message || 'ADB error' }
+  } catch (e: any) { statusText.value = e.message || 'Device load error' }
 }
 
 function updateNicknameRow() {
@@ -1562,12 +1573,12 @@ onUnmounted(() => {
               :title="iosRecoveryActionTitle(d.serial)">
               {{ iosRecoveryFixBusy(d.serial) ? '...' : iosRecoveryActionLabel(d.serial) }}
             </button>
-            <button v-if="healthData[d.serial]?.wifi?.ip && !d.serial.includes(':')" class="hw-key-btn"
+            <button v-if="healthData[d.serial]?.wifi?.ip && !isIosDevice(d.serial) && d.connection !== 'wifi'" class="hw-key-btn"
               @click="goWireless(d.serial)" title="Go Wireless" style="color: #38bdf8">&#x1F4F6;</button>
             <div class="multi-hw-keys">
               <button v-for="key in hardwareKeys(d.serial)" :key="String(key.key)" class="hw-key-btn"
                 @click="sendKeyTo(d.serial, key.key)" :title="key.title">{{ key.label }}</button>
-              <button v-if="!isIosSerial(d.serial)" class="hw-key-btn" @click="toggleOverlay(d.serial)"
+              <button v-if="!isIosDevice(d.serial)" class="hw-key-btn" @click="toggleOverlay(d.serial)"
                 :style="{ background: overlayOn[d.serial] ? '#fbbf24' : '', color: overlayOn[d.serial] ? '#000' : '#fbbf24' }" title="Toggle UI Grid">&#x1F522;</button>
             </div>
             <div class="multi-stream-btns">
@@ -1590,12 +1601,12 @@ onUnmounted(() => {
                 :href="recordingUrls[d.serial]" target="_blank" rel="noopener"
                 :title="recordingFilenames[d.serial] || 'Open recording'">MP4</a>
               <template v-if="!multiStreaming[d.serial]">
-                <button v-if="!isIosSerial(d.serial)" class="ctrl-btn ctrl-btn--webrtc ctrl-btn--tiny" @click="startMultiStream(d.serial, 'rtc')" title="WebRTC">&#x26A1;</button>
+                <button v-if="!isIosDevice(d.serial)" class="ctrl-btn ctrl-btn--webrtc ctrl-btn--tiny" @click="startMultiStream(d.serial, 'rtc')" title="WebRTC">&#x26A1;</button>
                 <button class="ctrl-btn ctrl-btn--mjpeg ctrl-btn--tiny" @click="startMultiStream(d.serial, 'mjpeg')" title="MJPEG">&#x25B6;</button>
               </template>
               <template v-else>
                 <button class="ctrl-btn ctrl-btn--stop ctrl-btn--tiny" @click="stopMultiStream(d.serial)">&#x23F9;</button>
-                <button v-if="!isIosSerial(d.serial)" class="ctrl-btn ctrl-btn--tiny" @click="toggleMultiMode(d.serial)"
+                <button v-if="!isIosDevice(d.serial)" class="ctrl-btn ctrl-btn--tiny" @click="toggleMultiMode(d.serial)"
                   :style="{ background: multiStreamMode[d.serial] === 'rtc' ? '#0ea5e922' : '#6366f122', color: multiStreamMode[d.serial] === 'rtc' ? '#38bdf8' : '#a5b4fc', borderColor: multiStreamMode[d.serial] === 'rtc' ? '#0ea5e955' : '#6366f155' }"
                   :title="'Switch to ' + (multiStreamMode[d.serial] === 'rtc' ? 'MJPEG' : 'WebRTC')">&#x21C4;</button>
               </template>
@@ -1638,7 +1649,7 @@ onUnmounted(() => {
             <!-- Black screen warning -->
             <div v-if="blackWarning[d.serial]" class="black-warning black-warning--compact">
               {{ blackWarningText(d.serial) }}
-              <button v-if="!isIosSerial(d.serial)" @click="blackWarning[d.serial] = false; toggleMultiMode(d.serial)" class="black-warning-btn">Switch</button>
+              <button v-if="!isIosDevice(d.serial)" @click="blackWarning[d.serial] = false; toggleMultiMode(d.serial)" class="black-warning-btn">Switch</button>
             </div>
             <!-- Frozen stream overlay -->
             <div v-if="streamFrozen[d.serial]" class="frozen-overlay" @click="reconnectStream(d.serial)">
