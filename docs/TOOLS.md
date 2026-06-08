@@ -77,7 +77,7 @@ pretending the device was fully enumerated.
 The web tools are the first iOS release-quality workflow surface. On Android
 they use `VIEW` intents and normalized screen extraction. On iOS they use
 Appium/WebDriverAgent, prefer WebView JavaScript extraction when Chrome exposes
-a `WEBVIEW_*` context, and fall back to native accessibility XML.
+a `WEBVIEW_*` context, then fall back to native accessibility XML and OCR.
 
 ### `open_url(device, url, bundle_id=None)`
 
@@ -112,9 +112,9 @@ Open a search results page in whatever browser is on the device. Faster than
 | `browser_back(device)` | Navigate back in the active browser/app context. |
 | `get_current_url(device)` | Current iOS browser URL when WebDriver/WebView exposes it. |
 | `wait_for_text(device, text, timeout=12)` | Wait for visible text before continuing. |
-| `extract_visible_text(device, max_lines=200)` | Return visible page text with browser controls filtered by default. |
-| `extract_articles(device, max_items=5)` | Return likely headlines/articles. iOS returns URLs when WebView extraction exposes anchors. |
-| `read_news(device, url="https://text.npr.org/", max_headlines=5, max_articles=3)` | iOS Chrome/WebDriver workflow that opens a news page, waits for headline/body extraction readiness, opens the first articles, and returns title/body snippets plus navigation evidence. |
+| `extract_visible_text(device, max_lines=200)` | Return visible page text with browser controls filtered by default. iOS falls back to OCR when WebView/native text is empty. |
+| `extract_articles(device, max_items=5)` | Return likely headlines/articles. iOS returns URLs when WebView extraction exposes anchors and OCR coordinates when only pixels are available. |
+| `read_news(device, url="https://text.npr.org/", max_headlines=5, max_articles=3)` | iOS Chrome/WebDriver workflow that opens a news page, waits for headline/body extraction readiness, uses OCR fallback when needed, opens the first articles, and returns title/body snippets plus navigation evidence. |
 
 #### How fallback works
 
