@@ -115,8 +115,25 @@ def _scheduler_platform_error(record: dict) -> dict | None:
         return None
 
     config = _coerce_config(record.get("config_json"))
-    from gitd.services.job_engine import _job_platform_preflight, _skill_platform_preflight
+    from gitd.services.job_engine import (
+        _job_platform_preflight,
+        _skill_config_preflight,
+        _skill_platform_preflight,
+    )
     from gitd.skills.platforms import platform_for_device_ref
+
+    message = _skill_config_preflight(job_type, config)
+    if message:
+        detail = {
+            "error": "invalid_config",
+            "platform": platform_for_device_ref(phone),
+            "job_type": job_type,
+            "message": message,
+        }
+        skill = config.get("skill")
+        if skill:
+            detail["skill"] = skill
+        return detail
 
     message = _job_platform_preflight(phone, job_type)
     if not message:

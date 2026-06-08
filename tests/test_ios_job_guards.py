@@ -9,7 +9,11 @@ from gitd.app import app
 from gitd.models.base import SessionLocal
 from gitd.routers.scheduler import _scheduler_platform_error
 from gitd.services.db_helpers import create_scheduled_job, enqueue_job
-from gitd.services.job_engine import _build_scheduled_cmd, _job_platform_preflight
+from gitd.services.job_engine import (
+    _build_scheduled_cmd,
+    _job_platform_preflight,
+    _skill_config_preflight,
+)
 
 
 def test_tiktok_scheduler_jobs_are_guarded_on_ios():
@@ -232,10 +236,19 @@ def test_scheduler_allows_ios_supported_skill_job():
     assert "does not support ios" in err["message"]
 
 
+def _arg_after(cmd: list[str], flag: str) -> str:
+    return cmd[cmd.index(flag) + 1]
+
+
 def test_ios_scheduled_skill_and_explorer_commands_use_current_interpreter():
     skill_cmd = _build_scheduled_cmd(
         "skill_workflow",
         {"skill": "safari", "workflow": "read_news", "params": {"url": "https://text.npr.org/"}},
+        "ios:abc123",
+    )
+    action_cmd = _build_scheduled_cmd(
+        "skill_action",
+        {"skill": "safari", "action": "read_news", "params": {"max_headlines": 1}},
         "ios:abc123",
     )
     explorer_cmd = _build_scheduled_cmd(
@@ -244,10 +257,69 @@ def test_ios_scheduled_skill_and_explorer_commands_use_current_interpreter():
         "ios:abc123",
     )
 
-    assert skill_cmd[:2] == [sys.executable, "-u"]
-    assert explorer_cmd[:2] == [sys.executable, "-u"]
-    assert "--device" in skill_cmd and "ios:abc123" in skill_cmd
-    assert "--device" in explorer_cmd and "ios:abc123" in explorer_cmd
+    assert skill_cmd is not None
+    assert action_cmd is not None
+    assert explorer_cmd is not None
+    for cmd in (skill_cmd, action_cmd, explorer_cmd):
+        assert cmd[:2] == [sys.executable, "-u"]
+        assert _arg_after(cmd, "--device") == "ios:abc123"
+
+    assert skill_cmd.count("--skill") == 1
+    assert _arg_after(skill_cmd, "--skill") == "safari"
+    assert _arg_after(skill_cmd, "--workflow") == "read_news"
+    assert "--action" not in skill_cmd
+    assert json.loads(_arg_after(skill_cmd, "--params")) == {"url": "https://text.npr.org/"}
+
+    assert action_cmd.count("--skill") == 1
+    assert _arg_after(action_cmd, "--skill") == "safari"
+    assert _arg_after(action_cmd, "--action") == "read_news"
+    assert "--workflow" not in action_cmd
+    assert json.loads(_arg_after(action_cmd, "--params")) == {"max_headlines": 1}
+
+    assert _arg_after(explorer_cmd, "--package") == "com.google.chrome.ios"
+
+
+def test_scheduled_skill_jobs_reject_malformed_config_before_subprocess():
+    assert _skill_config_preflight("skill_workflow", {"skill": "safari"}) == (
+        "skill_workflow jobs require config.workflow"
+    )
+    assert _skill_config_preflight("skill_action", {"skill": "safari"}) == (
+        "skill_action jobs require config.action"
+    )
+    assert _skill_config_preflight("skill_workflow", {"workflow": "read_news"}) == (
+        "skill_workflow jobs require config.skill"
+    )
+    assert _skill_config_preflight(
+        "skill_workflow",
+        {"skill": "safari", "workflow": "read_news", "params": []},
+    ) == "skill_workflow jobs require config.params to be an object"
+    assert _build_scheduled_cmd("skill_workflow", {"skill": "safari"}, "ios:abc123") is None
+
+
+def test_scheduler_create_rejects_ios_skill_job_missing_workflow():
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/schedules",
+        json={
+            "name": "iOS malformed skill",
+            "job_type": "skill_workflow",
+            "phone_serial": "ios:abc123",
+            "schedule_type": "interval",
+            "interval_minutes": 60,
+            "config_json": {"skill": "safari"},
+        },
+    )
+
+    assert response.status_code == 400
+    detail = response.json()["detail"]
+    assert detail == {
+        "error": "invalid_config",
+        "platform": "ios",
+        "job_type": "skill_workflow",
+        "message": "skill_workflow jobs require config.workflow",
+        "skill": "safari",
+    }
 
 
 def test_scheduler_allows_ios_app_explore_schedule_and_run_now():

@@ -248,8 +248,11 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd += ["--output", config["output"]]
         return cmd
     elif job_type in ("skill_workflow", "skill_action"):
-        skill_name = config.get("skill", "tiktok")
-        target = config.get("workflow") or config.get("action", "")
+        if _skill_config_preflight(job_type, config):
+            return None
+        skill_name = str(config.get("skill") or "").strip()
+        target_key = "workflow" if job_type == "skill_workflow" else "action"
+        target = str(config.get(target_key) or "").strip()
         params = config.get("params", {})
         run_type = "workflow" if job_type == "skill_workflow" else "action"
         runner = script_dir / "skills" / "_run_skill.py"
@@ -285,6 +288,22 @@ def _job_platform_preflight(phone: str | None, job_type: str) -> str | None:
         return None
     if is_ios_ref(phone) and job_type in _TIKTOK_JOB_TYPES:
         return f"{job_type} jobs are Android-only until the iOS TikTok workflow is ported"
+    return None
+
+
+def _skill_config_preflight(job_type: str, config: dict) -> str | None:
+    if job_type not in ("skill_workflow", "skill_action"):
+        return None
+    skill_name = str((config or {}).get("skill") or "").strip()
+    if not skill_name:
+        return f"{job_type} jobs require config.skill"
+    target_key = "workflow" if job_type == "skill_workflow" else "action"
+    target = str((config or {}).get(target_key) or "").strip()
+    if not target:
+        return f"{job_type} jobs require config.{target_key}"
+    params = (config or {}).get("params", {})
+    if params is not None and not isinstance(params, dict):
+        return f"{job_type} jobs require config.params to be an object"
     return None
 
 
@@ -340,6 +359,12 @@ def _launch_scheduled_job(db, job_row: dict):
     job_id = job_row["id"]
     phone = job_row.get("phone_serial")
     config = json.loads(job_row.get("config_json") or "{}")
+
+    config_err = _skill_config_preflight(job_row["job_type"], config)
+    if config_err:
+        finish_job(db, job_id, "failed", error_msg=f"preflight: {config_err}")
+        archive_to_runs(db, job_id)
+        return
 
     platform_err = _job_platform_preflight(phone, job_row["job_type"])
     if platform_err:
