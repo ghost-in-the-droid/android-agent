@@ -590,6 +590,14 @@ def _remote_xpc_registry_ports() -> tuple[int, ...]:
     return tuple(ports) or _REMOTE_XPC_REGISTRY_PORTS
 
 
+def _remote_xpc_tunnel_start_timeout() -> float:
+    raw = os.getenv("IOS_REMOTE_XPC_TUNNEL_START_TIMEOUT", "10")
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return 10.0
+
+
 def _remote_xpc_tunnel_processes(udid: str) -> list[dict[str, Any]]:
     clean_udid = strip_ios_prefix(udid)
     try:
@@ -2327,16 +2335,49 @@ class IOSDevice:
                 "tunnel": tunnel_before,
             }
 
+        wait_timeout = _remote_xpc_tunnel_start_timeout()
+        deadline = time.time() + wait_timeout
+        tunnel_after: dict[str, Any] = {}
+        attempts = 0
+        while True:
+            attempts += 1
+            tunnel_after = remote_xpc_tunnel_status(
+                self.udid,
+                platform_version=self.platform_version,
+                host=_host_device_config_for_udid(self.udid),
+            )
+            if tunnel_after.get("ok"):
+                return {
+                    "ok": True,
+                    "platform": "ios",
+                    "issue": "restart_remote_xpc_tunnel",
+                    "message": "XCUITest RemoteXPC tunnel is available.",
+                    "pid": proc.pid,
+                    "command": command,
+                    "log_path": log_path,
+                    "killed": killed,
+                    "tunnel_before": tunnel_before,
+                    "tunnel_after": tunnel_after,
+                    "attempts": attempts,
+                }
+            if time.time() >= deadline:
+                break
+            time.sleep(0.5)
+
         return {
-            "ok": True,
+            "ok": False,
             "platform": "ios",
             "issue": "restart_remote_xpc_tunnel",
-            "message": "XCUITest RemoteXPC tunnel restart started.",
+            "message": "XCUITest RemoteXPC tunnel restart started but did not become available before timeout.",
+            "manual_action_required": True,
             "pid": proc.pid,
             "command": command,
             "log_path": log_path,
             "killed": killed,
             "tunnel_before": tunnel_before,
+            "tunnel_after": tunnel_after,
+            "attempts": attempts,
+            "recovery": remote_xpc_manual_recovery(self.udid, tunnel_after or tunnel_before),
         }
 
     # -- Android-compatible XML parsing helpers ---------------------------
