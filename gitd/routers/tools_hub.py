@@ -20,6 +20,7 @@ def _get_all_tools() -> list[dict]:
             "start_screen_recording",
             "stop_screen_recording",
             "screen_recording_status",
+            "get_stream_info",
             "get_screen_tree",
             "get_elements",
             "get_phone_state",
@@ -196,6 +197,16 @@ def test_tool(data: dict = Body({})):
 
     t0 = time.time()
     try:
+        known_tools = {tool["name"] for category in _get_all_tools() for tool in category["tools"]}
+        if tool_name not in known_tools:
+            duration_ms = (time.time() - t0) * 1000
+            return {
+                "ok": False,
+                "error": "unknown_tool",
+                "tool": tool_name,
+                "message": f"Unknown tool: {tool_name}",
+                "duration_ms": round(duration_ms, 1),
+            }
         device = str(tool_args.get("device") or "")
         if device:
             platform = "ios" if is_ios_ref(device) else "android"
@@ -204,6 +215,14 @@ def test_tool(data: dict = Body({})):
                 return {**platform_error(tool_name, platform), "duration_ms": round(duration_ms, 1)}
         result = execute_tool(tool_name, tool_args)
         duration_ms = (time.time() - t0) * 1000
+        if result.startswith("Unknown tool:"):
+            return {
+                "ok": False,
+                "error": "unknown_tool",
+                "tool": tool_name,
+                "message": result,
+                "duration_ms": round(duration_ms, 1),
+            }
         return {"ok": True, "result": result[:5000], "duration_ms": round(duration_ms, 1)}
     except Exception as e:
         duration_ms = (time.time() - t0) * 1000

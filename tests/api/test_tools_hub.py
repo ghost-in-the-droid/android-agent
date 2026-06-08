@@ -17,6 +17,7 @@ def test_tools_hub_exposes_platform_support(client):
     device_health = next(tool for tool in screen["tools"] if tool["name"] == "device_health")
     fix_device_health = next(tool for tool in screen["tools"] if tool["name"] == "fix_device_health")
     start_recording = next(tool for tool in screen["tools"] if tool["name"] == "start_screen_recording")
+    stream_info = next(tool for tool in screen["tools"] if tool["name"] == "get_stream_info")
     type_unicode = next(tool for tool in input_tools["tools"] if tool["name"] == "type_unicode")
     press_back = next(tool for tool in input_tools["tools"] if tool["name"] == "press_back")
     press_home = next(tool for tool in input_tools["tools"] if tool["name"] == "press_home")
@@ -44,6 +45,8 @@ def test_tools_hub_exposes_platform_support(client):
     assert fix_device_health["platform_support"]["ios"] is True
     assert start_recording["platform_support"]["support"] == "cross_platform"
     assert start_recording["platform_support"]["ios"] is True
+    assert stream_info["platform_support"]["support"] == "cross_platform"
+    assert stream_info["platform_support"]["ios"] is True
     assert type_unicode["platform_support"]["support"] == "cross_platform"
     assert type_unicode["platform_support"]["ios"] is True
     assert press_back["platform_support"]["support"] == "cross_platform"
@@ -111,6 +114,10 @@ def test_tools_test_endpoint_rejects_unsupported_platform_combo(client):
         "/api/tools/test",
         json={"name": "shell", "args": {"device": "ios:abc123", "command": "ls"}},
     )
+    unknown_ios = client.post(
+        "/api/tools/test",
+        json={"name": "definitely_not_a_tool", "args": {"device": "ios:abc123"}},
+    )
 
     assert android_news.status_code == 200
     assert android_news.json()["ok"] is False
@@ -123,6 +130,12 @@ def test_tools_test_endpoint_rejects_unsupported_platform_combo(client):
     assert ios_shell.json()["platform"] == "ios"
     assert ios_shell.json()["support"] == "android_only"
     assert "Android-only" in ios_shell.json()["error"]
+
+    assert unknown_ios.status_code == 200
+    assert unknown_ios.json()["ok"] is False
+    assert unknown_ios.json()["error"] == "unknown_tool"
+    assert unknown_ios.json()["tool"] == "definitely_not_a_tool"
+    assert "support" not in unknown_ios.json()
 
 
 def test_ios_packages_endpoint_returns_verified_bundle_inventory(client, monkeypatch):
