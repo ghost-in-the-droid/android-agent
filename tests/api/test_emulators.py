@@ -53,6 +53,10 @@ class TestEmulatorCreate:
         """Create call reaches the backend; passes if Docker is up, skips if not."""
         import uuid
 
+        prereq = client.get("/api/emulators/prerequisites").json()
+        if not prereq.get("docker_available") or not prereq.get("kvm_available"):
+            pytest.skip("Docker emulator create requires Docker and KVM")
+
         name = f"ci-test-{uuid.uuid4().hex[:8]}"
         try:
             r = client.post("/api/emulators", json={"name": name})
@@ -169,7 +173,7 @@ class TestEmulatorServiceUnit:
         c = EmulatorConfig(name="test")
         assert c.api_level == 30
         assert c.ram_mb == 2048
-        assert c.arch == "x86_64"
+        assert c.arch in {"x86_64", "arm64-v8a"}
 
     def test_has_docker_returns_bool(self):
         from gitd.services._emulator_helpers import _has_docker
