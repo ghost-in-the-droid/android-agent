@@ -216,6 +216,44 @@ def test_read_news_waits_for_article_body_beyond_title(monkeypatch):
     assert result["articles"][0]["body_snippet"] == "First article title\nFirst article body line."
 
 
+def test_read_news_falls_back_to_tapping_headline_when_url_navigation_fails(monkeypatch):
+    class UrlFallbackDevice(FakeNewsIOSDevice):
+        def __init__(self):
+            super().__init__()
+            self.taps = []
+
+        def open_url(self, url, delay=2.0):
+            self.opened_urls.append(url)
+            if url.endswith("/article/1"):
+                return {
+                    "ok": False,
+                    "expected_url": url,
+                    "url": "https://text.npr.org/",
+                    "state": "timeout",
+                    "error": "URL navigation was not verified",
+                }
+            self.current_url = url
+            return {"ok": True, "expected_url": url, "url": url, "state": "url_matched", "method": "fake"}
+
+        def tap(self, x, y, delay=0.6):
+            self.taps.append((x, y))
+            self.current_url = "https://text.npr.org/article/1"
+
+    fake = UrlFallbackDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=1, max_articles=1, wait_s=0)
+
+    assert result["ok"] is True
+    assert fake.opened_urls == ["https://text.npr.org/", "https://text.npr.org/article/1"]
+    assert fake.taps == [(180, 40)]
+    assert result["articles"][0]["open_method"] == "center"
+    assert result["articles"][0]["navigation"]["fallback_from"] == "url"
+    assert result["articles"][0]["navigation"]["fallback_errors"][0]["navigation"]["state"] == "timeout"
+    assert result["articles"][0]["body_snippet"] == "First article title\nFirst article body line."
+
+
 def test_read_news_marks_article_body_extraction_failure_as_partial(monkeypatch):
     class TitleOnlyArticleDevice(FakeNewsIOSDevice):
         def extract_visible_text(self, max_lines=200, include_controls=False):
