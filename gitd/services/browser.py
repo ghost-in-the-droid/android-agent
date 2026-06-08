@@ -1,4 +1,5 @@
 """Platform-aware browser helpers."""
+
 from __future__ import annotations
 
 import json
@@ -9,7 +10,6 @@ from pathlib import Path
 from typing import Any
 
 from gitd.bots.common.device import get_device, is_ios_ref
-
 
 _ENGINE_URLS = {
     "google": "https://www.google.com/search?q={query}",
@@ -39,13 +39,23 @@ def open_url(device: str, url: str, bundle_id: str | None = None) -> dict[str, A
         if bundle_id:
             dev.bundle_id = bundle_id
         navigation = dev.open_url(normalized_url)
-        current_url = dev.get_current_url() or normalized_url
-        return {
+        current_url = ""
+        current_url_error = ""
+        try:
+            current_url = dev.get_current_url() or ""
+        except Exception as exc:
+            current_url_error = str(exc)
+        if not current_url and isinstance(navigation, dict):
+            current_url = str(navigation.get("url") or "")
+        result = {
             "ok": navigation.get("ok", True) if isinstance(navigation, dict) else True,
             "platform": "ios",
-            "url": current_url,
+            "url": current_url or normalized_url,
             "navigation": navigation if isinstance(navigation, dict) else {},
         }
+        if current_url_error:
+            result["current_url_error"] = current_url_error
+        return result
 
     from gitd.services.device_context import launch_intent
 
@@ -73,7 +83,10 @@ def browser_back(device: str) -> dict[str, Any]:
 def get_current_url(device: str) -> dict[str, Any]:
     dev = get_device(device)
     if is_ios_ref(device) and hasattr(dev, "get_current_url"):
-        return {"ok": True, "platform": "ios", "url": dev.get_current_url()}
+        try:
+            return {"ok": True, "platform": "ios", "url": dev.get_current_url()}
+        except Exception as exc:
+            return {"ok": False, "platform": "ios", "url": "", "error": str(exc)}
     return {"ok": False, "platform": "android", "error": "Current URL is not implemented for Android yet"}
 
 
