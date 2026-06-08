@@ -32,12 +32,20 @@ def _search_url(query: str, engine: str = "google") -> str:
     return template.format(query=urllib.parse.quote_plus(query))
 
 
+def _set_ios_bundle_override(dev, bundle_id: str | None) -> None:
+    if not bundle_id:
+        return
+    if hasattr(dev, "set_target_app"):
+        dev.set_target_app(bundle_id=bundle_id)
+    else:
+        dev.bundle_id = bundle_id
+
+
 def open_url(device: str, url: str, bundle_id: str | None = None) -> dict[str, Any]:
     normalized_url = _normalize_url(url)
     if is_ios_ref(device):
         dev = get_device(device)
-        if bundle_id:
-            dev.bundle_id = bundle_id
+        _set_ios_bundle_override(dev, bundle_id)
         navigation = dev.open_url(normalized_url)
         current_url = ""
         current_url_error = ""
@@ -589,8 +597,7 @@ def read_news(
         }
 
     dev = get_device(device)
-    if bundle_id:
-        dev.bundle_id = bundle_id
+    _set_ios_bundle_override(dev, bundle_id)
 
     max_headlines = max(1, int(max_headlines))
     max_articles = max(0, int(max_articles))

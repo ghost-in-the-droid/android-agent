@@ -518,6 +518,27 @@ def test_ios_open_url_service_returns_navigation_evidence(monkeypatch):
     assert fake.bundle_id == "com.google.chrome.ios"
 
 
+def test_ios_open_url_service_uses_target_app_switch(monkeypatch):
+    class TargetSwitchDevice(FakeNewsIOSDevice):
+        def __init__(self):
+            super().__init__()
+            self.target_switches = []
+
+        def set_target_app(self, *, bundle_id=None, browser_name=None):
+            self.target_switches.append({"bundle_id": bundle_id, "browser_name": browser_name})
+            if bundle_id:
+                self.bundle_id = bundle_id
+
+    fake = TargetSwitchDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+
+    result = open_url("ios:abc123", "text.npr.org", bundle_id="com.google.chrome.ios")
+
+    assert result["ok"] is True
+    assert fake.target_switches == [{"bundle_id": "com.google.chrome.ios", "browser_name": None}]
+    assert fake.bundle_id == "com.google.chrome.ios"
+
+
 def test_ios_open_url_preserves_navigation_when_current_url_probe_fails(monkeypatch):
     class NoCurrentUrlDevice(FakeNewsIOSDevice):
         def get_current_url(self):
