@@ -7,6 +7,7 @@ from gitd.skills.tiktok_ios.actions.core import (
     TapSearch,
     TypeAndSearch,
     VerifyVisibleText,
+    WaitVisibleText,
 )
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "TapSearch",
     "TypeAndSearch",
     "VerifyVisibleText",
+    "WaitVisibleText",
 ]

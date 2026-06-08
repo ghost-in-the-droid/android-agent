@@ -11,6 +11,7 @@ from .actions import (
     TapSearch,
     TypeAndSearch,
     VerifyVisibleText,
+    WaitVisibleText,
 )
 from .workflows import OpenAppSmoke, ProfileSmoke, SearchSmoke
 
@@ -24,6 +25,7 @@ def load() -> Skill:
     s.register_action(NavigateToProfile)
     s.register_action(CaptureVisibleText)
     s.register_action(VerifyVisibleText)
+    s.register_action(WaitVisibleText)
     s.register_workflow(OpenAppSmoke)
     s.register_workflow(SearchSmoke)
     s.register_workflow(ProfileSmoke)

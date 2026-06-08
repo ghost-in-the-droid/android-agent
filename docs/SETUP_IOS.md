@@ -230,19 +230,19 @@ python -m gitd.skills._run_skill \
 ```
 
 The first TikTok iOS skill is intentionally smoke-level. It can launch TikTok,
-run a search, or navigate to Profile and return visible-text evidence through
-the scheduler-safe `profile_smoke` workflow:
+run a search, or navigate to Profile, wait for expected visible text, and return
+visible-text evidence through the scheduler-safe `profile_smoke` workflow:
 
 ```bash
 python -m gitd.skills._run_skill \
   --device "ios:<udid>" \
   --skill tiktok_ios \
   --workflow profile_smoke \
-  --params '{"max_lines": 40}'
+  --params '{"expected":"Profile","wait_timeout":8,"max_lines":40}'
 ```
 
 External marketing agents can enqueue safe iOS TikTok smoke workflows without a
-video file by calling the marketing-jobs seam with an explicit smoke action:
+video file by calling the marketing-jobs endpoint with an explicit smoke action:
 
 ```bash
 curl -X POST http://localhost:5055/api/marketing-jobs/enqueue \
@@ -258,7 +258,7 @@ curl -X POST http://localhost:5055/api/marketing-jobs/enqueue \
   -d '{"phone_serial":"ios:<udid>","action":"open_app_smoke"}'
 ```
 
-The same seam can enqueue the first release-quality browser workflow for iOS
+The same endpoint can enqueue the first release-quality browser workflow for iOS
 Chrome/news reading:
 
 ```bash
@@ -270,7 +270,7 @@ curl -X POST http://localhost:5055/api/marketing-jobs/enqueue \
 TikTok upload, draft creation, and draft publishing are still Android-only.
 The iOS marketing path only verifies that the connected iPhone can run the
 Chrome/news workflow, launch TikTok, run a search smoke, or navigate to Profile
-and return visible-text evidence through the scheduler.
+after an expected visible-text check, then return evidence through the scheduler.
 
 ## Supported First-Milestone Tools
 

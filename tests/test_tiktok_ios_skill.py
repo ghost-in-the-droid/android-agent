@@ -10,6 +10,7 @@ from gitd.skills.tiktok_ios.actions import (
     TapSearch,
     TypeAndSearch,
     VerifyVisibleText,
+    WaitVisibleText,
 )
 from gitd.skills.tiktok_ios.actions.core import TIKTOK_IOS_BUNDLE_ID
 from gitd.skills.tiktok_ios.workflows import OpenAppSmoke, ProfileSmoke, SearchSmoke
@@ -37,6 +38,14 @@ class FakeIOSDevice:
         self.launched.append(bundle_id)
 
     def dump_xml(self) -> str:
+        if self.typed:
+            query = html.escape(self.typed[-1])
+            return (
+                TIKTOK_XML.replace("</hierarchy>", "")
+                + f'<node text="{query}" content-desc="{query}" resource-id="Search query" '
+                + 'class="XCUIElementTypeStaticText" clickable="false" bounds="[20,150][370,190]" />'
+                + "</hierarchy>"
+            )
         return TIKTOK_XML
 
     def nodes(self, xml: str) -> list[str]:
@@ -81,6 +90,7 @@ def test_tiktok_ios_skill_loads_actions_workflows_and_elements():
         "type_and_search",
         "navigate_to_profile",
         "capture_visible_text",
+        "wait_visible_text",
         "verify_visible_text",
     }
     assert set(skill.list_workflows()) == {"open_app_smoke", "search_smoke", "profile_smoke"}
@@ -97,6 +107,7 @@ def test_tiktok_ios_actions_use_normalized_ios_tree(monkeypatch):
     assert DismissPopup(device).run().data == {"dismissed": True}
     assert TapSearch(device).run().success is True
     assert TypeAndSearch(device, query="#cats").run().data == {"query": "#cats"}
+    assert WaitVisibleText(device, expected="#cats", timeout=0).run().success is True
     assert NavigateToProfile(device).run().success is True
     captured = CaptureVisibleText(device, max_lines=3).run()
     assert captured.success is True
@@ -110,6 +121,19 @@ def test_tiktok_ios_actions_use_normalized_ios_tree(monkeypatch):
     assert device.tapped[:4] == ["Close", "Search", "Search", "Profile"]
     assert device.typed == ["#cats"]
     assert device.keys == ["ENTER"]
+
+
+def test_tiktok_ios_wait_visible_text_returns_evidence_on_timeout(monkeypatch):
+    monkeypatch.setattr("gitd.skills.tiktok_ios.actions.core.time.sleep", lambda *_args, **_kwargs: None)
+    device = FakeIOSDevice()
+
+    result = WaitVisibleText(device, expected="not on screen", timeout=0).run()
+
+    assert result.success is False
+    assert result.error == "Expected text not visible: not on screen"
+    assert result.data["expected"] == "not on screen"
+    assert result.data["attempts"] == 1
+    assert "TikTok" in result.data["visible_text"]
 
 
 def test_tiktok_ios_rejects_android_device(monkeypatch):
@@ -139,27 +163,34 @@ def test_tiktok_ios_smoke_workflows_are_registered_with_safe_steps(monkeypatch):
         "dismiss_popup",
         "tap_search",
         "type_and_search",
+        "wait_visible_text",
         "capture_visible_text",
     ]
     assert [step.name for step in profile_wf.steps()] == [
         "open_app",
         "dismiss_popup",
         "navigate_to_profile",
+        "wait_visible_text",
         "capture_visible_text",
     ]
-    assert search_steps[-2].query == "#news"
+    assert search_steps[-3].query == "#news"
     assert search_steps[-1].max_lines == 3
+    assert search_steps[-2].expected == "#news"
     assert profile_wf.steps()[-1].max_lines == 2
 
     search_result = load().get_workflow("search_smoke", device, query="#news").run()
     assert search_result.success is True
-    assert search_result.data["completed_steps"] == 5
-    assert search_result.data["step_results"][-2]["data"] == {"query": "#news"}
+    assert search_result.data["completed_steps"] == 6
+    assert search_result.data["step_results"][-3]["data"] == {"query": "#news"}
+    assert search_result.data["step_results"][-2]["name"] == "wait_visible_text"
+    assert search_result.data["step_results"][-2]["data"]["expected"] == "#news"
     assert search_result.data["step_results"][-1]["name"] == "capture_visible_text"
-    assert search_result.data["step_results"][-1]["data"]["line_count"] == 5
+    assert search_result.data["step_results"][-1]["data"]["line_count"] == 6
 
     profile_result = load().get_workflow("profile_smoke", device, max_lines=2).run()
     assert profile_result.success is True
-    assert profile_result.data["completed_steps"] == 4
+    assert profile_result.data["completed_steps"] == 5
+    assert profile_result.data["step_results"][-2]["name"] == "wait_visible_text"
+    assert profile_result.data["step_results"][-2]["data"]["expected"] == "Profile"
     assert profile_result.data["step_results"][-1]["name"] == "capture_visible_text"
     assert profile_result.data["step_results"][-1]["data"]["line_count"] == 2

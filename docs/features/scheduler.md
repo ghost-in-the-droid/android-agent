@@ -103,6 +103,8 @@ The same form also exposes TikTok smoke workflows and `app_explore` for iOS:
   "skill": "tiktok_ios",
   "workflow": "profile_smoke",
   "params": {
+    "expected": "Profile",
+    "wait_timeout": 8,
     "max_lines": 80
   }
 }
