@@ -1438,7 +1438,7 @@ class IOSDevice:
         web_entries = self.web_text_entries(max_entries=300)
         entries = [entry for entry in web_entries if entry.get("url")]
         if not entries:
-            entries = self.native_text_entries(include_controls=False, max_entries=300)
+            entries = web_entries or self.native_text_entries(include_controls=False, max_entries=300)
         titles: list[dict[str, Any]] = []
         seen: set[str] = set()
         for entry in entries:
