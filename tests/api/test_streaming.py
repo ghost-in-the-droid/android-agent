@@ -121,8 +121,10 @@ def test_ios_webrtc_signal_returns_wda_stream_fallback():
     assert response["ok"] is False
     assert response["platform"] == "ios"
     assert "WebRTC" in response["error"]
-    assert response["stream_fallback"]["recommended_mode"] == "mjpeg"
-    assert response["stream_fallback"]["url"] == "/api/phone/stream?device=ios:abc123&mode=mjpeg"
+    assert response["stream_fallback"]["recommended_mode"] == "wda-mjpeg"
+    assert response["stream_fallback"]["fallback_mode"] == "screenshot-polling"
+    assert response["stream_fallback"]["stream_url"] == "/api/phone/stream?device=ios%3Aabc123&fps=10&mode=wda-mjpeg"
+    assert response["stream_fallback"]["url"] == response["stream_fallback"]["stream_url"]
     assert response["recovery"]["health_endpoint"] == "/api/phone/health/ios:abc123"
     assert response["recovery"]["fix_endpoint"] == "/api/phone/health/ios:abc123/fix"
     assert response["recovery"]["fix_tool"] == "fix_device_health"
@@ -135,7 +137,7 @@ def test_ios_webrtc_poll_signals_returns_wda_stream_fallback():
     assert response["ok"] is False
     assert response["platform"] == "ios"
     assert "WebRTC signal polling" in response["error"]
-    assert response["stream_fallback"]["recommended_mode"] == "mjpeg"
+    assert response["stream_fallback"]["recommended_mode"] == "wda-mjpeg"
     assert response["recovery"]["health_endpoint"] == "/api/phone/health/ios:abc123"
 
 
@@ -145,7 +147,7 @@ def test_ios_webrtc_signals_stream_returns_wda_stream_fallback():
     assert response["ok"] is False
     assert response["platform"] == "ios"
     assert "WebRTC signal stream" in response["error"]
-    assert response["stream_fallback"]["fallback_mode"] == "screencap"
+    assert response["stream_fallback"]["fallback_mode"] == "screenshot-polling"
 
 
 def test_ios_webrtc_ws_send_returns_wda_stream_fallback():
@@ -154,7 +156,7 @@ def test_ios_webrtc_ws_send_returns_wda_stream_fallback():
     assert response["ok"] is False
     assert response["platform"] == "ios"
     assert "Portal WebSocket" in response["error"]
-    assert response["stream_fallback"]["fallback_mode"] == "screencap"
+    assert response["stream_fallback"]["fallback_mode"] == "screenshot-polling"
 
 
 def test_ios_webrtc_ws_poll_returns_wda_stream_fallback():
