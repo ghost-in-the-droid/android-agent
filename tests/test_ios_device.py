@@ -450,6 +450,82 @@ def test_web_context_entries_prefer_dom_text_and_article_urls(monkeypatch):
     assert context_names[-1] == "NATIVE_APP"
 
 
+def test_ios_wait_for_url_matches_trusted_browser_url(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    urls = ["about:blank", "https://text.npr.org/?output=1"]
+
+    monkeypatch.setattr(dev, "_current_url_from_webdriver", lambda: urls.pop(0))
+    monkeypatch.setattr(dev, "web_text_snapshot", lambda max_entries=12: {})
+    monkeypatch.setattr("gitd.bots.common.ios.time.sleep", lambda *_args, **_kwargs: None)
+
+    status = dev.wait_for_url("https://text.npr.org/?output=1", timeout=1, interval=0.01)
+
+    assert status == {
+        "ok": True,
+        "expected_url": "https://text.npr.org/?output=1",
+        "url": "https://text.npr.org/?output=1",
+        "state": "url_matched",
+    }
+
+
+def test_ios_wait_for_url_does_not_match_different_path(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+
+    monkeypatch.setattr(dev, "_current_url_from_webdriver", lambda: "https://text.npr.org/article/1")
+    monkeypatch.setattr(dev, "web_text_snapshot", lambda max_entries=12: {})
+
+    status = dev.wait_for_url("https://text.npr.org/", timeout=0, interval=0.01)
+
+    assert status["ok"] is False
+    assert status["state"] == "timeout"
+    assert status["url"] == "https://text.npr.org/article/1"
+
+
+def test_ios_wait_for_url_falls_back_to_page_text_when_url_is_hidden(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+
+    monkeypatch.setattr(dev, "_current_url_from_webdriver", lambda: "")
+    monkeypatch.setattr(
+        dev,
+        "web_text_snapshot",
+        lambda max_entries=12: {"bodyText": "Loaded article body", "entries": [{"text": "Loaded article body"}]},
+    )
+
+    status = dev.wait_for_url("https://example.com/article", timeout=0, interval=0.01)
+
+    assert status == {
+        "ok": True,
+        "expected_url": "https://example.com/article",
+        "url": "",
+        "state": "page_text_available",
+        "verified_url": False,
+    }
+
+
+def test_ios_open_url_returns_navigation_evidence_from_webdriver(monkeypatch):
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append({"method": method, "url": url, "json": json})
+        if method == "POST" and url.endswith("/session/session-1/url"):
+            return FakeResponse({"value": None})
+        if method == "GET" and url.endswith("/session/session-1/url"):
+            return FakeResponse({"value": "https://example.com/story?id=42&utm=agent"})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-1"
+
+    status = dev.open_url("example.com/story?id=42", delay=0)
+
+    assert status["ok"] is True
+    assert status["method"] == "webdriver_url"
+    assert status["state"] == "url_matched"
+    assert status["url"] == "https://example.com/story?id=42&utm=agent"
+    assert [call["method"] for call in calls] == ["POST", "GET"]
+
+
 def test_take_screenshot_decodes_base64(monkeypatch):
     def fake_request(method, url, json=None, timeout=None):
         assert method == "GET"

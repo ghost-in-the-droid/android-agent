@@ -15,6 +15,7 @@ import os
 import re
 import threading
 import time
+import urllib.parse
 import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass
 from typing import Any
@@ -1209,18 +1210,27 @@ class IOSDevice:
         self.type_text(text, delay=delay)
         return True
 
-    def open_url(self, url: str, delay=2.0):
+    def open_url(self, url: str, delay=2.0) -> dict[str, Any]:
         normalized_url = _normalize_url(url)
+        errors: list[dict[str, str]] = []
         try:
             self._request("POST", self._session_path("/url"), {"url": normalized_url})
-            time.sleep(delay)
-            return
-        except IOSBackendError:
-            pass
+            status = self.wait_for_url(normalized_url, timeout=delay)
+            status["method"] = "webdriver_url"
+            return status
+        except IOSBackendError as exc:
+            errors.append({"method": "webdriver_url", "error": str(exc)})
 
         if self._open_url_in_web_context(normalized_url, delay=delay):
-            return
+            status = self.wait_for_url(normalized_url, timeout=delay)
+            status["method"] = "web_context"
+            status["errors"] = errors
+            return status
         self._open_url_via_address_bar(normalized_url, delay=delay)
+        status = self.wait_for_url(normalized_url, timeout=delay)
+        status["method"] = "address_bar"
+        status["errors"] = errors
+        return status
 
     def _open_url_in_web_context(self, url: str, delay=2.0) -> bool:
         try:
@@ -1272,20 +1282,74 @@ class IOSDevice:
         raise IOSBackendError("Could not find browser back control")
 
     def get_current_url(self) -> str:
-        try:
-            value = self._request("GET", self._session_path("/url"))
-            if isinstance(value, str):
-                return value
-        except IOSBackendError:
-            pass
+        current = self._current_url_from_webdriver()
+        if current:
+            return current
         snapshot = self.web_text_snapshot(max_entries=1)
         if snapshot.get("url"):
             return str(snapshot["url"])
+        return self._current_url_from_native_text()
+
+    def _current_url_from_webdriver(self) -> str:
+        try:
+            value = self._request("GET", self._session_path("/url"))
+            if isinstance(value, str):
+                return value.strip()
+        except IOSBackendError:
+            pass
+        return ""
+
+    def _current_url_from_native_text(self) -> str:
         for entry in self.visible_text_entries(include_controls=True):
             text = entry["text"]
             if "." in text and " " not in text and len(text) > 3:
                 return text
         return ""
+
+    def wait_for_url(self, expected_url: str, timeout=8.0, interval=0.5) -> dict[str, Any]:
+        expected = _normalize_url(expected_url)
+        deadline = time.time() + max(0.0, float(timeout))
+        last_url = ""
+        last_error = ""
+        saw_page_text = False
+        while True:
+            try:
+                current = self._current_url_from_webdriver()
+                if current:
+                    last_url = current
+                    if _urls_match(current, expected):
+                        return {"ok": True, "expected_url": expected, "url": current, "state": "url_matched"}
+                snapshot = self.web_text_snapshot(max_entries=12)
+                snapshot_url = str(snapshot.get("url") or "").strip() if isinstance(snapshot, dict) else ""
+                if snapshot_url:
+                    last_url = snapshot_url
+                    if _urls_match(snapshot_url, expected):
+                        return {"ok": True, "expected_url": expected, "url": snapshot_url, "state": "url_matched"}
+                entries = snapshot.get("entries") if isinstance(snapshot, dict) else []
+                body_text = str(snapshot.get("bodyText") or "").strip() if isinstance(snapshot, dict) else ""
+                saw_page_text = bool(body_text or entries)
+                if saw_page_text and not last_url:
+                    return {
+                        "ok": True,
+                        "expected_url": expected,
+                        "url": "",
+                        "state": "page_text_available",
+                        "verified_url": False,
+                    }
+            except Exception as exc:
+                last_error = str(exc)
+            if time.time() >= deadline:
+                break
+            time.sleep(interval)
+        return {
+            "ok": False,
+            "expected_url": expected,
+            "url": last_url,
+            "state": "timeout",
+            "verified_url": False,
+            "page_text_available": saw_page_text,
+            "error": last_error,
+        }
 
     def web_text_snapshot(self, max_entries: int = 300) -> dict[str, Any]:
         """Return visible DOM text when Appium exposes a WebView context."""
@@ -1680,6 +1744,41 @@ def _normalize_url(url: str) -> str:
     if cleaned and "://" not in cleaned:
         cleaned = "https://" + cleaned
     return cleaned
+
+
+def _host_without_www(hostname: str) -> str:
+    host = hostname.lower().strip(".")
+    return host[4:] if host.startswith("www.") else host
+
+
+def _urls_match(current_url: str, expected_url: str) -> bool:
+    current = _normalize_url(current_url)
+    expected = _normalize_url(expected_url)
+    try:
+        current_parts = urllib.parse.urlparse(current)
+        expected_parts = urllib.parse.urlparse(expected)
+    except Exception:
+        return False
+    current_host = _host_without_www(current_parts.hostname or "")
+    expected_host = _host_without_www(expected_parts.hostname or "")
+    if not current_host or not expected_host or current_host != expected_host:
+        return False
+
+    current_path = (current_parts.path or "/").rstrip("/") or "/"
+    expected_path = (expected_parts.path or "/").rstrip("/") or "/"
+    if current_path != expected_path:
+        return False
+
+    expected_query = urllib.parse.parse_qs(expected_parts.query, keep_blank_values=True)
+    if expected_query:
+        current_query = urllib.parse.parse_qs(current_parts.query, keep_blank_values=True)
+        for key, values in expected_query.items():
+            if key not in current_query:
+                return False
+            for value in values:
+                if value not in current_query[key]:
+                    return False
+    return True
 
 
 def _looks_like_browser_control(text: str) -> bool:
