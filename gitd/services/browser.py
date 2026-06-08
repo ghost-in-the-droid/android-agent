@@ -522,12 +522,7 @@ def _extract_visible_text_with_retry(
         time.sleep(interval)
 
 
-def _open_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5) -> tuple[str, dict[str, Any]]:
-    url = str(article.get("url") or "").strip()
-    if url:
-        navigation = dev.open_url(url, delay=delay)
-        return "url", navigation if isinstance(navigation, dict) else {}
-
+def _tap_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5) -> tuple[str, dict[str, Any]]:
     center = article.get("center") if isinstance(article.get("center"), dict) else {}
     if center.get("x") is not None and center.get("y") is not None:
         dev.tap(int(center["x"]), int(center["y"]), delay=delay)
@@ -541,6 +536,32 @@ def _open_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5)
         return "bounds", {}
 
     raise RuntimeError("article candidate has no URL or tappable geometry")
+
+
+def _open_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5) -> tuple[str, dict[str, Any]]:
+    url = str(article.get("url") or "").strip()
+    url_errors: list[dict[str, Any]] = []
+    if url:
+        try:
+            navigation = dev.open_url(url, delay=delay)
+            if not isinstance(navigation, dict) or navigation.get("ok", True):
+                return "url", navigation if isinstance(navigation, dict) else {}
+            url_errors.append({"method": "url", "navigation": navigation})
+        except Exception as exc:
+            url_errors.append({"method": "url", "error": str(exc)})
+
+    try:
+        method, navigation = _tap_article_candidate(dev, article, delay=delay)
+        if url_errors:
+            navigation = {**navigation, "fallback_from": "url", "fallback_errors": url_errors}
+        return method, navigation
+    except Exception:
+        if url and url_errors:
+            first = url_errors[0]
+            if "navigation" in first:
+                return "url", first["navigation"]
+            raise RuntimeError(str(first.get("error") or "article URL navigation failed"))
+        raise
 
 
 def read_news(
