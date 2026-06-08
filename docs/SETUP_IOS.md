@@ -179,6 +179,7 @@ IOS_LIVE_NEWS_TEST=1 IOS_DEVICE_UDID="<udid>" IOS_APPIUM_URL="http://127.0.0.1:4
 IOS_BUNDLE_ID="com.google.chrome.ios" \
 uv run --extra test python -m pytest tests/test_browser_news.py::test_live_ios_chrome_news_workflow
 ```
+```
 
 CI runs the non-live iOS parity suite on PRs to `main`, `master`, `rc/**`, and
 `ios`. Those tests mock Appium/WDA and skip live-device checks unless the live
@@ -300,6 +301,8 @@ Android-only for now:
   `IOS_REMOTE_XPC_REGISTRY_PORTS`. The health fix endpoint can attempt this
   with `{"issue":"restart_remote_xpc_tunnel"}` when the stale tunnel process is
   owned by the current user; root-owned tunnel processes still require sudo.
+  `IOS_REMOTE_XPC_TUNNEL_START_TIMEOUT` controls how long that automatic fix
+  waits for registry health before returning manual recovery steps.
 - `xcodebuild failed` or `wda_signing_failed`: fix WDA signing/provisioning in Xcode; set `IOS_XCODE_ORG_ID`, `IOS_XCODE_SIGNING_ID`, and `IOS_UPDATED_WDA_BUNDLE_ID`; use `IOS_SHOW_XCODE_LOG=true` for detailed xcodebuild output.
 - Session hangs on real device or `locked`: unlock the iPhone and accept trust/automation prompts.
 - Taps land in the wrong place: compare screenshot dimensions and WDA window rect in `get_phone_state`; Ghost scales WDA points to screenshot pixels and converts back for gestures.

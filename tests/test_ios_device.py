@@ -838,6 +838,7 @@ def test_restart_remote_xpc_tunnel_starts_new_process_after_stopping_owned_proce
     IOSDevice._sessions.clear()
     kill_calls = []
     popen_calls = []
+    status_calls = []
     log_path = tmp_path / "tunnel.log"
 
     class FakePopen:
@@ -854,10 +855,13 @@ def test_restart_remote_xpc_tunnel_starts_new_process_after_stopping_owned_proce
                 }
             )
 
-    monkeypatch.setattr(
-        "gitd.bots.common.ios.remote_xpc_tunnel_status",
-        lambda *args, **kwargs: {"required": True, "state": "stale", "ok": False},
-    )
+    def fake_tunnel_status(*args, **kwargs):
+        status_calls.append((args, kwargs))
+        if len(status_calls) == 1:
+            return {"required": True, "state": "stale", "ok": False}
+        return {"required": True, "state": "available", "ok": True}
+
+    monkeypatch.setattr("gitd.bots.common.ios.remote_xpc_tunnel_status", fake_tunnel_status)
     monkeypatch.setattr(
         "gitd.bots.common.ios._remote_xpc_tunnel_processes",
         lambda udid: [{"pid": 1234, "uid": 501, "command": "appium driver run xcuitest tunnel-creation --udid abc123"}],
@@ -873,6 +877,8 @@ def test_restart_remote_xpc_tunnel_starts_new_process_after_stopping_owned_proce
 
     assert result["ok"] is True
     assert result["pid"] == 4321
+    assert result["tunnel_after"]["state"] == "available"
+    assert result["attempts"] == 1
     assert result["killed"] == [
         {"pid": 1234, "uid": 501, "command": "appium driver run xcuitest tunnel-creation --udid abc123"}
     ]
@@ -890,6 +896,35 @@ def test_restart_remote_xpc_tunnel_starts_new_process_after_stopping_owned_proce
     ]
     assert popen_calls[0]["start_new_session"] is True
     assert result["log_path"] == str(log_path)
+
+
+def test_restart_remote_xpc_tunnel_reports_not_ready_after_start(monkeypatch, tmp_path):
+    IOSDevice._sessions.clear()
+    log_path = tmp_path / "tunnel.log"
+
+    class FakePopen:
+        pid = 4321
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.remote_xpc_tunnel_status",
+        lambda *args, **kwargs: {"required": True, "state": "missing", "ok": False, "checked_ports": [42314]},
+    )
+    monkeypatch.setattr("gitd.bots.common.ios._remote_xpc_tunnel_processes", lambda udid: [])
+    monkeypatch.setattr("gitd.bots.common.ios.subprocess.Popen", FakePopen)
+    monkeypatch.setenv("IOS_REMOTE_XPC_TUNNEL_START_TIMEOUT", "0")
+    monkeypatch.setenv("IOS_REMOTE_XPC_TUNNEL_LOG", str(log_path))
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+
+    result = dev.restart_remote_xpc_tunnel()
+
+    assert result["ok"] is False
+    assert result["manual_action_required"] is True
+    assert result["pid"] == 4321
+    assert result["tunnel_after"]["state"] == "missing"
+    assert result["recovery"]["code"] == "restart_remote_xpc_tunnel"
 
 
 def test_restart_remote_xpc_tunnel_returns_manual_action_for_foreign_process(monkeypatch):
