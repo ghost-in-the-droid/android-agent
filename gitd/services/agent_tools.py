@@ -15,6 +15,11 @@ from gitd.skills.platforms import skill_platform_error_text, skill_supports_devi
 # ── Tool registry ────────────────────────────────────────────────────────────
 
 TOOLS = [
+    {
+        "name": "list_devices",
+        "description": "List connected Android ADB device refs and configured iOS Appium device refs.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
     # Screen reading
     {
         "name": "screenshot",
@@ -660,7 +665,30 @@ def _execute_tool_inner(name: str, args: dict) -> str:
         if device and not supports_platform(name, _device_platform(device)):
             return _platform_unsupported(name, device)
 
-        if name == "screenshot":
+        if name == "list_devices":
+            from gitd.bots.common.device import list_configured_ios_devices, list_connected_device_refs
+
+            ios_details = {}
+            try:
+                ios_details = {
+                    item.get("serial"): item
+                    for item in list_configured_ios_devices(deep_probe=False)
+                    if item.get("serial")
+                }
+            except Exception:
+                ios_details = {}
+            entries = []
+            for serial in list_connected_device_refs():
+                platform = "ios" if is_ios_ref(serial) else "android"
+                entry = {"serial": serial, "platform": platform}
+                if platform == "ios":
+                    details = ios_details.get(serial) or {}
+                    for key in ("status", "status_message", "device_name", "model", "appium_url", "source", "host_state"):
+                        if details.get(key):
+                            entry[key] = details[key]
+                entries.append(entry)
+            return json.dumps(entries, indent=2)
+        elif name == "screenshot":
             r = ctx.screenshot(device)
             return json.dumps(
                 {"image": r["image"][:100] + "...(truncated)", "width": r["width"], "height": r["height"]}

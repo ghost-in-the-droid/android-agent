@@ -9,6 +9,7 @@ def test_tools_hub_exposes_platform_support(client):
     app_management = next(category for category in categories if category["category"] == "App Management")
     clipboard = next(category for category in categories if category["category"] == "Clipboard & Notifications")
     skills = next(category for category in categories if category["category"] == "Skills")
+    device_tools = next(category for category in categories if category["category"] == "Device")
     open_url = next(tool for tool in web["tools"] if tool["name"] == "open_url")
     current_url = next(tool for tool in web["tools"] if tool["name"] == "get_current_url")
     read_news = next(tool for tool in web["tools"] if tool["name"] == "read_news")
@@ -24,6 +25,7 @@ def test_tools_hub_exposes_platform_support(client):
     run_workflow = next(tool for tool in skills["tools"] if tool["name"] == "run_workflow")
     run_action = next(tool for tool in skills["tools"] if tool["name"] == "run_action")
     create_skill = next(tool for tool in skills["tools"] if tool["name"] == "create_skill")
+    list_devices = next(tool for tool in device_tools["tools"] if tool["name"] == "list_devices")
 
     assert open_url["platform_support"]["support"] == "cross_platform"
     assert open_url["platform_support"]["ios"] is True
@@ -54,6 +56,8 @@ def test_tools_hub_exposes_platform_support(client):
     assert run_action["platform_support"]["ios"] is True
     assert create_skill["platform_support"]["support"] == "cross_platform"
     assert create_skill["platform_support"]["ios"] is True
+    assert list_devices["platform_support"]["support"] == "cross_platform"
+    assert list_devices["platform_support"]["ios"] is True
 
 
 def test_tools_platforms_endpoint(client):

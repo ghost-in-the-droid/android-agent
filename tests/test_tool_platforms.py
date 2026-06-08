@@ -137,6 +137,37 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     assert android_news == "ERROR: read_news is currently implemented only for iOS"
 
 
+def test_agent_list_devices_returns_android_and_ios_metadata(monkeypatch):
+    monkeypatch.setattr(
+        "gitd.bots.common.device.list_connected_device_refs",
+        lambda: ["emulator-5554", "ios:abc123"],
+    )
+    monkeypatch.setattr(
+        "gitd.bots.common.device.list_configured_ios_devices",
+        lambda deep_probe=False: [
+            {
+                "serial": "ios:abc123",
+                "status": "available",
+                "device_name": "Test iPhone",
+                "appium_url": "http://127.0.0.1:4723",
+            }
+        ],
+    )
+
+    devices = json.loads(execute_tool("list_devices", {}))
+
+    assert devices == [
+        {"serial": "emulator-5554", "platform": "android"},
+        {
+            "serial": "ios:abc123",
+            "platform": "ios",
+            "status": "available",
+            "device_name": "Test iPhone",
+            "appium_url": "http://127.0.0.1:4723",
+        },
+    ]
+
+
 def test_agent_run_skill_uses_current_interpreter(monkeypatch):
     captured = {}
 
@@ -285,6 +316,7 @@ def test_tools_for_device_filters_by_platform():
     android_names = {tool["name"] for tool in tools_for_device("emulator-5554")}
 
     assert "open_url" in ios_names
+    assert "list_devices" in ios_names
     assert "start_screen_recording" in ios_names
     assert "stop_screen_recording" in ios_names
     assert "screen_recording_status" in ios_names
@@ -316,6 +348,7 @@ def test_tools_for_device_filters_by_platform():
     assert "read_news" in ios_names
 
     assert "shell" in android_names
+    assert "list_devices" in android_names
     assert "get_screen_xml" in android_names
     assert "press_back" in android_names
     assert "press_home" in android_names
@@ -474,6 +507,7 @@ def test_openai_tool_schema_is_filtered_by_device():
     android_names = {tool["function"]["name"] for tool in openai_tools_for_device("emulator-5554")}
 
     assert "open_url" in ios_names
+    assert "list_devices" in ios_names
     assert "device_health" in ios_names
     assert "fix_device_health" in ios_names
     assert "shell" not in ios_names
@@ -487,6 +521,7 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "get_current_url" in ios_names
     assert "read_news" in ios_names
     assert "shell" in android_names
+    assert "list_devices" in android_names
     assert "device_health" in android_names
     assert "fix_device_health" in android_names
     assert "press_back" in android_names
