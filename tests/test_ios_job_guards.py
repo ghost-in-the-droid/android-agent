@@ -250,6 +250,55 @@ def test_ios_scheduled_skill_and_explorer_commands_use_current_interpreter():
     assert "--device" in explorer_cmd and "ios:abc123" in explorer_cmd
 
 
+def test_scheduler_allows_ios_app_explore_schedule_and_run_now():
+    client = TestClient(app)
+    db = SessionLocal()
+    sid = None
+    qid = None
+    config = {"package": "com.google.chrome.ios", "max_depth": 1, "max_states": 3}
+    try:
+        created = client.post(
+            "/api/schedules",
+            json={
+                "name": "iOS Chrome app explore",
+                "job_type": "app_explore",
+                "phone_serial": "ios:abc123",
+                "schedule_type": "interval",
+                "interval_minutes": 60,
+                "config_json": config,
+                "max_duration_s": 300,
+            },
+        )
+        assert created.status_code == 200
+        sid = created.json()["id"]
+
+        run_now = client.post(f"/api/schedules/{sid}/run-now")
+        assert run_now.status_code == 200
+        qid = run_now.json()["queue_id"]
+
+        row = (
+            db.execute(text("SELECT * FROM job_queue WHERE id = :id"), {"id": qid})
+            .mappings()
+            .one()
+        )
+        assert row["scheduled_job_id"] == sid
+        assert row["phone_serial"] == "ios:abc123"
+        assert row["job_type"] == "app_explore"
+        assert json.loads(row["config_json"]) == config
+
+        queued = client.get("/api/scheduler/queue").json()
+        item = next(item for item in queued if item["id"] == qid)
+        assert item["platform"] == "ios"
+        assert item["schedule_name"] == "iOS Chrome app explore"
+    finally:
+        if qid:
+            db.execute(text("DELETE FROM job_queue WHERE id = :id"), {"id": qid})
+        if sid:
+            db.execute(text("DELETE FROM scheduled_jobs WHERE id = :id"), {"id": sid})
+        db.commit()
+        db.close()
+
+
 def test_scheduler_update_rejects_moving_android_only_job_to_ios():
     client = TestClient(app)
     sid = None

@@ -80,6 +80,7 @@ const JOB_TYPE_OPTIONS: JobTypeOption[] = [
   { value: 'post', label: 'Post', android: true, ios: false },
   { value: 'publish_draft', label: 'Publish Draft', android: true, ios: false },
   { value: 'skill_workflow', label: 'Skill', android: true, ios: true },
+  { value: 'app_explore', label: 'Explore App', android: true, ios: true },
 ]
 
 const IOS_SCHEDULE_TEMPLATES: IosScheduleTemplate[] = [
@@ -317,6 +318,10 @@ const selectedScheduleIsIos = computed(() =>
   platformForSerial(sf.value.phone_serial, selectedScheduleDevice.value) === 'ios'
 )
 
+const selectedSchedulePlatform = computed(() =>
+  selectedScheduleIsIos.value ? 'ios' : 'android'
+)
+
 const jobTypeOptions = computed(() =>
   JOB_TYPE_OPTIONS.filter(option => selectedScheduleIsIos.value ? option.ios : option.android)
 )
@@ -464,6 +469,17 @@ function stringifyConfig(config: Record<string, any>): string {
   return JSON.stringify(config, null, 2)
 }
 
+function appExploreDefaultConfig(): Record<string, any> {
+  const pkg = selectedSchedulePlatform.value === 'ios'
+    ? 'com.google.chrome.ios'
+    : 'com.zhiliaoapp.musically'
+  return {
+    package: pkg,
+    max_depth: 2,
+    max_states: 8,
+  }
+}
+
 function applyIosScheduleTemplate(templateId: string) {
   if (templateId === 'custom') return
   const template = IOS_SCHEDULE_TEMPLATES.find(t => t.id === templateId)
@@ -478,6 +494,13 @@ function applyIosScheduleTemplate(templateId: string) {
 }
 
 function ensureIosScheduleDefaults() {
+  if (sf.value.job_type === 'app_explore') {
+    const cfg = parseConfig(sf.value.config_json)
+    if (!cfg.package) {
+      sf.value.config_json = stringifyConfig({ ...appExploreDefaultConfig(), ...cfg })
+    }
+    return
+  }
   if (!selectedScheduleIsIos.value) return
   const selectedTypeAllowed = jobTypeOptions.value.some(option => option.value === sf.value.job_type)
   if (!selectedTypeAllowed) {
@@ -502,6 +525,7 @@ function configDetail(r: any): string {
   const jt = r.job_type
   let detail = ''
   if (jt === 'post') detail = cfg.action || 'draft'
+  if (jt === 'app_explore') detail = cfg.package || ''
   if (cfg.account) detail += ` @${cfg.account}`
   return detail
 }
@@ -524,6 +548,7 @@ function schedConfigDetail(s: any): string {
   const cfg = parseConfig(s.config_json)
   const jt = s.job_type
   if (jt === 'post') return cfg.action || 'draft'
+  if (jt === 'app_explore') return cfg.package || ''
   return ''
 }
 

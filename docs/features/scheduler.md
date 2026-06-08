@@ -67,7 +67,7 @@ State machine per job:
 
 ## iOS Scheduling
 
-iOS schedules use the same queue and schedule tables, but `ios:<udid>` devices are limited to supported skill workflows for now. Android TikTok jobs such as `post`, `publish_draft`, and `crawl` return `unsupported_platform` for iOS because the iOS upload/crawl flows are not ported yet.
+iOS schedules use the same queue and schedule tables, but `ios:<udid>` devices are limited to supported skill workflows and app exploration for now. Android TikTok jobs such as `post`, `publish_draft`, and `crawl` return `unsupported_platform` for iOS because the iOS upload/crawl flows are not ported yet.
 
 The dashboard schedule form detects iOS devices and pre-fills one of these valid `skill_workflow` configs:
 
@@ -78,6 +78,16 @@ The dashboard schedule form detects iOS devices and pre-fills one of these valid
   "params": {
     "max_lines": 80
   }
+}
+```
+
+The same form also exposes `app_explore` for iOS and pre-fills a bundle-style target:
+
+```json
+{
+  "package": "com.google.chrome.ios",
+  "max_depth": 2,
+  "max_states": 8
 }
 ```
 
