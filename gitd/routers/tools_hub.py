@@ -81,7 +81,7 @@ def _get_all_tools() -> list[dict]:
         },
         {
             "name": "launch_intent",
-            "description": "Launch full Android intent (action, data, package, extras).",
+            "description": "Launch a full Android intent (Android-only: action, data, package, extras).",
             "input_schema": {
                 "type": "object",
                 "properties": {
@@ -96,7 +96,7 @@ def _get_all_tools() -> list[dict]:
         },
         {
             "name": "open_notifications",
-            "description": "Pull down the notification shade.",
+            "description": "Open Android notification shade or iOS Notification Center.",
             "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
             "category": "Clipboard & Notifications",
         },
@@ -114,7 +114,7 @@ def _get_all_tools() -> list[dict]:
         },
         {
             "name": "toggle_overlay",
-            "description": "Toggle Portal numbered element overlay on/off.",
+            "description": "Toggle Portal numbered element overlay on/off (Android-only).",
             "input_schema": {
                 "type": "object",
                 "properties": {"device": {"type": "string"}, "visible": {"type": "boolean"}},
