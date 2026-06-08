@@ -52,7 +52,8 @@ async function loadDevices() {
   try {
     const resp = await api('/api/phone/devices')
     devices.value = resp.devices || resp || []
-    if (devices.value.length && !selectedDevice.value) selectedDevice.value = devices.value[0].serial
+    const firstDevice = devices.value[0]
+    if (firstDevice && !selectedDevice.value) selectedDevice.value = firstDevice.serial
   } catch { /* ignore */ }
 }
 
@@ -184,6 +185,10 @@ function pbVideoClear() {
   postVideo.value = ''
   postPostId.value = ''
   postVideoLabel.value = ''
+}
+
+function hidePostVideoDropdownSoon() {
+  window.setTimeout(() => { postVideoDropdownVisible.value = false }, 150)
 }
 
 /* ── Hashtag pill helpers ── */
@@ -362,7 +367,7 @@ onUnmounted(() => { pollStop() })
                 autocomplete="off" class="bot-input" style="width: 100%; box-sizing: border-box; max-width: none"
                 @input="pbVideoFilter(postVideoSearch)"
                 @focus="postVideoDropdownVisible = true"
-                @blur="setTimeout(() => postVideoDropdownVisible = false, 150)" />
+                @blur="hidePostVideoDropdownSoon" />
               <div v-if="postVideoDropdownVisible && postVideoResults.length"
                 style="position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
                   background: #0f172a; border: 1px solid #1e293b; border-radius: 6px;

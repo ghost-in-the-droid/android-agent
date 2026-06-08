@@ -46,7 +46,8 @@ async function loadDevices() {
   try {
     const resp = await api('/api/phone/devices')
     devices.value = resp.devices || resp || []
-    if (devices.value.length && !selectedDevice.value) selectedDevice.value = devices.value[0].serial
+    const firstDevice = devices.value[0]
+    if (firstDevice && !selectedDevice.value) selectedDevice.value = firstDevice.serial
   } catch {}
 }
 
@@ -60,9 +61,9 @@ async function loadOllamaModels() {
 function onBackendChange() {
   localStorage.setItem('creator_backend', backend.value)
   if (backend.value === 'ollama' && ollamaModels.value.length) {
-    model.value = ollamaModels.value[0]
+    model.value = ollamaModels.value[0] || model.value
   } else if (MODELS[backend.value]?.length) {
-    model.value = MODELS[backend.value][0]
+    model.value = MODELS[backend.value]?.[0] || model.value
   }
 }
 
