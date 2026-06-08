@@ -17,10 +17,26 @@ class Task:
     init: dict = field(default_factory=dict)
     eval: dict = field(default_factory=dict)
     teardown: dict | None = None
+    platforms: list[str] = field(default_factory=lambda: ["android"])
 
     @property
     def max_steps(self) -> int:
         return int(self.complexity * 10)
+
+    def supported_platforms(self) -> list[str]:
+        """Return normalized platforms supported by this benchmark task."""
+        raw = self.platforms or ["android"]
+        values = raw if isinstance(raw, (list, tuple, set)) else [raw]
+        result: list[str] = []
+        for value in values:
+            platform = str(value).strip().lower()
+            if platform in {"android", "ios", "all"} and platform not in result:
+                result.append(platform)
+        return result or ["android"]
+
+    def supports_platform(self, platform: str) -> bool:
+        supported = self.supported_platforms()
+        return "all" in supported or platform.strip().lower() in supported
 
 
 @dataclass

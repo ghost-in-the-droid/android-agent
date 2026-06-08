@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
 from gitd.benchmarks.runner import get_run, list_runs, run_benchmark, stop_run, subscribe, unsubscribe
+from gitd.bots.common.device import platform_for_device
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/benchmarks", tags=["benchmarks"])
@@ -75,6 +76,9 @@ def api_list_tasks(suite: str = "ghost_bench", category: Optional[str] = None):
             "category": t.category,
             "complexity": t.complexity,
             "max_steps": t.max_steps,
+            "platforms": t.supported_platforms(),
+            "supports_android": t.supports_platform("android"),
+            "supports_ios": t.supports_platform("ios"),
         }
         for t in tasks
     ]
@@ -94,6 +98,24 @@ def api_start_run(req: RunRequest):
             raise HTTPException(status_code=400, detail="No valid task IDs provided")
     else:
         tasks = load_tasks()
+
+    platform = platform_for_device(req.device)
+    unsupported = [t.id for t in tasks if not t.supports_platform(platform)]
+    if unsupported:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "unsupported_platform",
+                "suite": req.suite,
+                "device": req.device,
+                "platform": platform,
+                "unsupported_tasks": unsupported,
+                "message": (
+                    f"Benchmark suite '{req.suite}' has {len(unsupported)} task(s) "
+                    f"that do not support {platform}: {', '.join(unsupported)}"
+                ),
+            },
+        )
 
     run_id = str(uuid.uuid4())[:8]
 
