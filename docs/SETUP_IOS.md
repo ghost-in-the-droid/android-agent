@@ -162,7 +162,8 @@ shows Appium/WDA health dots, recovery steps, and an action button when
 `http://127.0.0.1:4723`; remote or HTTPS Appium URLs return manual steps. If
 `appium` is not directly on `PATH`, set `IOS_APPIUM_COMMAND` to the executable
 command Ghost should launch, for example `npx appium` or
-`/opt/homebrew/bin/appium`.
+`/opt/homebrew/bin/appium`. Ghost uses the same command setting when it starts
+the XCUITest RemoteXPC tunnel.
 
 Chrome/news workflow smoke:
 
