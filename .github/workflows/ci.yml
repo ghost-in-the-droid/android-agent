@@ -51,11 +51,15 @@ jobs:
       - name: Run non-live iOS parity suite
         run: >
           python -m pytest
+          tests/api/test_explorer_ios.py
           tests/api/test_streaming.py
           tests/api/test_phone_app_state.py
           tests/api/test_phone_apps.py
           tests/api/test_phone_clipboard_notifications.py
+          tests/api/test_phone_controls.py
           tests/api/test_phone_elements.py
+          tests/api/test_phone_health_ios.py
+          tests/api/test_phone_platform_metadata.py
           tests/api/test_phone_recording.py
           tests/test_creator_ios.py
           tests/test_ios_job_guards.py
