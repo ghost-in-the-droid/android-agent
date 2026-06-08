@@ -52,6 +52,28 @@ type IosScheduleTemplate = {
   config: Record<string, any>
 }
 
+type ReadNewsItem = {
+  title?: string
+  page_title?: string
+  source_headline?: string
+  url?: string
+  current_url?: string
+  body_snippet?: string
+  text?: string
+}
+
+type ExtractionEvidence = {
+  source?: string
+  attempts?: number
+  returned?: number
+  target?: number
+  returned_lines?: number
+  target_lines?: number
+  text?: ExtractionEvidence
+  open_method?: string
+  [key: string]: any
+}
+
 const DEFAULT_IOS_TEMPLATE_ID = 'tiktok_profile_smoke'
 
 const JOB_TYPE_OPTIONS: JobTypeOption[] = [
@@ -388,15 +410,15 @@ const logPanelGenericResult = computed(() => {
   return result
 })
 
-const logPanelHeadlines = computed(() =>
+const logPanelHeadlines = computed<ReadNewsItem[]>(() =>
   Array.isArray(logPanelReadNews.value?.headlines) ? logPanelReadNews.value.headlines.slice(0, 5) : []
 )
 
-const logPanelArticles = computed(() =>
+const logPanelArticles = computed<ReadNewsItem[]>(() =>
   Array.isArray(logPanelReadNews.value?.articles) ? logPanelReadNews.value.articles.slice(0, 3) : []
 )
 
-const logPanelExtraction = computed(() => logPanelReadNews.value?.extraction || {})
+const logPanelExtraction = computed<Record<string, any>>(() => logPanelReadNews.value?.extraction || {})
 
 const logPanelResultJson = computed(() =>
   logPanelGenericResult.value ? JSON.stringify(logPanelGenericResult.value, null, 2) : ''
@@ -425,9 +447,13 @@ function compactEvidence(evidence: any): string {
   return source
 }
 
-function articleEvidence(index: number): any {
+function displayIndex(index: string | number): number {
+  return Number(index) + 1
+}
+
+function articleEvidence(index: string | number): ExtractionEvidence {
   const items = logPanelExtraction.value?.articles
-  return Array.isArray(items) ? items[index] || {} : {}
+  return Array.isArray(items) ? items[Number(index)] || {} : {}
 }
 
 function evidenceTitle(evidence: any): string {
@@ -1262,7 +1288,7 @@ onUnmounted(() => {
           <div>
             <div class="run-result-subtitle">Headlines</div>
             <div v-for="(headline, i) in logPanelHeadlines" :key="`headline-${i}`" class="run-result-line">
-              <span class="run-result-index">{{ i + 1 }}</span>
+              <span class="run-result-index">{{ displayIndex(i) }}</span>
               <span>{{ resultTitle(headline) || 'Untitled headline' }}</span>
             </div>
           </div>
