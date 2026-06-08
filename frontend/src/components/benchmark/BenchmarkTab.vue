@@ -17,18 +17,25 @@ const runModel = ref('gemma3:4b')
 const runDevice = ref('emulator-5554')
 const selectAll = ref(false)
 
-const PROVIDERS = [
+type Provider = {
+  id: string
+  label: string
+  models: string[]
+}
+
+const PROVIDERS: Provider[] = [
   { id: 'claude-code', label: 'Claude Code', models: ['sonnet', 'opus', 'haiku'] },
   { id: 'anthropic', label: 'Claude API', models: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514'] },
   { id: 'openrouter', label: 'OpenRouter', models: ['anthropic/claude-sonnet-4', 'google/gemini-2.5-pro'] },
   { id: 'ollama', label: 'Ollama (local)', models: ['llama3.2:3b', 'gemma3:4b', 'qwen3:4b', 'phi4-mini:3.8b', 'mistral:7b'] },
 ]
 
-const currentModels = computed(() => PROVIDERS.find(p => p.id === runProvider.value)?.models || [])
+const currentModels = computed<string[]>(() => PROVIDERS.find(p => p.id === runProvider.value)?.models || [])
 
 function onProviderChange() {
   const p = PROVIDERS.find(p => p.id === runProvider.value)
-  if (p?.models.length) runModel.value = p.models[0]
+  const firstModel = p?.models[0]
+  if (firstModel) runModel.value = firstModel
 }
 
 // Also try to fetch live Ollama models
@@ -40,7 +47,8 @@ async function fetchOllamaModels() {
       const ollama = providers.find((p: any) => p.id === 'ollama')
       if (ollama?.models?.length) {
         const idx = PROVIDERS.findIndex(p => p.id === 'ollama')
-        if (idx >= 0) PROVIDERS[idx].models = ollama.models
+        const provider = idx >= 0 ? PROVIDERS[idx] : null
+        if (provider) provider.models = ollama.models
       }
     }
   } catch {}

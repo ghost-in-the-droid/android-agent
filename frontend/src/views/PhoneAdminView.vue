@@ -99,6 +99,12 @@ function streamModeTitle(serial: string, mode: 'rtc' | 'mjpeg'): string {
   return mode === 'rtc' ? 'Android Portal WebRTC stream' : 'Android MJPEG fallback stream'
 }
 
+function multiStreamLabel(serial: string): string {
+  const mode = multiStreamMode.value[serial] || 'mjpeg'
+  if (mode === 'rtc') return rtcStatus.value[serial] || 'RTC'
+  return streamModeText(serial, mode)
+}
+
 function streamFallbackUrl(serial: string, fallback?: any): string {
   const url = String(fallback?.url || '').trim()
   return url || mjpegStreamUrl(serial)
@@ -126,7 +132,7 @@ function streamPlaceholderText(serial: string): string {
 
 function uuid(): string {
   return ([1e7] as any + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: any) =>
-    (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & 15) >> c / 4).toString(16))
+    (c ^ ((crypto.getRandomValues(new Uint8Array(1))[0] ?? 0) & 15) >> c / 4).toString(16))
 }
 
 async function rtcFixPortal(serial: string) {
@@ -180,8 +186,9 @@ async function rtcStart(serial: string, _reconnectAttempt = 0) {
   pc.ontrack = (evt) => {
     rtcStatus.value[serial] = 'Streaming'
     const videoEl = document.getElementById(`rtc-video-${serial}`) as HTMLVideoElement
-    if (videoEl) {
-      videoEl.srcObject = evt.streams[0]
+    const stream = evt.streams[0]
+    if (videoEl && stream) {
+      videoEl.srcObject = stream
       videoEl.play().catch(() => {})
     }
     startBlackCheck(serial)
@@ -345,6 +352,7 @@ function videoMouseLeave(serial: string) { dragState.value[serial] = null }
 function videoTouchStart(serial: string, e: TouchEvent) {
   if (!e.touches.length) return; e.preventDefault()
   const touch = e.touches[0], video = e.target as HTMLVideoElement, rect = video.getBoundingClientRect()
+  if (!touch) return
   const sx = video.videoWidth / rect.width, sy = video.videoHeight / rect.height
   dragState.value[serial] = { x: Math.round((touch.clientX - rect.left) * sx), y: Math.round((touch.clientY - rect.top) * sy), t: Date.now() }
   dragMoved.value[serial] = false
@@ -353,6 +361,7 @@ function videoTouchMove(serial: string) { if (dragState.value[serial]) dragMoved
 function videoTouchEnd(serial: string, e: TouchEvent) {
   const ds = dragState.value[serial]; if (!ds) return; e.preventDefault()
   const touch = e.changedTouches[0], video = e.target as HTMLVideoElement, rect = video.getBoundingClientRect()
+  if (!touch) return
   const sx = video.videoWidth / rect.width, sy = video.videoHeight / rect.height
   const ex = Math.round((touch.clientX - rect.left) * sx), ey = Math.round((touch.clientY - rect.top) * sy)
   const sw = video.videoWidth, sh = video.videoHeight
@@ -558,7 +567,7 @@ function startBlackCheck(serial: string) {
       const data = c.getContext('2d')!.getImageData(0, 0, 8, 8).data
       // Simple hash: sum of all pixel values
       let hash = 0
-      for (let i = 0; i < data.length; i += 4) hash += data[i] + data[i+1] + data[i+2]
+      for (let i = 0; i < data.length; i += 4) hash += (data[i] ?? 0) + (data[i+1] ?? 0) + (data[i+2] ?? 0)
       const hashStr = hash.toString()
 
       // Black screen check (first time only)
@@ -666,20 +675,21 @@ const singleMjpegUrl = ref('')
 
 function startStream() {
   if (!selectedDevice.value) return
-  singleStreamMode.value = effectiveStreamMode(selectedDevice.value, singleStreamMode.value)
+  const serial = selectedDevice.value
+  singleStreamMode.value = effectiveStreamMode(serial, singleStreamMode.value)
   streaming.value = true
   if (singleStreamMode.value === 'rtc') {
-    rtcStart(selectedDevice.value)
+    rtcStart(serial)
     // Auto-fallback: if RTC doesn't connect within 5s, switch to MJPEG
     setTimeout(() => {
-      if (streaming.value && singleStreamMode.value === 'rtc' && rtcStatus[selectedDevice.value] !== 'Streaming') {
+      if (streaming.value && singleStreamMode.value === 'rtc' && rtcStatus.value[serial] !== 'Streaming') {
         console.log('RTC timeout — falling back to MJPEG')
         singleStreamMode.value = 'mjpeg'
-        singleMjpegUrl.value = mjpegStreamUrl(selectedDevice.value)
+        singleMjpegUrl.value = mjpegStreamUrl(serial)
       }
     }, 5000)
   } else {
-    singleMjpegUrl.value = mjpegStreamUrl(selectedDevice.value)
+    singleMjpegUrl.value = mjpegStreamUrl(serial)
   }
 }
 function stopStream() {
@@ -1057,7 +1067,8 @@ async function deleteConversation(cid: string) {
 function onProviderChange() {
   localStorage.setItem('agent_provider', chatProvider.value)
   const p = CHAT_PROVIDERS.value.find(p => p.id === chatProvider.value)
-  if (p?.models.length) { chatModel.value = p.models[0]; localStorage.setItem('agent_model', chatModel.value) }
+  const firstModel = p?.models?.[0]
+  if (firstModel) { chatModel.value = firstModel; localStorage.setItem('agent_model', chatModel.value) }
   chatSessionId.value = '' // reset session on provider change
   if (chatProvider.value === 'ollama') fetchOllamaStatus()
 }
@@ -1585,7 +1596,7 @@ onUnmounted(() => {
               <span class="multi-mode-badge"
                 :title="streamModeTitle(d.serial, multiStreamMode[d.serial] || 'mjpeg')"
                 :style="multiStreamMode[d.serial] === 'mjpeg' ? { background: '#6366f133', color: '#a5b4fc' } : rtcStatus[d.serial] === 'Streaming' ? { background: '#22c55e22', color: '#4ade80' } : { color: '#475569' }">
-                {{ multiStreaming[d.serial] ? (multiStreamMode[d.serial] === 'rtc' ? (rtcStatus[d.serial] || 'RTC') : streamModeText(d.serial, multiStreamMode[d.serial])) : '' }}
+                {{ multiStreaming[d.serial] ? multiStreamLabel(d.serial) : '' }}
               </span>
               <button v-if="rtcStatus[d.serial]?.includes('Portal') || rtcStatus[d.serial]?.includes('fix')"
                 class="ctrl-btn ctrl-btn--fix"

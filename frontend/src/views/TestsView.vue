@@ -84,8 +84,9 @@ async function load() {
   testCatalog.value = Array.isArray(t) ? t : t.tests || []
   devices.value = d.devices || d || []
   recordings.value = Array.isArray(r) ? r : r.recordings || []
-  if (!selectedTest.value && testCatalog.value.length) {
-    selectedTest.value = testCatalog.value[0].file + '|'
+  const firstTest = testCatalog.value[0]
+  if (!selectedTest.value && firstTest) {
+    selectedTest.value = firstTest.file + '|'
   }
 }
 
@@ -167,7 +168,8 @@ function parseLogTimestamp(line: string): number | null {
   // Matches patterns like "2026-04-01 12:34:56" or "12:34:56" at the start of a log line
   const m = line.match(/(?:^\d{4}-\d{2}-\d{2}\s+)?(\d{2}):(\d{2}):(\d{2})/)
   if (!m) return null
-  return parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseInt(m[3])
+  const [, hh = '0', mm = '0', ss = '0'] = m
+  return parseInt(hh) * 3600 + parseInt(mm) * 60 + parseInt(ss)
 }
 
 function onVideoTimeUpdate() {
