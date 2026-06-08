@@ -83,6 +83,52 @@ def _parse_live_stats(job: dict) -> str:
     return ""
 
 
+def _coerce_config(value) -> dict:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str) and value.strip():
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _scheduler_platform_error(record: dict) -> dict | None:
+    phone = record.get("phone_serial")
+    job_type = record.get("job_type", "")
+    if not phone or not job_type:
+        return None
+
+    config = _coerce_config(record.get("config_json"))
+    from gitd.services.job_engine import _job_platform_preflight, _skill_platform_preflight
+    from gitd.skills.platforms import platform_for_device_ref
+
+    message = _job_platform_preflight(phone, job_type)
+    if not message:
+        message = _skill_platform_preflight(phone, job_type, config)
+    if not message:
+        return None
+
+    detail = {
+        "error": "unsupported_platform",
+        "platform": platform_for_device_ref(phone),
+        "job_type": job_type,
+        "message": message,
+    }
+    skill = config.get("skill")
+    if skill:
+        detail["skill"] = skill
+    return detail
+
+
+def _raise_scheduler_platform_error(record: dict):
+    detail = _scheduler_platform_error(record)
+    if detail:
+        raise HTTPException(status_code=400, detail=detail)
+
+
 # ── Schedules CRUD ──────────────────────────────────────────────────────────
 
 
@@ -114,6 +160,7 @@ def schedules_create(data: dict = Body({}), db: Session = Depends(get_db)):
     for r in required:
         if not data.get(r):
             raise HTTPException(status_code=400, detail=f"{r} required")
+    _raise_scheduler_platform_error(data)
     from gitd.services.db_helpers import create_scheduled_job
 
     sid = create_scheduled_job(db, **data)
@@ -124,6 +171,17 @@ def schedules_create(data: dict = Body({}), db: Session = Depends(get_db)):
 def schedules_update(sid: int, data: dict = Body({}), db: Session = Depends(get_db)):
     """Update an existing scheduled job's configuration."""
     from gitd.services.db_helpers import update_scheduled_job
+
+    existing = (
+        db.execute(text("SELECT * FROM scheduled_jobs WHERE id = :sid"), {"sid": sid})
+        .mappings()
+        .first()
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="not found")
+    merged = dict(existing)
+    merged.update(data)
+    _raise_scheduler_platform_error(merged)
 
     update_scheduled_job(db, sid, **data)
     return {"ok": True}
@@ -170,6 +228,7 @@ def schedules_run_now(sid: int, db: Session = Depends(get_db)):
     if not sched:
         raise HTTPException(status_code=404, detail="not found")
     sched = dict(sched)
+    _raise_scheduler_platform_error(sched)
     from gitd.services.db_helpers import enqueue_job
 
     qid = enqueue_job(
@@ -308,6 +367,7 @@ def scheduler_run_restart(run_id: int, db: Session = Depends(get_db)):
     if not row:
         raise HTTPException(status_code=404, detail="Run not found")
     row = dict(row)
+    _raise_scheduler_platform_error(row)
     from gitd.services.db_helpers import enqueue_job
 
     new_id = enqueue_job(
