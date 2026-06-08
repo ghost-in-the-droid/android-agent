@@ -705,17 +705,35 @@ def _execute_tool_inner(name: str, args: dict) -> str:
         elif name == "screenshot":
             r = ctx.screenshot(device)
             return json.dumps(
-                {"image": r["image"][:100] + "...(truncated)", "width": r["width"], "height": r["height"]}
+                {
+                    "device": r.get("device", device),
+                    "platform": r.get("platform", "ios" if is_ios_ref(device) else "android"),
+                    "image": r["image"][:100] + "...(truncated)",
+                    "width": r["width"],
+                    "height": r["height"],
+                }
             )
         elif name == "screenshot_annotated":
             r = ctx.screenshot_annotated(device)
             return json.dumps(
-                {"image": r["image"][:100] + "...(truncated)", "width": r["width"], "height": r["height"]}
+                {
+                    "device": r.get("device", device),
+                    "platform": r.get("platform", "ios" if is_ios_ref(device) else "android"),
+                    "image": r["image"][:100] + "...(truncated)",
+                    "width": r["width"],
+                    "height": r["height"],
+                }
             )
         elif name == "screenshot_cropped":
             r = ctx.screenshot_cropped(device, args["x1"], args["y1"], args["x2"], args["y2"])
             return json.dumps(
-                {"image": r["image"][:100] + "...(truncated)", "width": r["width"], "height": r["height"]}
+                {
+                    "device": r.get("device", device),
+                    "platform": r.get("platform", "ios" if is_ios_ref(device) else "android"),
+                    "image": r["image"][:100] + "...(truncated)",
+                    "width": r["width"],
+                    "height": r["height"],
+                }
             )
         elif name == "start_screen_recording":
             from gitd.services.phone_recording import start_recording

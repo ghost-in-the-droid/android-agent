@@ -596,7 +596,7 @@ def api_phone_xml(device: str):
     from gitd.services.device_context import get_screen_xml
 
     xml = get_screen_xml(device)
-    return {"ok": True, "xml": xml[:10000], "length": len(xml)}
+    return {"ok": True, "device": device, "platform": _platform(device), "xml": xml[:10000], "length": len(xml)}
 
 
 @router.get("/screen-tree/{device}", summary="Get LLM-Readable Screen Tree")
@@ -604,7 +604,7 @@ def api_phone_screen_tree(device: str):
     """Get indented UI hierarchy optimized for LLM consumption."""
     from gitd.services.device_context import get_screen_tree
 
-    return {"ok": True, "tree": get_screen_tree(device)}
+    return {"ok": True, "device": device, "platform": _platform(device), "tree": get_screen_tree(device)}
 
 
 @router.get("/ocr/{device}", summary="OCR Phone Screen")
@@ -616,7 +616,7 @@ def api_phone_ocr(device: str, x1: int = 0, y1: int = 0, x2: int = 0, y2: int = 
         texts = ocr_region(device, x1, y1, x2, y2)
     else:
         texts = ocr_screen(device)
-    return {"ok": True, "texts": texts, "count": len(texts)}
+    return {"ok": True, "device": device, "platform": _platform(device), "texts": texts, "count": len(texts)}
 
 
 @router.get("/notifications/{device}", summary="Get Device Notifications")
@@ -770,6 +770,7 @@ def api_phone_packages(device: str, all: str = ""):
         apps = list_apps(device, verify=True)
         packages = [app.get("bundle_id") or app.get("package", "") for app in apps]
         return {
+            "device": device,
             "packages": [pkg for pkg in packages if pkg],
             "apps": apps,
             "count": len(packages),
@@ -785,7 +786,7 @@ def api_phone_packages(device: str, all: str = ""):
     else:
         raw = dev.adb("shell", "pm", "list", "packages", timeout=15)
     packages = sorted([pkg.replace("package:", "").strip() for pkg in raw.splitlines() if pkg.startswith("package:")])
-    return {"packages": packages, "count": len(packages)}
+    return {"device": device, "platform": "android", "packages": packages, "count": len(packages)}
 
 
 @router.get("/apps/{device}", summary="List Installed Apps")
