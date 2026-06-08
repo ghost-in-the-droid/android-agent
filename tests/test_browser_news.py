@@ -640,6 +640,29 @@ def test_read_news_agent_tool_dispatches_to_browser_service(monkeypatch):
     assert result["kwargs"]["max_articles"] == 1
 
 
+def test_mcp_web_search_forwards_ios_bundle_override(monkeypatch):
+    from gitd import mcp_server
+
+    def fake_web_search(device, query, **kwargs):
+        return {"ok": True, "device": device, "query": query, "kwargs": kwargs}
+
+    monkeypatch.setattr("gitd.services.browser.web_search", fake_web_search)
+
+    result = json.loads(
+        mcp_server.web_search(
+            "ios:abc123",
+            "latest robotics news",
+            engine="ddg",
+            bundle_id="com.google.chrome.ios",
+        )
+    )
+
+    assert result["ok"] is True
+    assert result["device"] == "ios:abc123"
+    assert result["query"] == "latest robotics news"
+    assert result["kwargs"] == {"engine": "ddg", "bundle_id": "com.google.chrome.ios"}
+
+
 def test_ios_wait_for_text_checks_webview_text_before_native_xml(monkeypatch):
     dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
     calls = []
