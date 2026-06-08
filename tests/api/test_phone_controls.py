@@ -36,6 +36,7 @@ def test_ios_control_routes_return_platform_metadata(monkeypatch):
 
     responses = [
         client.post("/api/phone/input", json={"device": "ios:abc123", "action": "tap", "x": 11, "y": 22}),
+        client.post("/api/phone/input", json={"device": "ios:abc123", "action": "keyevent", "key": "ENTER"}),
         client.post("/api/phone/tap", json={"device": "ios:abc123", "x": 33, "y": 44}),
         client.post("/api/phone/type", json={"device": "ios:abc123", "text": "hello"}),
         client.post("/api/phone/back", json={"device": "ios:abc123"}),
@@ -58,6 +59,7 @@ def test_ios_control_routes_return_platform_metadata(monkeypatch):
 
     assert fake.calls == [
         ("tap", 11, 22, {}),
+        ("press_key", "ENTER"),
         ("tap", 33, 44, {}),
         ("type_text", "hello"),
         ("back", 0.3),
@@ -66,6 +68,36 @@ def test_ios_control_routes_return_platform_metadata(monkeypatch):
         ("swipe", 1, 2, 3, 4, {}),
         ("launch_app", "com.google.chrome.ios"),
     ]
+
+
+def test_ios_input_errors_include_platform_metadata(monkeypatch):
+    fake = FakeIOSControlDevice()
+
+    def fail_press_key(key):
+        raise RuntimeError(f"iOS key '{key}' is not supported through WDA")
+
+    fake.press_key = fail_press_key
+    monkeypatch.setattr("gitd.routers.phone.get_device", lambda device: fake)
+    client = TestClient(app)
+
+    missing_key = client.post("/api/phone/input", json={"device": "ios:abc123", "action": "keyevent"})
+    unsupported_key = client.post(
+        "/api/phone/input",
+        json={"device": "ios:abc123", "action": "keyevent", "key": "VOLUME_UP"},
+    )
+
+    assert missing_key.status_code == 200
+    assert missing_key.json() == {
+        "ok": False,
+        "device": "ios:abc123",
+        "platform": "ios",
+        "error": "key or keycode required",
+    }
+    assert unsupported_key.status_code == 200
+    assert unsupported_key.json()["ok"] is False
+    assert unsupported_key.json()["device"] == "ios:abc123"
+    assert unsupported_key.json()["platform"] == "ios"
+    assert unsupported_key.json()["error"] == "iOS key 'VOLUME_UP' is not supported through WDA"
 
 
 def test_launch_route_requires_package(client):
