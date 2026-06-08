@@ -493,6 +493,8 @@ async def webrtc_callback_handler(device: str, request: Request):
 @router.get("/api/phone/webrtc-poll-signals/{device}", summary="Poll WebRTC Signals")
 def webrtc_poll_signals(device: str):
     """Poll pending signaling messages from Portal for this device (legacy)."""
+    if is_ios_ref(device):
+        return _ios_stream_fallback(device, "WebRTC signal polling")
     msgs = _signaling_queues.pop(device, [])
     return {"ok": True, "messages": msgs}
 
@@ -500,6 +502,8 @@ def webrtc_poll_signals(device: str):
 @router.get("/api/phone/webrtc-signals-stream/{device}", summary="SSE Signal Stream")
 async def webrtc_signals_stream(device: str):
     """Server-Sent Events stream — pushes signaling messages instantly (no polling)."""
+    if is_ios_ref(device):
+        return _ios_stream_fallback(device, "WebRTC signal stream")
 
     async def generate():
         # Create per-device event for notifications
