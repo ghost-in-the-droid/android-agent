@@ -325,7 +325,7 @@ def api_phone_paste_text(data: dict = Body({})):
 
 @router.post("/back", summary="Press Back Button")
 def api_phone_back(data: dict = Body({})):
-    """Press the Android back button on a device."""
+    """Press the platform back/navigation control on a device."""
     device = data.get("device", "")
     dev = get_device(device)
     dev.back(delay=0.3)
@@ -352,15 +352,18 @@ def api_phone_key(data: dict = Body({})):
 
 @router.post("/launch", summary="Launch App On Phone")
 def api_phone_launch(data: dict = Body({})):
-    """Launch an app by package name on a device."""
+    """Launch an Android package or iOS bundle id on a device."""
     device = data.get("device", "")
     dev = get_device(device)
     pkg = data.get("package", "")
+    if not pkg:
+        raise HTTPException(status_code=400, detail="package required")
     if is_ios_ref(device):
         dev.launch_app(pkg)
+        return {"ok": True, "device": device, "platform": "ios", "package": pkg, "bundle_id": pkg}
     else:
         dev.adb("shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1")
-    return {"ok": True, "device": device, "platform": _platform(device)}
+    return {"ok": True, "device": device, "platform": "android", "package": pkg, "bundle_id": ""}
 
 
 @router.post("/browser/open-url", summary="Open URL In Browser")
@@ -561,7 +564,7 @@ def api_phone_screenshot(device: str):
 
 @router.get("/screenshot-annotated/{device}", summary="Take Annotated Screenshot")
 def api_phone_screenshot_annotated(device: str):
-    """Take screenshot with Portal's numbered element overlay."""
+    """Take a screenshot with server-side numbered element labels."""
     from gitd.services.device_context import screenshot_annotated
 
     result = screenshot_annotated(device)
@@ -750,7 +753,7 @@ def api_phone_overlay(device: str, data: dict = Body({})):
 
 @router.get("/packages/{device}", summary="List Installed Packages")
 def api_phone_packages(device: str, all: str = ""):
-    """List installed packages on device."""
+    """List Android packages or known iOS bundle ids on a device."""
     if is_ios_ref(device):
         from gitd.services.device_context import list_apps
 

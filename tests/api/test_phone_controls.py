@@ -40,16 +40,21 @@ def test_ios_control_routes_return_platform_metadata(monkeypatch):
         client.post("/api/phone/type", json={"device": "ios:abc123", "text": "hello"}),
         client.post("/api/phone/back", json={"device": "ios:abc123"}),
         client.post("/api/phone/key", json={"device": "ios:abc123", "key": "HOME"}),
-        client.post("/api/phone/launch", json={"device": "ios:abc123", "package": "com.google.chrome.ios"}),
         client.post("/api/phone/force-stop", json={"device": "ios:abc123", "package": "com.google.chrome.ios"}),
         client.post("/api/phone/swipe", json={"device": "ios:abc123", "x1": 1, "y1": 2, "x2": 3, "y2": 4}),
     ]
+    launch = client.post("/api/phone/launch", json={"device": "ios:abc123", "package": "com.google.chrome.ios"})
 
     for response in responses:
         assert response.status_code == 200
         assert response.json()["ok"] is True
         assert response.json()["device"] == "ios:abc123"
         assert response.json()["platform"] == "ios"
+    assert launch.status_code == 200
+    assert launch.json()["ok"] is True
+    assert launch.json()["platform"] == "ios"
+    assert launch.json()["package"] == "com.google.chrome.ios"
+    assert launch.json()["bundle_id"] == "com.google.chrome.ios"
 
     assert fake.calls == [
         ("tap", 11, 22, {}),
@@ -57,7 +62,14 @@ def test_ios_control_routes_return_platform_metadata(monkeypatch):
         ("type_text", "hello"),
         ("back", 0.3),
         ("press_key", "HOME"),
-        ("launch_app", "com.google.chrome.ios"),
         ("terminate_app", "com.google.chrome.ios"),
         ("swipe", 1, 2, 3, 4, {}),
+        ("launch_app", "com.google.chrome.ios"),
     ]
+
+
+def test_launch_route_requires_package(client):
+    response = client.post("/api/phone/launch", json={"device": "ios:abc123"})
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "package required"
