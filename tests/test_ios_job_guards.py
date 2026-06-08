@@ -12,6 +12,7 @@ from gitd.routers import bot
 from gitd.routers.scheduler import _scheduler_platform_error
 from gitd.services.db_helpers import create_scheduled_job, enqueue_job
 from gitd.services.job_engine import (
+    _account_preflight,
     _build_scheduled_cmd,
     _job_platform_preflight,
     _skill_config_preflight,
@@ -28,6 +29,71 @@ def test_tiktok_scheduler_jobs_are_guarded_on_ios():
     )
     assert _job_platform_preflight("ios:abc123", "app_explore") is None
     assert _job_platform_preflight("emulator-5554", "post") is None
+
+
+def test_ios_tiktok_skill_account_preflight_passes_on_matching_account(monkeypatch):
+    calls = []
+
+    def fake_expected_account_matches(device: str, expected: str):
+        calls.append((device, expected))
+        return {"ok": True, "reason": None}
+
+    monkeypatch.setattr(
+        "gitd.services.account_health.expected_account_matches",
+        fake_expected_account_matches,
+    )
+
+    err = _account_preflight(
+        "ios:abc123",
+        "skill_workflow",
+        {"skill": "tiktok_ios", "workflow": "profile_smoke", "account": "@ghost"},
+    )
+
+    assert err is None
+    assert calls == [("ios:abc123", "@ghost")]
+
+
+def test_ios_tiktok_skill_account_preflight_blocks_observed_mismatch(monkeypatch):
+    calls = []
+
+    def fake_expected_account_matches(device: str, expected: str):
+        calls.append((device, expected))
+        return {
+            "ok": False,
+            "reason": "wrong active account: have @other, expected @ghost",
+        }
+
+    monkeypatch.setattr(
+        "gitd.services.account_health.expected_account_matches",
+        fake_expected_account_matches,
+    )
+
+    err = _account_preflight(
+        "ios:abc123",
+        "skill_workflow",
+        {"skill": "tiktok_ios", "workflow": "profile_smoke", "account": "@ghost"},
+    )
+
+    assert err == "wrong active account: have @other, expected @ghost"
+    assert calls == [("ios:abc123", "@ghost")]
+
+
+def test_non_tiktok_skill_account_config_does_not_trigger_account_preflight(monkeypatch):
+    def fail_expected_account_matches(device: str, expected: str):
+        raise AssertionError("non-TikTok skills should not use TikTok account preflight")
+
+    monkeypatch.setattr(
+        "gitd.services.account_health.expected_account_matches",
+        fail_expected_account_matches,
+    )
+
+    err = _account_preflight(
+        "ios:abc123",
+        "skill_workflow",
+        {"skill": "safari", "workflow": "read_news", "account": "@ghost"},
+    )
+
+    assert err is None
 
 
 def test_legacy_bot_queue_rejects_ios_tiktok_post_before_launch(monkeypatch):

@@ -277,6 +277,16 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
 
 
 _TIKTOK_JOB_TYPES = {"crawl", "outreach", "post", "publish_draft", "perf_scan", "engage", "inbox_scan"}
+_TIKTOK_SKILL_NAMES = {"tiktok", "tiktok_ios"}
+
+
+def _job_uses_tiktok_account(job_type: str, config: dict | None) -> bool:
+    if job_type in _TIKTOK_JOB_TYPES:
+        return True
+    if job_type not in ("skill_workflow", "skill_action"):
+        return False
+    skill_name = str((config or {}).get("skill") or "").strip()
+    return skill_name in _TIKTOK_SKILL_NAMES
 
 
 def _job_platform_preflight(phone: str | None, job_type: str) -> str | None:
@@ -316,7 +326,7 @@ def _account_preflight(phone: str | None, job_type: str, config: dict) -> str | 
     Detection failures (no premium installed, can't detect) do NOT block —
     we log and proceed. Only an *observed mismatch* blocks the job.
     """
-    if job_type not in _TIKTOK_JOB_TYPES:
+    if not _job_uses_tiktok_account(job_type, config):
         return None
     expected = (config or {}).get("account")
     if not expected or not phone:
