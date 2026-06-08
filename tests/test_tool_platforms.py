@@ -168,7 +168,7 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     assert shell.startswith("ERROR: shell is Android-only")
     assert clipboard == "ios clipboard"
     assert notifications == [{"title": "Slack", "text": "New message", "platform": "ios"}]
-    assert opened == "Notification shade opened"
+    assert opened == "Notification Center opened"
     assert cleared == "Notifications cleared"
     assert health["connection"]["status"] == "wda_signing_failed"
     assert health["recommended_fix"] == "fix_wda_signing"
@@ -179,6 +179,15 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     assert unknown == "Unknown tool: does_not_exist"
     assert android_current_url == "ERROR: get_current_url is currently implemented only for iOS"
     assert android_news == "ERROR: read_news is currently implemented only for iOS"
+
+
+def test_mcp_open_notifications_uses_platform_terms(monkeypatch):
+    from gitd import mcp_server
+
+    monkeypatch.setattr("gitd.services.device_context.open_notifications", lambda device: True)
+
+    assert mcp_server.open_notifications("ios:abc123") == "Notification Center opened"
+    assert mcp_server.open_notifications("emulator-5554") == "Notification shade opened"
 
 
 def test_agent_list_devices_returns_android_and_ios_metadata(monkeypatch):
@@ -504,6 +513,15 @@ def test_ios_agent_primitive_aliases_use_ios_backend(monkeypatch):
     calls = []
 
     class FakeIOSDevice:
+        def tap(self, x, y):
+            calls.append(("tap", x, y))
+
+        def swipe(self, x1, y1, x2, y2, ms=500):
+            calls.append(("swipe", x1, y1, x2, y2, ms))
+
+        def long_press(self, x, y, duration_ms=1000):
+            calls.append(("long_press", x, y, duration_ms))
+
         def type_text(self, text):
             calls.append(("type", text))
 
@@ -517,16 +535,29 @@ def test_ios_agent_primitive_aliases_use_ios_backend(monkeypatch):
     monkeypatch.setattr("gitd.services.agent_tools.ctx.get_screen_tree", lambda device: "(empty screen)")
     monkeypatch.setattr("gitd.services.agent_tools.ctx.get_screen_xml", lambda device: "<hierarchy />")
 
+    tapped = execute_tool("tap", {"device": "ios:abc123", "x": 10, "y": 20})
+    swiped = execute_tool("swipe", {"device": "ios:abc123", "x1": 1, "y1": 2, "x2": 3, "y2": 4})
+    long_pressed = execute_tool("long_press", {"device": "ios:abc123", "x": 8, "y": 9, "duration_ms": 1500})
     typed = execute_tool("type_unicode", {"device": "ios:abc123", "text": "cafe\u0301"})
     back = execute_tool("press_back", {"device": "ios:abc123"})
     home = execute_tool("press_home", {"device": "ios:abc123"})
     xml = execute_tool("get_screen_xml", {"device": "ios:abc123"})
 
+    assert tapped == "Tapped (10, 20)"
+    assert swiped == "Swiped (1,2) -> (3,4)"
+    assert long_pressed == "Long pressed (8, 9)"
     assert typed == "Typed (unicode): cafe\u0301"
     assert back == "Pressed Back"
     assert home == "Pressed Home"
     assert xml == "<hierarchy />"
-    assert calls == [("type", "cafe\u0301"), ("back",), ("key", "HOME")]
+    assert calls == [
+        ("tap", 10, 20),
+        ("swipe", 1, 2, 3, 4, 500),
+        ("long_press", 8, 9, 1500),
+        ("type", "cafe\u0301"),
+        ("back",),
+        ("key", "HOME"),
+    ]
 
 
 def test_platform_prompts_do_not_offer_android_only_tools_to_ios():
