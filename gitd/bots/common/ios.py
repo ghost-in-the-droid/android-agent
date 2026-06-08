@@ -568,6 +568,18 @@ def _host_device_config_for_udid(udid: str) -> dict[str, str]:
     return next((item for item in devices if item.get("udid") == udid), {})
 
 
+def _appium_url_is_loopback(appium_url: str) -> bool:
+    parsed = urllib.parse.urlparse(appium_url)
+    host = parsed.hostname or "127.0.0.1"
+    return host in {"127.0.0.1", "localhost", "::1"}
+
+
+def _requires_host_device_visibility(appium_url: str, udid: str) -> bool:
+    return _appium_url_is_loopback(appium_url) and (
+        _IOS_HARDWARE_UDID_RE.match(udid) is not None or _IOS_SIMULATOR_UDID_RE.match(udid) is not None
+    )
+
+
 def _ios_major_version(version: str) -> int:
     match = re.search(r"\d+", str(version or ""))
     return int(match.group(0)) if match else 0
@@ -2088,10 +2100,28 @@ class IOSDevice:
                 checks=checks,
             )
 
+        host_device = _host_device_config_for_udid(self.udid)
+        if _requires_host_device_visibility(self.appium_url, self.udid) and not host_device:
+            checks["host_device"] = {
+                "visible": False,
+                "source": "xcrun xctrace list devices",
+            }
+            return IOSDeviceStatus(
+                self.serial,
+                self.udid,
+                "configured_unreachable",
+                "Configured iOS device is not visible to local Xcode device discovery.",
+                self.appium_url,
+                self._session_id or IOSDevice._sessions.get(self._config, ""),
+                checks=checks,
+            )
+        if host_device:
+            checks["host_device"] = host_device
+
         tunnel = remote_xpc_tunnel_status(
             self.udid,
             platform_version=self.platform_version,
-            host=_host_device_config_for_udid(self.udid),
+            host=host_device,
         )
         if tunnel.get("required"):
             checks["remote_xpc_tunnel"] = tunnel
