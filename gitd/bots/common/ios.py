@@ -9,10 +9,11 @@ so the first iOS milestone does not need the Python Appium client package.
 from __future__ import annotations
 
 import base64
-import json
 import html
+import json
 import os
 import re
+import subprocess
 import threading
 import time
 import urllib.parse
@@ -530,6 +531,92 @@ def configured_ios_udids() -> list[str]:
         values.extend(v.strip() for v in multi.split(",") if v.strip())
     values.extend(str(k) for k in _load_ios_devices_blob().keys())
 
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        udid = strip_ios_prefix(value)
+        if udid and udid not in seen:
+            seen.add(udid)
+            out.append(udid)
+    return out
+
+
+def _xctrace_line_device(line: str, section: str) -> dict[str, str] | None:
+    stripped = line.strip()
+    if not stripped or stripped.startswith("=="):
+        return None
+    groups = re.findall(r"\(([^()]*)\)", stripped)
+    if len(groups) < 2:
+        return None
+    state = ""
+    udid = groups[-1].strip()
+    if section == "simulators" and groups[-1] in {"Booted", "Shutdown", "Creating", "Shutting Down"}:
+        state = groups[-1]
+        udid = groups[-2].strip()
+    if section == "simulators" and state != "Booted":
+        return None
+    if not udid or "unavailable" in stripped.lower():
+        return None
+    name = stripped.split(" (", 1)[0].strip()
+    if not re.search(r"\b(iPhone|iPad|iPod)\b", name, re.I):
+        return None
+    version = groups[0].strip()
+    return {
+        "udid": strip_ios_prefix(udid),
+        "name": name,
+        "platform_version": version,
+        "source": "simulator" if section == "simulators" else "host",
+        "state": state or "connected",
+    }
+
+
+def _parse_xctrace_devices(output: str, *, include_simulators: bool = True) -> list[dict[str, str]]:
+    section = ""
+    rows: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if line == "== Devices ==":
+            section = "devices"
+            continue
+        if line == "== Simulators ==":
+            section = "simulators"
+            continue
+        if section == "simulators" and not include_simulators:
+            continue
+        if section not in {"devices", "simulators"}:
+            continue
+        item = _xctrace_line_device(line, section)
+        if not item or item["udid"] in seen:
+            continue
+        seen.add(item["udid"])
+        rows.append(item)
+    return rows
+
+
+def discover_host_ios_devices(*, include_simulators: bool = True) -> list[dict[str, str]]:
+    """Discover connected iOS devices and booted simulators through Xcode tools.
+
+    Discovery is best-effort: hosts without Xcode/xcrun simply return no rows.
+    Explicit IOS_DEVICE_UDID/IOS_DEVICES_JSON config remains the source for
+    Appium details such as ports and signing capabilities.
+    """
+    try:
+        output = subprocess.check_output(
+            ["xcrun", "xctrace", "list", "devices"],
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+            text=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return _parse_xctrace_devices(output, include_simulators=include_simulators)
+
+
+def known_ios_udids(*, include_host: bool = True, include_simulators: bool = True) -> list[str]:
+    values = configured_ios_udids()
+    if include_host:
+        values.extend(device["udid"] for device in discover_host_ios_devices(include_simulators=include_simulators))
     out: list[str] = []
     seen: set[str] = set()
     for value in values:

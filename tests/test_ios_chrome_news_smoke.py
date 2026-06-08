@@ -59,3 +59,30 @@ def test_ios_chrome_news_smoke_can_skip_health_preflight(monkeypatch, tmp_path):
     result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
     assert result["device"] == "ios:abc123"
     assert result["headlines"] == [{"title": "One"}]
+
+
+def test_ios_chrome_news_smoke_uses_first_discovered_device(monkeypatch, tmp_path):
+    monkeypatch.delenv("IOS_DEVICE_UDID", raising=False)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["ios_chrome_news_smoke.py", "--out-dir", str(tmp_path), "--skip-health"],
+    )
+    monkeypatch.setattr(smoke, "known_ios_udids", lambda: ["00008110-0012345678901234"])
+    monkeypatch.setattr(
+        smoke,
+        "read_news",
+        lambda device, url, **kwargs: {
+            "ok": True,
+            "device": device,
+            "url": url,
+            "headlines": [{"title": "One"}],
+            "kwargs": kwargs,
+        },
+    )
+
+    rc = smoke.main()
+
+    assert rc == 0
+    result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+    assert result["device"] == "ios:00008110-0012345678901234"

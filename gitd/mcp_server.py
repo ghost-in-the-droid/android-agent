@@ -60,7 +60,10 @@ def list_devices() -> str:
     Call this first to get the device serial you need for other tools."""
     devices = list_connected_device_refs()
     if not devices:
-        return "No devices connected. Check ADB authorization, or set IOS_DEVICE_UDID for iOS."
+        return (
+            "No devices connected. Check ADB authorization, connect an iPhone visible to xcrun/xctrace, "
+            "or set IOS_DEVICE_UDID for iOS."
+        )
     result = []
     for serial in devices:
         if is_ios_ref(serial):
