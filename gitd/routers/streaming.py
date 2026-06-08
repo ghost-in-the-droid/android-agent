@@ -74,11 +74,17 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
                     continue
                 time.sleep(frame_delay)
 
-        gen = gen_ios_mjpeg if mode in {"mjpeg", "wda", "wda-mjpeg"} else gen_ios_screencap
+        ios_stream_mode = "wda-mjpeg" if mode in {"mjpeg", "wda", "wda-mjpeg"} else "screenshot-polling"
+        gen = gen_ios_mjpeg if ios_stream_mode == "wda-mjpeg" else gen_ios_screencap
         return StreamingResponse(
             gen(),
             media_type="multipart/x-mixed-replace; boundary=frame",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "X-Phone-Platform": "ios"},
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "X-Phone-Platform": "ios",
+                "X-Phone-Stream-Mode": ios_stream_mode,
+            },
         )
 
     dev_args = ["-s", device] if device else []
@@ -223,11 +229,17 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
                 continue
             time.sleep(delay)
 
-    gen = gen_portal if mode == "portal" else (gen_h264 if mode == "h264" else gen_screencap)
+    android_stream_mode = "portal" if mode == "portal" else ("h264" if mode == "h264" else "screencap")
+    gen = gen_portal if android_stream_mode == "portal" else (gen_h264 if android_stream_mode == "h264" else gen_screencap)
     return StreamingResponse(
         gen(),
         media_type="multipart/x-mixed-replace; boundary=frame",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Phone-Platform": "android",
+            "X-Phone-Stream-Mode": android_stream_mode,
+        },
     )
 
 
