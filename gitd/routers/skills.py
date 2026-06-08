@@ -455,39 +455,26 @@ def api_skills_create_from_recording(data: dict = Body({})):
     name = data.get("name", "new_skill").strip().lower().replace(" ", "_")
     steps = data.get("steps", [])
     app_package = data.get("app_package", "")
-    android_package = data.get("android_package", app_package)
     ios_bundle_id = data.get("ios_bundle_id", "")
-    platforms = normalize_platforms(data.get("platforms")) or (["ios"] if ios_bundle_id and not app_package else ["android"])
 
     if not name or not steps:
         raise HTTPException(status_code=400, detail="name and steps required")
 
-    skill_dir = _SKILLS_DIR / name
-    skill_dir.mkdir(parents=True, exist_ok=True)
-    (skill_dir / "actions").mkdir(exist_ok=True)
-    (skill_dir / "workflows").mkdir(exist_ok=True)
+    from gitd.services.skill_creation import create_recorded_skill
 
-    import yaml
-
-    meta = {
-        "name": name,
-        "version": "1.0.0",
-        "app_package": app_package,
-        "android_package": android_package,
-        "ios_bundle_id": ios_bundle_id,
-        "platforms": platforms,
-        "description": f"Auto-generated skill from {len(steps)} recorded steps",
-    }
-    (skill_dir / "skill.yaml").write_text(yaml.dump(meta, default_flow_style=False))
-    (skill_dir / "workflows" / "recorded.json").write_text(json.dumps(steps, indent=2))
-    (skill_dir / "__init__.py").write_text(f'"""Skill: {name} -- auto-generated from recording."""\n')
-    elements_android = data.get("elements_android") or data.get("elements")
-    if elements_android is not None:
-        (skill_dir / "elements.yaml").write_text(yaml.dump(elements_android, default_flow_style=False))
-    if data.get("elements_ios") is not None:
-        (skill_dir / "elements_ios.yaml").write_text(yaml.dump(data["elements_ios"], default_flow_style=False))
-
-    return {"ok": True, "skill": name, "steps": len(steps), "dir": str(skill_dir)}
+    result = create_recorded_skill(
+        name=name,
+        app_package=app_package,
+        android_package=data.get("android_package", app_package),
+        steps=steps,
+        platforms=data.get("platforms"),
+        ios_bundle_id=ios_bundle_id,
+        elements_android=data.get("elements_android") if "elements_android" in data else data.get("elements"),
+        elements_ios=data.get("elements_ios") if "elements_ios" in data else None,
+        skills_dir=_SKILLS_DIR,
+        description_prefix="Auto-generated skill from",
+    )
+    return {"ok": True, "skill": result["skill"], "steps": result["steps"], "dir": result["dir"]}
 
 
 @router.delete("/{name}", summary="Delete Custom Skill")

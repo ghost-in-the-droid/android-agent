@@ -62,7 +62,7 @@ def _get_all_tools() -> list[dict]:
             "open_notifications",
             "clear_notifications",
         ],
-        "Skills": ["list_skills", "run_skill", "run_workflow", "run_action"],
+        "Skills": ["list_skills", "run_skill", "run_workflow", "run_action", "create_skill"],
         "Device": ["list_devices", "toggle_overlay"],
         "System": ["wait"],
     }

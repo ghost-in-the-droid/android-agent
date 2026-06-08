@@ -78,3 +78,24 @@ def test_create_from_recording_writes_ios_skill_metadata(tmp_path, monkeypatch):
     assert meta["ios_bundle_id"] == "com.google.chrome.ios"
     assert json.loads((skill_dir / "workflows" / "recorded.json").read_text())[0]["package"] == "com.google.chrome.ios"
     assert yaml.safe_load((skill_dir / "elements_ios.yaml").read_text())[0]["text"] == "Search"
+
+
+def test_create_from_recording_treats_ios_app_package_as_bundle_id(tmp_path, monkeypatch):
+    monkeypatch.setattr(skills_router, "_SKILLS_DIR", tmp_path)
+
+    result = skills_router.api_skills_create_from_recording(
+        {
+            "name": "ios_bundle_in_app_package",
+            "steps": [{"action": "launch", "package": "com.google.chrome.ios"}],
+            "platforms": ["ios"],
+            "app_package": "com.google.chrome.ios",
+        }
+    )
+
+    meta = yaml.safe_load((tmp_path / "ios_bundle_in_app_package" / "skill.yaml").read_text())
+
+    assert result["ok"] is True
+    assert meta["platforms"] == ["ios"]
+    assert meta["app_package"] == ""
+    assert meta["android_package"] == ""
+    assert meta["ios_bundle_id"] == "com.google.chrome.ios"
