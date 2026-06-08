@@ -1542,7 +1542,7 @@ onUnmounted(() => {
         <button v-if="hasAndroidDevices" class="ctrl-btn ctrl-btn--webrtc" @click="startAllStreams('rtc')" title="Android devices use Portal WebRTC; iOS devices use WDA MJPEG automatically">&#x26A1; Start All (Auto)</button>
         <button class="ctrl-btn ctrl-btn--mjpeg" @click="startAllStreams('mjpeg')" :title="hasIosDevices ? 'Start WDA MJPEG on iOS and MJPEG on Android' : 'Start Android MJPEG streams'">&#x25B6; Start All (MJPEG)</button>
         <button class="ctrl-btn ctrl-btn--stop" @click="stopAllStreams">&#x23F9; Stop All</button>
-        <button class="ctrl-btn" @click="showWirelessModal = true" style="background: #0ea5e922; color: #38bdf8; border-color: #0ea5e955">&#x1F4F6; WiFi Connect</button>
+        <button v-if="hasAndroidDevices" class="ctrl-btn" @click="showWirelessModal = true" style="background: #0ea5e922; color: #38bdf8; border-color: #0ea5e955">&#x1F4F6; WiFi Connect</button>
         <button class="ctrl-btn" @click="loadAllHealth" style="font-size: 10px">Health &#x27F3;</button>
         <span class="device-count">{{ devices.length }} device(s)</span>
       </div>
@@ -1674,7 +1674,7 @@ onUnmounted(() => {
       </div>
     </div>
     <!-- Wireless connect modal -->
-    <div v-if="showWirelessModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" @click.self="showWirelessModal = false">
+    <div v-if="showWirelessModal && hasAndroidDevices" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" @click.self="showWirelessModal = false">
       <div class="card" style="width: 360px">
         <h3 class="font-bold text-sm mb-3" style="color: var(--text-1)">Connect WiFi Device</h3>
         <div class="mb-2">
