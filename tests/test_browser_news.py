@@ -1,5 +1,7 @@
 import json
+import os
 
+import pytest
 from fastapi.testclient import TestClient
 
 from gitd.app import app
@@ -309,3 +311,36 @@ def test_ios_wait_for_text_checks_webview_text_before_native_xml(monkeypatch):
 
     assert dev.wait_for_text("web context", timeout=0.01, interval=0.01) == "Article body from web context"
     assert calls == [300]
+
+
+@pytest.mark.skipif(
+    not (
+        os.getenv("IOS_LIVE_NEWS_TEST")
+        and os.getenv("IOS_APPIUM_URL")
+        and os.getenv("IOS_DEVICE_UDID")
+    ),
+    reason="set IOS_LIVE_NEWS_TEST=1, IOS_APPIUM_URL, and IOS_DEVICE_UDID to run live iOS Chrome news test",
+)
+def test_live_ios_chrome_news_workflow():
+    from gitd.services.device_context import device_health
+
+    device = f"ios:{os.environ['IOS_DEVICE_UDID']}"
+    health = device_health(device)
+    assert health["connection"]["status"] == "available", health
+
+    result = read_news(
+        device,
+        os.getenv("IOS_LIVE_NEWS_URL", "https://text.npr.org/"),
+        max_headlines=int(os.getenv("IOS_LIVE_NEWS_HEADLINES", "2")),
+        max_articles=int(os.getenv("IOS_LIVE_NEWS_ARTICLES", "1")),
+        bundle_id=os.getenv("IOS_BUNDLE_ID", "com.google.chrome.ios"),
+        wait_s=float(os.getenv("IOS_LIVE_NEWS_WAIT", "2.0")),
+        save_screenshots=False,
+    )
+
+    assert result["ok"] is True, result
+    assert len(result["headlines"]) >= 1
+    assert result["headlines"][0].get("title")
+    if result["articles"]:
+        assert result["articles"][0].get("opened") is True
+        assert result["articles"][0].get("body_snippet")

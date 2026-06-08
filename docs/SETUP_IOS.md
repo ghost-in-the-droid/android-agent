@@ -145,6 +145,14 @@ python scripts/ios_chrome_news_smoke.py \
 
 The script runs `/api/phone/health`-equivalent Appium/WDA preflight first and saves `health.json` plus `result.json` in the output directory. If WDA is locked, unsigned, or unreachable, `result.json` contains the health recovery payload instead of failing later in the workflow. Use `--skip-health` only when you intentionally want to jump straight to the browser workflow. It is a product-path smoke: it calls the same `read_news` service used by REST, MCP, and agent tools, including navigation readiness checks and WebView/native/OCR extraction fallback.
 
+To run the same Chrome/news acceptance path through pytest on a real device:
+
+```bash
+IOS_LIVE_NEWS_TEST=1 IOS_DEVICE_UDID="<udid>" IOS_APPIUM_URL="http://127.0.0.1:4723" \
+IOS_BUNDLE_ID="com.google.chrome.ios" \
+uv run --extra test python -m pytest tests/test_browser_news.py::test_live_ios_chrome_news_workflow
+```
+
 The demo skill is still named `safari` for compatibility, but it now defaults to Chrome and can launch any configured iOS browser bundle id:
 
 ```bash
