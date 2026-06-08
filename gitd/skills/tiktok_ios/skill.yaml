@@ -1,0 +1,33 @@
+name: tiktok_ios
+description: TikTok iOS automation smoke skill using Appium/WebDriverAgent
+version: "0.1.0"
+app_package: ""
+ios_bundle_id: com.zhiliaoapp.musically
+platforms:
+  - ios
+
+platform_limitations:
+  ios:
+    - Upload/posting is not implemented yet; this skill validates launch, navigation, popup handling, and search primitives.
+
+exports:
+  actions:
+    - open_app
+    - dismiss_popup
+    - tap_search
+    - type_and_search
+    - navigate_to_profile
+    - verify_visible_text
+  workflows:
+    - open_app_smoke
+    - search_smoke
+
+default_params:
+  actions:
+    type_and_search:
+      query: "#fyp"
+    verify_visible_text:
+      expected: "TikTok"
+  workflows:
+    search_smoke:
+      query: "#fyp"

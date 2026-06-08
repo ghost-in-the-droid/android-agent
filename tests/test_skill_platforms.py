@@ -42,6 +42,12 @@ def test_installed_skills_expose_platform_metadata():
     assert skills["safari"]["ios_bundle_id"] == "com.google.chrome.ios"
     assert skills["safari"]["elements_ios_count"] >= 1
 
+    assert skills["tiktok_ios"]["platforms"] == ["ios"]
+    assert skills["tiktok_ios"]["supports_ios"] is True
+    assert skills["tiktok_ios"]["supports_android"] is False
+    assert skills["tiktok_ios"]["ios_bundle_id"] == "com.zhiliaoapp.musically"
+    assert skills["tiktok_ios"]["elements_ios_count"] >= 1
+
 
 def test_skill_platform_error_payload_is_stable():
     err = skill_platform_error("tiktok", {"platforms": ["android"]}, "ios:abc123")
@@ -82,6 +88,7 @@ def test_agent_skill_tools_filter_and_guard_by_device():
     names = {item["name"] for item in payload}
 
     assert "safari" in names
+    assert "tiktok_ios" in names
     assert "tiktok" not in names
 
     result = execute_tool("run_skill", {"device": "ios:abc123", "skill": "tiktok", "workflow": "upload_video"})
