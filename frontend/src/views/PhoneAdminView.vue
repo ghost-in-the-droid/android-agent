@@ -543,9 +543,38 @@ async function loadAllHealth() {
   for (const d of devices.value) loadHealth(d.serial)
 }
 
+function isIosHealthPayload(h: any): boolean {
+  return h?.platform === 'ios' || h?.connection?.type === 'appium-wda'
+}
+
+function iosActiveAppLabel(h: any): string {
+  const active = h?.wda?.active_app || h?.device_info?.active_app || {}
+  return String(active.name || active.bundleId || active.bundle_id || '').trim()
+}
+
+function healthDotColor(c: string): string {
+  return c === 'green' ? '#22c55e' : c === 'yellow' ? '#f59e0b' : c === 'red' ? '#ef4444' : '#475569'
+}
+
 function healthDots(serial: string): string[] {
   const h = healthData.value[serial]
   if (!h) return []
+  if (isIosHealthPayload(h)) {
+    const state = h.connection?.status || h.appium?.state || 'session_error'
+    const appiumReachable = h.appium?.reachable === true
+    const sessionOk = state === 'available' || !!h.wda?.session || !!h.appium?.session_id
+    const screenshotOk = h.wda?.screenshot_ok === true || (h.wda?.checks?.screenshot_bytes || 0) > 0
+    const sourceOk = h.wda?.source_ok === true || (h.wda?.checks?.source_bytes || 0) > 0
+    const activeOk = !!iosActiveAppLabel(h)
+    const reachableMissing = appiumReachable ? 'yellow' : 'red'
+    return [
+      appiumReachable ? 'green' : 'red',
+      sessionOk ? 'green' : reachableMissing,
+      screenshotOk ? 'green' : reachableMissing,
+      sourceOk ? 'green' : reachableMissing,
+      activeOk ? 'green' : 'gray',
+    ]
+  }
   const dots: string[] = []
   dots.push(h.portal?.http_responding ? 'green' : h.portal?.installed ? 'yellow' : 'red')
   dots.push(h.wifi?.connected ? 'green' : 'gray')
@@ -553,6 +582,27 @@ function healthDots(serial: string): string[] {
   dots.push(h.storage?.free_mb > 1000 ? 'green' : h.storage?.free_mb > 500 ? 'yellow' : 'red')
   dots.push(h.screen_on ? 'green' : 'yellow')
   return dots
+}
+
+function healthTitle(serial: string): string {
+  const h = healthData.value[serial]
+  if (!h) return ''
+  if (!isIosHealthPayload(h)) return 'Portal / WiFi / Battery / Storage / Screen'
+  const state = h.connection?.status || h.appium?.state || 'unknown'
+  const message = String(h.appium?.message || h.error || '').trim()
+  const activeApp = iosActiveAppLabel(h)
+  const parts = [`Appium / WDA / Screenshot / Source / Active app: ${state}`]
+  if (activeApp) parts.push(`active ${activeApp}`)
+  if (h.recommended_fix) parts.push(`fix ${h.recommended_fix}`)
+  if (message) parts.push(message)
+  return parts.join(' | ')
+}
+
+function iosHealthCanReset(serial: string): boolean {
+  const h = healthData.value[serial]
+  if (!isIosHealthPayload(h)) return false
+  const state = h.connection?.status || h.appium?.state || ''
+  return state === 'session_error' || state === 'error' || h.recommended_fix === 'reset_session'
 }
 
 async function fixIssue(serial: string, issue: string) {
@@ -1087,6 +1137,10 @@ onUnmounted(() => {
               : { background: '#6366f120', color: '#a5b4fc', border: '1px solid #6366f140' }">
             {{ streamModeText(selectedDevice, singleStreamMode) }}
           </span>
+          <span v-if="healthData[selectedDevice]" class="health-dots" :title="healthTitle(selectedDevice)">
+            <span v-for="(c, i) in healthDots(selectedDevice)" :key="i" class="health-dot" :style="{ background: healthDotColor(c) }"></span>
+          </span>
+          <button v-if="iosHealthCanReset(selectedDevice)" class="ctrl-btn ctrl-btn--fix" @click="fixIssue(selectedDevice, 'reset_session')" title="Reset iOS Appium session">Reset WDA</button>
           <button v-if="streaming" class="ctrl-btn ctrl-btn--stop" style="font-size:9px;padding:3px 8px" @click="stopStream">&#x23F9; Stop</button>
           <button v-if="!selectedIsIos" class="ctrl-btn" style="font-size:9px;padding:3px 6px" @click="toggleOverlay(selectedDevice)"
             :style="{ background: overlayOn[selectedDevice] ? '#fbbf24' : '', color: overlayOn[selectedDevice] ? '#000' : '#fbbf24' }">&#x1F522;</button>
@@ -1155,9 +1209,10 @@ onUnmounted(() => {
           <!-- Header -->
           <div class="multi-card-header">
             <span class="multi-device-name">{{ d.connection === 'wifi' ? '\uD83D\uDCF6' : '\uD83D\uDD0C' }} {{ d.nickname || d.model || d.serial }}</span>
-            <span v-if="healthData[d.serial]" class="health-dots" :title="'Portal / WiFi / Battery / Storage / Screen'">
-              <span v-for="(c, i) in healthDots(d.serial)" :key="i" class="health-dot" :style="{ background: c === 'green' ? '#22c55e' : c === 'yellow' ? '#f59e0b' : c === 'red' ? '#ef4444' : '#475569' }"></span>
+            <span v-if="healthData[d.serial]" class="health-dots" :title="healthTitle(d.serial)">
+              <span v-for="(c, i) in healthDots(d.serial)" :key="i" class="health-dot" :style="{ background: healthDotColor(c) }"></span>
             </span>
+            <button v-if="iosHealthCanReset(d.serial)" class="hw-key-btn" @click="fixIssue(d.serial, 'reset_session')" title="Reset iOS Appium session">Reset</button>
             <button v-if="healthData[d.serial]?.wifi?.ip && !d.serial.includes(':')" class="hw-key-btn"
               @click="goWireless(d.serial)" title="Go Wireless" style="color: #38bdf8">&#x1F4F6;</button>
             <div class="multi-hw-keys">
