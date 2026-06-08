@@ -512,6 +512,56 @@ def test_web_context_entries_prefer_dom_text_and_article_urls(monkeypatch):
     assert context_names[-1] == "NATIVE_APP"
 
 
+def test_web_context_article_extraction_uses_headings_without_urls(monkeypatch):
+    snapshot = {
+        "url": "https://news.example/",
+        "title": "News",
+        "bodyText": "Top Stories\nWorld leaders meet for climate talks today",
+        "entries": [
+            {
+                "text": "World leaders meet for climate talks today",
+                "tag": "h2",
+                "href": "",
+                "bounds": {"x1": 10, "y1": 100, "x2": 350, "y2": 140},
+                "provenance": "web_context",
+            },
+            {
+                "text": "Short dek",
+                "tag": "p",
+                "href": "",
+                "bounds": {"x1": 10, "y1": 150, "x2": 350, "y2": 180},
+                "provenance": "web_context",
+            },
+        ],
+    }
+
+    def fake_request(method, url, json=None, timeout=None):
+        if url.endswith("/session/session-1/contexts"):
+            return FakeResponse({"value": ["NATIVE_APP", "WEBVIEW_1"]})
+        if url.endswith("/session/session-1/context"):
+            return FakeResponse({"value": None})
+        if url.endswith("/session/session-1/execute/sync"):
+            return FakeResponse({"value": snapshot})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-1"
+
+    articles = dev.extract_articles(max_items=1)
+
+    assert articles == [
+        {
+            "title": "World leaders meet for climate talks today",
+            "url": "",
+            "bounds": {"x1": 10, "y1": 100, "x2": 350, "y2": 140},
+            "center": {"x": 180, "y": 120},
+            "class": "h2",
+            "provenance": "web_context",
+        }
+    ]
+
+
 def test_ios_wait_for_url_matches_trusted_browser_url(monkeypatch):
     dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
     urls = ["about:blank", "https://text.npr.org/?output=1"]
