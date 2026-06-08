@@ -1,9 +1,10 @@
 """Core shared actions — tap, swipe, type, wait, launch, screenshot, dismiss popup."""
 from __future__ import annotations
 
+from pathlib import Path
 import time
-import re
-from gitd.skills.base import Action, ActionResult, Element
+
+from gitd.skills.base import Action, ActionResult, Element, _device_is_ios
 
 
 class TapElement(Action):
@@ -35,6 +36,10 @@ class SwipeDirection(Action):
 
     def execute(self) -> ActionResult:
         cx, cy = 540, 1200  # default center for 1080x2400
+        if _device_is_ios(self.device) and hasattr(self.device, 'get_screen_size'):
+            width, height = self.device.get_screen_size()
+            if width and height:
+                cx, cy = width // 2, height // 2
         d = self.distance
         dirs = {
             'up':    (cx, cy, cx, cy - d),
@@ -52,16 +57,20 @@ class SwipeDirection(Action):
 class TypeText(Action):
     """Type text into the currently focused input field."""
     name = 'type_text'
-    description = 'Type text via ADB input'
+    description = 'Type text into the focused field'
 
     def __init__(self, device, elements, *, text: str, **kwargs):
         super().__init__(device, elements)
         self.text = text
 
     def execute(self) -> ActionResult:
-        # Escape special chars for shell
-        escaped = self.text.replace(' ', '%s').replace("'", "\\'").replace('"', '\\"')
-        self.device.adb("shell", "input", "text", escaped)
+        if _device_is_ios(self.device) and hasattr(self.device, 'type_text'):
+            self.device.type_text(self.text)
+        elif all(ord(c) < 128 for c in self.text):
+            escaped = self.text.replace(' ', '%s').replace("'", "\\'").replace('"', '\\"')
+            self.device.adb("shell", "input", "text", escaped)
+        else:
+            self.device.type_unicode(self.text)
         time.sleep(0.3)
         return ActionResult(success=True, data={'text': self.text})
 
@@ -90,9 +99,9 @@ class WaitForElement(Action):
 
 
 class LaunchApp(Action):
-    """Launch an app by package name."""
+    """Launch an app by Android package name or iOS bundle id."""
     name = 'launch_app'
-    description = 'Start an Android app'
+    description = 'Start an Android app or iOS bundle'
 
     def __init__(self, device, elements, *, package: str, activity: str | None = None, **kwargs):
         super().__init__(device, elements)
@@ -100,6 +109,10 @@ class LaunchApp(Action):
         self.activity = activity
 
     def execute(self) -> ActionResult:
+        if _device_is_ios(self.device) and hasattr(self.device, 'launch_app'):
+            self.device.launch_app(self.package)
+            time.sleep(2)
+            return ActionResult(success=True, data={'bundle_id': self.package})
         if self.activity:
             self.device.adb("shell", "am", "start", "-n", f"{self.package}/{self.activity}")
         else:
@@ -110,6 +123,11 @@ class LaunchApp(Action):
         return ActionResult(success=True, data={'package': self.package})
 
     def postcondition(self) -> bool:
+        if _device_is_ios(self.device) and hasattr(self.device, 'app_state'):
+            try:
+                return int(self.device.app_state(self.package)) == 4
+            except Exception:
+                return False
         # Verify app is in foreground
         output = self.device.adb("shell", "dumpsys", "window", timeout=5)
         return self.package in output
@@ -126,6 +144,12 @@ class TakeScreenshot(Action):
     max_retries = 1
 
     def execute(self) -> ActionResult:
+        if _device_is_ios(self.device) and hasattr(self.device, 'take_screenshot'):
+            path = Path(self.output_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(self.device.take_screenshot())
+            return ActionResult(success=True, data={'path': self.output_path})
+
         import subprocess
         self.device.adb("shell", "screencap", "-p", "/sdcard/screenshot.png")
         subprocess.run(["adb", "-s", self.device.serial, "pull",
@@ -146,7 +170,7 @@ class DismissPopup(Action):
 
 
 class PressBack(Action):
-    """Press the Android back button."""
+    """Press the platform back/navigation control."""
     name = 'press_back'
     description = 'Press back'
     max_retries = 1
@@ -157,12 +181,15 @@ class PressBack(Action):
 
 
 class PressHome(Action):
-    """Press the Android home button."""
+    """Press the platform home button."""
     name = 'press_home'
     description = 'Press home'
     max_retries = 1
 
     def execute(self) -> ActionResult:
-        self.device.adb("shell", "input", "keyevent", "KEYCODE_HOME")
+        if _device_is_ios(self.device) and hasattr(self.device, 'press_key'):
+            self.device.press_key('HOME')
+        else:
+            self.device.adb("shell", "input", "keyevent", "KEYCODE_HOME")
         time.sleep(0.5)
         return ActionResult(success=True)
