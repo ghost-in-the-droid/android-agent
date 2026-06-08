@@ -48,6 +48,7 @@ _CROSS_PLATFORM = {
     "get_screen_xml": "Returns Android uiautomator XML or normalized iOS WDA XML.",
     "get_phone_state": "Uses Android state probes or iOS activeAppInfo/window state.",
     "device_health": "Checks Android Portal/device subsystems or iOS Appium/WDA health with actionable recovery steps.",
+    "fix_device_health": "Applies Android Portal/screen fixes or iOS Appium/WDA recovery actions returned by device_health.",
     "classify_screen": "Runs against normalized state/tree data.",
     "find_on_screen": "Searches normalized XML with OCR fallback.",
     "ocr_screen": "Runs OCR on platform screenshot bytes.",

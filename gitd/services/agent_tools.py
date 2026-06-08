@@ -84,6 +84,21 @@ TOOLS = [
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
+        "name": "fix_device_health",
+        "description": (
+            "Apply a recovery action returned by device_health.recommended_fix. "
+            "On iOS this can reset stale Appium/WDA sessions or restart a user-owned RemoteXPC tunnel."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "issue": {"type": "string", "description": "Recovery code from device_health.recommended_fix."},
+            },
+            "required": ["device", "issue"],
+        },
+    },
+    {
         "name": "classify_screen",
         "description": "Classify screen type: home, search, profile, dialog, error, loading.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
@@ -587,6 +602,8 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return json.dumps(ctx.get_phone_state(device), indent=2)
         elif name == "device_health":
             return json.dumps(ctx.device_health(device), indent=2)
+        elif name == "fix_device_health":
+            return json.dumps(ctx.fix_device_health(device, args["issue"]), indent=2)
         elif name == "classify_screen":
             return json.dumps(ctx.classify_screen(device), indent=2)
         elif name == "find_on_screen":

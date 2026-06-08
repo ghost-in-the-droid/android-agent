@@ -9,7 +9,6 @@ Usage:
 import base64
 import importlib
 import json
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -328,6 +327,14 @@ def device_health(device: str) -> str:
     return json.dumps(_device_health(device), indent=2)
 
 
+@mcp.tool()
+def fix_device_health(device: str, issue: str) -> str:
+    """Apply a recovery action returned by device_health.recommended_fix."""
+    from gitd.services.device_context import fix_device_health as _fix_device_health
+
+    return json.dumps(_fix_device_health(device, issue), indent=2)
+
+
 # ── Tier 1.5: Context Extraction ────────────────────────────────────────
 
 
@@ -449,7 +456,7 @@ def clipboard_get(device: str) -> str:
 def clipboard_set(device: str, text: str) -> str:
     """Set clipboard text on the device. Use with press_key(PASTE) to paste into fields."""
     from gitd.services.device_context import clipboard_set as _set
-    return f"Clipboard set" if _set(device, text) else "Failed"
+    return "Clipboard set" if _set(device, text) else "Failed"
 
 
 @mcp.tool()
