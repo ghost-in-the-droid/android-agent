@@ -1115,6 +1115,58 @@ def test_fix_device_health_resets_ios_session(monkeypatch):
     assert calls == ["reset"]
 
 
+def test_ios_start_appium_server_launches_loopback_process(monkeypatch, tmp_path):
+    calls = []
+    popen_calls = []
+    log_path = tmp_path / "appium.log"
+
+    class FakePopen:
+        pid = 2468
+
+        def __init__(self, command, stdin=None, stdout=None, stderr=None, start_new_session=False):
+            popen_calls.append(
+                {
+                    "command": command,
+                    "stdin": stdin,
+                    "stdout": stdout,
+                    "stderr": stderr,
+                    "start_new_session": start_new_session,
+                }
+            )
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append(url)
+        if len(calls) == 1:
+            raise __import__("requests").ConnectionError("connection refused")
+        return FakeResponse({"value": {"ready": True}}, status_code=200)
+
+    monkeypatch.setenv("IOS_APPIUM_LOG", str(log_path))
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    monkeypatch.setattr("gitd.bots.common.ios.subprocess.Popen", FakePopen)
+    monkeypatch.setattr("gitd.bots.common.ios.time.sleep", lambda *_args: None)
+
+    dev = IOSDevice("ios:abc123", appium_url="http://localhost:4729")
+    result = dev.start_appium_server()
+
+    assert result["ok"] is True
+    assert result["pid"] == 2468
+    assert result["command"] == ["appium", "--address", "127.0.0.1", "--port", "4729", "--log-level", "info"]
+    assert result["log_path"] == str(log_path)
+    assert popen_calls[0]["start_new_session"] is True
+    assert calls == ["http://localhost:4729/status", "http://localhost:4729/status"]
+
+
+def test_ios_start_appium_server_refuses_remote_url():
+    dev = IOSDevice("ios:abc123", appium_url="https://appium.example.test:4723")
+
+    result = dev.start_appium_server()
+
+    assert result["ok"] is False
+    assert result["manual_action_required"] is True
+    assert result["issue"] == "start_appium"
+    assert "not a local HTTP server" in result["message"]
+
+
 def test_fix_device_health_returns_manual_ios_recovery_for_nonlocal_fix():
     from gitd.services.device_context import fix_device_health
 

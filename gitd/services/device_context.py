@@ -1036,6 +1036,8 @@ def fix_device_health(device: str, issue: str) -> dict:
         return {"ok": False, "platform": platform, "error": "issue is required"}
 
     if is_ios_ref(device):
+        if issue == "start_appium":
+            return get_device(device).start_appium_server()
         if issue in {"reset_session", "appium_session", "wda_session"}:
             get_device(device).reset_session()
             return {"ok": True, "platform": "ios", "issue": issue, "message": "iOS Appium session reset"}

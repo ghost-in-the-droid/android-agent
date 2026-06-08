@@ -257,7 +257,7 @@ Share text:    action=android.intent.action.SEND extras='{"android.intent.extra.
 | `get_screen_tree(device)` | XML accessibility tree, indexed for `tap_element`. Cheaper than screenshots. |
 | `get_phone_state(device)` | Foreground app, activity, keyboard state. The lightest "where am I?" probe. |
 | `device_health(device)` | Comprehensive diagnostics. Android reports Portal/device subsystems; iOS reports Appium/WDA status, recommended fix, and recovery steps. |
-| `fix_device_health(device, issue)` | Apply a recovery action from `device_health.recommended_fix`. iOS supports Appium/WDA session reset and RemoteXPC tunnel recovery when possible. |
+| `fix_device_health(device, issue)` | Apply a recovery action from `device_health.recommended_fix`. iOS can start local Appium, reset WDA sessions, and restart user-owned RemoteXPC tunnels when possible. |
 | `find_on_screen(device, text)` | Locate visible text via XML first, OCR fallback. |
 
 ## Notifications
