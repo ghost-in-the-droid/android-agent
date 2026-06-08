@@ -1139,6 +1139,28 @@ class IOSDevice:
             self._screen_size = None
             self._window_rect_cache = None
 
+    def _clear_instance_session(self) -> None:
+        self._session_id = None
+        self._scale = None
+        self._screen_size = None
+        self._window_rect_cache = None
+
+    def set_target_app(self, *, bundle_id: str | None = None, browser_name: str | None = None) -> None:
+        """Switch the Appium session target without reusing the wrong session.
+
+        A bundle-id override is a concrete app target, so it intentionally clears
+        any configured ``browserName`` capability.  Existing class-level cached
+        sessions for the old target are left intact for other IOSDevice objects.
+        """
+        new_bundle_id = self.bundle_id if bundle_id is None else bundle_id
+        new_browser_name = self.browser_name if browser_name is None and bundle_id is None else (browser_name or "")
+        if new_bundle_id == self.bundle_id and new_browser_name == self.browser_name:
+            return
+        with IOSDevice._sessions_lock:
+            self.bundle_id = new_bundle_id
+            self.browser_name = new_browser_name
+            self._clear_instance_session()
+
     def _rewrite_session_path(self, path: str, new_session_id: str) -> str:
         return re.sub(r"^/session/[^/]+", f"/session/{new_session_id}", path, count=1)
 

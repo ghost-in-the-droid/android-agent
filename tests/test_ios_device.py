@@ -674,6 +674,65 @@ def test_session_creation_uses_appium_xcuitest_payload(monkeypatch):
     assert body["appium:bundleId"] == "com.apple.mobilesafari"
 
 
+def test_target_app_switch_clears_instance_session_and_browser_name(monkeypatch):
+    IOSDevice._sessions.clear()
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append({"method": method, "url": url, "json": json, "timeout": timeout})
+        return FakeResponse({"value": {"sessionId": "session-chrome"}})
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice(
+        "ios:abc123",
+        appium_url="http://appium.local",
+        bundle_id="com.apple.mobilesafari",
+        browser_name="Safari",
+        timeout=1,
+    )
+    old_config = dev._config
+    dev._session_id = "session-safari"
+    IOSDevice._sessions[old_config] = "session-safari"
+
+    dev.set_target_app(bundle_id="com.google.chrome.ios")
+
+    assert dev.bundle_id == "com.google.chrome.ios"
+    assert dev.browser_name == ""
+    assert dev._session_id is None
+    assert IOSDevice._sessions[old_config] == "session-safari"
+    assert dev._ensure_session() == "session-chrome"
+    body = calls[0]["json"]["capabilities"]["alwaysMatch"]
+    assert body["appium:bundleId"] == "com.google.chrome.ios"
+    assert "browserName" not in body
+
+
+def test_target_app_switch_reuses_cached_session_for_new_bundle(monkeypatch):
+    IOSDevice._sessions.clear()
+    validate_calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        validate_calls.append({"method": method, "url": url, "json": json, "timeout": timeout})
+        if url.endswith("/session/session-chrome/window/rect"):
+            return FakeResponse({"value": {"width": 393, "height": 852}})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local", bundle_id="com.apple.mobilesafari", timeout=1)
+    dev.set_target_app(bundle_id="com.google.chrome.ios")
+    IOSDevice._sessions[dev._config] = "session-chrome"
+
+    assert dev._ensure_session() == "session-chrome"
+    assert dev._session_id == "session-chrome"
+    assert validate_calls == [
+        {
+            "method": "GET",
+            "url": "http://appium.local/session/session-chrome/window/rect",
+            "json": None,
+            "timeout": 1,
+        }
+    ]
+
+
 def test_stale_appium_session_is_evicted_and_recreated(monkeypatch):
     IOSDevice._sessions.clear()
     calls = []
