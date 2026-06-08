@@ -935,7 +935,12 @@ class IOSDevice:
     def mjpeg_url(self) -> str:
         if self.mjpeg_screenshot_url:
             return self.mjpeg_screenshot_url
-        return f"http://127.0.0.1:{self.mjpeg_server_port}"
+        parsed = urllib.parse.urlparse(self.appium_url)
+        scheme = parsed.scheme or "http"
+        host = parsed.hostname or "127.0.0.1"
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"
+        return f"{scheme}://{host}:{self.mjpeg_server_port}"
 
     @property
     def mjpeg_settings(self) -> dict[str, Any]:

@@ -201,6 +201,22 @@ def test_per_device_ios_config_from_json(monkeypatch):
     assert cfg.capabilities()["appium:allowProvisioningDeviceRegistration"] is True
 
 
+def test_ios_mjpeg_url_uses_appium_host_and_explicit_override():
+    remote = IOSDevice("ios:abc123", appium_url="https://appium.example.test:4723")
+    remote.mjpeg_server_port = 9123
+
+    ipv6 = IOSDevice("ios:abc123", appium_url="http://[::1]:4723")
+    ipv6.mjpeg_server_port = 9124
+
+    explicit = IOSDevice("ios:abc123", appium_url="http://appium.example.test:4723")
+    explicit.mjpeg_screenshot_url = "http://wda.example.test:9100/stream"
+
+    assert IOSDevice("ios:abc123").mjpeg_url == "http://127.0.0.1:9100"
+    assert remote.mjpeg_url == "https://appium.example.test:9123"
+    assert ipv6.mjpeg_url == "http://[::1]:9124"
+    assert explicit.mjpeg_url == "http://wda.example.test:9100/stream"
+
+
 def test_ios_known_apps_env_accepts_name_to_bundle_mapping(monkeypatch):
     monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
     monkeypatch.setenv("IOS_KNOWN_APPS_JSON", json.dumps({"Chrome": "com.google.chrome.ios", "NPR": "org.npr.NPR"}))
