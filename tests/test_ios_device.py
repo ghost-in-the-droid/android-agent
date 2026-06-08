@@ -13,6 +13,7 @@ from gitd.bots.common.device import (
 )
 from gitd.bots.common.ios import (
     IOSDevice,
+    _parse_devicectl_details,
     _parse_xctrace_devices,
     classify_ios_error,
     configured_ios_udids,
@@ -20,6 +21,7 @@ from gitd.bots.common.ios import (
     ios_xml_to_elements,
     known_ios_udids,
     normalize_wda_xml,
+    remote_xpc_tunnel_status,
     visible_text_entries_from_xml,
 )
 
@@ -251,6 +253,108 @@ iPhone 16 Pro (18.5) (11111111-2222-3333-4444-555555555555) (Booted)
             "state": "Booted",
         },
     ]
+
+
+def test_parse_devicectl_details_extracts_remote_xpc_tunnel_fields():
+    output = """
+Current device information:
+• identifier: 12E9E87A-11C8-5607-B09B-B58265CE5D4E
+▿ deviceProperties:
+    • bootState: booted
+    • developerModeStatus: enabled
+    • name: blah_mad
+    • osVersionNumber: 26.5
+▿ connectionProperties:
+    • pairingState: paired
+    • transportType: localNetwork
+    • tunnelTransportProtocol: tcp
+    • tunnelIPAddress: fdc0:1f0c:103c::1
+    • tunnelState: connected
+"""
+
+    assert _parse_devicectl_details(output) == {
+        "identifier": "12E9E87A-11C8-5607-B09B-B58265CE5D4E",
+        "boot_state": "booted",
+        "developer_mode": "enabled",
+        "name": "blah_mad",
+        "os_version": "26.5",
+        "pairing_state": "paired",
+        "transport_type": "localNetwork",
+        "tunnel_transport_protocol": "tcp",
+        "tunnel_ip_address": "fdc0:1f0c:103c::1",
+        "tunnel_state": "connected",
+    }
+
+
+def test_remote_xpc_tunnel_status_detects_stale_registry_address(monkeypatch):
+    def fake_request(method, url, timeout=None, **kwargs):
+        assert method == "GET"
+        assert "42314/remotexpc/tunnels/00008110-0016443101D0401E" in url
+        return FakeResponse(
+            {
+                "status": "OK",
+                "udid": "00008110-0016443101D0401E",
+                "address": "fd5d:d8f1:7a61::1",
+                "rsdPort": 63925,
+            }
+        )
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.devicectl_device_details",
+        lambda udid: {"tunnel_ip_address": "fdc0:1f0c:103c::1", "tunnel_state": "connected"},
+    )
+
+    status = remote_xpc_tunnel_status(
+        "00008110-0016443101D0401E",
+        platform_version="26.5",
+        host={"source": "host", "platform_version": "26.5"},
+    )
+
+    assert status["required"] is True
+    assert status["ok"] is False
+    assert status["state"] == "stale"
+    assert status["registry"]["address"] == "fd5d:d8f1:7a61::1"
+    assert status["devicectl"]["tunnel_ip_address"] == "fdc0:1f0c:103c::1"
+
+
+def test_remote_xpc_tunnel_status_reports_missing_registry_entry(monkeypatch):
+    def fake_request(method, url, timeout=None, **kwargs):
+        return FakeResponse({"status": "NOT_FOUND"}, status_code=404)
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+
+    status = remote_xpc_tunnel_status(
+        "00008110-0016443101D0401E",
+        platform_version="26.5",
+        host={"source": "host", "platform_version": "26.5"},
+    )
+
+    assert status["required"] is True
+    assert status["ok"] is False
+    assert status["state"] == "missing"
+    assert status["registry"]["status_code"] == 404
+
+
+def test_remote_xpc_tunnel_status_skips_simulators(monkeypatch):
+    calls = []
+
+    def fake_request(method, url, timeout=None, **kwargs):
+        calls.append(url)
+        return FakeResponse({"status": "OK"})
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+
+    status = remote_xpc_tunnel_status(
+        "11111111-2222-3333-4444-555555555555",
+        platform_version="26.5",
+        host={"source": "simulator", "platform_version": "26.5"},
+    )
+
+    assert status["required"] is False
+    assert status["ok"] is True
+    assert status["state"] == "not_required"
+    assert calls == []
 
 
 def test_known_ios_udids_merges_config_and_host_discovery(monkeypatch):
@@ -606,6 +710,53 @@ def test_probe_classifies_unreachable_appium(monkeypatch):
 
     assert status.state == "appium_down"
     assert "unreachable" in status.message.lower()
+
+
+def test_probe_fails_fast_when_required_remote_xpc_tunnel_is_stale(monkeypatch):
+    IOSDevice._sessions.clear()
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append(url)
+        if url.endswith("/status"):
+            return FakeResponse({"value": {"ready": True}})
+        if "42314/remotexpc/tunnels/00008110-0016443101D0401E" in url:
+            return FakeResponse(
+                {
+                    "status": "OK",
+                    "udid": "00008110-0016443101D0401E",
+                    "address": "fd5d:d8f1:7a61::1",
+                }
+            )
+        raise AssertionError(f"unexpected request: {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.discover_host_ios_devices",
+        lambda include_simulators=True: [
+            {
+                "udid": "00008110-0016443101D0401E",
+                "name": "blah_mad",
+                "platform_version": "26.5",
+                "source": "host",
+                "state": "connected",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.devicectl_device_details",
+        lambda udid: {"tunnel_ip_address": "fdc0:1f0c:103c::1", "tunnel_state": "connected"},
+    )
+    monkeypatch.delenv("IOS_DEVICE_NAME", raising=False)
+    monkeypatch.delenv("IOS_PLATFORM_VERSION", raising=False)
+    dev = IOSDevice("ios:00008110-0016443101D0401E", appium_url="http://appium.local", timeout=1)
+
+    status = dev.probe(deep=True)
+
+    assert status.state == "remote_xpc_tunnel_unavailable"
+    assert "stale tunnel" in status.message
+    assert status.checks["remote_xpc_tunnel"]["state"] == "stale"
+    assert all(not url.endswith("/session") for url in calls)
 
 
 def test_ios_error_classifier_promotes_real_device_readiness_failures():

@@ -58,6 +58,7 @@ _IOS_SIMULATOR_UDID_RE = re.compile(
     re.I,
 )
 _MAC_HOST_NAME_RE = re.compile(r"\b(Mac|MacBook|iMac|Mac mini|Mac Studio|Laptop|Desktop)\b", re.I)
+_REMOTE_XPC_REGISTRY_PORTS = (42314,)
 
 
 class IOSBackendError(RuntimeError):
@@ -510,6 +511,110 @@ def _host_device_config_for_udid(udid: str) -> dict[str, str]:
     except Exception:
         return {}
     return next((item for item in devices if item.get("udid") == udid), {})
+
+
+def _ios_major_version(version: str) -> int:
+    match = re.search(r"\d+", str(version or ""))
+    return int(match.group(0)) if match else 0
+
+
+def _parse_devicectl_details(output: str) -> dict[str, str]:
+    fields = {
+        "identifier": "identifier",
+        "name": "name",
+        "osVersionNumber": "os_version",
+        "bootState": "boot_state",
+        "developerModeStatus": "developer_mode",
+        "pairingState": "pairing_state",
+        "transportType": "transport_type",
+        "tunnelState": "tunnel_state",
+        "tunnelIPAddress": "tunnel_ip_address",
+        "tunnelTransportProtocol": "tunnel_transport_protocol",
+    }
+    details: dict[str, str] = {}
+    for raw_line in output.splitlines():
+        line = raw_line.strip().lstrip("•").strip()
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        field = fields.get(key.strip())
+        if field and value.strip():
+            details[field] = value.strip()
+    return details
+
+
+def devicectl_device_details(udid: str) -> dict[str, str]:
+    try:
+        output = subprocess.check_output(
+            ["xcrun", "devicectl", "device", "info", "details", "--device", strip_ios_prefix(udid)],
+            stderr=subprocess.STDOUT,
+            timeout=10,
+            text=True,
+        )
+    except (OSError, subprocess.SubprocessError) as e:
+        return {"error": str(e)}
+    return _parse_devicectl_details(output)
+
+
+def remote_xpc_tunnel_status(udid: str, *, platform_version: str = "", host: dict | None = None) -> dict[str, Any]:
+    host = host if host is not None else _host_device_config_for_udid(udid)
+    platform_version = platform_version or host.get("platform_version", "")
+    required = host.get("source") == "host" and _ios_major_version(platform_version) >= 18
+    status: dict[str, Any] = {
+        "required": required,
+        "state": "not_required",
+        "ok": True,
+        "checked_ports": list(_REMOTE_XPC_REGISTRY_PORTS),
+        "registry": {},
+        "devicectl": {},
+    }
+    if not required:
+        return status
+
+    registry: dict[str, Any] = {}
+    for port in _REMOTE_XPC_REGISTRY_PORTS:
+        url = f"http://127.0.0.1:{port}/remotexpc/tunnels/{strip_ios_prefix(udid)}"
+        try:
+            resp = requests.request("GET", url, timeout=1)
+            registry = {"port": port, "status_code": resp.status_code, "url": url}
+            if resp.status_code < 400:
+                try:
+                    body = resp.json()
+                except ValueError:
+                    body = {}
+                if isinstance(body, dict):
+                    registry.update(body)
+                break
+        except requests.RequestException as e:
+            registry = {"port": port, "url": url, "error": str(e)}
+    status["registry"] = registry
+
+    if registry.get("status") != "OK":
+        status.update(
+            {
+                "ok": False,
+                "state": "missing",
+                "message": "RemoteXPC tunnel registry is missing the device entry.",
+            }
+        )
+        return status
+
+    devicectl = devicectl_device_details(udid)
+    status["devicectl"] = devicectl
+    registry_address = str(registry.get("address") or "")
+    current_address = str(devicectl.get("tunnel_ip_address") or "")
+    if registry_address and current_address and registry_address != current_address:
+        status.update(
+            {
+                "ok": False,
+                "state": "stale",
+                "message": "RemoteXPC tunnel registry points at a stale tunnel address.",
+            }
+        )
+        return status
+
+    status.update({"state": "available", "ok": True})
+    return status
 
 
 def _config_dict_for_udid(udid: str) -> dict[str, Any]:
@@ -1770,6 +1875,24 @@ class IOSDevice:
                 "appium_down",
                 f"Appium is unreachable: {e}",
                 self.appium_url,
+                checks=checks,
+            )
+
+        tunnel = remote_xpc_tunnel_status(
+            self.udid,
+            platform_version=self.platform_version,
+            host=_host_device_config_for_udid(self.udid),
+        )
+        if tunnel.get("required"):
+            checks["remote_xpc_tunnel"] = tunnel
+        if tunnel.get("required") and not tunnel.get("ok"):
+            return IOSDeviceStatus(
+                self.serial,
+                self.udid,
+                "remote_xpc_tunnel_unavailable",
+                str(tunnel.get("message") or "RemoteXPC tunnel is unavailable"),
+                self.appium_url,
+                self._session_id or IOSDevice._sessions.get(self._config, ""),
                 checks=checks,
             )
 
