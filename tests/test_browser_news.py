@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from gitd.app import app
 from gitd.bots.common.ios import IOSDevice
 from gitd.services.agent_tools import execute_tool
-from gitd.services.browser import read_news
+from gitd.services.browser import open_url, read_news
 
 
 class FakeNewsIOSDevice:
@@ -24,6 +24,7 @@ class FakeNewsIOSDevice:
     def open_url(self, url, delay=2.0):
         self.current_url = url
         self.opened_urls.append(url)
+        return {"ok": True, "expected_url": url, "url": url, "state": "url_matched", "method": "fake"}
 
     def get_current_url(self):
         return self.current_url
@@ -82,10 +83,12 @@ def test_read_news_opens_headlines_and_extracts_article_snippets(monkeypatch, tm
     assert fake.launched == ["com.google.chrome.ios"]
     assert fake.opened_urls == ["https://text.npr.org", "https://text.npr.org/article/1", "https://text.npr.org/article/2"]
     assert fake.back_count == 2
+    assert result["navigation"]["state"] == "url_matched"
     assert [item["title"] for item in result["headlines"]] == [
         "First major story from the test fixture",
         "Second major story from the test fixture",
     ]
+    assert result["articles"][0]["navigation"]["url"] == "https://text.npr.org/article/1"
     assert result["articles"][0]["page_title"] == "First article title"
     assert result["articles"][0]["body_snippet"] == "First article title\nFirst article body line."
     assert result["articles"][1]["opened"] is True
@@ -99,6 +102,27 @@ def test_read_news_android_returns_explicit_unsupported():
     assert result["ok"] is False
     assert result["platform"] == "android"
     assert "currently implemented for iOS" in result["error"]
+
+
+def test_ios_open_url_service_returns_navigation_evidence(monkeypatch):
+    fake = FakeNewsIOSDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+
+    result = open_url("ios:abc123", "text.npr.org", bundle_id="com.google.chrome.ios")
+
+    assert result == {
+        "ok": True,
+        "platform": "ios",
+        "url": "https://text.npr.org",
+        "navigation": {
+            "ok": True,
+            "expected_url": "https://text.npr.org",
+            "url": "https://text.npr.org",
+            "state": "url_matched",
+            "method": "fake",
+        },
+    }
+    assert fake.bundle_id == "com.google.chrome.ios"
 
 
 def test_read_news_rest_route_uses_browser_service(monkeypatch):

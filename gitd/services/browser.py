@@ -38,8 +38,14 @@ def open_url(device: str, url: str, bundle_id: str | None = None) -> dict[str, A
         dev = get_device(device)
         if bundle_id:
             dev.bundle_id = bundle_id
-        dev.open_url(normalized_url)
-        return {"ok": True, "platform": "ios", "url": dev.get_current_url() or normalized_url}
+        navigation = dev.open_url(normalized_url)
+        current_url = dev.get_current_url() or normalized_url
+        return {
+            "ok": navigation.get("ok", True) if isinstance(navigation, dict) else True,
+            "platform": "ios",
+            "url": current_url,
+            "navigation": navigation if isinstance(navigation, dict) else {},
+        }
 
     from gitd.services.device_context import launch_intent
 
@@ -131,23 +137,23 @@ def _save_device_screenshot(dev, path: Path) -> str:
     return str(path)
 
 
-def _open_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5) -> str:
+def _open_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5) -> tuple[str, dict[str, Any]]:
     url = str(article.get("url") or "").strip()
     if url:
-        dev.open_url(url, delay=delay)
-        return "url"
+        navigation = dev.open_url(url, delay=delay)
+        return "url", navigation if isinstance(navigation, dict) else {}
 
     center = article.get("center") if isinstance(article.get("center"), dict) else {}
     if center.get("x") is not None and center.get("y") is not None:
         dev.tap(int(center["x"]), int(center["y"]), delay=delay)
-        return "center"
+        return "center", {}
 
     bounds = article.get("bounds") if isinstance(article.get("bounds"), dict) else {}
     if {"x1", "y1", "x2", "y2"} <= set(bounds):
         x = (int(bounds["x1"]) + int(bounds["x2"])) // 2
         y = (int(bounds["y1"]) + int(bounds["y2"])) // 2
         dev.tap(x, y, delay=delay)
-        return "bounds"
+        return "bounds", {}
 
     raise RuntimeError("article candidate has no URL or tappable geometry")
 
@@ -205,8 +211,10 @@ def read_news(
             except Exception as exc:
                 result["errors"].append({"stage": "launch", "error": str(exc)})
 
-        dev.open_url(normalized_url)
-        if wait_s:
+        navigation = dev.open_url(normalized_url, delay=wait_s)
+        if isinstance(navigation, dict):
+            result["navigation"] = navigation
+        elif wait_s:
             time.sleep(wait_s)
 
         if save_screenshots:
@@ -228,8 +236,11 @@ def read_news(
                 "opened": False,
             }
             try:
-                article_result["open_method"] = _open_article_candidate(dev, headline, delay=1.5)
-                if wait_s:
+                open_method, navigation = _open_article_candidate(dev, headline, delay=max(1.0, wait_s))
+                article_result["open_method"] = open_method
+                if navigation:
+                    article_result["navigation"] = navigation
+                elif wait_s:
                     time.sleep(wait_s)
                 if save_screenshots:
                     article_result["screenshot"] = _save_device_screenshot(dev, out_path / f"article_{index}.png")
