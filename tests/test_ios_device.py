@@ -19,6 +19,7 @@ from gitd.bots.common.ios import (
     _skill_ios_app_inventory,
     classify_ios_error,
     configured_ios_udids,
+    discover_host_ios_devices,
     ios_config_for_udid,
     ios_xml_to_elements,
     known_ios_udids,
@@ -223,6 +224,65 @@ iPad mini (18.5) (99999999-8888-7777-6666-555555555555) (Booted)
         "00008110-0012345678901234",
         "00008110-0016443101D0401E",
         "00008101-0098765432109876",
+    ]
+
+
+def test_discover_host_ios_devices_adds_booted_simctl_simulators(monkeypatch):
+    xctrace_output = """
+== Devices ==
+QA Phone (26.5) (00008110-0016443101D0401E)
+== Simulators ==
+iPhone 15 Pro Simulator (17.5) (32918B6B-71E5-4A14-94C6-97F0B8B2DC44)
+"""
+    simctl_output = json.dumps(
+        {
+            "devices": {
+                "com.apple.CoreSimulator.SimRuntime.iOS-17-5": [
+                    {
+                        "udid": "32918B6B-71E5-4A14-94C6-97F0B8B2DC44",
+                        "name": "iPhone 15 Pro",
+                        "state": "Booted",
+                        "isAvailable": True,
+                    }
+                ]
+            }
+        }
+    )
+
+    def fake_check_output(cmd, **_kwargs):
+        if cmd[:3] == ["xcrun", "xctrace", "list"]:
+            return xctrace_output
+        if cmd[:4] == ["xcrun", "simctl", "list", "devices"]:
+            return simctl_output
+        raise AssertionError(cmd)
+
+    monkeypatch.setattr("gitd.bots.common.ios.subprocess.check_output", fake_check_output)
+
+    assert discover_host_ios_devices() == [
+        {
+            "udid": "00008110-0016443101D0401E",
+            "name": "QA Phone",
+            "platform_version": "26.5",
+            "source": "host",
+            "state": "connected",
+        },
+        {
+            "udid": "32918B6B-71E5-4A14-94C6-97F0B8B2DC44",
+            "name": "iPhone 15 Pro",
+            "platform_version": "17.5",
+            "source": "simulator",
+            "state": "Booted",
+        },
+    ]
+
+    assert discover_host_ios_devices(include_simulators=False) == [
+        {
+            "udid": "00008110-0016443101D0401E",
+            "name": "QA Phone",
+            "platform_version": "26.5",
+            "source": "host",
+            "state": "connected",
+        }
     ]
 
 

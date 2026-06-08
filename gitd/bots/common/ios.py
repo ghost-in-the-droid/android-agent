@@ -975,6 +975,62 @@ def _parse_xctrace_devices(output: str, *, include_simulators: bool = True) -> l
     return rows
 
 
+def _simctl_runtime_version(runtime_id: str) -> str:
+    match = re.search(r"iOS-(\d+(?:-\d+)*)$", runtime_id)
+    return match.group(1).replace("-", ".") if match else ""
+
+
+def _parse_simctl_booted_devices(output: str) -> list[dict[str, str]]:
+    try:
+        payload = json.loads(output)
+    except (TypeError, ValueError):
+        return []
+
+    rows: list[dict[str, str]] = []
+    seen: set[str] = set()
+    devices = payload.get("devices") if isinstance(payload, dict) else None
+    if not isinstance(devices, dict):
+        return rows
+    for runtime_id, runtime_devices in devices.items():
+        if not isinstance(runtime_devices, list):
+            continue
+        version = _simctl_runtime_version(str(runtime_id))
+        for item in runtime_devices:
+            if not isinstance(item, dict):
+                continue
+            udid = strip_ios_prefix(str(item.get("udid") or ""))
+            state = str(item.get("state") or "")
+            name = str(item.get("name") or "").strip()
+            if not udid or udid in seen or state != "Booted":
+                continue
+            if not _IOS_DEVICE_NAME_RE.search(name):
+                continue
+            seen.add(udid)
+            rows.append(
+                {
+                    "udid": udid,
+                    "name": name,
+                    "platform_version": version,
+                    "source": "simulator",
+                    "state": "Booted",
+                }
+            )
+    return rows
+
+
+def _discover_booted_simulators() -> list[dict[str, str]]:
+    try:
+        output = subprocess.check_output(
+            ["xcrun", "simctl", "list", "devices", "booted", "--json"],
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+            text=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return _parse_simctl_booted_devices(output)
+
+
 def discover_host_ios_devices(*, include_simulators: bool = True) -> list[dict[str, str]]:
     """Discover connected iOS devices and booted simulators through Xcode tools.
 
@@ -982,6 +1038,7 @@ def discover_host_ios_devices(*, include_simulators: bool = True) -> list[dict[s
     Explicit IOS_DEVICE_UDID/IOS_DEVICES_JSON config remains the source for
     Appium details such as ports and signing capabilities.
     """
+    rows: list[dict[str, str]] = []
     try:
         output = subprocess.check_output(
             ["xcrun", "xctrace", "list", "devices"],
@@ -990,8 +1047,16 @@ def discover_host_ios_devices(*, include_simulators: bool = True) -> list[dict[s
             text=True,
         )
     except (OSError, subprocess.SubprocessError):
-        return []
-    return _parse_xctrace_devices(output, include_simulators=include_simulators)
+        output = ""
+    if output:
+        rows.extend(_parse_xctrace_devices(output, include_simulators=include_simulators))
+    if include_simulators:
+        seen = {item["udid"] for item in rows}
+        for item in _discover_booted_simulators():
+            if item["udid"] not in seen:
+                seen.add(item["udid"])
+                rows.append(item)
+    return rows
 
 
 def known_ios_udids(*, include_host: bool = True, include_simulators: bool = True) -> list[str]:
