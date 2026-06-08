@@ -518,6 +518,23 @@ def _ios_major_version(version: str) -> int:
     return int(match.group(0)) if match else 0
 
 
+def _remote_xpc_registry_ports() -> tuple[int, ...]:
+    raw = os.getenv("IOS_REMOTE_XPC_REGISTRY_PORTS", "") or os.getenv("IOS_REMOTE_XPC_REGISTRY_PORT", "")
+    if not raw.strip():
+        return _REMOTE_XPC_REGISTRY_PORTS
+    ports: list[int] = []
+    seen: set[int] = set()
+    for part in re.split(r"[,\s]+", raw):
+        try:
+            port = int(part)
+        except ValueError:
+            continue
+        if 0 < port <= 65535 and port not in seen:
+            seen.add(port)
+            ports.append(port)
+    return tuple(ports) or _REMOTE_XPC_REGISTRY_PORTS
+
+
 def _parse_devicectl_details(output: str) -> dict[str, str]:
     fields = {
         "identifier": "identifier",
@@ -560,11 +577,12 @@ def remote_xpc_tunnel_status(udid: str, *, platform_version: str = "", host: dic
     host = host if host is not None else _host_device_config_for_udid(udid)
     platform_version = platform_version or host.get("platform_version", "")
     required = host.get("source") == "host" and _ios_major_version(platform_version) >= 18
+    registry_ports = _remote_xpc_registry_ports()
     status: dict[str, Any] = {
         "required": required,
         "state": "not_required",
         "ok": True,
-        "checked_ports": list(_REMOTE_XPC_REGISTRY_PORTS),
+        "checked_ports": list(registry_ports),
         "registry": {},
         "devicectl": {},
     }
@@ -572,7 +590,7 @@ def remote_xpc_tunnel_status(udid: str, *, platform_version: str = "", host: dic
         return status
 
     registry: dict[str, Any] = {}
-    for port in _REMOTE_XPC_REGISTRY_PORTS:
+    for port in registry_ports:
         url = f"http://127.0.0.1:{port}/remotexpc/tunnels/{strip_ios_prefix(udid)}"
         try:
             resp = requests.request("GET", url, timeout=1)

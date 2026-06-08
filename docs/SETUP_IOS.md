@@ -274,7 +274,9 @@ Android-only for now:
   `sudo appium driver run xcuitest tunnel-creation --udid <udid>`. Verify the
   registry entry at `http://127.0.0.1:42314/remotexpc/tunnels/<udid>` points
   to the same tunnel address reported by
-  `xcrun devicectl device info details --device <udid>`.
+  `xcrun devicectl device info details --device <udid>`. If the tunnel
+  registry uses a non-default port, set `IOS_REMOTE_XPC_REGISTRY_PORT` or
+  `IOS_REMOTE_XPC_REGISTRY_PORTS`.
 - `xcodebuild failed` or `wda_signing_failed`: fix WDA signing/provisioning in Xcode; set `IOS_XCODE_ORG_ID`, `IOS_XCODE_SIGNING_ID`, and `IOS_UPDATED_WDA_BUNDLE_ID`; use `IOS_SHOW_XCODE_LOG=true` for detailed xcodebuild output.
 - Session hangs on real device or `locked`: unlock the iPhone and accept trust/automation prompts.
 - Taps land in the wrong place: compare screenshot dimensions and WDA window rect in `get_phone_state`; Ghost scales WDA points to screenshot pixels and converts back for gestures.
