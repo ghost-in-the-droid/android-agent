@@ -28,6 +28,10 @@ def _phone_error(device: str, error: str) -> dict:
     return {"ok": False, "device": device, "platform": _platform(device), "error": error}
 
 
+def _error_text(exc: Exception) -> str:
+    return str(exc) or exc.__class__.__name__
+
+
 def _try_wifi_reconnect(db: Session):
     """Try reconnecting known WiFi devices that aren't currently connected (max once per 30s)."""
     global _last_wifi_reconnect
@@ -246,44 +250,50 @@ def api_phone_tap(data: dict = Body({})):
     from gitd.bots.common.adb import Device
 
     device = data.get("device", "")
-    dev = get_device(device)
-    if data.get("keyevent"):
-        if is_ios_ref(device):
-            dev.press_key(str(data["keyevent"]))
+    try:
+        dev = get_device(device)
+        if data.get("keyevent"):
+            if is_ios_ref(device):
+                dev.press_key(str(data["keyevent"]))
+            else:
+                dev.adb("shell", "input", "keyevent", data["keyevent"])
         else:
-            dev.adb("shell", "input", "keyevent", data["keyevent"])
-    else:
-        x, y = int(data.get("x", 0)), int(data.get("y", 0))
-        stream_w = int(data.get("stream_w", 0))
-        stream_h = int(data.get("stream_h", 0))
-        if stream_w and stream_h:
-            try:
-                if is_ios_ref(device):
-                    real_w, real_h = dev.get_screen_size()
-                else:
-                    out = Device(device).adb("shell", "wm", "size", timeout=3)
-                    m = re.search(r"(\d+)x(\d+)", out)
-                    real_w, real_h = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-                if real_w and real_h:
-                    x = int(x * real_w / stream_w)
-                    y = int(y * real_h / stream_h)
-            except Exception:
-                pass
-        dev.tap(x, y)
-    return {"ok": True, "device": device, "platform": _platform(device)}
+            x, y = int(data.get("x", 0)), int(data.get("y", 0))
+            stream_w = int(data.get("stream_w", 0))
+            stream_h = int(data.get("stream_h", 0))
+            if stream_w and stream_h:
+                try:
+                    if is_ios_ref(device):
+                        real_w, real_h = dev.get_screen_size()
+                    else:
+                        out = Device(device).adb("shell", "wm", "size", timeout=3)
+                        m = re.search(r"(\d+)x(\d+)", out)
+                        real_w, real_h = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+                    if real_w and real_h:
+                        x = int(x * real_w / stream_w)
+                        y = int(y * real_h / stream_h)
+                except Exception:
+                    pass
+            dev.tap(x, y)
+        return {"ok": True, "device": device, "platform": _platform(device)}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.post("/type", summary="Type Text On Phone")
 def api_phone_type(data: dict = Body({})):
     """Type text into the focused input field on a device."""
     device = data.get("device", "")
-    dev = get_device(device)
     text_val = data.get("text", "")
-    if is_ios_ref(device):
-        dev.type_text(text_val)
-    else:
-        dev.adb("shell", "input", "text", text_val.replace(" ", "%s"))
-    return {"ok": True, "device": device, "platform": _platform(device)}
+    try:
+        dev = get_device(device)
+        if is_ios_ref(device):
+            dev.type_text(text_val)
+        else:
+            dev.adb("shell", "input", "text", text_val.replace(" ", "%s"))
+        return {"ok": True, "device": device, "platform": _platform(device)}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.get("/clipboard/{device}", summary="Get Device Clipboard")
@@ -291,13 +301,16 @@ def api_phone_clipboard_get(device: str):
     """Read plain-text clipboard contents from Android or iOS."""
     from gitd.services.device_context import clipboard_get
 
-    text_value = clipboard_get(device)
-    return {
-        "ok": True,
-        "device": device,
-        "platform": "ios" if is_ios_ref(device) else "android",
-        "text": text_value,
-    }
+    try:
+        text_value = clipboard_get(device)
+        return {
+            "ok": True,
+            "device": device,
+            "platform": "ios" if is_ios_ref(device) else "android",
+            "text": text_value,
+        }
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.post("/clipboard", summary="Set Device Clipboard")
@@ -309,8 +322,11 @@ def api_phone_clipboard_set(data: dict = Body({})):
     text_value = data.get("text", "")
     if not device:
         raise HTTPException(status_code=400, detail="device required")
-    ok = clipboard_set(device, str(text_value))
-    return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+    try:
+        ok = clipboard_set(device, str(text_value))
+        return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.post("/paste-text", summary="Paste Text On Phone")
@@ -322,58 +338,70 @@ def api_phone_paste_text(data: dict = Body({})):
     text_value = data.get("text", "")
     if not device:
         raise HTTPException(status_code=400, detail="device required")
-    if is_ios_ref(device):
-        ok = bool(get_device(device).paste_text(str(text_value)))
-    else:
-        ok = clipboard_set(device, str(text_value))
-        if ok:
-            from gitd.bots.common.adb import Device
+    try:
+        if is_ios_ref(device):
+            ok = bool(get_device(device).paste_text(str(text_value)))
+        else:
+            ok = clipboard_set(device, str(text_value))
+            if ok:
+                from gitd.bots.common.adb import Device
 
-            Device(device).adb("shell", "input", "keyevent", "KEYCODE_PASTE")
-    return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+                Device(device).adb("shell", "input", "keyevent", "KEYCODE_PASTE")
+        return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.post("/back", summary="Press Back Button")
 def api_phone_back(data: dict = Body({})):
     """Press the platform back/navigation control on a device."""
     device = data.get("device", "")
-    dev = get_device(device)
-    dev.back(delay=0.3)
-    return {"ok": True, "device": device, "platform": _platform(device)}
+    try:
+        dev = get_device(device)
+        dev.back(delay=0.3)
+        return {"ok": True, "device": device, "platform": _platform(device)}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.post("/key", summary="Send Keyevent To Phone")
 def api_phone_key(data: dict = Body({})):
     """Send a keyevent to device."""
     device = data.get("device", "")
-    dev = get_device(device)
     key = data.get("key", "")
     if not key:
         raise HTTPException(status_code=400, detail="key required")
-    if is_ios_ref(device):
-        dev.press_key(key)
-    elif not key.startswith("KEYCODE_"):
-        key = "KEYCODE_" + key
-        dev.adb("shell", "input", "keyevent", key)
-    else:
-        dev.adb("shell", "input", "keyevent", key)
-    return {"ok": True, "device": device, "platform": _platform(device)}
+    try:
+        dev = get_device(device)
+        if is_ios_ref(device):
+            dev.press_key(key)
+        elif not key.startswith("KEYCODE_"):
+            key = "KEYCODE_" + key
+            dev.adb("shell", "input", "keyevent", key)
+        else:
+            dev.adb("shell", "input", "keyevent", key)
+        return {"ok": True, "device": device, "platform": _platform(device)}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.post("/launch", summary="Launch App On Phone")
 def api_phone_launch(data: dict = Body({})):
     """Launch an Android package or iOS bundle id on a device."""
     device = data.get("device", "")
-    dev = get_device(device)
     pkg = data.get("package", "")
     if not pkg:
         raise HTTPException(status_code=400, detail="package required")
-    if is_ios_ref(device):
-        dev.launch_app(pkg)
-        return {"ok": True, "device": device, "platform": "ios", "package": pkg, "bundle_id": pkg}
-    else:
-        dev.adb("shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1")
-    return {"ok": True, "device": device, "platform": "android", "package": pkg, "bundle_id": ""}
+    try:
+        dev = get_device(device)
+        if is_ios_ref(device):
+            dev.launch_app(pkg)
+            return {"ok": True, "device": device, "platform": "ios", "package": pkg, "bundle_id": pkg}
+        else:
+            dev.adb("shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1")
+        return {"ok": True, "device": device, "platform": "android", "package": pkg, "bundle_id": ""}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.post("/browser/open-url", summary="Open URL In Browser")
@@ -497,18 +525,26 @@ def api_phone_force_stop(data: dict = Body({})):
     """Force-stop an app by package name on a device."""
     device = data.get("device", "")
     pkg = data.get("package", "")
-    if is_ios_ref(device):
-        if not pkg:
-            raise HTTPException(status_code=400, detail="package required")
-        get_device(device).terminate_app(pkg)
-        return {"ok": True, "device": device, "platform": "ios", "bundle_id": pkg}
+    try:
+        if is_ios_ref(device):
+            if not pkg:
+                raise HTTPException(status_code=400, detail="package required")
+            get_device(device).terminate_app(pkg)
+            return {"ok": True, "device": device, "platform": "ios", "bundle_id": pkg}
+    except HTTPException:
+        raise
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
     from gitd.bots.common.adb import Device
 
     dev = Device(device)
     if not pkg:
         raise HTTPException(status_code=400, detail="package required")
-    dev.adb("shell", "am", "force-stop", pkg)
-    return {"ok": True, "device": device, "platform": "android", "package": pkg}
+    try:
+        dev.adb("shell", "am", "force-stop", pkg)
+        return {"ok": True, "device": device, "platform": "android", "package": pkg}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.get("/app-state/{device}", summary="Get App State")
@@ -539,28 +575,31 @@ def api_phone_swipe(data: dict = Body({})):
     from gitd.bots.common.adb import Device
 
     device = data.get("device", "")
-    dev = get_device(device)
-    x1, y1 = int(data.get("x1", 540)), int(data.get("y1", 1600))
-    x2, y2 = int(data.get("x2", 540)), int(data.get("y2", 400))
-    stream_w = int(data.get("stream_w", 0))
-    stream_h = int(data.get("stream_h", 0))
-    if stream_w and stream_h:
-        try:
-            if is_ios_ref(device):
-                real_w, real_h = dev.get_screen_size()
-            else:
-                out = Device(device).adb("shell", "wm", "size", timeout=3)
-                m = re.search(r"(\d+)x(\d+)", out)
-                real_w, real_h = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-            if real_w and real_h:
-                x1 = int(x1 * real_w / stream_w)
-                y1 = int(y1 * real_h / stream_h)
-                x2 = int(x2 * real_w / stream_w)
-                y2 = int(y2 * real_h / stream_h)
-        except Exception:
-            pass
-    dev.swipe(x1, y1, x2, y2)
-    return {"ok": True, "device": device, "platform": _platform(device)}
+    try:
+        dev = get_device(device)
+        x1, y1 = int(data.get("x1", 540)), int(data.get("y1", 1600))
+        x2, y2 = int(data.get("x2", 540)), int(data.get("y2", 400))
+        stream_w = int(data.get("stream_w", 0))
+        stream_h = int(data.get("stream_h", 0))
+        if stream_w and stream_h:
+            try:
+                if is_ios_ref(device):
+                    real_w, real_h = dev.get_screen_size()
+                else:
+                    out = Device(device).adb("shell", "wm", "size", timeout=3)
+                    m = re.search(r"(\d+)x(\d+)", out)
+                    real_w, real_h = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+                if real_w and real_h:
+                    x1 = int(x1 * real_w / stream_w)
+                    y1 = int(y1 * real_h / stream_h)
+                    x2 = int(x2 * real_w / stream_w)
+                    y2 = int(y2 * real_h / stream_h)
+            except Exception:
+                pass
+        dev.swipe(x1, y1, x2, y2)
+        return {"ok": True, "device": device, "platform": _platform(device)}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.get("/screenshot/{device}", summary="Take Phone Screenshot")
@@ -624,14 +663,17 @@ def api_phone_notifications(device: str):
     """Read visible active notifications from Android or iOS."""
     from gitd.services.device_context import get_notifications
 
-    items = get_notifications(device)
-    return {
-        "ok": True,
-        "device": device,
-        "platform": "ios" if is_ios_ref(device) else "android",
-        "notifications": items,
-        "count": len(items),
-    }
+    try:
+        items = get_notifications(device)
+        return {
+            "ok": True,
+            "device": device,
+            "platform": "ios" if is_ios_ref(device) else "android",
+            "notifications": items,
+            "count": len(items),
+        }
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.post("/notifications/open", summary="Open Notifications")
@@ -642,8 +684,11 @@ def api_phone_notifications_open(data: dict = Body({})):
     device = data.get("device", "")
     if not device:
         raise HTTPException(status_code=400, detail="device required")
-    ok = open_notifications(device)
-    return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+    try:
+        ok = open_notifications(device)
+        return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.post("/notifications/clear", summary="Clear Notifications")
@@ -654,8 +699,11 @@ def api_phone_notifications_clear(data: dict = Body({})):
     device = data.get("device", "")
     if not device:
         raise HTTPException(status_code=400, detail="device required")
-    ok = clear_notifications(device)
-    return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+    try:
+        ok = clear_notifications(device)
+        return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+    except Exception as e:
+        return _phone_error(device, _error_text(e))
 
 
 @router.get("/classify/{device}", summary="Classify Phone Screen")

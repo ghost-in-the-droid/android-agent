@@ -100,6 +100,61 @@ def test_ios_input_errors_include_platform_metadata(monkeypatch):
     assert unsupported_key.json()["error"] == "iOS key 'VOLUME_UP' is not supported through WDA"
 
 
+def test_ios_direct_control_errors_are_structured(monkeypatch):
+    class FailingIOSDevice:
+        def tap(self, *_args, **_kwargs):
+            raise RuntimeError("wda tap failed")
+
+        def type_text(self, *_args, **_kwargs):
+            raise RuntimeError("wda type failed")
+
+        def back(self, *_args, **_kwargs):
+            raise RuntimeError("wda back failed")
+
+        def press_key(self, *_args, **_kwargs):
+            raise RuntimeError("wda key failed")
+
+        def launch_app(self, *_args, **_kwargs):
+            raise RuntimeError("wda launch failed")
+
+        def terminate_app(self, *_args, **_kwargs):
+            raise RuntimeError("wda terminate failed")
+
+        def swipe(self, *_args, **_kwargs):
+            raise RuntimeError("wda swipe failed")
+
+    monkeypatch.setattr("gitd.routers.phone.get_device", lambda device: FailingIOSDevice())
+    client = TestClient(app)
+
+    cases = [
+        (client.post("/api/phone/tap", json={"device": "ios:abc123", "x": 1, "y": 2}), "wda tap failed"),
+        (client.post("/api/phone/type", json={"device": "ios:abc123", "text": "hello"}), "wda type failed"),
+        (client.post("/api/phone/back", json={"device": "ios:abc123"}), "wda back failed"),
+        (client.post("/api/phone/key", json={"device": "ios:abc123", "key": "HOME"}), "wda key failed"),
+        (
+            client.post("/api/phone/launch", json={"device": "ios:abc123", "package": "com.google.chrome.ios"}),
+            "wda launch failed",
+        ),
+        (
+            client.post("/api/phone/force-stop", json={"device": "ios:abc123", "package": "com.google.chrome.ios"}),
+            "wda terminate failed",
+        ),
+        (
+            client.post("/api/phone/swipe", json={"device": "ios:abc123", "x1": 1, "y1": 2, "x2": 3, "y2": 4}),
+            "wda swipe failed",
+        ),
+    ]
+
+    for response, error in cases:
+        assert response.status_code == 200
+        assert response.json() == {
+            "ok": False,
+            "device": "ios:abc123",
+            "platform": "ios",
+            "error": error,
+        }
+
+
 def test_launch_route_requires_package(client):
     response = client.post("/api/phone/launch", json={"device": "ios:abc123"})
 
