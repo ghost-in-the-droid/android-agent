@@ -650,10 +650,12 @@ def api_phone_overlay(device: str, data: dict = Body({})):
 def api_phone_packages(device: str, all: str = ""):
     """List installed packages on device."""
     if is_ios_ref(device):
-        apps = get_device(device).list_apps(verify=True)
-        packages = [app["bundle_id"] for app in apps]
+        from gitd.services.device_context import list_apps
+
+        apps = list_apps(device, verify=True)
+        packages = [app.get("bundle_id") or app.get("package", "") for app in apps]
         return {
-            "packages": packages,
+            "packages": [pkg for pkg in packages if pkg],
             "apps": apps,
             "count": len(packages),
             "platform": "ios",
@@ -669,6 +671,23 @@ def api_phone_packages(device: str, all: str = ""):
         raw = dev.adb("shell", "pm", "list", "packages", timeout=15)
     packages = sorted([pkg.replace("package:", "").strip() for pkg in raw.splitlines() if pkg.startswith("package:")])
     return {"packages": packages, "count": len(packages)}
+
+
+@router.get("/apps/{device}", summary="List Installed Apps")
+def api_phone_apps(device: str, query: str = "", all: str = "", verify: bool = True):
+    """List app inventory with display names and Android package or iOS bundle IDs."""
+    from gitd.services.device_context import list_apps
+
+    include_system = str(all).lower() in {"1", "true", "yes", "all"}
+    apps = list_apps(device, query=query, verify=verify, include_system=include_system)
+    packages = [app.get("bundle_id") or app.get("package", "") for app in apps]
+    return {
+        "apps": apps,
+        "packages": [pkg for pkg in packages if pkg],
+        "count": len(apps),
+        "platform": "ios" if is_ios_ref(device) else "android",
+        "query": query,
+    }
 
 
 # ── Device health ────────────────────────────────────────────────────────────

@@ -45,7 +45,8 @@ def test_tools_platforms_endpoint(client):
 
 def test_ios_packages_endpoint_returns_verified_bundle_inventory(client, monkeypatch):
     class FakeIOSDevice:
-        def list_apps(self, verify=True):
+        def list_apps(self, query="", verify=True):
+            assert query == ""
             assert verify is True
             return [
                 {
@@ -58,7 +59,7 @@ def test_ios_packages_endpoint_returns_verified_bundle_inventory(client, monkeyp
                 }
             ]
 
-    monkeypatch.setattr("gitd.routers.phone.get_device", lambda device: FakeIOSDevice())
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
 
     response = client.get("/api/phone/packages/ios:abc123")
 

@@ -61,6 +61,8 @@ Check whether an Android package or iOS bundle id is installed, running, or
 foreground:
 
 ```bash
+curl "http://localhost:5055/api/phone/apps/ios:<udid>?query=chrome"
+
 curl "http://localhost:5055/api/phone/app-state/ios:<udid>?package=com.google.chrome.ios"
 
 curl -X POST http://localhost:5055/api/phone/app-state \
