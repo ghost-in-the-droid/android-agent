@@ -1839,6 +1839,95 @@ def test_web_context_article_extraction_prioritizes_content_links(monkeypatch):
     assert articles[0]["url"] == "https://text.npr.org/2026/06/08/story/123"
 
 
+def test_web_context_article_extraction_keeps_unlinked_headings_when_noisy_links_exist(monkeypatch):
+    snapshot = {
+        "url": "https://news.example/",
+        "title": "News",
+        "bodyText": "Top Stories\nWorld leaders meet for climate talks today",
+        "entries": [
+            {
+                "text": "Sign up for our daily newsletter today",
+                "tag": "a",
+                "href": "https://news.example/newsletter",
+                "bounds": {"x1": 10, "y1": 60, "x2": 350, "y2": 90},
+                "provenance": "web_context",
+            },
+            {
+                "text": "World leaders meet for climate talks today",
+                "tag": "h2",
+                "href": "",
+                "bounds": {"x1": 10, "y1": 140, "x2": 350, "y2": 180},
+                "provenance": "web_context",
+            },
+        ],
+    }
+
+    def fake_request(method, url, json=None, timeout=None):
+        if url.endswith("/session/session-1/contexts"):
+            return FakeResponse({"value": ["NATIVE_APP", "WEBVIEW_1"]})
+        if url.endswith("/session/session-1/context"):
+            return FakeResponse({"value": None})
+        if url.endswith("/session/session-1/execute/sync"):
+            return FakeResponse({"value": snapshot})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-1"
+
+    articles = dev.extract_articles(max_items=1)
+
+    assert articles == [
+        {
+            "title": "World leaders meet for climate talks today",
+            "url": "",
+            "bounds": {"x1": 10, "y1": 140, "x2": 350, "y2": 180},
+            "center": {"x": 180, "y": 160},
+            "class": "h2",
+            "provenance": "web_context",
+        }
+    ]
+
+
+def test_web_context_article_extraction_drops_only_low_value_links(monkeypatch):
+    snapshot = {
+        "url": "https://news.example/",
+        "title": "News",
+        "bodyText": "Subscribe\nSign in",
+        "entries": [
+            {
+                "text": "Sign up for our daily newsletter today",
+                "tag": "a",
+                "href": "https://news.example/newsletter",
+                "bounds": {"x1": 10, "y1": 60, "x2": 350, "y2": 90},
+                "provenance": "web_context",
+            },
+            {
+                "text": "Subscribe to support local news coverage",
+                "tag": "a",
+                "href": "https://news.example/subscribe",
+                "bounds": {"x1": 10, "y1": 100, "x2": 350, "y2": 130},
+                "provenance": "web_context",
+            },
+        ],
+    }
+
+    def fake_request(method, url, json=None, timeout=None):
+        if url.endswith("/session/session-1/contexts"):
+            return FakeResponse({"value": ["NATIVE_APP", "WEBVIEW_1"]})
+        if url.endswith("/session/session-1/context"):
+            return FakeResponse({"value": None})
+        if url.endswith("/session/session-1/execute/sync"):
+            return FakeResponse({"value": snapshot})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-1"
+
+    assert dev.extract_articles(max_items=3) == []
+
+
 def test_ios_wait_for_url_matches_trusted_browser_url(monkeypatch):
     dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
     urls = ["about:blank", "https://text.npr.org/?output=1"]
