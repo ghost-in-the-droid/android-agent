@@ -159,17 +159,8 @@ def _scheduler_tick():
                         o["job_type"],
                         pid,
                     )
-                    orphan_summary = ""
                     log_file = o.get("log_file") or f"/tmp/sched_job_{o['id']}.log"
-                    try:
-                        with open(log_file, "r", errors="replace") as lf:
-                            all_lines = lf.readlines()
-                        for line in reversed(all_lines[-10:]):
-                            if "[done]" in line:
-                                orphan_summary = line.strip().split("[done]")[-1].strip()
-                                break
-                    except (FileNotFoundError, OSError):
-                        pass
+                    orphan_summary = _parse_job_summary(o["id"], log_path=log_file)
                     try:
                         os.waitpid(pid, os.WNOHANG)
                     except (ChildProcessError, OSError):

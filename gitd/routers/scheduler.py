@@ -420,6 +420,33 @@ def scheduler_history_logs(run_id: int, since: int = 0, db: Session = Depends(ge
     }
 
 
+@router.get("/api/scheduler/history/{run_id}/result", summary="Get Run Structured Result")
+def scheduler_history_result(run_id: int, db: Session = Depends(get_db)):
+    """Return the newest structured Data JSON emitted by a completed scheduler run."""
+    from gitd.services._job_helpers import _parse_job_result_data, _summarize_job_result_data
+
+    row = (
+        db.execute(
+            text("SELECT id, log_file FROM job_runs WHERE id = :rid"),
+            {"rid": run_id},
+        )
+        .mappings()
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Run not found")
+    log_path = row.get("log_file")
+    if not log_path or not Path(log_path).exists():
+        return {"ok": False, "result": None, "summary": "", "error": "log file not found"}
+    result = _parse_job_result_data(run_id, log_path=log_path)
+    return {
+        "ok": result is not None,
+        "result": result,
+        "summary": _summarize_job_result_data(result),
+        "error": "" if result is not None else "structured result not found",
+    }
+
+
 @router.get("/api/scheduler/timeline", summary="Get Scheduler Timeline")
 def scheduler_timeline(db: Session = Depends(get_db)):
     """Return 24h timeline data — past runs + future scheduled times per phone."""

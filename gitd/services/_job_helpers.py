@@ -5,6 +5,7 @@ Contains: timestamp helper, log-parsing utilities, DB helpers for
 finishing / archiving / enqueuing jobs, and shared path constants.
 """
 
+import json
 import logging
 import re
 from datetime import datetime
@@ -127,14 +128,86 @@ def _parse_partial_crawl(lines: list[str]) -> str:
     return ""
 
 
-def _parse_job_summary(jid: int, entry: dict | None = None, log_path: str | None = None) -> str:
-    """Parse [done] summary from a job's log file."""
+def _read_job_log_lines(jid: int, entry: dict | None = None, log_path: str | None = None) -> list[str]:
     log_path = log_path or (entry or {}).get("log_path") or f"/tmp/sched_job_{jid}.log"
     try:
         with open(log_path, "r", errors="replace") as lf:
-            all_lines = lf.readlines()
+            return lf.readlines()
     except (FileNotFoundError, OSError):
-        return ""
+        return []
+
+
+def _parse_job_result_data(jid: int, entry: dict | None = None, log_path: str | None = None) -> dict | None:
+    """Parse the newest structured ``Data: {...}`` payload from a scheduler log."""
+    for line in reversed(_read_job_log_lines(jid, entry, log_path)):
+        if "Data:" not in line:
+            continue
+        _, raw = line.split("Data:", 1)
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        return data if isinstance(data, dict) else {"value": data}
+    return None
+
+
+def _find_nested_result(data: dict | None, predicate) -> dict | None:
+    if not isinstance(data, dict):
+        return None
+    if predicate(data):
+        return data
+    nested = data.get("data")
+    if isinstance(nested, dict):
+        found = _find_nested_result(nested, predicate)
+        if found:
+            return found
+    for step in data.get("step_results") or []:
+        if isinstance(step, dict):
+            found = _find_nested_result(step.get("data"), predicate)
+            if found:
+                return found
+    return None
+
+
+def _summarize_job_result_data(data: dict | None) -> str:
+    """Build a compact history-table summary for structured skill output."""
+    read_news = _find_nested_result(
+        data,
+        lambda item: isinstance(item.get("headlines"), list) and isinstance(item.get("articles"), list),
+    )
+    if read_news:
+        headlines = read_news.get("headlines") or []
+        articles = read_news.get("articles") or []
+        first = ""
+        if headlines and isinstance(headlines[0], dict):
+            first = str(headlines[0].get("title") or headlines[0].get("source_headline") or "")
+        headline_word = "headline" if len(headlines) == 1 else "headlines"
+        article_word = "article" if len(articles) == 1 else "articles"
+        parts = [f"read_news: {len(headlines)} {headline_word}", f"{len(articles)} {article_word}"]
+        if first:
+            parts.append(f"first: {first[:90]}")
+        return " | ".join(parts)
+
+    if isinstance(data, dict) and isinstance(data.get("completed_steps"), int):
+        total = data.get("completed_steps", 0)
+        failed = ""
+        for step in data.get("step_results") or []:
+            if isinstance(step, dict) and not step.get("success", True):
+                failed = str(step.get("name") or "")
+                break
+        if failed:
+            return f"skill failed at {failed}"
+        return f"skill completed {total} step{'s' if total != 1 else ''}"
+
+    return ""
+
+
+def _parse_job_summary(jid: int, entry: dict | None = None, log_path: str | None = None) -> str:
+    """Parse [done] summary from a job's log file."""
+    all_lines = _read_job_log_lines(jid, entry, log_path)
     summary = ""
     sent_count = 0
     for line in all_lines:
@@ -155,6 +228,8 @@ def _parse_job_summary(jid: int, entry: dict | None = None, log_path: str | None
                 break
     if not summary:
         summary = _parse_partial_crawl(all_lines)
+    if not summary:
+        summary = _summarize_job_result_data(_parse_job_result_data(jid, entry, log_path))
     return summary
 
 
