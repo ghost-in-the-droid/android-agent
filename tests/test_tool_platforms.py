@@ -41,6 +41,13 @@ def test_every_agent_and_mcp_tool_has_platform_classification():
     assert missing == []
 
 
+def test_agent_and_mcp_tool_catalogs_match():
+    agent_names = {tool["name"] for tool in TOOLS}
+
+    assert sorted(agent_names - _mcp_tool_names()) == []
+    assert sorted(_mcp_tool_names() - agent_names) == []
+
+
 def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("screenshot", "ios") is True
     assert supports_platform("start_screen_recording", "ios") is True
@@ -241,6 +248,49 @@ def test_mcp_open_notifications_uses_platform_terms(monkeypatch):
 
     assert mcp_server.open_notifications("ios:abc123") == "Notification Center opened"
     assert mcp_server.open_notifications("emulator-5554") == "Notification shade opened"
+
+
+def test_mcp_agent_parity_wrappers_delegate_to_agent_tools(monkeypatch):
+    from gitd import mcp_server
+
+    calls = []
+
+    def fake_execute_tool(name: str, args: dict):
+        calls.append((name, args))
+        return f"{name}:{json.dumps(args, sort_keys=True)}"
+
+    monkeypatch.setattr("gitd.services.agent_tools.execute_tool", fake_execute_tool)
+
+    force_stopped = mcp_server.force_stop("ios:abc123", "com.google.chrome.ios")
+    packages = mcp_server.list_packages("ios:abc123")
+    shell = mcp_server.shell("emulator-5554", "echo hello")
+    waited = mcp_server.wait(0.25)
+
+    assert force_stopped.startswith("force_stop:")
+    assert packages.startswith("list_packages:")
+    assert shell.startswith("shell:")
+    assert waited.startswith("wait:")
+    assert calls == [
+        ("force_stop", {"device": "ios:abc123", "package": "com.google.chrome.ios"}),
+        ("list_packages", {"device": "ios:abc123"}),
+        ("shell", {"device": "emulator-5554", "command": "echo hello"}),
+        ("wait", {"seconds": 0.25}),
+    ]
+
+
+def test_mcp_run_skill_alias_uses_run_workflow(monkeypatch):
+    from gitd import mcp_server
+
+    calls = []
+
+    def fake_run_workflow(device: str, skill: str, workflow: str, params: str = "{}"):
+        calls.append((device, skill, workflow, params))
+        return "workflow ok"
+
+    monkeypatch.setattr(mcp_server, "run_workflow", fake_run_workflow)
+
+    assert mcp_server.run_skill("ios:abc123", "safari", "read_news", '{"url": "https://text.npr.org/"}') == "workflow ok"
+    assert calls == [("ios:abc123", "safari", "read_news", '{"url": "https://text.npr.org/"}')]
 
 
 def test_agent_list_devices_returns_android_and_ios_metadata(monkeypatch):
