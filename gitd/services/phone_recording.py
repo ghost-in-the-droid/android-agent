@@ -23,6 +23,21 @@ def safe_recording_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_") or "device"
 
 
+def _recording_device_ref(device_safe: str) -> str:
+    if device_safe.startswith("ios_") and len(device_safe) > 4:
+        return "ios:" + device_safe[4:]
+    return device_safe
+
+
+def _parse_recording_name(filename: str) -> dict[str, str]:
+    stem = Path(filename).stem
+    match = re.match(r"^(?P<device>.+?)_(?P<date>\d{8})_(?P<time>\d{6})$", stem)
+    if not match:
+        return {"device_ref": "", "device_safe": ""}
+    device_safe = match.group("device")
+    return {"device_ref": _recording_device_ref(device_safe), "device_safe": device_safe}
+
+
 def _new_filename(device: str) -> str:
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     return f"{safe_recording_name(device)}_{stamp}.mp4"
@@ -205,6 +220,8 @@ def list_recordings() -> list[dict]:
     items = []
     for path in sorted(RECORDINGS_DIR.glob("*.mp4"), key=lambda p: p.stat().st_mtime, reverse=True):
         stat = path.stat()
+        parsed = _parse_recording_name(path.name)
+        device_ref = parsed["device_ref"]
         items.append(
             {
                 "name": path.name,
@@ -212,6 +229,8 @@ def list_recordings() -> list[dict]:
                 "size_mb": round(stat.st_size / 1_048_576, 2),
                 "date": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
                 "url": f"/api/phone/recording/{path.name}",
+                "device_ref": device_ref,
+                "platform": _platform(device_ref) if device_ref else "",
             }
         )
     return items
