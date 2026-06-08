@@ -18,6 +18,8 @@ from gitd.services.observability import (
 
 def _tts_speak_bg(device: str, text: str, max_chars: int = 250) -> None:
     """Speak agent response on the phone — fire and forget, non-blocking."""
+    if is_ios_ref(device):
+        return
     speak_text = text.strip()[:max_chars]
     if not speak_text:
         return
@@ -395,7 +397,8 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
 
     The remote host has `claude` CLI + MCP android-agent tools configured.
     Tool calls from Claude Code execute on the remote host's MCP server,
-    which talks to the device via ADB (USB or wireless).
+    which routes to Android through ADB or iOS through Appium/WebDriverAgent
+    based on the target device ref.
 
     We open a *shadow* trace on the phone side too, mirroring the events as
     they stream past — so the in-app Traces tab shows claude-code runs even
@@ -411,7 +414,7 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
         provider="claude-code",
         model=session.model or "sonnet",
         device=session.device,
-        source="android",  # this code runs in Chaquopy
+        source="ios" if is_ios_ref(session.device) else "android",
     )
     trace = _trace_cm.__enter__()
     open_spans: dict[str, object] = {}  # last-tool-name → span (best-effort match since remote events lack ids)
