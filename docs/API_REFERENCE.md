@@ -55,6 +55,32 @@ For configured iOS devices, request a deep WebDriverAgent readiness probe:
 curl "http://localhost:5055/api/phone/devices?probe=deep"
 ```
 
+### Clipboard and notifications
+
+These routes work for Android serials and `ios:<udid>` device refs:
+
+```bash
+curl "http://localhost:5055/api/phone/clipboard/ios:<udid>"
+
+curl -X POST http://localhost:5055/api/phone/clipboard \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>", "text": "hello"}'
+
+curl -X POST http://localhost:5055/api/phone/paste-text \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>", "text": "hello"}'
+
+curl "http://localhost:5055/api/phone/notifications/ios:<udid>"
+
+curl -X POST http://localhost:5055/api/phone/notifications/open \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>"}'
+
+curl -X POST http://localhost:5055/api/phone/notifications/clear \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>"}'
+```
+
 ### List installed skills
 
 ```bash

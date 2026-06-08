@@ -64,6 +64,9 @@ the active WebDriverAgent session. `paste_text` on iOS sets the clipboard and
 then inserts text through WDA into the focused field; this provides the same
 agent outcome, but it is not a native keyboard paste shortcut.
 
+REST equivalents are `GET /api/phone/clipboard/{device}`,
+`POST /api/phone/clipboard`, and `POST /api/phone/paste-text`.
+
 ### `search_apps(device, query)` / `list_apps(device)` / `list_packages(device)`
 
 Find Android package names or iOS bundle IDs. Use `search_apps` first, fall
@@ -237,6 +240,10 @@ iOS notification support is UI-driven. `get_notifications` returns visible
 Notification Center text grouped into `{title, text}` records without package
 identity, and `clear_notifications` only succeeds when a visible Clear/Clear All
 control is present.
+
+REST equivalents are `GET /api/phone/notifications/{device}`,
+`POST /api/phone/notifications/open`, and
+`POST /api/phone/notifications/clear`.
 
 ---
 

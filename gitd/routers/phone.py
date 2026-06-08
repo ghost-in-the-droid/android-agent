@@ -252,6 +252,53 @@ def api_phone_type(data: dict = Body({})):
     return {"ok": True}
 
 
+@router.get("/clipboard/{device}", summary="Get Device Clipboard")
+def api_phone_clipboard_get(device: str):
+    """Read plain-text clipboard contents from Android or iOS."""
+    from gitd.services.device_context import clipboard_get
+
+    text_value = clipboard_get(device)
+    return {
+        "ok": True,
+        "device": device,
+        "platform": "ios" if is_ios_ref(device) else "android",
+        "text": text_value,
+    }
+
+
+@router.post("/clipboard", summary="Set Device Clipboard")
+def api_phone_clipboard_set(data: dict = Body({})):
+    """Set plain-text clipboard contents on Android or iOS."""
+    from gitd.services.device_context import clipboard_set
+
+    device = data.get("device", "")
+    text_value = data.get("text", "")
+    if not device:
+        raise HTTPException(status_code=400, detail="device required")
+    ok = clipboard_set(device, str(text_value))
+    return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+
+
+@router.post("/paste-text", summary="Paste Text On Phone")
+def api_phone_paste_text(data: dict = Body({})):
+    """Set clipboard text and paste it into the focused field."""
+    from gitd.services.device_context import clipboard_set
+
+    device = data.get("device", "")
+    text_value = data.get("text", "")
+    if not device:
+        raise HTTPException(status_code=400, detail="device required")
+    if is_ios_ref(device):
+        ok = bool(get_device(device).paste_text(str(text_value)))
+    else:
+        ok = clipboard_set(device, str(text_value))
+        if ok:
+            from gitd.bots.common.adb import Device
+
+            Device(device).adb("shell", "input", "keyevent", "KEYCODE_PASTE")
+    return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+
+
 @router.post("/back", summary="Press Back Button")
 def api_phone_back(data: dict = Body({})):
     """Press the Android back button on a device."""
@@ -499,6 +546,45 @@ def api_phone_ocr(device: str, x1: int = 0, y1: int = 0, x2: int = 0, y2: int = 
     else:
         texts = ocr_screen(device)
     return {"ok": True, "texts": texts, "count": len(texts)}
+
+
+@router.get("/notifications/{device}", summary="Get Device Notifications")
+def api_phone_notifications(device: str):
+    """Read visible active notifications from Android or iOS."""
+    from gitd.services.device_context import get_notifications
+
+    items = get_notifications(device)
+    return {
+        "ok": True,
+        "device": device,
+        "platform": "ios" if is_ios_ref(device) else "android",
+        "notifications": items,
+        "count": len(items),
+    }
+
+
+@router.post("/notifications/open", summary="Open Notifications")
+def api_phone_notifications_open(data: dict = Body({})):
+    """Open Android notification shade or iOS Notification Center."""
+    from gitd.services.device_context import open_notifications
+
+    device = data.get("device", "")
+    if not device:
+        raise HTTPException(status_code=400, detail="device required")
+    ok = open_notifications(device)
+    return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
+
+
+@router.post("/notifications/clear", summary="Clear Notifications")
+def api_phone_notifications_clear(data: dict = Body({})):
+    """Dismiss visible notifications when the platform exposes a clear control."""
+    from gitd.services.device_context import clear_notifications
+
+    device = data.get("device", "")
+    if not device:
+        raise HTTPException(status_code=400, detail="device required")
+    ok = clear_notifications(device)
+    return {"ok": bool(ok), "device": device, "platform": "ios" if is_ios_ref(device) else "android"}
 
 
 @router.get("/classify/{device}", summary="Classify Phone Screen")
