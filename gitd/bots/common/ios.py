@@ -613,6 +613,39 @@ def _remote_xpc_tunnel_processes(udid: str) -> list[dict[str, Any]]:
     return rows
 
 
+def remote_xpc_manual_recovery(udid: str, tunnel: dict[str, Any] | None = None) -> dict[str, Any]:
+    clean_udid = strip_ios_prefix(udid)
+    processes = _remote_xpc_tunnel_processes(clean_udid)
+    current_uid = os.getuid()
+    foreign = [proc for proc in processes if proc["uid"] != current_uid]
+    stale = foreign or processes
+    registry_ports = tunnel.get("checked_ports") if isinstance(tunnel, dict) else None
+    ports = registry_ports or list(_remote_xpc_registry_ports())
+    registry_port = ports[0] if ports else _REMOTE_XPC_REGISTRY_PORTS[0]
+    verify_url = f"http://127.0.0.1:{registry_port}/remotexpc/tunnels/{clean_udid}"
+    steps: list[str] = []
+    if stale:
+        prefix = "Stop the stale process ids with sudo" if foreign else "Stop the stale process ids"
+        steps.append(f"{prefix}: {', '.join(str(proc['pid']) for proc in stale)}")
+    else:
+        steps.append("Stop any stale XCUITest tunnel process for this device.")
+    steps.extend(
+        [
+            f"Run: sudo appium driver run xcuitest tunnel-creation --udid {clean_udid}",
+            f"Verify: {verify_url}",
+        ]
+    )
+    return {
+        "code": "restart_remote_xpc_tunnel",
+        "state": "remote_xpc_tunnel_unavailable",
+        "summary": "Stop the stale XCUITest tunnel process with sudo, then start a fresh tunnel.",
+        "steps": steps,
+        "processes": processes,
+        "foreign_processes": foreign,
+        "verify_url": verify_url,
+    }
+
+
 def _parse_devicectl_details(output: str) -> dict[str, str]:
     fields = {
         "identifier": "identifier",
@@ -2140,6 +2173,7 @@ class IOSDevice:
         current_uid = os.getuid()
         foreign = [proc for proc in processes if proc["uid"] != current_uid]
         if foreign:
+            recovery = remote_xpc_manual_recovery(self.udid, tunnel_before)
             return {
                 "ok": False,
                 "platform": "ios",
@@ -2148,16 +2182,7 @@ class IOSDevice:
                 "message": "Existing XCUITest tunnel process is owned by another user and cannot be restarted here.",
                 "processes": processes,
                 "tunnel": tunnel_before,
-                "recovery": {
-                    "code": "restart_remote_xpc_tunnel",
-                    "state": "remote_xpc_tunnel_unavailable",
-                    "summary": "Stop the stale XCUITest tunnel process with sudo, then start a fresh tunnel.",
-                    "steps": [
-                        f"Stop the stale process ids: {', '.join(str(proc['pid']) for proc in foreign)}",
-                        f"Run: sudo appium driver run xcuitest tunnel-creation --udid {self.udid}",
-                        f"Verify: http://127.0.0.1:{_remote_xpc_registry_ports()[0]}/remotexpc/tunnels/{self.udid}",
-                    ],
-                },
+                "recovery": recovery,
             }
 
         killed: list[dict[str, Any]] = []
@@ -2179,6 +2204,7 @@ class IOSDevice:
                 "killed": killed,
                 "errors": kill_errors,
                 "tunnel": tunnel_before,
+                "recovery": remote_xpc_manual_recovery(self.udid, tunnel_before),
             }
 
         registry_port = _remote_xpc_registry_ports()[0]
