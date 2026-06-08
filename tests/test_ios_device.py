@@ -1798,6 +1798,68 @@ def test_ios_wait_for_url_falls_back_to_page_text_when_url_is_hidden(monkeypatch
     }
 
 
+def test_ios_get_phone_state_normalizes_active_app_keyboard_and_focus(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local", bundle_id="com.google.chrome.ios")
+    dev._session_id = "session-1"
+    xml = """
+    <hierarchy>
+      <node class="XCUIElementTypeApplication" text="Chrome" visible="true" bounds="[0,0][393,852]" />
+      <node class="XCUIElementTypeTextField" text="Search or type web address" content-desc="Address"
+        resource-id="Address" focused="true" visible="true" bounds="[20,60][360,104]" />
+      <node class="XCUIElementTypeKeyboard" text="" visible="true" bounds="[0,540][393,852]" />
+    </hierarchy>
+    """
+
+    monkeypatch.setattr(dev, "_window_rect", lambda: {"x": 0, "y": 0, "width": 393, "height": 852})
+    monkeypatch.setattr(dev, "get_screen_size", lambda: (393, 852))
+    monkeypatch.setattr(
+        dev,
+        "_execute_mobile",
+        lambda command, args=None: {"name": "Chrome", "bundleId": "com.google.chrome.ios"},
+    )
+    monkeypatch.setattr(dev, "dump_xml", lambda: xml)
+
+    state = dev.get_phone_state()
+
+    assert state["platform"] == "ios"
+    assert state["device"] == "ios:abc123"
+    assert state["bundleId"] == "com.google.chrome.ios"
+    assert state["bundle_id"] == "com.google.chrome.ios"
+    assert state["packageName"] == "com.google.chrome.ios"
+    assert state["activityName"] == "com.google.chrome.ios"
+    assert state["currentApp"] == "Chrome"
+    assert state["keyboardVisible"] is True
+    assert state["screenSize"] == {"width": 393, "height": 852}
+    assert state["windowRect"] == {"x": 0, "y": 0, "width": 393, "height": 852}
+    assert state["focusedElement"] == {
+        "text": "Search or type web address",
+        "content_desc": "Address",
+        "resource_id": "Address",
+        "class": "XCUIElementTypeTextField",
+        "bounds": {"x1": 20, "y1": 60, "x2": 360, "y2": 104},
+        "center": {"x": 190, "y": 82},
+    }
+
+
+def test_ios_get_phone_state_uses_target_bundle_defaults_when_enrichment_fails(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local", bundle_id="com.google.chrome.ios")
+
+    monkeypatch.setattr(dev, "_window_rect", lambda: {"x": 0, "y": 0, "width": 393, "height": 852})
+    monkeypatch.setattr(dev, "get_screen_size", lambda: (393, 852))
+    monkeypatch.setattr(dev, "_execute_mobile", lambda command, args=None: (_ for _ in ()).throw(RuntimeError("no active app")))
+    monkeypatch.setattr(dev, "dump_xml", lambda: (_ for _ in ()).throw(RuntimeError("no source")))
+
+    state = dev.get_phone_state()
+
+    assert state["bundleId"] == "com.google.chrome.ios"
+    assert state["bundle_id"] == "com.google.chrome.ios"
+    assert state["packageName"] == "com.google.chrome.ios"
+    assert state["activityName"] == "com.google.chrome.ios"
+    assert state["currentApp"] == "Chrome"
+    assert state["keyboardVisible"] is False
+    assert state["focusedElement"] == {}
+
+
 def test_ios_open_url_returns_navigation_evidence_from_webdriver(monkeypatch):
     calls = []
 
