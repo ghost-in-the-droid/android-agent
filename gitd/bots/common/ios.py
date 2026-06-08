@@ -246,6 +246,21 @@ _BROWSER_CONTROL_TEXT = {
     "search or type web address",
 }
 
+_BROWSER_FIRST_RUN_ACTIONS = {
+    "accept",
+    "accept & continue",
+    "accept and continue",
+    "agree",
+    "continue",
+    "done",
+    "got it",
+    "no thanks",
+    "not now",
+    "skip",
+    "start browsing",
+    "use without an account",
+}
+
 _LOW_VALUE_ARTICLE_TERMS = {
     "advertisement",
     "cookie",
@@ -1554,7 +1569,15 @@ class IOSDevice:
             self._request("POST", self._session_path("/url"), {"url": normalized_url})
             status = self.wait_for_url(normalized_url, timeout=delay)
             status["method"] = "webdriver_url"
-            return status
+            if status.get("ok"):
+                return status
+            errors.append(
+                {
+                    "method": "webdriver_url",
+                    "state": str(status.get("state") or ""),
+                    "error": str(status.get("error") or "URL navigation was not verified"),
+                }
+            )
         except IOSBackendError as exc:
             errors.append({"method": "webdriver_url", "error": str(exc)})
 
@@ -1562,7 +1585,15 @@ class IOSDevice:
             status = self.wait_for_url(normalized_url, timeout=delay)
             status["method"] = "web_context"
             status["errors"] = errors
-            return status
+            if status.get("ok"):
+                return status
+            errors.append(
+                {
+                    "method": "web_context",
+                    "state": str(status.get("state") or ""),
+                    "error": str(status.get("error") or "URL navigation was not verified"),
+                }
+            )
         self._open_url_via_address_bar(normalized_url, delay=delay)
         status = self.wait_for_url(normalized_url, timeout=delay)
         status["method"] = "address_bar"
@@ -1583,6 +1614,7 @@ class IOSDevice:
 
     def _open_url_via_address_bar(self, url: str, delay=2.0) -> None:
         self.launch_app(self.bundle_id, delay=0.8)
+        self._dismiss_browser_first_run_prompts()
         xml = self.dump_xml()
         node = self._find_address_bar_node(xml)
         if not node:
@@ -1592,6 +1624,34 @@ class IOSDevice:
         self._clear_active_element()
         self.type_text(url, delay=0.2)
         self.press_enter(delay=delay)
+
+    def _dismiss_browser_first_run_prompts(self, max_rounds: int = 3) -> int:
+        tapped = 0
+        for _ in range(max(0, int(max_rounds))):
+            xml = self.dump_xml()
+            node = self._find_browser_prompt_action_node(xml)
+            if not node:
+                break
+            if not self.tap_node(node, delay=0.6):
+                break
+            tapped += 1
+        return tapped
+
+    def _find_browser_prompt_action_node(self, xml: str) -> str | None:
+        for node in self.nodes(xml):
+            label = re.sub(
+                r"\s+",
+                " ",
+                f"{self.node_text(node)} {self.node_content_desc(node)} {self.node_rid(node)}",
+            ).strip().lower()
+            if not label:
+                continue
+            cls = _node_attr(node, "class").lower()
+            if cls not in {"xcuielementtypebutton", "xcuielementtypestatictext"}:
+                continue
+            if any(action in label for action in _BROWSER_FIRST_RUN_ACTIONS):
+                return node
+        return None
 
     def _find_address_bar_node(self, xml: str) -> str | None:
         for node in self.nodes(xml):
