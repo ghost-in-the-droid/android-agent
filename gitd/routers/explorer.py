@@ -112,8 +112,11 @@ def explorer_status():
     result = {
         "running": is_running,
         "pid": _active_proc.get("pid"),
+        "device": _active_proc.get("device", ""),
         "package": package,
         "platform": _active_proc.get("platform", "android"),
+        "output_dir": output_dir,
+        "current_activity": "",
         "max_states": _active_proc.get("max_states", 20),
         "states_found": 0,
         "transitions": 0,
@@ -126,6 +129,11 @@ def explorer_status():
     if progress_path.exists():
         try:
             prog = json.loads(progress_path.read_text())
+            result["device"] = prog.get("device") or result["device"]
+            result["package"] = prog.get("package") or result["package"]
+            result["platform"] = prog.get("platform") or result["platform"]
+            result["output_dir"] = prog.get("output_dir") or result["output_dir"]
+            result["current_activity"] = prog.get("current_activity") or result["current_activity"]
             result["states_found"] = prog.get("states_found", 0)
             result["transitions"] = prog.get("transitions", 0)
             result["current_depth"] = prog.get("current_depth", 0)
@@ -172,6 +180,7 @@ def explorer_runs():
                         "states": g.get("total_states", 0),
                         "transitions": g.get("total_transitions", 0),
                         "max_depth": g.get("max_depth", 0),
+                        "platform": g.get("platform", "android"),
                         "device": g.get("device", ""),
                         "date": mtime.strftime("%Y-%m-%d %H:%M"),
                     }
