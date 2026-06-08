@@ -49,6 +49,19 @@ _SCROLLABLE_TYPES = {
     "XCUIElementTypeWebView",
 }
 
+_KNOWN_IOS_POPUPS = [
+    {"detect": "Turn on notifications", "button": "Not now", "label": "Notification prompt"},
+    {"detect": "Not now", "button": "Not now", "label": "Not now dialog"},
+    {"detect": "Allow", "button": "Allow", "label": "Permission dialog"},
+    {"detect": "Don\u2019t Allow", "button": "Don\u2019t Allow", "label": "Permission denial dialog"},
+    {"detect": "Don't Allow", "button": "Don't Allow", "label": "Permission denial dialog"},
+    {"detect": "Skip", "button": "Skip", "label": "Skip dialog"},
+    {"detect": "Cancel", "button": "Cancel", "label": "Cancel dialog"},
+    {"detect": "Close", "button": "Close", "label": "Close dialog"},
+]
+_DISMISS_WORDS = {"not now", "skip", "cancel", "dismiss", "later", "close", "done"}
+_DISMISS_EXACT = {"cancel", "dismiss", "close", "done", "not now", "don't allow", "don\u2019t allow"}
+
 _ELEMENT_ID_KEYS = (
     "element-6066-11e4-a52e-4f735466cecf",
     "ELEMENT",
@@ -2204,6 +2217,52 @@ class IOSDevice:
         return "unknown"
 
     def dismiss_popups(self, xml: str | None = None, popups: list[dict] | None = None) -> bool:
+        """Dismiss known iOS prompts from normalized WDA XML.
+
+        Skill-specific popup detectors use the same {"detect", "button"} shape
+        as Android.  The generic fallback only taps compact, visible controls
+        with dismissal-like labels to avoid tapping article/content text.
+        """
+        if xml is None:
+            xml = self.dump_xml()
+        if not xml:
+            return False
+
+        popup_list = popups if popups is not None else _KNOWN_IOS_POPUPS
+        for popup in popup_list:
+            detect = str(popup.get("detect", "")).strip()
+            if detect and detect not in xml:
+                continue
+            if popup.get("method") == "back":
+                self.back(delay=1.0)
+                return True
+            button = str(popup.get("button", "")).strip()
+            if not button:
+                continue
+            matches = self.find_nodes(xml, text=button)
+            matches.sort(key=lambda node: (self.node_bounds(node) or (0, 0, 0, 0))[1])
+            for node in matches:
+                if self.tap_node(node, delay=1.0):
+                    return True
+
+        for node in self.nodes(xml):
+            label = f"{self.node_text(node)} {self.node_content_desc(node)}".strip().lower()
+            if not label:
+                continue
+            bounds = self.node_bounds(node)
+            if not bounds:
+                continue
+            width = bounds[2] - bounds[0]
+            height = bounds[3] - bounds[1]
+            if width > 500 or height > 120:
+                continue
+            cls = _node_attr(node, "class")
+            clickable = 'clickable="true"' in node
+            if not clickable and cls not in {"XCUIElementTypeButton", "XCUIElementTypeStaticText"}:
+                continue
+            words = set(label.split())
+            if label in _DISMISS_EXACT or label in _DISMISS_WORDS or words & _DISMISS_WORDS:
+                return self.tap_node(node, delay=1.0)
         return False
 
     def close(self):
