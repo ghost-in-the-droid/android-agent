@@ -1,0 +1,16 @@
+search_tab:
+  content_desc: "Search"
+  text: "Search"
+  class_name: "XCUIElementTypeButton"
+search_field:
+  content_desc: "Search"
+  text: "Search"
+  class_name: "XCUIElementTypeSearchField"
+profile_tab:
+  content_desc: "Profile"
+  text: "Profile"
+  class_name: "XCUIElementTypeButton"
+close:
+  content_desc: "Close"
+  text: "Close"
+  class_name: "XCUIElementTypeButton"
