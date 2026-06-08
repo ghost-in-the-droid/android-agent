@@ -68,8 +68,9 @@ The `.github/workflows/ci.yml` pipeline runs on every push and PR to `main`:
 
 1. **lint** -- `ruff check` + `ruff format --check` on routers, schemas, services, models, app.py
 2. **test** -- `pytest tests/api/test_smoke.py` (32 API smoke tests, no device)
-3. **build-frontend** -- `npm ci` + `vue-tsc --noEmit` + `vite build`
-4. **type-check** -- verify all FastAPI routes load without import errors
+3. **ios-parity-tests** -- non-live Appium/WDA iOS tests for runtime, browser/news, stream/recording, scheduler guards, skills, explorer/recorder, and test-runner recording paths. Live iPhone checks stay opt-in through `IOS_LIVE_NEWS_TEST`.
+4. **build-frontend** -- `npm ci` + `vue-tsc --noEmit` + `vite build`
+5. **type-check** -- verify all FastAPI routes load without import errors
 
 ---
 

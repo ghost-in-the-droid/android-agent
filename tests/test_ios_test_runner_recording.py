@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 from gitd.routers import tests as test_runner
@@ -71,3 +72,12 @@ def test_ios_screen_recording_stop_returns_local_file(tmp_path):
 
 def test_recording_names_are_filesystem_safe():
     assert test_runner._safe_recording_name("ios:abc123/test name") == "ios_abc123_test_name"
+
+
+def test_test_runner_uses_current_interpreter_for_pytest():
+    cmd = test_runner._pytest_cmd("tests/test_ios_device.py::test_factory_routes_ios_prefix", retry=True)
+
+    assert cmd[:3] == [sys.executable, "-u", "-m"]
+    assert cmd[3:7] == ["pytest", "-v", "--tb=short", "-s"]
+    assert "--reruns" in cmd
+    assert cmd[-1] == "tests/test_ios_device.py::test_factory_routes_ios_prefix"
