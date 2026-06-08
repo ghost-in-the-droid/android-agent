@@ -27,6 +27,7 @@ class FakeIOSDevice:
         self.keys: list[str] = []
         self.typed: list[str] = []
         self.back_count = 0
+        self.browser_back_count = 0
 
     def launch_app(self, bundle_id: str):
         self.launched.append(bundle_id)
@@ -48,6 +49,9 @@ class FakeIOSDevice:
 
     def back(self, delay: float = 0):
         self.back_count += 1
+
+    def browser_back(self, delay: float = 0):
+        self.browser_back_count += 1
 
     def type_text(self, text: str):
         self.typed.append(text)
@@ -105,6 +109,24 @@ def test_ios_app_explorer_progress_includes_dashboard_metadata(tmp_path):
     assert progress["max_states"] == 3
 
 
+def test_ios_app_explorer_uses_browser_back_fallback_after_taps(tmp_path):
+    dev = FakeIOSDevice()
+    explorer = AppExplorer(
+        dev=dev,
+        package="com.google.chrome.ios",
+        output_dir=str(tmp_path),
+        max_depth=1,
+        max_states=2,
+        settle_time=0,
+    )
+
+    explorer.explore()
+
+    assert dev.taps == [(95, 50)]
+    assert dev.browser_back_count == 1
+    assert dev.back_count == 0
+
+
 def test_ios_state_hash_uses_bundle_activity_tree_and_screenshot():
     same = ios_state_hash("com.example.app", "com.example.app", IOS_XML, PNG_BYTES)
 
@@ -130,6 +152,41 @@ def test_ios_macro_recorder_replays_type_and_home_with_ios_primitives():
 
     assert dev.typed == ["hello world"]
     assert dev.keys == ["HOME"]
+
+
+def test_ios_macro_recorder_replays_back_with_browser_back_when_available():
+    dev = FakeIOSDevice()
+    recorder = MacroRecorder(dev)
+    macro = Macro(
+        name="ios_back_macro",
+        device_serial=dev.serial,
+        steps=[MacroStep(action="back", timestamp=0.0)],
+    )
+
+    recorder.replay(macro, speed=10)
+
+    assert dev.browser_back_count == 1
+    assert dev.back_count == 0
+
+
+def test_ios_macro_recorder_falls_back_to_generic_back_when_browser_back_fails():
+    class BrowserBackFailDevice(FakeIOSDevice):
+        def browser_back(self, delay: float = 0):
+            self.browser_back_count += 1
+            raise RuntimeError("no browser back")
+
+    dev = BrowserBackFailDevice()
+    recorder = MacroRecorder(dev)
+    macro = Macro(
+        name="ios_back_macro",
+        device_serial=dev.serial,
+        steps=[MacroStep(action="back", timestamp=0.0)],
+    )
+
+    recorder.replay(macro, speed=10)
+
+    assert dev.browser_back_count == 1
+    assert dev.back_count == 1
 
 
 def test_ios_macro_recording_includes_platform_and_bundle_metadata():

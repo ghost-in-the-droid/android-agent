@@ -255,6 +255,15 @@ class AppExplorer:
         )
         time.sleep(8)  # Apps need time to load past splash/animations
 
+    def _go_back(self) -> None:
+        if self.platform == "ios" and hasattr(self.dev, "browser_back"):
+            try:
+                self.dev.browser_back(delay=0)
+                return
+            except Exception:
+                pass
+        self.dev.back(delay=0)
+
     def _screenshot_bytes(self) -> bytes:
         if self.platform == "ios":
             return self.dev.take_screenshot()
@@ -394,7 +403,7 @@ class AppExplorer:
                     state.transitions[elem_key] = "error"
 
                 # Navigate back
-                self.dev.back(delay=0)
+                self._go_back()
                 time.sleep(self.settle_time)
 
                 # Verify we're back (check state hasn't drifted)
@@ -402,7 +411,7 @@ class AppExplorer:
                 if back_state and back_state.state_id != state_id:
                     log.warning(f"  Back didn't return to {state_id}, now at {back_state.state_id}")
                     # Try one more back
-                    self.dev.back(delay=0)
+                    self._go_back()
                     time.sleep(self.settle_time)
                     retry = self._capture_state(depth)
                     if retry and retry.state_id != state_id:

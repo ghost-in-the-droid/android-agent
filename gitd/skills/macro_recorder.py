@@ -191,6 +191,15 @@ class MacroRecorder:
             self.dev.adb("shell", "input", "keyevent", "KEYCODE_HOME")
         time.sleep(delay)
 
+    def _replay_back(self, delay: float = 0):
+        if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "browser_back"):
+            try:
+                self.dev.browser_back(delay=delay)
+                return
+            except Exception:
+                pass
+        self.dev.back(delay=delay)
+
     def wait(self, seconds: float):
         self.record_step("wait", seconds=seconds)
         time.sleep(seconds)
@@ -226,7 +235,7 @@ class MacroRecorder:
                     self.dev.adb("shell", "input", "text",
                                 p["text"].replace(" ", "%s"))
             elif action == "back":
-                self.dev.back(delay=0)
+                self._replay_back(delay=0)
             elif action == "home":
                 if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "press_key"):
                     self.dev.press_key("HOME")
