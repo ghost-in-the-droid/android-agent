@@ -20,6 +20,7 @@ import time
 import urllib.parse
 import xml.etree.ElementTree as ET
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -496,6 +497,34 @@ def _normalize_ios_app_inventory(value: Any) -> tuple[tuple[str, str], ...]:
         seen.add(bundle_id)
         out.append((name, bundle_id))
     return tuple(out)
+
+
+def _skill_ios_app_inventory() -> tuple[tuple[str, str], ...]:
+    """Return iOS bundle ids declared by local skill metadata."""
+    try:
+        import yaml
+    except Exception:
+        return ()
+
+    skills_dir = Path(__file__).resolve().parents[2] / "skills"
+    rows: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for meta_path in sorted(skills_dir.glob("*/skill.yaml")):
+        try:
+            meta = yaml.safe_load(meta_path.read_text(encoding="utf-8")) or {}
+        except Exception:
+            continue
+        bundle_id = str(meta.get("ios_bundle_id") or "").strip()
+        if not bundle_id or bundle_id in seen:
+            continue
+        raw_platforms = meta.get("platforms") or []
+        platforms = raw_platforms if isinstance(raw_platforms, (list, tuple, set)) else [raw_platforms]
+        explicit_platforms = {str(platform).strip().lower() for platform in platforms if str(platform).strip()}
+        if explicit_platforms and "ios" not in explicit_platforms:
+            continue
+        seen.add(bundle_id)
+        rows.append((_guess_ios_app_name(bundle_id), bundle_id))
+    return tuple(rows)
 
 
 def _load_ios_devices_blob() -> dict[str, Any]:
@@ -1413,6 +1442,8 @@ class IOSDevice:
         for name, bundle_id in self.config.known_apps:
             add(name, bundle_id, "configured")
         add(_guess_ios_app_name(self.bundle_id), self.bundle_id, "default")
+        for name, bundle_id in _skill_ios_app_inventory():
+            add(name, bundle_id, "skill")
         for name, bundle_id in _COMMON_IOS_APPS:
             add(name, bundle_id, "common")
         return candidates
@@ -1464,7 +1495,7 @@ class IOSDevice:
                         app["verification_error"] = verification_error
             apps.append(app)
 
-        source_order = {"configured": 0, "default": 1, "common": 2}
+        source_order = {"configured": 0, "default": 1, "skill": 2, "common": 3}
         apps.sort(key=lambda item: (source_order.get(str(item.get("source")), 9), str(item.get("name", "")).lower()))
         return apps
 
