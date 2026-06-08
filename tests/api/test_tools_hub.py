@@ -23,6 +23,7 @@ def test_tools_hub_exposes_platform_support(client):
     paste_text = next(tool for tool in clipboard["tools"] if tool["name"] == "paste_text")
     run_workflow = next(tool for tool in skills["tools"] if tool["name"] == "run_workflow")
     run_action = next(tool for tool in skills["tools"] if tool["name"] == "run_action")
+    create_skill = next(tool for tool in skills["tools"] if tool["name"] == "create_skill")
 
     assert open_url["platform_support"]["support"] == "cross_platform"
     assert open_url["platform_support"]["ios"] is True
@@ -51,6 +52,8 @@ def test_tools_hub_exposes_platform_support(client):
     assert run_workflow["platform_support"]["ios"] is True
     assert run_action["platform_support"]["support"] == "cross_platform"
     assert run_action["platform_support"]["ios"] is True
+    assert create_skill["platform_support"]["support"] == "cross_platform"
+    assert create_skill["platform_support"]["ios"] is True
 
 
 def test_tools_platforms_endpoint(client):

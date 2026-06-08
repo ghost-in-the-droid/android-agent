@@ -553,6 +553,23 @@ TOOLS = [
             "required": ["device", "skill", "action"],
         },
     },
+    {
+        "name": "create_skill",
+        "description": "Create a recorded automation skill with Android/iOS platform metadata and optional element selectors.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "app_package": {"type": "string", "description": "Android package, or iOS bundle id when platforms is ios."},
+                "steps": {"type": "array", "description": "Recorded step list."},
+                "platforms": {"type": "array", "items": {"type": "string"}, "default": []},
+                "ios_bundle_id": {"type": "string", "default": ""},
+                "elements_ios": {"type": "object", "default": {}},
+                "elements_android": {"type": "object", "default": {}},
+            },
+            "required": ["name", "app_package", "steps"],
+        },
+    },
     # System
     {
         "name": "wait",
@@ -1232,6 +1249,29 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 cwd=str(__import__("pathlib").Path(__file__).parent.parent.parent),
             )
             return r.stdout[-2000:] if r.returncode == 0 else f"FAILED: {r.stdout[-1000:]}\n{r.stderr[-500:]}"
+        elif name == "create_skill":
+            from gitd.services.skill_creation import create_recorded_skill
+
+            result = create_recorded_skill(
+                name=args["name"],
+                app_package=args.get("app_package", ""),
+                steps=args.get("steps", []),
+                platforms=args.get("platforms", []),
+                ios_bundle_id=args.get("ios_bundle_id", ""),
+                elements_ios=args.get("elements_ios") if "elements_ios" in args else None,
+                elements_android=args.get("elements_android") if "elements_android" in args else None,
+            )
+            return json.dumps(
+                {
+                    "ok": True,
+                    "skill": result["skill"],
+                    "steps": result["steps"],
+                    "dir": result["dir"],
+                    "platforms": result["platforms"],
+                    "metadata": result["metadata"],
+                },
+                indent=2,
+            )
         elif name == "wait":
             time.sleep(args.get("seconds", 2))
             return f"Waited {args.get('seconds', 2)}s"

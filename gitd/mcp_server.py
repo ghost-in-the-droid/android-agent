@@ -26,7 +26,6 @@ from gitd.bots.common.device import (
 )
 from gitd.services.tool_platforms import platform_error_text, supports_platform
 from gitd.skills.platforms import (
-    normalize_platforms,
     skill_platform_error_text,
     skill_platform_summary,
     skill_supports_device,
@@ -843,51 +842,19 @@ def create_skill(
     For iOS skills, pass platforms="ios" and either app_package or ios_bundle_id as the bundle id.
     Optional elements_ios/elements_android are JSON selector maps written to elements_ios.yaml/elements.yaml.
     After creating, use run_workflow(dev, name, "recorded", params) to replay it."""
-    import yaml
+    from gitd.services.skill_creation import create_recorded_skill
 
-    parsed_steps = json.loads(steps)
-    parsed_platforms: list[str] = []
-    raw_platforms = (platforms or "").strip()
-    if raw_platforms:
-        try:
-            loaded_platforms = json.loads(raw_platforms)
-        except json.JSONDecodeError:
-            loaded_platforms = [p.strip() for p in raw_platforms.split(",")]
-        parsed_platforms = normalize_platforms(loaded_platforms)
-
-    if not parsed_platforms:
-        parsed_platforms = ["ios"] if ios_bundle_id and not app_package else ["android"]
-
-    android_package = app_package if "android" in parsed_platforms else ""
-    ios_target = ios_bundle_id
-    if "ios" in parsed_platforms and not ios_target:
-        ios_target = app_package
-    if "android" not in parsed_platforms:
-        app_package = ""
-
-    skill_dir = Path(__file__).parent / "skills" / name
-    skill_dir.mkdir(parents=True, exist_ok=True)
-    (skill_dir / "actions").mkdir(exist_ok=True)
-    (skill_dir / "workflows").mkdir(exist_ok=True)
-
-    meta = {
-        "name": name,
-        "version": "1.0.0",
-        "app_package": app_package,
-        "android_package": android_package,
-        "ios_bundle_id": ios_target,
-        "platforms": parsed_platforms,
-        "description": f"Auto-generated skill with {len(parsed_steps)} steps",
-    }
-    (skill_dir / "skill.yaml").write_text(yaml.dump(meta, default_flow_style=False))
-    (skill_dir / "workflows" / "recorded.json").write_text(json.dumps(parsed_steps, indent=2))
-    (skill_dir / "__init__.py").write_text(f'"""Skill: {name}"""\n')
-    if elements_android:
-        (skill_dir / "elements.yaml").write_text(yaml.dump(json.loads(elements_android), default_flow_style=False))
-    if elements_ios:
-        (skill_dir / "elements_ios.yaml").write_text(yaml.dump(json.loads(elements_ios), default_flow_style=False))
-
-    return f"Skill '{name}' created at skills/{name}/ with {len(parsed_steps)} steps for {', '.join(parsed_platforms)}"
+    result = create_recorded_skill(
+        name=name,
+        app_package=app_package,
+        steps=steps,
+        platforms=platforms,
+        ios_bundle_id=ios_bundle_id,
+        elements_ios=elements_ios,
+        elements_android=elements_android,
+        skills_dir=Path(__file__).parent / "skills",
+    )
+    return result["message"]
 
 
 # ── Lead / influencer lookups (for marketing agents) ────────────────────────

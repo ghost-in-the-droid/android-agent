@@ -202,6 +202,49 @@ def test_agent_run_action_uses_current_interpreter(monkeypatch):
     assert captured["kwargs"]["timeout"] == 120
 
 
+def test_agent_create_skill_uses_shared_creator(monkeypatch):
+    captured = {}
+
+    def fake_create_recorded_skill(**kwargs):
+        captured.update(kwargs)
+        return {
+            "ok": True,
+            "skill": kwargs["name"],
+            "steps": len(kwargs["steps"]),
+            "dir": "/tmp/skills/ios_agent_demo",
+            "platforms": ["ios"],
+            "metadata": {
+                "name": kwargs["name"],
+                "app_package": "",
+                "android_package": "",
+                "ios_bundle_id": kwargs["app_package"],
+                "platforms": ["ios"],
+            },
+        }
+
+    monkeypatch.setattr("gitd.services.skill_creation.create_recorded_skill", fake_create_recorded_skill)
+
+    result = json.loads(
+        execute_tool(
+            "create_skill",
+            {
+                "name": "ios_agent_demo",
+                "app_package": "com.google.chrome.ios",
+                "steps": [{"action": "launch", "package": "com.google.chrome.ios"}],
+                "platforms": ["ios"],
+                "elements_ios": {"address_bar": {"text": "Search"}},
+            },
+        )
+    )
+
+    assert result["ok"] is True
+    assert result["metadata"]["ios_bundle_id"] == "com.google.chrome.ios"
+    assert captured["name"] == "ios_agent_demo"
+    assert captured["app_package"] == "com.google.chrome.ios"
+    assert captured["platforms"] == ["ios"]
+    assert captured["elements_ios"] == {"address_bar": {"text": "Search"}}
+
+
 def test_agent_explore_app_uses_auto_creator_subprocess(monkeypatch):
     captured = {}
 
@@ -263,6 +306,7 @@ def test_tools_for_device_filters_by_platform():
     assert "list_packages" in ios_names
     assert "run_workflow" in ios_names
     assert "run_action" in ios_names
+    assert "create_skill" in ios_names
     assert "app_state" in ios_names
     assert "get_notifications" in ios_names
     assert "open_notifications" in ios_names
@@ -278,6 +322,7 @@ def test_tools_for_device_filters_by_platform():
     assert "type_unicode" in android_names
     assert "run_workflow" in android_names
     assert "run_action" in android_names
+    assert "create_skill" in android_names
     assert "start_screen_recording" in android_names
     assert "device_health" in android_names
     assert "fix_device_health" in android_names
@@ -438,6 +483,7 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "get_screen_xml" in ios_names
     assert "run_workflow" in ios_names
     assert "run_action" in ios_names
+    assert "create_skill" in ios_names
     assert "get_current_url" in ios_names
     assert "read_news" in ios_names
     assert "shell" in android_names
@@ -449,5 +495,6 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "get_screen_xml" in android_names
     assert "run_workflow" in android_names
     assert "run_action" in android_names
+    assert "create_skill" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names
