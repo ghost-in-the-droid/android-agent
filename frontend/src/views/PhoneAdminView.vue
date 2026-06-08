@@ -591,11 +591,42 @@ function healthTitle(serial: string): string {
   const state = h.connection?.status || h.appium?.state || 'unknown'
   const message = String(h.appium?.message || h.error || '').trim()
   const activeApp = iosActiveAppLabel(h)
+  const recovery = iosRecovery(serial)
   const parts = [`Appium / WDA / Screenshot / Source / Active app: ${state}`]
   if (activeApp) parts.push(`active ${activeApp}`)
   if (h.recommended_fix) parts.push(`fix ${h.recommended_fix}`)
+  if (recovery?.summary) parts.push(recovery.summary)
   if (message) parts.push(message)
   return parts.join(' | ')
+}
+
+function iosRecovery(serial: string): any | null {
+  const h = healthData.value[serial]
+  if (!isIosHealthPayload(h)) return null
+  return h?.recovery || null
+}
+
+function iosRecoveryVisible(serial: string): boolean {
+  const recovery = iosRecovery(serial)
+  return !!(recovery?.code || recovery?.steps?.length)
+}
+
+function iosRecoveryState(serial: string): string {
+  const h = healthData.value[serial]
+  return String(h?.connection?.status || h?.appium?.state || iosRecovery(serial)?.state || 'unknown')
+}
+
+function iosRecoveryCode(serial: string): string {
+  return String(iosRecovery(serial)?.code || healthData.value[serial]?.recommended_fix || '')
+}
+
+function iosRecoverySummary(serial: string): string {
+  return String(iosRecovery(serial)?.summary || healthData.value[serial]?.appium?.message || '')
+}
+
+function iosRecoverySteps(serial: string): string[] {
+  const steps = iosRecovery(serial)?.steps
+  return Array.isArray(steps) ? steps.slice(0, 3).map(step => String(step)) : []
 }
 
 function iosHealthCanReset(serial: string): boolean {
@@ -1145,6 +1176,17 @@ onUnmounted(() => {
           <button v-if="!selectedIsIos" class="ctrl-btn" style="font-size:9px;padding:3px 6px" @click="toggleOverlay(selectedDevice)"
             :style="{ background: overlayOn[selectedDevice] ? '#fbbf24' : '', color: overlayOn[selectedDevice] ? '#000' : '#fbbf24' }">&#x1F522;</button>
         </div>
+        <div v-if="iosRecoveryVisible(selectedDevice)" class="ios-recovery-panel">
+          <div class="ios-recovery-head">
+            <span class="ios-recovery-state">{{ iosRecoveryState(selectedDevice) }}</span>
+            <span v-if="iosRecoveryCode(selectedDevice)" class="ios-recovery-code">{{ iosRecoveryCode(selectedDevice) }}</span>
+            <button class="ios-recovery-link" @click="loadHealth(selectedDevice)">Refresh</button>
+          </div>
+          <div class="ios-recovery-summary">{{ iosRecoverySummary(selectedDevice) }}</div>
+          <ol v-if="iosRecoverySteps(selectedDevice).length" class="ios-recovery-steps">
+            <li v-for="(step, i) in iosRecoverySteps(selectedDevice)" :key="i">{{ step }}</li>
+          </ol>
+        </div>
         <!-- Stream -->
         <div class="stream-panel" style="flex: 1">
         <div class="stream-viewport">
@@ -1242,6 +1284,10 @@ onUnmounted(() => {
               </template>
               <button class="ctrl-btn ctrl-btn--tiny" @click="selectedDevice = d.serial; subTab = 'single'; startStream()" title="Expand">&#x2197;</button>
             </div>
+          </div>
+          <div v-if="iosRecoveryVisible(d.serial)" class="ios-recovery-compact" :title="healthTitle(d.serial)">
+            <span>{{ iosRecoveryState(d.serial) }}</span>
+            <span v-if="iosRecoveryCode(d.serial)">{{ iosRecoveryCode(d.serial) }}</span>
           </div>
 
           <!-- Stream area -->
@@ -1754,6 +1800,70 @@ onUnmounted(() => {
   height: 6px;
   border-radius: 50%;
   display: inline-block;
+}
+
+.ios-recovery-panel {
+  margin: 0 4px 4px;
+  padding: 8px 10px;
+  border: 1px solid #f59e0b44;
+  background: #0f172a;
+  border-radius: 6px;
+  color: var(--text-2);
+  font-size: 10px;
+}
+
+.ios-recovery-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  min-width: 0;
+}
+
+.ios-recovery-state {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.ios-recovery-code {
+  color: #fed7aa;
+  border: 1px solid #f59e0b55;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.ios-recovery-link {
+  margin-left: auto;
+  color: #93c5fd;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0;
+}
+
+.ios-recovery-summary {
+  color: var(--text-3);
+  line-height: 1.35;
+}
+
+.ios-recovery-steps {
+  margin: 5px 0 0;
+  padding-left: 16px;
+  color: var(--text-4);
+  line-height: 1.35;
+}
+
+.ios-recovery-compact {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 6px;
+  border-top: 1px solid #f59e0b33;
+  background: #f59e0b12;
+  color: #fbbf24;
+  font-size: 9px;
+  line-height: 1.2;
 }
 
 .multi-hw-keys {
