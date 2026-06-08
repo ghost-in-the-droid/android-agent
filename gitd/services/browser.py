@@ -140,6 +140,10 @@ def _snippet(text: str, max_chars: int = 1800) -> str:
     return "\n".join(lines)[:max_chars]
 
 
+def _content_line_count(text: str) -> int:
+    return len([line for line in text.splitlines() if line.strip()])
+
+
 def _looks_like_article_title(text: str) -> bool:
     cleaned = re.sub(r"\s+", " ", text or "").strip()
     if len(cleaned) < 18:
@@ -239,26 +243,33 @@ def _extract_articles_with_retry(
     dev,
     *,
     max_items: int,
+    min_items: int | None = None,
     timeout: float,
     interval: float = 0.5,
 ) -> list[dict[str, Any]]:
+    requested = int(min_items if min_items is not None else max_items)
+    target_items = min(max(0, int(max_items)), max(0, requested))
+    if target_items <= 0:
+        return []
     deadline = _retry_deadline(timeout)
-    last: list[dict[str, Any]] = []
+    best: list[dict[str, Any]] = []
     while True:
         try:
             articles = dev.extract_articles(max_items=max_items)
-            if articles:
+            if len(articles or []) > len(best):
+                best = articles or []
+            if len(articles or []) >= target_items:
                 return articles
-            last = articles or []
         except Exception:
-            last = []
+            pass
         if is_ios_ref(device):
             ocr_articles = _ocr_articles(device, max_items=max_items)
-            if ocr_articles:
+            if len(ocr_articles or []) > len(best):
+                best = ocr_articles or []
+            if len(ocr_articles or []) >= target_items:
                 return ocr_articles
-            last = ocr_articles
         if time.time() >= deadline:
-            return last
+            return best
         time.sleep(interval)
 
 
@@ -267,26 +278,30 @@ def _extract_visible_text_with_retry(
     dev,
     *,
     max_lines: int,
+    min_lines: int = 1,
     timeout: float,
     interval: float = 0.5,
 ) -> str:
+    target_lines = max(1, int(min_lines))
     deadline = _retry_deadline(timeout)
-    last = ""
+    best = ""
     while True:
         try:
             text = dev.extract_visible_text(max_lines=max_lines)
-            if text.strip():
+            if _content_line_count(text) > _content_line_count(best):
+                best = text
+            if _content_line_count(text) >= target_lines:
                 return text
-            last = text
         except Exception:
-            last = ""
+            pass
         if is_ios_ref(device):
             ocr_text = _ocr_visible_text(device, max_lines=max_lines)
-            if ocr_text.strip():
+            if _content_line_count(ocr_text) > _content_line_count(best):
+                best = ocr_text
+            if _content_line_count(ocr_text) >= target_lines:
                 return ocr_text
-            last = ocr_text
         if time.time() >= deadline:
-            return last
+            return best
         time.sleep(interval)
 
 
@@ -378,9 +393,15 @@ def read_news(
         except Exception as exc:
             result["errors"].append({"stage": "current_url", "error": str(exc)})
 
-        headlines = _extract_articles_with_retry(device, dev, max_items=max_headlines, timeout=wait_s)
+        headlines = _extract_articles_with_retry(
+            device,
+            dev,
+            max_items=max_headlines,
+            min_items=max_headlines,
+            timeout=wait_s,
+        )
         result["headlines"] = headlines[:max_headlines]
-        front_page_text = _extract_visible_text_with_retry(device, dev, max_lines=120, timeout=wait_s)
+        front_page_text = _extract_visible_text_with_retry(device, dev, max_lines=120, min_lines=1, timeout=wait_s)
         result["front_page_text"] = _snippet(front_page_text, max_chars=2400)
 
         for index, headline in enumerate(headlines[:max_articles], start=1):
@@ -402,7 +423,13 @@ def read_news(
                     article_result["current_url"] = dev.get_current_url()
                 except Exception as exc:
                     article_result["current_url_error"] = str(exc)
-                visible_text = _extract_visible_text_with_retry(device, dev, max_lines=160, timeout=wait_s)
+                visible_text = _extract_visible_text_with_retry(
+                    device,
+                    dev,
+                    max_lines=160,
+                    min_lines=2,
+                    timeout=wait_s,
+                )
                 lines = [line.strip() for line in visible_text.splitlines() if line.strip()]
                 article_result["page_title"] = lines[0] if lines else ""
                 article_result["body_snippet"] = _snippet(visible_text, max_chars=2400)
