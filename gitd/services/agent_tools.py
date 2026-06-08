@@ -515,15 +515,19 @@ _UI_ACTION_TOOLS = {
 }
 
 
-def _ios_unsupported(tool_name: str) -> str:
-    return platform_error_text(tool_name, "ios")
+def _device_platform(device: str) -> str:
+    return "ios" if is_ios_ref(device) else "android"
+
+
+def _platform_unsupported(tool_name: str, device: str) -> str:
+    return platform_error_text(tool_name, _device_platform(device))
 
 
 def tools_for_device(device: str | None) -> list[dict]:
     """Return the tools that should be offered to an agent for this device."""
     if not device:
         return list(TOOLS)
-    platform = "ios" if is_ios_ref(device) else "android"
+    platform = _device_platform(device)
     return [tool for tool in TOOLS if supports_platform(tool["name"], platform)]
 
 
@@ -564,8 +568,8 @@ def _execute_tool_inner(name: str, args: dict) -> str:
     try:
         if name not in _KNOWN_TOOL_NAMES:
             return f"Unknown tool: {name}"
-        if is_ios_ref(device) and not supports_platform(name, "ios"):
-            return _ios_unsupported(name)
+        if device and not supports_platform(name, _device_platform(device)):
+            return _platform_unsupported(name, device)
 
         if name == "screenshot":
             r = ctx.screenshot(device)
