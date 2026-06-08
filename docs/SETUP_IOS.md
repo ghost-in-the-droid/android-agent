@@ -175,6 +175,20 @@ python -m gitd.skills._run_skill \
   --params '{"max_lines": 40}'
 ```
 
+External marketing agents can enqueue that same iOS smoke workflow without a
+video file by calling the marketing-jobs seam with an explicit smoke action:
+
+```bash
+curl -X POST http://localhost:5055/api/marketing-jobs/enqueue \
+  -H 'Content-Type: application/json' \
+  -d '{"phone_serial":"ios:<udid>","action":"profile_smoke","max_lines":40}'
+```
+
+TikTok upload, draft creation, and draft publishing are still Android-only.
+The iOS marketing path only verifies that the connected iPhone can launch
+TikTok, navigate to Profile, and return visible-text evidence through the
+scheduler.
+
 ## Supported First-Milestone Tools
 
 Supported on iOS:
