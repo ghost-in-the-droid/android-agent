@@ -7,7 +7,7 @@ import re
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from gitd.bots.common.device import get_device, is_ios_ref
 
@@ -220,22 +220,55 @@ def _article_has_body(article: dict[str, Any]) -> bool:
     if not article.get("opened"):
         return False
     text = str(article.get("body_snippet") or "")
+    return _article_text_has_body(text, source_headline=str(article.get("source_headline") or ""))
+
+
+_NON_ARTICLE_BODY_LINES = {
+    "advertisement",
+    "back",
+    "close",
+    "home",
+    "listen",
+    "menu",
+    "more",
+    "next",
+    "previous",
+    "read more",
+    "refresh",
+    "search",
+    "sections",
+    "share",
+    "sponsor message",
+    "subscribe",
+}
+
+
+def _article_text_has_body(text: str, *, source_headline: str = "") -> bool:
     lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines() if line.strip()]
-    if len(lines) >= 2:
-        return True
     if not lines:
         return False
 
     # Some iOS WebView/WDA contexts expose article pages as one paragraph rather
     # than separate title/body nodes. Count a substantial single paragraph as
-    # body text, but keep short title-only extraction as a failed partial.
+    # body text, but keep title-only and toolbar-only extraction as partial.
     title_like: set[str] = set()
-    if article.get("source_headline"):
-        title_like.add(re.sub(r"\s+", " ", str(article.get("source_headline") or "")).strip().lower())
-    only_line = lines[0]
-    if only_line.lower() in title_like:
+    if source_headline:
+        title_like.add(re.sub(r"\s+", " ", source_headline).strip().lower())
+    body_lines = [
+        line
+        for line in lines
+        if line.lower() not in title_like and line.lower() not in _NON_ARTICLE_BODY_LINES
+    ]
+    if not body_lines:
         return False
-    return len(only_line) >= 80 or len(re.findall(r"[A-Za-z0-9]+", only_line)) >= 14
+    for line in body_lines:
+        words = re.findall(r"[A-Za-z0-9]+", line)
+        if len(line) >= 80 or len(words) >= 14:
+            return True
+        if len(line) >= 20 and len(words) >= 4:
+            return True
+    combined = " ".join(body_lines)
+    return len(combined) >= 35 and len(re.findall(r"[A-Za-z0-9]+", combined)) >= 6
 
 
 def _article_source(articles: list[dict[str, Any]]) -> str:
@@ -498,6 +531,7 @@ def _extract_visible_text_with_retry(
     min_lines: int = 1,
     timeout: float,
     interval: float = 0.5,
+    is_ready: Callable[[str], bool] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     target_lines = max(1, int(min_lines))
     deadline = _retry_deadline(timeout)
@@ -511,7 +545,8 @@ def _extract_visible_text_with_retry(
             if _content_line_count(text) > _content_line_count(best):
                 best = text
                 best_source = source
-            if _content_line_count(text) >= target_lines:
+            ready = _content_line_count(text) >= target_lines and (is_ready(text) if is_ready else True)
+            if ready:
                 return text, {
                     "requested_lines": max_lines,
                     "target_lines": target_lines,
@@ -527,7 +562,8 @@ def _extract_visible_text_with_retry(
             if _content_line_count(ocr_text) > _content_line_count(best):
                 best = ocr_text
                 best_source = "ocr"
-            if _content_line_count(ocr_text) >= target_lines:
+            ready = _content_line_count(ocr_text) >= target_lines and (is_ready(ocr_text) if is_ready else True)
+            if ready:
                 return ocr_text, {
                     "requested_lines": max_lines,
                     "target_lines": target_lines,
@@ -537,11 +573,12 @@ def _extract_visible_text_with_retry(
                     "source": "ocr",
                 }
         if time.time() >= deadline:
+            ready = _content_line_count(best) >= target_lines and (is_ready(best) if is_ready else True)
             return best, {
                 "requested_lines": max_lines,
                 "target_lines": target_lines,
                 "returned_lines": _content_line_count(best),
-                "ready": _content_line_count(best) >= target_lines,
+                "ready": ready,
                 "attempts": attempts,
                 "source": best_source,
             }
@@ -710,8 +747,16 @@ def read_news(
                     device,
                     dev,
                     max_lines=160,
-                    min_lines=2,
+                    min_lines=1,
                     timeout=wait_s,
+                    is_ready=lambda text, source_headline=headline.get("title", ""): _article_text_has_body(
+                        text,
+                        source_headline=str(source_headline or ""),
+                    ),
+                )
+                text_evidence["body_ready"] = _article_text_has_body(
+                    visible_text,
+                    source_headline=str(headline.get("title", "") or ""),
                 )
                 article_evidence["text"] = text_evidence
                 lines = [line.strip() for line in visible_text.splitlines() if line.strip()]
