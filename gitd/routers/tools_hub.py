@@ -75,7 +75,7 @@ def _get_all_tools() -> list[dict]:
     extra_tools = [
         {
             "name": "get_screen_xml",
-            "description": "Get raw UI XML dump from uiautomator.",
+            "description": "Get raw Android UIAutomator XML or normalized iOS WDA XML.",
             "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
             "category": "Screen Reading",
         },
@@ -108,7 +108,7 @@ def _get_all_tools() -> list[dict]:
         },
         {
             "name": "list_devices",
-            "description": "List all connected Android devices with serial and model.",
+            "description": "List connected Android ADB devices and configured iOS Appium devices.",
             "input_schema": {"type": "object", "properties": {}},
             "category": "Device",
         },
@@ -143,6 +143,8 @@ def _get_all_tools() -> list[dict]:
                             "type": pschema.get("type", "string"),
                             "required": pname in required,
                             "default": pschema.get("default"),
+                            "description": pschema.get("description", ""),
+                            "items": pschema.get("items"),
                         }
                     )
                 tools.append(

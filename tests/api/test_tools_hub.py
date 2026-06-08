@@ -29,6 +29,7 @@ def test_tools_hub_exposes_platform_support(client):
     lookup_lead = next(tool for tool in marketing["tools"] if tool["name"] == "lookup_lead")
     list_unread_leads = next(tool for tool in marketing["tools"] if tool["name"] == "list_unread_leads")
     list_devices = next(tool for tool in device_tools["tools"] if tool["name"] == "list_devices")
+    create_skill_params = {param["name"]: param for param in create_skill["params"]}
 
     assert open_url["platform_support"]["support"] == "cross_platform"
     assert open_url["platform_support"]["ios"] is True
@@ -59,6 +60,10 @@ def test_tools_hub_exposes_platform_support(client):
     assert run_action["platform_support"]["ios"] is True
     assert create_skill["platform_support"]["support"] == "cross_platform"
     assert create_skill["platform_support"]["ios"] is True
+    assert create_skill_params["steps"]["type"] == "array"
+    assert "Recorded step list" in create_skill_params["steps"]["description"]
+    assert create_skill_params["elements_ios"]["type"] == "object"
+    assert create_skill_params["platforms"]["items"] == {"type": "string"}
     assert lookup_lead["platform_support"]["support"] == "cross_platform"
     assert lookup_lead["platform_support"]["ios"] is True
     assert list_unread_leads["platform_support"]["support"] == "cross_platform"
