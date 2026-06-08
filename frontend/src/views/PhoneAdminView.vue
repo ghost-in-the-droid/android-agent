@@ -717,11 +717,13 @@ async function pollMultiLogs() {
 /* ── device health ──────────────────────────────────────────────────── */
 const healthData = ref<Record<string, any>>({})
 const healthLoading = ref<Record<string, boolean>>({})
+const healthFixStatus = ref<Record<string, string>>({})
 const showWirelessModal = ref(false)
 const wirelessIp = ref('')
 const wirelessPort = ref('5555')
 const wirelessCode = ref('')
 const wirelessResult = ref('')
+const IOS_AUTO_FIXES = new Set(['reset_session', 'appium_session', 'wda_session', 'restart_remote_xpc_tunnel'])
 
 async function loadHealth(serial: string) {
   healthLoading.value[serial] = true
@@ -812,6 +814,33 @@ function iosRecoveryCode(serial: string): string {
   return String(iosRecovery(serial)?.code || healthData.value[serial]?.recommended_fix || '')
 }
 
+function iosRecoveryAction(serial: string): string {
+  return iosRecoveryCode(serial) || String(healthData.value[serial]?.recommended_fix || '')
+}
+
+function iosRecoveryCanApplyFix(serial: string): boolean {
+  if (!serial || !isIosSerial(serial)) return false
+  return IOS_AUTO_FIXES.has(iosRecoveryAction(serial))
+}
+
+function iosRecoveryFixBusy(serial: string): boolean {
+  return healthFixStatus.value[serial]?.startsWith('Applying ') || false
+}
+
+function iosRecoveryActionLabel(serial: string): string {
+  const action = iosRecoveryAction(serial)
+  if (action === 'restart_remote_xpc_tunnel') return 'Restart Tunnel'
+  if (action === 'reset_session' || action === 'appium_session' || action === 'wda_session') return 'Reset WDA'
+  return 'Apply Fix'
+}
+
+function iosRecoveryActionTitle(serial: string): string {
+  const action = iosRecoveryAction(serial)
+  if (action === 'restart_remote_xpc_tunnel') return 'Restart the XCUITest RemoteXPC tunnel when the process is owned by this user'
+  if (action) return `Apply iOS health fix: ${action}`
+  return 'No automatic iOS health fix is available'
+}
+
 function iosRecoverySummary(serial: string): string {
   return String(iosRecovery(serial)?.summary || healthData.value[serial]?.appium?.message || '')
 }
@@ -821,16 +850,23 @@ function iosRecoverySteps(serial: string): string[] {
   return Array.isArray(steps) ? steps.slice(0, 3).map(step => String(step)) : []
 }
 
-function iosHealthCanReset(serial: string): boolean {
-  const h = healthData.value[serial]
-  if (!isIosHealthPayload(h)) return false
-  const state = h.connection?.status || h.appium?.state || ''
-  return state === 'session_error' || state === 'error' || h.recommended_fix === 'reset_session'
-}
-
 async function fixIssue(serial: string, issue: string) {
-  await api(`/api/phone/health/${serial}/fix`, { method: 'POST', body: JSON.stringify({ issue }) })
-  await loadHealth(serial)
+  if (!serial || !issue) return
+  healthFixStatus.value[serial] = `Applying ${issue}...`
+  try {
+    const result = await api(`/api/phone/health/${serial}/fix`, { method: 'POST', body: JSON.stringify({ issue }) })
+    if (result.ok) {
+      healthFixStatus.value[serial] = result.message || 'Fix applied'
+    } else if (result.manual_action_required) {
+      healthFixStatus.value[serial] = result.message || 'Manual action required'
+    } else {
+      healthFixStatus.value[serial] = result.error || 'Fix failed'
+    }
+  } catch (error) {
+    healthFixStatus.value[serial] = error instanceof Error ? error.message.replace(/^API \d+:\s*/, '') : 'Fix failed'
+  } finally {
+    await loadHealth(serial)
+  }
 }
 
 async function goWireless(serial: string) {
@@ -1368,7 +1404,12 @@ onUnmounted(() => {
           <span v-if="healthData[selectedDevice]" class="health-dots" :title="healthTitle(selectedDevice)">
             <span v-for="(c, i) in healthDots(selectedDevice)" :key="i" class="health-dot" :style="{ background: healthDotColor(c) }"></span>
           </span>
-          <button v-if="iosHealthCanReset(selectedDevice)" class="ctrl-btn ctrl-btn--fix" @click="fixIssue(selectedDevice, 'reset_session')" title="Reset iOS Appium session">Reset WDA</button>
+          <button v-if="iosRecoveryCanApplyFix(selectedDevice)" class="ctrl-btn ctrl-btn--fix"
+            :disabled="iosRecoveryFixBusy(selectedDevice)"
+            @click="fixIssue(selectedDevice, iosRecoveryAction(selectedDevice))"
+            :title="iosRecoveryActionTitle(selectedDevice)">
+            {{ iosRecoveryFixBusy(selectedDevice) ? 'Fixing...' : iosRecoveryActionLabel(selectedDevice) }}
+          </button>
           <button v-if="selectedDevice" class="ctrl-btn ctrl-btn--record"
             :class="{ 'ctrl-btn--record-active': recordingState[selectedDevice] }"
             :disabled="recordingBusy[selectedDevice]"
@@ -1394,6 +1435,7 @@ onUnmounted(() => {
             <button class="ios-recovery-link" @click="loadHealth(selectedDevice)">Refresh</button>
           </div>
           <div class="ios-recovery-summary">{{ iosRecoverySummary(selectedDevice) }}</div>
+          <div v-if="healthFixStatus[selectedDevice]" class="ios-recovery-status">{{ healthFixStatus[selectedDevice] }}</div>
           <ol v-if="iosRecoverySteps(selectedDevice).length" class="ios-recovery-steps">
             <li v-for="(step, i) in iosRecoverySteps(selectedDevice)" :key="i">{{ step }}</li>
           </ol>
@@ -1514,7 +1556,12 @@ onUnmounted(() => {
             <span v-if="healthData[d.serial]" class="health-dots" :title="healthTitle(d.serial)">
               <span v-for="(c, i) in healthDots(d.serial)" :key="i" class="health-dot" :style="{ background: healthDotColor(c) }"></span>
             </span>
-            <button v-if="iosHealthCanReset(d.serial)" class="hw-key-btn" @click="fixIssue(d.serial, 'reset_session')" title="Reset iOS Appium session">Reset</button>
+            <button v-if="iosRecoveryCanApplyFix(d.serial)" class="hw-key-btn"
+              :disabled="iosRecoveryFixBusy(d.serial)"
+              @click="fixIssue(d.serial, iosRecoveryAction(d.serial))"
+              :title="iosRecoveryActionTitle(d.serial)">
+              {{ iosRecoveryFixBusy(d.serial) ? '...' : iosRecoveryActionLabel(d.serial) }}
+            </button>
             <button v-if="healthData[d.serial]?.wifi?.ip && !d.serial.includes(':')" class="hw-key-btn"
               @click="goWireless(d.serial)" title="Go Wireless" style="color: #38bdf8">&#x1F4F6;</button>
             <div class="multi-hw-keys">
@@ -1558,6 +1605,7 @@ onUnmounted(() => {
           <div v-if="iosRecoveryVisible(d.serial)" class="ios-recovery-compact" :title="healthTitle(d.serial)">
             <span>{{ iosRecoveryState(d.serial) }}</span>
             <span v-if="iosRecoveryCode(d.serial)">{{ iosRecoveryCode(d.serial) }}</span>
+            <span v-if="healthFixStatus[d.serial]">{{ healthFixStatus[d.serial] }}</span>
           </div>
           <div v-if="recordingStatus[d.serial]" class="multi-recording-status" :title="recordingStatus[d.serial]">
             <span v-if="recordingState[d.serial]" class="recording-dot"></span>
@@ -1873,6 +1921,11 @@ onUnmounted(() => {
 .ctrl-btn--stop { border-color: #475569; color: var(--text-3); }
 .ctrl-btn--confirm { color: #34d399; border-color: #34d399; }
 .ctrl-btn--fix { background: #f59e0b; color: #000; border: none; font-size: 9px; padding: 2px 6px; }
+.ctrl-btn--fix:disabled,
+.hw-key-btn:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
 .ctrl-btn--record {
   border-color: #7f1d1d;
   color: #fca5a5;
@@ -2322,6 +2375,13 @@ onUnmounted(() => {
 .ios-recovery-summary {
   color: var(--text-3);
   line-height: 1.35;
+}
+
+.ios-recovery-status {
+  margin-top: 4px;
+  color: #93c5fd;
+  font-size: 9px;
+  line-height: 1.3;
 }
 
 .ios-recovery-steps {
