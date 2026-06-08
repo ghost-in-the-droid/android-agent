@@ -68,6 +68,21 @@ type NewsResult = {
   screenshots?: Record<string, string>
 }
 
+type StreamInfo = {
+  ok?: boolean
+  platform?: string
+  requested_mode?: string
+  effective_mode?: string
+  recommended_mode?: string
+  fallback_mode?: string
+  stream_url?: string
+  mjpeg_url?: string
+  mjpeg_settings?: Record<string, unknown>
+  unsupported_actions?: string[]
+  recovery?: Record<string, unknown>
+  error?: string
+}
+
 function isIosSerial(serial: string | null | undefined): boolean {
   return !!serial && serial.startsWith('ios:')
 }
@@ -111,6 +126,40 @@ function multiStreamLabel(serial: string): string {
 function streamFallbackUrl(serial: string, fallback?: any): string {
   const url = String(fallback?.url || '').trim()
   return url || mjpegStreamUrl(serial)
+}
+
+const streamInfo = ref<Record<string, StreamInfo>>({})
+const streamInfoStatus = ref<Record<string, string>>({})
+
+function streamInfoModeParam(serial: string, mode: 'rtc' | 'mjpeg'): string {
+  if (isIosDevice(serial)) return 'mjpeg'
+  return mode === 'rtc' ? 'portal' : 'screencap'
+}
+
+function streamInfoTitle(serial: string): string {
+  const info = streamInfo.value[serial]
+  if (!info) return streamModeTitle(serial, multiStreamMode.value[serial] || singleStreamMode.value)
+  const parts = [
+    info.effective_mode ? `mode ${info.effective_mode}` : '',
+    info.fallback_mode ? `fallback ${info.fallback_mode}` : '',
+    info.unsupported_actions?.length ? `unsupported ${info.unsupported_actions.join(', ')}` : '',
+  ].filter(Boolean)
+  return parts.join(' | ') || streamModeTitle(serial, multiStreamMode.value[serial] || singleStreamMode.value)
+}
+
+async function resolveMjpegStreamUrl(serial: string, mode: 'rtc' | 'mjpeg'): Promise<string> {
+  const fallback = mjpegStreamUrl(serial)
+  try {
+    const info = await api<StreamInfo>(
+      `/api/phone/stream-info?device=${encodeURIComponent(serial)}&fps=5&mode=${encodeURIComponent(streamInfoModeParam(serial, mode))}`
+    )
+    streamInfo.value[serial] = info
+    streamInfoStatus.value[serial] = ''
+    return String(info.stream_url || fallback)
+  } catch (error) {
+    streamInfoStatus.value[serial] = error instanceof Error ? error.message.replace(/^API \d+:\s*/, '') : 'Stream metadata unavailable'
+    return fallback
+  }
 }
 
 function applyIosStreamFallback(serial: string, fallback?: any) {
@@ -655,7 +704,7 @@ const multiStreaming = ref<Record<string, boolean>>({})
 const multiStreamMode = ref<Record<string, 'rtc' | 'mjpeg'>>({})
 const mjpegUrls = ref<Record<string, string>>({})
 
-function startMultiStream(serial: string, mode: 'rtc' | 'mjpeg' = 'rtc') {
+async function startMultiStream(serial: string, mode: 'rtc' | 'mjpeg' = 'rtc') {
   // Clean up any existing stream first
   if (multiStreaming.value[serial]) stopMultiStream(serial)
   const actualMode = effectiveStreamMode(serial, mode)
@@ -665,12 +714,14 @@ function startMultiStream(serial: string, mode: 'rtc' | 'mjpeg' = 'rtc') {
     rtcStart(serial)
   } else {
     mjpegUrls.value[serial] = mjpegStreamUrl(serial)
+    mjpegUrls.value[serial] = await resolveMjpegStreamUrl(serial, actualMode)
   }
 }
 function stopMultiStream(serial: string) {
   multiStreaming.value[serial] = false
   if (multiStreamMode.value[serial] === 'rtc') rtcStop(serial)
   mjpegUrls.value[serial] = ''
+  streamInfoStatus.value[serial] = ''
   multiStreamMode.value[serial] = 'rtc'
 }
 function startAllStreams(mode: 'rtc' | 'mjpeg' = 'rtc') {
@@ -682,7 +733,7 @@ function stopAllStreams() { for (const d of devices.value) stopMultiStream(d.ser
 const singleStreamMode = ref<'rtc' | 'mjpeg'>('rtc')
 const singleMjpegUrl = ref('')
 
-function startStream() {
+async function startStream() {
   if (!selectedDevice.value) return
   const serial = selectedDevice.value
   singleStreamMode.value = effectiveStreamMode(serial, singleStreamMode.value)
@@ -695,15 +746,20 @@ function startStream() {
         console.log('RTC timeout — falling back to MJPEG')
         singleStreamMode.value = 'mjpeg'
         singleMjpegUrl.value = mjpegStreamUrl(serial)
+        void resolveMjpegStreamUrl(serial, 'mjpeg').then(url => {
+          if (streaming.value && selectedDevice.value === serial && singleStreamMode.value === 'mjpeg') singleMjpegUrl.value = url
+        })
       }
     }, 5000)
   } else {
     singleMjpegUrl.value = mjpegStreamUrl(serial)
+    singleMjpegUrl.value = await resolveMjpegStreamUrl(serial, singleStreamMode.value)
   }
 }
 function stopStream() {
   if (selectedDevice.value) rtcStop(selectedDevice.value)
   singleMjpegUrl.value = ''
+  if (selectedDevice.value) streamInfoStatus.value[selectedDevice.value] = ''
   streaming.value = false
 }
 
@@ -1456,7 +1512,7 @@ onUnmounted(() => {
             :title="selectedIsIos ? 'Start iOS WDA MJPEG stream' : 'Start Android WebRTC stream'"
             @click="singleStreamMode = selectedIsIos ? 'mjpeg' : 'rtc'; startStream()">Stream</button>
           <span v-if="streaming" style="font-size:8px;padding:1px 6px;border-radius:10px;white-space:nowrap"
-            :title="streamModeTitle(selectedDevice, singleStreamMode)"
+            :title="streamInfoTitle(selectedDevice)"
             :style="singleStreamMode === 'rtc'
               ? { background: '#22c55e20', color: '#4ade80', border: '1px solid #22c55e40' }
               : { background: '#6366f120', color: '#a5b4fc', border: '1px solid #6366f140' }">
@@ -1488,6 +1544,9 @@ onUnmounted(() => {
         <div v-if="recordingStatus[selectedDevice]" class="recording-status-line" :title="recordingStatus[selectedDevice]">
           <span v-if="recordingState[selectedDevice]" class="recording-dot"></span>
           {{ recordingStatus[selectedDevice] }}
+        </div>
+        <div v-if="streamInfoStatus[selectedDevice]" class="recording-status-line" :title="streamInfoStatus[selectedDevice]">
+          {{ streamInfoStatus[selectedDevice] }}
         </div>
         <div v-if="iosRecoveryVisible(selectedDevice)" class="ios-recovery-panel">
           <div class="ios-recovery-head">
@@ -1660,7 +1719,7 @@ onUnmounted(() => {
             </div>
             <div class="multi-stream-btns">
               <span class="multi-mode-badge"
-                :title="streamModeTitle(d.serial, multiStreamMode[d.serial] || 'mjpeg')"
+                :title="streamInfoTitle(d.serial)"
                 :style="multiStreamMode[d.serial] === 'mjpeg' ? { background: '#6366f133', color: '#a5b4fc' } : rtcStatus[d.serial] === 'Streaming' ? { background: '#22c55e22', color: '#4ade80' } : { color: '#475569' }">
                 {{ multiStreaming[d.serial] ? multiStreamLabel(d.serial) : '' }}
               </span>
@@ -1698,6 +1757,9 @@ onUnmounted(() => {
           <div v-if="recordingStatus[d.serial]" class="multi-recording-status" :title="recordingStatus[d.serial]">
             <span v-if="recordingState[d.serial]" class="recording-dot"></span>
             {{ recordingStatus[d.serial] }}
+          </div>
+          <div v-if="streamInfoStatus[d.serial]" class="multi-recording-status" :title="streamInfoStatus[d.serial]">
+            {{ streamInfoStatus[d.serial] }}
           </div>
 
           <!-- Stream area -->

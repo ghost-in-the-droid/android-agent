@@ -56,6 +56,7 @@ const recordingBusy = ref(false)
 const recordingStatusText = ref('')
 const recordingFilename = ref('')
 const recordingUrl = ref('')
+const streamInfoStatus = ref('')
 let timer: number | null = null
 
 type RecordingResponse = {
@@ -65,6 +66,14 @@ type RecordingResponse = {
   mode?: string
   url?: string
   error?: string
+}
+
+type StreamInfo = {
+  ok?: boolean
+  stream_url?: string
+  effective_mode?: string
+  fallback_mode?: string
+  unsupported_actions?: string[]
 }
 
 const isIos = computed(() => props.serial?.startsWith('ios:') || false)
@@ -105,12 +114,32 @@ const keyButtons = computed(() => {
   return keys
 })
 
-function startStream() {
+function defaultMjpegUrl(): string {
+  const modeParam = isIos.value ? '&mode=wda-mjpeg' : ''
+  return `/api/phone/stream?device=${encodeURIComponent(props.serial)}&fps=5${modeParam}`
+}
+
+async function resolveMjpegUrl(): Promise<string> {
+  const fallback = defaultMjpegUrl()
+  try {
+    const mode = isIos.value ? 'mjpeg' : 'screencap'
+    const info = await api<StreamInfo>(
+      `/api/phone/stream-info?device=${encodeURIComponent(props.serial)}&fps=5&mode=${encodeURIComponent(mode)}`
+    )
+    streamInfoStatus.value = ''
+    return info.stream_url || fallback
+  } catch (error) {
+    streamInfoStatus.value = error instanceof Error ? error.message.replace(/^API \d+:\s*/, '') : 'Stream metadata unavailable'
+    return fallback
+  }
+}
+
+async function startStream() {
   if (streaming.value) return
   streaming.value = true
   if (streamMode.value === 'mjpeg') {
-    const modeParam = isIos.value ? '&mode=wda-mjpeg' : ''
-    mjpegUrl.value = `/api/phone/stream?device=${encodeURIComponent(props.serial)}&fps=5${modeParam}`
+    mjpegUrl.value = defaultMjpegUrl()
+    mjpegUrl.value = await resolveMjpegUrl()
   } else {
     pollFrame()
     timer = window.setInterval(pollFrame, props.fps)
@@ -122,6 +151,7 @@ function stopStream() {
   if (timer) { clearInterval(timer); timer = null }
   streamImg.value = ''
   mjpegUrl.value = ''
+  streamInfoStatus.value = ''
 }
 
 function toggleStream() {
@@ -293,8 +323,11 @@ defineExpose({ startStream, stopStream, streaming, refreshRecordingStatus, toggl
       <img v-else-if="streaming && streamMode === 'mjpeg' && mjpegUrl" :src="mjpegUrl" class="psw-img"
         draggable="false" @click="handleClick" @dragstart.prevent />
       <div v-else class="psw-placeholder">
-        <slot name="placeholder">{{ recordingStatusText || (isIos ? 'Start WDA stream' : 'Click Stream to watch') }}</slot>
+        <slot name="placeholder">{{ streamInfoStatus || recordingStatusText || (isIos ? 'Start WDA stream' : 'Click Stream to watch') }}</slot>
       </div>
+    </div>
+    <div v-if="streamInfoStatus && streaming" class="psw-record-status" :title="streamInfoStatus">
+      {{ streamInfoStatus }}
     </div>
     <div v-if="recordingStatusText && streaming" class="psw-record-status" :title="recordingStatusText">
       {{ recordingStatusText }}
