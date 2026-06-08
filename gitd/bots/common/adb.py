@@ -304,11 +304,12 @@ class Device:
         n = list(map(int, re.findall(r'\d+', bounds_str)))
         return (n[0] + n[2]) // 2, (n[1] + n[3]) // 2
 
-    def find_bounds(self, xml: str, *, text=None, content_desc=None, resource_id=None) -> str | None:
+    def find_bounds(self, xml: str, *, text=None, content_desc=None, resource_id=None, class_name=None) -> str | None:
         """Return bounds string of first node matching the given attribute."""
         if text:          key, val = "text",         text
         elif content_desc: key, val = "content-desc", content_desc
         elif resource_id:  key, val = "resource-id",  resource_id
+        elif class_name:   key, val = "class",        class_name
         else:              return None
         m = re.search(rf'<node[^>]*{key}="{re.escape(val)}"[^>]*>', xml)
         if m:
