@@ -116,6 +116,7 @@ def test_read_news_opens_headlines_and_extracts_article_snippets(monkeypatch, tm
     assert result["articles"][0]["headline_provenance"] == "web_context"
     assert result["extraction"]["articles"][0]["open_method"] == "url"
     assert result["extraction"]["articles"][0]["text"]["returned_lines"] == 3
+    assert result["extraction"]["articles"][0]["text"]["body_ready"] is True
     assert result["articles"][1]["opened"] is True
     assert result["completion"] == {
         "requested_headlines": 2,
@@ -239,6 +240,52 @@ def test_read_news_waits_for_article_body_beyond_title(monkeypatch):
     assert result["ok"] is True
     assert fake.text_calls["https://text.npr.org/article/1"] == 2
     assert result["articles"][0]["body_snippet"] == "First article title\nFirst article body line."
+    assert result["extraction"]["articles"][0]["text"]["body_ready"] is True
+
+
+def test_read_news_waits_past_toolbar_only_article_text(monkeypatch):
+    class ToolbarOnlyArticleDevice(FakeNewsIOSDevice):
+        def __init__(self):
+            super().__init__()
+            self.text_calls: dict[str, int] = {}
+
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            calls = self.text_calls.get(self.current_url, 0)
+            self.text_calls[self.current_url] = calls + 1
+            if self.current_url.endswith("/article/1") and calls == 0:
+                return "First major story from the test fixture\nMenu\nShare\nAdvertisement"
+            return super().extract_visible_text(max_lines=max_lines, include_controls=include_controls)
+
+    fake = ToolbarOnlyArticleDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=1, max_articles=1, wait_s=1)
+
+    assert result["ok"] is True
+    assert fake.text_calls["https://text.npr.org/article/1"] == 2
+    assert result["extraction"]["articles"][0]["text"]["attempts"] == 2
+    assert result["extraction"]["articles"][0]["text"]["body_ready"] is True
+    assert result["articles"][0]["body_snippet"] == "First article title\nFirst article body line."
+
+
+def test_read_news_does_not_count_toolbar_only_article_text_as_body(monkeypatch):
+    class ToolbarOnlyArticleDevice(FakeNewsIOSDevice):
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            if self.current_url.endswith("/article/1"):
+                return "First major story from the test fixture\nMenu\nShare\nAdvertisement"
+            return super().extract_visible_text(max_lines=max_lines, include_controls=include_controls)
+
+    fake = ToolbarOnlyArticleDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=1, max_articles=1, wait_s=0)
+
+    assert result["ok"] is False
+    assert result["completion"]["articles_with_body"] == 0
+    assert result["extraction"]["articles"][0]["text"]["body_ready"] is False
+    assert result["errors"][-1]["stage"] == "success_criteria"
 
 
 def test_read_news_falls_back_to_tapping_headline_when_url_navigation_fails(monkeypatch):
