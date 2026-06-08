@@ -162,6 +162,42 @@ def test_recording_rest_routes_use_service(monkeypatch):
     assert calls == [("start", "ios:abc123", "rec.mp4"), ("stop", "ios:abc123")]
 
 
+def test_phone_recordings_list_includes_ios_metadata(tmp_path, monkeypatch):
+    from gitd.services import phone_recording
+
+    recording = tmp_path / "ios_abc123_20260608_123456.mp4"
+    recording.write_bytes(b"mp4")
+    monkeypatch.setattr(phone_recording, "RECORDINGS_DIR", tmp_path)
+
+    listed = phone_recording.list_recordings()
+
+    assert listed == [
+        {
+            "name": "ios_abc123_20260608_123456.mp4",
+            "size_bytes": 3,
+            "size_mb": 0.0,
+            "date": listed[0]["date"],
+            "url": "/api/phone/recording/ios_abc123_20260608_123456.mp4",
+            "device_ref": "ios:abc123",
+            "platform": "ios",
+        }
+    ]
+
+
+def test_phone_recordings_list_keeps_custom_filename_metadata_empty(tmp_path, monkeypatch):
+    from gitd.services import phone_recording
+
+    recording = tmp_path / "agent-rec.mp4"
+    recording.write_bytes(b"mp4")
+    monkeypatch.setattr(phone_recording, "RECORDINGS_DIR", tmp_path)
+
+    listed = phone_recording.list_recordings()
+
+    assert listed[0]["name"] == "agent-rec.mp4"
+    assert listed[0]["device_ref"] == ""
+    assert listed[0]["platform"] == ""
+
+
 def test_recording_agent_tools_and_platform_registry(monkeypatch):
     monkeypatch.setattr(
         "gitd.services.phone_recording.start_recording",
