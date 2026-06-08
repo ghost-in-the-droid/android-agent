@@ -64,7 +64,7 @@ def test_scheduler_allows_ios_supported_skill_job():
             {
                 "job_type": "skill_workflow",
                 "phone_serial": "ios:abc123",
-                "config_json": {"skill": "tiktok_ios", "workflow": "search_smoke"},
+                "config_json": {"skill": "tiktok_ios", "workflow": "profile_smoke"},
             }
         )
         is None

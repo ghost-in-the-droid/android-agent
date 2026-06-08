@@ -17,10 +17,12 @@ exports:
     - tap_search
     - type_and_search
     - navigate_to_profile
+    - capture_visible_text
     - verify_visible_text
   workflows:
     - open_app_smoke
     - search_smoke
+    - profile_smoke
 
 default_params:
   actions:
@@ -28,6 +30,10 @@ default_params:
       query: "#fyp"
     verify_visible_text:
       expected: "TikTok"
+    capture_visible_text:
+      max_lines: 80
   workflows:
     search_smoke:
       query: "#fyp"
+    profile_smoke:
+      max_lines: 80

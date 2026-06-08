@@ -4,6 +4,7 @@ from pathlib import Path
 from gitd.skills.base import Skill
 
 from .actions import (
+    CaptureVisibleText,
     DismissPopup,
     NavigateToProfile,
     OpenApp,
@@ -11,7 +12,7 @@ from .actions import (
     TypeAndSearch,
     VerifyVisibleText,
 )
-from .workflows import OpenAppSmoke, SearchSmoke
+from .workflows import OpenAppSmoke, ProfileSmoke, SearchSmoke
 
 
 def load() -> Skill:
@@ -21,7 +22,9 @@ def load() -> Skill:
     s.register_action(TapSearch)
     s.register_action(TypeAndSearch)
     s.register_action(NavigateToProfile)
+    s.register_action(CaptureVisibleText)
     s.register_action(VerifyVisibleText)
     s.register_workflow(OpenAppSmoke)
     s.register_workflow(SearchSmoke)
+    s.register_workflow(ProfileSmoke)
     return s
