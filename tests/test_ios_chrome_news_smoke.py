@@ -9,6 +9,7 @@ def test_ios_chrome_news_smoke_stops_on_failed_health_preflight(monkeypatch, tmp
     health = {
         "platform": "ios",
         "connection": {"type": "appium-wda", "status": "wda_signing_failed"},
+        "appium": {"message": "xcodebuild failed to sign WebDriverAgent"},
         "recommended_fix": "fix_wda_signing",
     }
     monkeypatch.setattr(
@@ -29,6 +30,10 @@ def test_ios_chrome_news_smoke_stops_on_failed_health_preflight(monkeypatch, tmp
     result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
     saved_health = json.loads((tmp_path / "health.json").read_text(encoding="utf-8"))
     assert result["stage"] == "health"
+    assert result["error"] == (
+        "iOS Appium/WDA health preflight failed: wda_signing_failed - "
+        "xcodebuild failed to sign WebDriverAgent - recommended fix: fix_wda_signing"
+    )
     assert result["health"]["recommended_fix"] == "fix_wda_signing"
     assert saved_health == health
 

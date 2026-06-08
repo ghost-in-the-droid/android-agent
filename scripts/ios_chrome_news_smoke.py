@@ -89,6 +89,28 @@ def _preflight_health(device: str, bundle_id: str) -> dict:
     return ios_device_health(device, ios_dev)
 
 
+def _health_failure_error(health: dict | None) -> str:
+    if not health:
+        return "iOS Appium/WDA health preflight failed"
+    state = str(
+        (health.get("connection") or {}).get("status")
+        or (health.get("appium") or {}).get("state")
+        or "unavailable"
+    )
+    message = str((health.get("appium") or {}).get("message") or health.get("error") or "").strip()
+    recovery = health.get("recovery") or {}
+    summary = str(recovery.get("summary") or "").strip()
+    recommended_fix = str(health.get("recommended_fix") or recovery.get("code") or "").strip()
+    parts = [f"iOS Appium/WDA health preflight failed: {state}"]
+    if message:
+        parts.append(message)
+    elif summary:
+        parts.append(summary)
+    if recommended_fix:
+        parts.append(f"recommended fix: {recommended_fix}")
+    return " - ".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Open Chrome on iOS, read NPR text headlines, and sample articles")
     parser.add_argument("--device", default=os.getenv("IOS_DEVICE_UDID", ""), help="iOS UDID or ios:<udid>")
@@ -175,7 +197,7 @@ def main() -> int:
                     "platform": "ios",
                     "device": device,
                     "stage": "health",
-                    "error": "iOS Appium/WDA health preflight is not available",
+                    "error": _health_failure_error(preflight_health),
                     "health": preflight_health,
                     "health_fix": health_fix,
                     "health_json": str(health_path),
