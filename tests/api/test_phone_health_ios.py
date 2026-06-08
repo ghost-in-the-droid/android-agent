@@ -31,12 +31,17 @@ def test_ios_health_fix_resets_appium_session(client, monkeypatch):
         def reset_session(self):
             calls.append("reset")
 
-    monkeypatch.setattr("gitd.routers.phone.get_device", lambda device: FakeIOSDevice())
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
 
     response = client.post("/api/phone/health/ios:abc123/fix", json={"issue": "reset_session"})
 
     assert response.status_code == 200
-    assert response.json() == {"ok": True, "platform": "ios", "message": "iOS Appium session reset"}
+    assert response.json() == {
+        "ok": True,
+        "platform": "ios",
+        "issue": "reset_session",
+        "message": "iOS Appium session reset",
+    }
     assert calls == ["reset"]
 
 
@@ -53,7 +58,7 @@ def test_ios_health_fix_restarts_remote_xpc_tunnel(client, monkeypatch):
                 "pid": 1234,
             }
 
-    monkeypatch.setattr("gitd.routers.phone.get_device", lambda device: FakeIOSDevice())
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
 
     response = client.post("/api/phone/health/ios:abc123/fix", json={"issue": "restart_remote_xpc_tunnel"})
 

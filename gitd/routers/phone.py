@@ -16,15 +16,6 @@ router = APIRouter(prefix="/api/phone", tags=["phone"])
 
 _last_wifi_reconnect: float = 0
 
-_IOS_MANUAL_FIX_STATES = {
-    "start_appium": "appium_down",
-    "check_ios_device_config": "configured_unreachable",
-    "restart_remote_xpc_tunnel": "remote_xpc_tunnel_unavailable",
-    "unlock_and_trust_device": "locked",
-    "fix_wda_signing": "wda_signing_failed",
-}
-
-
 def _ios_unsupported(feature: str) -> dict:
     return {"ok": False, "platform": "ios", "error": f"{feature} is Android-only and is not supported for iOS devices"}
 
@@ -779,37 +770,9 @@ def api_phone_health(device: str):
 @router.post("/health/{device}/fix", summary="Auto-Fix Device Issue")
 def api_phone_health_fix(device: str, data: dict = Body({})):
     """Fix a specific device issue (portal_service, portal_install, screen_capture)."""
-    if is_ios_ref(device):
-        issue = data.get("issue", "")
-        if issue in {"reset_session", "appium_session", "wda_session"}:
-            get_device(device).reset_session()
-            return {"ok": True, "platform": "ios", "message": "iOS Appium session reset"}
-        if issue == "restart_remote_xpc_tunnel":
-            return get_device(device).restart_remote_xpc_tunnel()
-        if issue in _IOS_MANUAL_FIX_STATES:
-            from gitd.services.device_context import ios_recovery_for_state
+    from gitd.services.device_context import fix_device_health
 
-            recovery = ios_recovery_for_state(_IOS_MANUAL_FIX_STATES[issue])
-            return {
-                "ok": False,
-                "platform": "ios",
-                "issue": issue,
-                "manual_action_required": True,
-                "message": recovery["summary"],
-                "recovery": recovery,
-            }
-        return _ios_unsupported(f"health fix '{issue}'")
-    from gitd.routers.streaming import portal_fix
-
-    issue = data.get("issue", "")
-    if issue in ("portal_service", "portal_install", "portal"):
-        return portal_fix(device)
-    if issue == "screen_wake":
-        subprocess.run(
-            ["adb", "-s", device, "shell", "input", "keyevent", "KEYCODE_WAKEUP"], capture_output=True, timeout=3
-        )
-        return {"ok": True, "message": "Screen woken"}
-    return {"ok": False, "error": f"Unknown issue: {issue}"}
+    return fix_device_health(device, data.get("issue", ""))
 
 
 # ── Wireless ADB ─────────────────────────────────────────────────────────────
