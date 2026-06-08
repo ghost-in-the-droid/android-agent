@@ -476,6 +476,35 @@ def extract_articles(device: str, max_items: int = 5) -> str:
 
 
 @mcp.tool()
+def read_news(
+    device: str,
+    url: str = "https://text.npr.org/",
+    max_headlines: int = 5,
+    max_articles: int = 3,
+    bundle_id: str = "",
+    wait_s: float = 2.0,
+    save_screenshots: bool = False,
+) -> str:
+    """Open a news page and return structured headlines plus article snippets.
+
+    This is the iOS Chrome/WebDriver smoke workflow exposed as a single tool.
+    """
+    from gitd.services.browser import dumps, read_news as _read_news
+
+    return dumps(
+        _read_news(
+            device,
+            url,
+            max_headlines=max_headlines,
+            max_articles=max_articles,
+            bundle_id=bundle_id or None,
+            wait_s=wait_s,
+            save_screenshots=save_screenshots,
+        )
+    )
+
+
+@mcp.tool()
 def launch_intent(device: str, action: str = "", data: str = "",
                   package: str = "", extras: str = "{}") -> str:
     """Launch a full Android intent. More powerful than launch_app().

@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import json
+import re
+import time
 import urllib.parse
+from pathlib import Path
 from typing import Any
 
 from gitd.bots.common.device import get_device, is_ios_ref
@@ -106,6 +109,155 @@ def extract_articles(device: str, max_items: int = 5) -> dict[str, Any]:
     visible = extract_visible_text(device, max_lines=200)
     articles = [{"title": line} for line in visible.get("lines", []) if len(line) > 18][:max_items]
     return {"ok": True, "platform": "android", "articles": articles}
+
+
+def _snippet(text: str, max_chars: int = 1800) -> str:
+    lines = []
+    seen = set()
+    for raw in text.splitlines():
+        line = re.sub(r"\s+", " ", raw).strip()
+        if not line or line in seen:
+            continue
+        seen.add(line)
+        lines.append(line)
+        if sum(len(item) for item in lines) > max_chars:
+            break
+    return "\n".join(lines)[:max_chars]
+
+
+def _save_device_screenshot(dev, path: Path) -> str:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(dev.take_screenshot())
+    return str(path)
+
+
+def _open_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5) -> str:
+    url = str(article.get("url") or "").strip()
+    if url:
+        dev.open_url(url, delay=delay)
+        return "url"
+
+    center = article.get("center") if isinstance(article.get("center"), dict) else {}
+    if center.get("x") is not None and center.get("y") is not None:
+        dev.tap(int(center["x"]), int(center["y"]), delay=delay)
+        return "center"
+
+    bounds = article.get("bounds") if isinstance(article.get("bounds"), dict) else {}
+    if {"x1", "y1", "x2", "y2"} <= set(bounds):
+        x = (int(bounds["x1"]) + int(bounds["x2"])) // 2
+        y = (int(bounds["y1"]) + int(bounds["y2"])) // 2
+        dev.tap(x, y, delay=delay)
+        return "bounds"
+
+    raise RuntimeError("article candidate has no URL or tappable geometry")
+
+
+def read_news(
+    device: str,
+    url: str = "https://text.npr.org/",
+    *,
+    max_headlines: int = 5,
+    max_articles: int = 3,
+    bundle_id: str | None = None,
+    wait_s: float = 2.0,
+    save_screenshots: bool = False,
+    out_dir: str | None = None,
+) -> dict[str, Any]:
+    """Open a news page and return headlines plus article snippets.
+
+    This is currently an iOS-first workflow because WDA/WebView extraction can
+    expose article URLs and text. Android agents can still compose the primitive
+    browser tools directly.
+    """
+    if not is_ios_ref(device):
+        return {
+            "ok": False,
+            "platform": "android",
+            "error": "read_news is currently implemented for iOS browser/WebDriver sessions",
+        }
+
+    dev = get_device(device)
+    if bundle_id:
+        dev.bundle_id = bundle_id
+
+    max_headlines = max(1, int(max_headlines))
+    max_articles = max(0, int(max_articles))
+    wait_s = max(0.0, float(wait_s))
+    out_path = Path(out_dir or "data/ios_chrome_news_smoke")
+    normalized_url = _normalize_url(url)
+    result: dict[str, Any] = {
+        "ok": False,
+        "platform": "ios",
+        "device": device,
+        "bundle_id": getattr(dev, "bundle_id", bundle_id or ""),
+        "url": normalized_url,
+        "headlines": [],
+        "articles": [],
+        "screenshots": {},
+        "errors": [],
+    }
+
+    try:
+        launch_bundle = getattr(dev, "bundle_id", "") or bundle_id or ""
+        if launch_bundle:
+            try:
+                dev.launch_app(launch_bundle)
+            except Exception as exc:
+                result["errors"].append({"stage": "launch", "error": str(exc)})
+
+        dev.open_url(normalized_url)
+        if wait_s:
+            time.sleep(wait_s)
+
+        if save_screenshots:
+            result["screenshots"]["front_page"] = _save_device_screenshot(dev, out_path / "front_page.png")
+
+        try:
+            result["current_url"] = dev.get_current_url()
+        except Exception as exc:
+            result["errors"].append({"stage": "current_url", "error": str(exc)})
+
+        headlines = dev.extract_articles(max_items=max_headlines)
+        result["headlines"] = headlines[:max_headlines]
+        result["front_page_text"] = _snippet(dev.extract_visible_text(max_lines=120), max_chars=2400)
+
+        for index, headline in enumerate(headlines[:max_articles], start=1):
+            article_result: dict[str, Any] = {
+                "index": index,
+                "source_headline": headline.get("title", ""),
+                "opened": False,
+            }
+            try:
+                article_result["open_method"] = _open_article_candidate(dev, headline, delay=1.5)
+                if wait_s:
+                    time.sleep(wait_s)
+                if save_screenshots:
+                    article_result["screenshot"] = _save_device_screenshot(dev, out_path / f"article_{index}.png")
+                try:
+                    article_result["current_url"] = dev.get_current_url()
+                except Exception as exc:
+                    article_result["current_url_error"] = str(exc)
+                visible_text = dev.extract_visible_text(max_lines=160)
+                lines = [line.strip() for line in visible_text.splitlines() if line.strip()]
+                article_result["page_title"] = lines[0] if lines else ""
+                article_result["body_snippet"] = _snippet(visible_text, max_chars=2400)
+                article_result["opened"] = True
+            except Exception as exc:
+                article_result["error"] = str(exc)
+                result["errors"].append({"article": headline.get("title", ""), "error": str(exc)})
+            finally:
+                result["articles"].append(article_result)
+                try:
+                    dev.browser_back(delay=1.0)
+                except Exception as exc:
+                    result["errors"].append({"article": headline.get("title", ""), "back_error": str(exc)})
+
+        result["ok"] = bool(result["headlines"])
+        return result
+    except Exception as exc:
+        result["error"] = str(exc)
+        result["errors"].append({"stage": "workflow", "error": str(exc)})
+        return result
 
 
 def dumps(result: dict[str, Any]) -> str:

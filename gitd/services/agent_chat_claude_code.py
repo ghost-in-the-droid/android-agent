@@ -98,7 +98,7 @@ def chat_claude_code(session: ChatSession, user_message: str):
     history_block = f"\n{history_prefix}\n" if history_prefix else ""
     if is_ios_ref(session.device):
         action_rules = (
-            "- For browser/news/web tasks, prefer open_url, web_search, wait_for_text, "
+            "- For browser/news/web tasks, prefer read_news for article summaries, or open_url, web_search, wait_for_text, "
             "extract_visible_text, extract_articles, and browser_back before manual coordinate tapping.\n"
             "- launch_app expects an iOS bundle id, for example com.google.chrome.ios.\n"
             "- For camera/photo/video tasks, use open_camera with mode photo, video, selfie, or selfie_video.\n"

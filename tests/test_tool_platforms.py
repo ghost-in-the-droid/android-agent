@@ -46,6 +46,8 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("open_camera", "ios") is True
     assert supports_platform("explore_app", "ios") is True
     assert supports_platform("create_skill", "ios") is True
+    assert supports_platform("read_news", "ios") is True
+    assert supports_platform("read_news", "android") is False
 
     assert tool_platform_info("shell").support == "android_only"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
@@ -56,6 +58,7 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert tool_platform_info("open_camera").support == "cross_platform"
     assert tool_platform_info("explore_app").support == "cross_platform"
     assert tool_platform_info("create_skill").support == "cross_platform"
+    assert tool_platform_info("read_news").support == "ios_supported"
 
 
 def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
@@ -101,9 +104,11 @@ def test_tools_for_device_filters_by_platform():
     assert "open_notifications" in ios_names
     assert "clear_notifications" in ios_names
     assert "open_camera" in ios_names
+    assert "read_news" in ios_names
 
     assert "shell" in android_names
     assert "get_current_url" not in android_names
+    assert "read_news" not in android_names
 
 
 def test_ios_app_listing_tools_use_ios_inventory(monkeypatch):
@@ -191,6 +196,7 @@ def test_platform_prompts_do_not_offer_android_only_tools_to_ios():
     assert "Target platform: iOS via Appium/WebDriverAgent" in ios_system
     assert "open_url" in ios_system
     assert "extract_articles" in ios_system
+    assert "read_news" in ios_system
     assert "shell:" not in ios_system
     assert "launch_intent:" not in ios_system
     assert "open_camera:" in ios_system
@@ -217,5 +223,7 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "open_url" in ios_names
     assert "shell" not in ios_names
     assert "get_current_url" in ios_names
+    assert "read_news" in ios_names
     assert "shell" in android_names
     assert "get_current_url" not in android_names
+    assert "read_news" not in android_names

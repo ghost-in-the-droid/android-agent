@@ -1337,11 +1337,15 @@ class IOSDevice:
     def wait_for_text(self, text: str, timeout=12, interval=1.0) -> str:
         needle = text.lower()
         deadline = time.time() + timeout
-        last_xml = ""
         while time.time() <= deadline:
-            last_xml = self.dump_xml()
-            visible_text = "\n".join(e["text"] for e in visible_text_entries_from_xml(last_xml))
-            if needle in visible_text.lower() or needle in last_xml.lower():
+            try:
+                visible_text = self.extract_visible_text(max_lines=300)
+            except Exception:
+                last_xml = self.dump_xml()
+                visible_text = "\n".join(e["text"] for e in visible_text_entries_from_xml(last_xml))
+                if needle in last_xml.lower():
+                    return visible_text
+            if needle in visible_text.lower():
                 return visible_text
             time.sleep(interval)
         raise TimeoutError(f"Timed out ({timeout}s) waiting for visible text: {text!r}")

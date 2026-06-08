@@ -110,6 +110,7 @@ Open a search results page in whatever browser is on the device. Faster than
 | `wait_for_text(device, text, timeout=12)` | Wait for visible text before continuing. |
 | `extract_visible_text(device, max_lines=200)` | Return visible page text with browser controls filtered by default. |
 | `extract_articles(device, max_items=5)` | Return likely headlines/articles. iOS returns URLs when WebView extraction exposes anchors. |
+| `read_news(device, url="https://text.npr.org/", max_headlines=5, max_articles=3)` | iOS Chrome/WebDriver workflow that opens a news page, extracts headlines, opens the first articles, and returns title/body snippets. |
 
 #### How fallback works
 
