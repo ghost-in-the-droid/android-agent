@@ -208,6 +208,10 @@ def _content_line_count(text: str) -> int:
     return len([line for line in text.splitlines() if line.strip()])
 
 
+def _article_has_body(article: dict[str, Any]) -> bool:
+    return bool(article.get("opened")) and _content_line_count(str(article.get("body_snippet") or "")) >= 2
+
+
 def _article_source(articles: list[dict[str, Any]]) -> str:
     sources = sorted(
         {str(article.get("provenance") or "").strip() for article in articles if article.get("provenance")}
@@ -618,7 +622,29 @@ def read_news(
                 except Exception as exc:
                     result["errors"].append({"article": headline.get("title", ""), "back_error": str(exc)})
 
-        result["ok"] = bool(result["headlines"])
+        requested_articles = min(max_articles, len(result["headlines"]))
+        opened_articles = [article for article in result["articles"] if article.get("opened")]
+        articles_with_body = [article for article in opened_articles if _article_has_body(article)]
+        completion = {
+            "requested_headlines": max_headlines,
+            "headlines_found": len(result["headlines"]),
+            "headline_target_met": len(result["headlines"]) >= max_headlines,
+            "requested_articles": requested_articles,
+            "articles_opened": len(opened_articles),
+            "articles_with_body": len(articles_with_body),
+            "article_target_met": requested_articles == 0 or len(articles_with_body) >= requested_articles,
+        }
+        completion["workflow_complete"] = bool(result["headlines"]) and bool(completion["article_target_met"])
+        result["completion"] = completion
+        result["ok"] = bool(completion["workflow_complete"])
+        if not result["ok"]:
+            result["errors"].append(
+                {
+                    "stage": "success_criteria",
+                    "error": "News workflow did not extract the requested article body text",
+                    "completion": completion,
+                }
+            )
         return result
     except Exception as exc:
         result["error"] = str(exc)
