@@ -168,6 +168,14 @@ def test_agent_list_devices_returns_android_and_ios_metadata(monkeypatch):
     ]
 
 
+def test_agent_marketing_lookup_tools_use_shared_service(monkeypatch):
+    monkeypatch.setattr("gitd.services.marketing_lookup.lookup_lead", lambda handle: f"lead:{handle}")
+    monkeypatch.setattr("gitd.services.marketing_lookup.list_unread_leads", lambda: "2 unread")
+
+    assert execute_tool("lookup_lead", {"handle": "demo"}) == "lead:demo"
+    assert execute_tool("list_unread_leads", {}) == "2 unread"
+
+
 def test_agent_run_skill_uses_current_interpreter(monkeypatch):
     captured = {}
 
@@ -339,6 +347,8 @@ def test_tools_for_device_filters_by_platform():
     assert "run_workflow" in ios_names
     assert "run_action" in ios_names
     assert "create_skill" in ios_names
+    assert "lookup_lead" in ios_names
+    assert "list_unread_leads" in ios_names
     assert "app_state" in ios_names
     assert "get_notifications" in ios_names
     assert "open_notifications" in ios_names
@@ -356,6 +366,8 @@ def test_tools_for_device_filters_by_platform():
     assert "run_workflow" in android_names
     assert "run_action" in android_names
     assert "create_skill" in android_names
+    assert "lookup_lead" in android_names
+    assert "list_unread_leads" in android_names
     assert "start_screen_recording" in android_names
     assert "device_health" in android_names
     assert "fix_device_health" in android_names
@@ -518,6 +530,8 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "run_workflow" in ios_names
     assert "run_action" in ios_names
     assert "create_skill" in ios_names
+    assert "lookup_lead" in ios_names
+    assert "list_unread_leads" in ios_names
     assert "get_current_url" in ios_names
     assert "read_news" in ios_names
     assert "shell" in android_names
@@ -531,5 +545,7 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "run_workflow" in android_names
     assert "run_action" in android_names
     assert "create_skill" in android_names
+    assert "lookup_lead" in android_names
+    assert "list_unread_leads" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names
