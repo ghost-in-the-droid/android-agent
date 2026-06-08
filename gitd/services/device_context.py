@@ -958,6 +958,15 @@ _IOS_HEALTH_RECOVERY: dict[str, dict] = {
             "Set IOS_SHOW_XCODE_LOG=true for detailed xcodebuild output, then retry with /api/phone/health/ios:<udid>.",
         ],
     },
+    "wda_launch_timeout": {
+        "code": "fix_wda_launch_timeout",
+        "summary": "Appium is reachable, but WebDriverAgent did not finish launching before the session timeout.",
+        "steps": [
+            "Keep the iPhone unlocked and awake while WDA is building and launching.",
+            "Inspect the Appium/Xcode log for signing, provisioning, or device-lock prompts that occurred during session creation.",
+            "Increase IOS_APPIUM_TIMEOUT and IOS_WDA_LAUNCH_TIMEOUT for first-time WDA builds, then retry the health probe.",
+        ],
+    },
     "session_error": {
         "code": "reset_session",
         "summary": "The cached Appium session is stale or WDA stopped responding.",

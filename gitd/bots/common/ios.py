@@ -3042,6 +3042,11 @@ def classify_ios_error(exc: Exception) -> tuple[str, str]:
         or "could not find the expected device" in lower
     ):
         return "remote_xpc_tunnel_unavailable", f"RemoteXPC tunnel or usbmux device listing is unavailable: {message}"
+    if (
+        "could not create appium ios session" in lower
+        and ("read timed out" in lower or "timed out" in lower)
+    ):
+        return "wda_launch_timeout", f"WebDriverAgent session creation timed out: {message}"
     if "connection refused" in lower or "failed to establish" in lower or "timed out" in lower:
         return "appium_down", f"Appium is unreachable: {message}"
     if "code sign" in lower or "signing" in lower or "provision" in lower or "xcodebuild" in lower:

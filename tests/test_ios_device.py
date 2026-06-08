@@ -1270,6 +1270,18 @@ def test_ios_error_classifier_treats_wda_developer_certificate_trust_as_signing(
     assert "WebDriverAgent signing" in details
 
 
+def test_ios_error_classifier_treats_session_creation_read_timeout_as_wda_launch_timeout():
+    message = (
+        "Could not create Appium iOS session: HTTPConnectionPool(host='127.0.0.1', port=4723): "
+        "Read timed out. (read timeout=120.0)"
+    )
+
+    state, details = classify_ios_error(RuntimeError(message))
+
+    assert state == "wda_launch_timeout"
+    assert "WebDriverAgent session creation timed out" in details
+
+
 def test_ios_error_classifier_promotes_remote_xpc_tunnel_failures():
     state, details = classify_ios_error(
         RuntimeError("Could not create Appium iOS session (500): Could not find the expected device 'abc123'")
@@ -1513,6 +1525,47 @@ def test_ios_device_health_includes_recovery_steps_for_wda_signing_failure(monke
     assert health["recovery"]["code"] == "fix_wda_signing"
     assert "WebDriverAgent" in health["recovery"]["summary"]
     assert any("IOS_XCODE_ORG_ID" in step for step in health["recovery"]["steps"])
+
+
+def test_ios_device_health_includes_recovery_steps_for_wda_launch_timeout(monkeypatch):
+    class ProbeStatus:
+        def to_dict(self):
+            return {
+                "device": "ios:abc123",
+                "udid": "abc123",
+                "state": "wda_launch_timeout",
+                "message": "WebDriverAgent session creation timed out",
+                "appium_url": "http://127.0.0.1:4723",
+                "session_id": "",
+                "checks": {"appium_status_code": 200, "error": "Read timed out"},
+            }
+
+    class FakeIOSDevice:
+        appium_url = "http://127.0.0.1:4723"
+
+        def probe(self, deep=True):
+            assert deep is True
+            return ProbeStatus()
+
+        @property
+        def mjpeg_url(self):
+            return "http://127.0.0.1:9100"
+
+        @property
+        def mjpeg_settings(self):
+            return {}
+
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
+
+    from gitd.services.device_context import device_health
+
+    health = device_health("ios:abc123")
+
+    assert health["connection"]["status"] == "wda_launch_timeout"
+    assert health["appium"]["reachable"] is True
+    assert health["recommended_fix"] == "fix_wda_launch_timeout"
+    assert health["recovery"]["state"] == "wda_launch_timeout"
+    assert any("unlocked and awake" in step for step in health["recovery"]["steps"])
 
 
 def test_fix_device_health_resets_ios_session(monkeypatch):
