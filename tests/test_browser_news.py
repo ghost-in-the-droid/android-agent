@@ -420,6 +420,53 @@ def test_read_news_does_not_treat_non_navigating_tap_as_open_article(monkeypatch
     assert result["errors"][-1]["stage"] == "success_criteria"
 
 
+def test_read_news_accepts_same_host_ios_toolbar_url_when_article_text_confirms_open(monkeypatch):
+    class SameToolbarUrlArticleDevice(FakeNewsIOSDevice):
+        def __init__(self):
+            super().__init__()
+            self.article_opened = False
+
+        def get_current_url(self):
+            return "text.npr.org"
+
+        def extract_articles(self, max_items=5):
+            return [
+                {
+                    "title": "First major story from the test fixture",
+                    "url": "",
+                    "bounds": {"x1": 10, "y1": 20, "x2": 350, "y2": 60},
+                    "center": {"x": 180, "y": 40},
+                    "class": "XCUIElementTypeLink",
+                    "provenance": "native",
+                }
+            ][:max_items]
+
+        def tap(self, x, y, delay=0.6):
+            self.article_opened = True
+
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            if self.article_opened:
+                return (
+                    "NPR\n>\nPolitics\n"
+                    "First major story from the test fixture\n"
+                    "By The Associated Press\n"
+                    "Sunday, June 7, 2026 - 7:07 PM EDT\n"
+                    "This article body line is long enough to confirm that a real article page opened."
+                )
+            return "NPR text home\nFirst major story from the test fixture"
+
+    fake = SameToolbarUrlArticleDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=1, max_articles=1, wait_s=0)
+
+    assert result["ok"] is True
+    assert result["articles"][0]["opened"] is True
+    assert result["articles"][0]["url_verification"] == "same_host_article_text"
+    assert result["completion"]["articles_with_body"] == 1
+
+
 def test_read_news_marks_article_body_extraction_failure_as_partial(monkeypatch):
     class TitleOnlyArticleDevice(FakeNewsIOSDevice):
         def extract_visible_text(self, max_lines=200, include_controls=False):

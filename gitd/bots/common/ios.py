@@ -259,6 +259,7 @@ _BROWSER_CONTROL_TEXT = {
     "done",
     "cancel",
     "search or type web address",
+    "search your screen with google lens",
 }
 
 _BROWSER_FIRST_RUN_ACTIONS = {
@@ -1959,6 +1960,17 @@ class IOSDevice:
                     last_url = snapshot_url
                     if _urls_match(snapshot_url, expected):
                         return {"ok": True, "expected_url": expected, "url": snapshot_url, "state": "url_matched"}
+                if not current and not snapshot_url:
+                    native_url = self._current_url_from_native_text()
+                    if native_url:
+                        last_url = native_url
+                        if _urls_match(native_url, expected):
+                            return {
+                                "ok": True,
+                                "expected_url": expected,
+                                "url": native_url,
+                                "state": "url_matched_native",
+                            }
                 entries = snapshot.get("entries") if isinstance(snapshot, dict) else []
                 body_text = str(snapshot.get("bodyText") or "").strip() if isinstance(snapshot, dict) else ""
                 saw_page_text = bool(body_text or entries)
@@ -2799,6 +2811,10 @@ def _looks_like_browser_control(text: str) -> bool:
         return True
     if cleaned in _BROWSER_CONTROL_TEXT:
         return True
+    if "google lens" in cleaned:
+        return True
+    if "." in cleaned and "secure" in cleaned:
+        return True
     if cleaned.startswith("tab ") or cleaned.endswith(" tabs"):
         return True
     return False
@@ -2810,6 +2826,14 @@ def _looks_like_article_title(text: str) -> bool:
         return False
     lower = cleaned.lower()
     if _looks_like_browser_control(cleaned):
+        return False
+    if lower.startswith("npr :") or lower == "npr national public radio":
+        return False
+    page_date_pattern = (
+        r"(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday),?"
+        r"\s+[a-z]+\s+\d{1,2},\s+20\d{2}"
+    )
+    if re.fullmatch(page_date_pattern, lower):
         return False
     if lower.startswith(("http://", "https://", "www.")):
         return False
@@ -2870,6 +2894,8 @@ def _article_candidate_score(entry: dict[str, Any]) -> int:
         score -= 10
     if any(term in lower for term in _LOW_VALUE_ARTICLE_TERMS):
         score -= 35
+    if entry.get("provenance") == "native" and tag == "xcuielementtypebutton" and y1 < 330:
+        score -= 80
     return score
 
 
