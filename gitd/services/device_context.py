@@ -1015,6 +1015,56 @@ def ios_device_health(device: str, ios_dev=None) -> dict:
         }
 
 
+def _ios_state_for_fix(issue: str) -> str:
+    for state, recovery in _IOS_HEALTH_RECOVERY.items():
+        if recovery.get("code") == issue:
+            return state
+    return ""
+
+
+def fix_device_health(device: str, issue: str) -> dict:
+    """Apply a recovery action returned by device_health()."""
+    issue = (issue or "").strip()
+    platform = "ios" if is_ios_ref(device) else "android"
+    if not issue:
+        return {"ok": False, "platform": platform, "error": "issue is required"}
+
+    if is_ios_ref(device):
+        if issue in {"reset_session", "appium_session", "wda_session"}:
+            get_device(device).reset_session()
+            return {"ok": True, "platform": "ios", "issue": issue, "message": "iOS Appium session reset"}
+        if issue == "restart_remote_xpc_tunnel":
+            return get_device(device).restart_remote_xpc_tunnel()
+
+        state = _ios_state_for_fix(issue)
+        if state:
+            recovery = _ios_recovery_for_state(state)
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": issue,
+                "manual_action_required": True,
+                "message": recovery["summary"],
+                "recovery": recovery,
+            }
+        return {"ok": False, "platform": "ios", "issue": issue, "error": f"Unknown iOS health fix: {issue}"}
+
+    if issue in {"portal_service", "portal_install", "portal"}:
+        from gitd.routers.streaming import portal_fix
+
+        result = portal_fix(device)
+        if isinstance(result, dict):
+            result.setdefault("platform", "android")
+            result.setdefault("issue", issue)
+        return result
+    if issue == "screen_wake":
+        subprocess.run(
+            ["adb", "-s", device, "shell", "input", "keyevent", "KEYCODE_WAKEUP"], capture_output=True, timeout=3
+        )
+        return {"ok": True, "platform": "android", "issue": issue, "message": "Screen woken"}
+    return {"ok": False, "platform": "android", "issue": issue, "error": f"Unknown Android health fix: {issue}"}
+
+
 def device_health(device: str) -> dict:
     """Comprehensive device health check. Returns status for every subsystem."""
     if is_ios_ref(device):

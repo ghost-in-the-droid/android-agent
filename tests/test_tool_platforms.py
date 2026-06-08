@@ -5,7 +5,7 @@ from pathlib import Path
 
 from gitd.services.agent_chat import DEFAULT_SYSTEM, openai_tools_for_device, platform_context, system_prompt_for_device
 from gitd.services.agent_tools import TOOLS, execute_tool, tool_prompt_list, tools_for_device
-from gitd.services.tool_platforms import TOOL_PLATFORM_SUPPORT, platform_error, supports_platform, tool_platform_info
+from gitd.services.tool_platforms import TOOL_PLATFORM_SUPPORT, supports_platform, tool_platform_info
 
 
 def _mcp_tool_names() -> set[str]:
@@ -37,6 +37,8 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("open_url", "ios") is True
     assert supports_platform("device_health", "ios") is True
     assert supports_platform("device_health", "android") is True
+    assert supports_platform("fix_device_health", "ios") is True
+    assert supports_platform("fix_device_health", "android") is True
     assert supports_platform("get_current_url", "ios") is True
     assert supports_platform("get_current_url", "android") is False
     assert supports_platform("shell", "ios") is False
@@ -58,6 +60,7 @@ def test_platform_classifications_have_stable_ios_semantics():
 
     assert tool_platform_info("shell").support == "android_only"
     assert tool_platform_info("device_health").support == "cross_platform"
+    assert tool_platform_info("fix_device_health").support == "cross_platform"
     assert tool_platform_info("start_screen_recording").support == "cross_platform"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
     assert tool_platform_info("clipboard_set").support == "cross_platform"
@@ -88,6 +91,15 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
             "recommended_fix": "fix_wda_signing",
         },
     )
+    monkeypatch.setattr(
+        "gitd.services.device_context.fix_device_health",
+        lambda device, issue: {
+            "ok": False,
+            "platform": "ios",
+            "issue": issue,
+            "manual_action_required": True,
+        },
+    )
 
     shell = execute_tool("shell", {"device": "ios:abc123", "command": "ls"})
     clipboard = execute_tool("clipboard_get", {"device": "ios:abc123"})
@@ -95,6 +107,7 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     opened = execute_tool("open_notifications", {"device": "ios:abc123"})
     cleared = execute_tool("clear_notifications", {"device": "ios:abc123"})
     health = json.loads(execute_tool("device_health", {"device": "ios:abc123"}))
+    fix = json.loads(execute_tool("fix_device_health", {"device": "ios:abc123", "issue": "fix_wda_signing"}))
     unknown = execute_tool("does_not_exist", {"device": "ios:abc123"})
 
     assert shell.startswith("ERROR: shell is Android-only")
@@ -104,6 +117,8 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     assert cleared == "Notifications cleared"
     assert health["connection"]["status"] == "wda_signing_failed"
     assert health["recommended_fix"] == "fix_wda_signing"
+    assert fix["issue"] == "fix_wda_signing"
+    assert fix["manual_action_required"] is True
     assert unknown == "Unknown tool: does_not_exist"
 
 
@@ -147,6 +162,7 @@ def test_tools_for_device_filters_by_platform():
     assert "stop_screen_recording" in ios_names
     assert "screen_recording_status" in ios_names
     assert "device_health" in ios_names
+    assert "fix_device_health" in ios_names
     assert "extract_articles" in ios_names
     assert "shell" not in ios_names
     assert "launch_intent" not in ios_names
@@ -167,6 +183,7 @@ def test_tools_for_device_filters_by_platform():
     assert "shell" in android_names
     assert "start_screen_recording" in android_names
     assert "device_health" in android_names
+    assert "fix_device_health" in android_names
     assert "app_state" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names
@@ -283,10 +300,12 @@ def test_openai_tool_schema_is_filtered_by_device():
 
     assert "open_url" in ios_names
     assert "device_health" in ios_names
+    assert "fix_device_health" in ios_names
     assert "shell" not in ios_names
     assert "get_current_url" in ios_names
     assert "read_news" in ios_names
     assert "shell" in android_names
     assert "device_health" in android_names
+    assert "fix_device_health" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names

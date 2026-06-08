@@ -24,6 +24,7 @@ def _get_all_tools() -> list[dict]:
             "get_elements",
             "get_phone_state",
             "device_health",
+            "fix_device_health",
             "classify_screen",
             "find_on_screen",
             "ocr_screen",

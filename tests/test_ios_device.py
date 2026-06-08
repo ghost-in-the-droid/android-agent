@@ -1048,6 +1048,40 @@ def test_ios_device_health_includes_recovery_steps_for_wda_signing_failure(monke
     assert any("IOS_XCODE_ORG_ID" in step for step in health["recovery"]["steps"])
 
 
+def test_fix_device_health_resets_ios_session(monkeypatch):
+    calls = []
+
+    class FakeIOSDevice:
+        def reset_session(self):
+            calls.append("reset")
+
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
+
+    from gitd.services.device_context import fix_device_health
+
+    result = fix_device_health("ios:abc123", "reset_session")
+
+    assert result == {
+        "ok": True,
+        "platform": "ios",
+        "issue": "reset_session",
+        "message": "iOS Appium session reset",
+    }
+    assert calls == ["reset"]
+
+
+def test_fix_device_health_returns_manual_ios_recovery_for_nonlocal_fix():
+    from gitd.services.device_context import fix_device_health
+
+    result = fix_device_health("ios:abc123", "fix_wda_signing")
+
+    assert result["ok"] is False
+    assert result["platform"] == "ios"
+    assert result["issue"] == "fix_wda_signing"
+    assert result["manual_action_required"] is True
+    assert result["recovery"]["state"] == "wda_signing_failed"
+
+
 def test_visible_text_entries_filter_controls_and_offscreen_nodes():
     raw = """<?xml version="1.0" encoding="UTF-8"?>
 <AppiumAUT>
