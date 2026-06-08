@@ -130,3 +130,35 @@ def test_ios_macro_recorder_replays_type_and_home_with_ios_primitives():
 
     assert dev.typed == ["hello world"]
     assert dev.keys == ["HOME"]
+
+
+def test_ios_macro_recording_includes_platform_and_bundle_metadata():
+    dev = FakeIOSDevice()
+    dev.launch_app("com.google.chrome.ios")
+    recorder = MacroRecorder(dev)
+    recorder.start()
+    recorder.type_text("hello", delay=0)
+
+    macro = recorder.stop()
+    payload = macro.to_dict()
+
+    assert payload["device_serial"] == "ios:abc123"
+    assert payload["platform"] == "ios"
+    assert payload["app_package"] == "com.google.chrome.ios"
+    assert payload["ios_bundle_id"] == "com.google.chrome.ios"
+    assert payload["steps"][0]["action"] == "type"
+
+
+def test_macro_loader_accepts_legacy_recordings_without_platform_metadata():
+    macro = Macro.from_dict(
+        {
+            "name": "legacy",
+            "device_serial": "emulator-5554",
+            "steps": [{"action": "wait", "timestamp": 0.0, "params": {"seconds": 1}}],
+        }
+    )
+
+    assert macro.platform == ""
+    assert macro.app_package == ""
+    assert macro.ios_bundle_id == ""
+    assert macro.steps[0].action == "wait"
