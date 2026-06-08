@@ -330,6 +330,26 @@ TOOLS = [
             "required": ["device"],
         },
     },
+    {
+        "name": "read_news",
+        "description": (
+            "Open a news page in iOS Chrome/browser, extract headlines, open the first articles, "
+            "and return structured title/body snippets. Use this for news-reading tasks."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "url": {"type": "string", "default": "https://text.npr.org/"},
+                "max_headlines": {"type": "integer", "default": 5},
+                "max_articles": {"type": "integer", "default": 3},
+                "bundle_id": {"type": "string", "description": "Optional iOS browser bundle id override."},
+                "wait_s": {"type": "number", "default": 2.0},
+                "save_screenshots": {"type": "boolean", "default": False},
+            },
+            "required": ["device"],
+        },
+    },
     # Shell
     {
         "name": "shell",
@@ -904,6 +924,20 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             from gitd.services.browser import dumps, extract_articles as _extract_articles
 
             return dumps(_extract_articles(device, max_items=int(args.get("max_items", 5))))
+        elif name == "read_news":
+            from gitd.services.browser import dumps, read_news as _read_news
+
+            return dumps(
+                _read_news(
+                    device,
+                    args.get("url", "https://text.npr.org/"),
+                    max_headlines=int(args.get("max_headlines", 5)),
+                    max_articles=int(args.get("max_articles", 3)),
+                    bundle_id=args.get("bundle_id") or None,
+                    wait_s=float(args.get("wait_s", 2.0)),
+                    save_screenshots=bool(args.get("save_screenshots", False)),
+                )
+            )
         elif name == "list_apps" or name == "search_apps":
             if is_ios_ref(device):
                 query = args.get("query", "") if name == "search_apps" else ""

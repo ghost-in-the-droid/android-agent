@@ -361,6 +361,26 @@ def api_phone_browser_articles(device: str, max_items: int = 5):
     return extract_articles(device, max_items=max_items)
 
 
+@router.post("/browser/read-news", summary="Read News In Browser")
+def api_phone_browser_read_news(data: dict = Body({})):
+    """Open a news page and return headlines plus article snippets."""
+    from gitd.services.browser import read_news
+
+    device = data.get("device", "")
+    if not device:
+        raise HTTPException(status_code=400, detail="device required")
+    return read_news(
+        device,
+        data.get("url", "https://text.npr.org/"),
+        max_headlines=int(data.get("max_headlines", 5)),
+        max_articles=int(data.get("max_articles", 3)),
+        bundle_id=data.get("bundle_id") or None,
+        wait_s=float(data.get("wait_s", 2.0)),
+        save_screenshots=bool(data.get("save_screenshots", False)),
+        out_dir=data.get("out_dir") or None,
+    )
+
+
 @router.post("/reconnect/{device}", summary="Reconnect Phone Portal")
 def api_phone_reconnect(device: str):
     """Clear Portal cache for a device and re-establish connection."""

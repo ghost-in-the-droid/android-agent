@@ -88,6 +88,7 @@ _CROSS_PLATFORM = {
 
 _IOS_SUPPORTED = {
     "get_current_url": "Currently implemented through iOS WebDriver/WebView state; Android current URL support is not exposed yet.",
+    "read_news": "iOS Chrome/WebDriver news-reading workflow that opens headlines and extracts article snippets.",
 }
 
 _IOS_PLANNED = {}

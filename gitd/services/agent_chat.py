@@ -128,7 +128,7 @@ def platform_context(device: str) -> str:
         return (
             "Target platform: iOS via Appium/WebDriverAgent. Device refs look like ios:<udid>. "
             "Use iOS bundle ids with launch_app, browser tools such as open_url/extract_visible_text/"
-            "extract_articles for web tasks, and avoid Android-only concepts such as ADB shell, "
+            "extract_articles/read_news for web tasks, and avoid Android-only concepts such as ADB shell, "
             "Android intents, Portal overlay, Play Store, and package-manager commands."
         )
     return (
@@ -459,7 +459,7 @@ def _chat_claude_code(session: ChatSession, user_message: str):
 - screenshot: see the screen visually
 - launch_app(package): open an iOS app by bundle id, e.g. com.google.chrome.ios
 - open_camera(mode): open iOS Camera; mode photo/video/selfie/selfie_video, optional timer_s=3|10
-- open_url(url), web_search(query), extract_visible_text, extract_articles, browser_back: browser/web workflows
+- open_url(url), web_search(query), read_news(url), extract_visible_text, extract_articles, browser_back: browser/web workflows
 - press_home / press_back: navigation"""
     else:
         key_tools = """Key tools:
