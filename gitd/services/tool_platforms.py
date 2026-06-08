@@ -79,6 +79,8 @@ _CROSS_PLATFORM = {
     "get_notifications": "Android dumpsys notifications or iOS Notification Center text extraction through WDA.",
     "open_notifications": "Android statusbar expansion or iOS Notification Center swipe gesture.",
     "clear_notifications": "Android notification service clear or best-effort iOS Clear control tap.",
+    "explore_app": "BFS explorer over Android uiautomator XML or normalized iOS WDA XML with iOS tree/screenshot state identity.",
+    "create_skill": "Creates recorded skills with Android package or iOS bundle metadata and per-platform element files.",
     "lookup_lead": "Device-neutral marketing data lookup.",
     "list_unread_leads": "Device-neutral marketing inbox lookup.",
     "wait": "Device-neutral delay.",
@@ -88,10 +90,7 @@ _IOS_SUPPORTED = {
     "get_current_url": "Currently implemented through iOS WebDriver/WebView state; Android current URL support is not exposed yet.",
 }
 
-_IOS_PLANNED = {
-    "explore_app": "Needs explorer state identity based on bundle id, tree hash, and screenshot hash.",
-    "create_skill": "Needs platform compatibility metadata and iOS element recording.",
-}
+_IOS_PLANNED = {}
 
 _ANDROID_ONLY = {
     "shell": "ADB shell has no iOS equivalent.",

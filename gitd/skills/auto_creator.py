@@ -143,6 +143,14 @@ def xml_structure_hash(xml_str: str) -> str:
     return hashlib.md5(skel.encode()).hexdigest()[:12]
 
 
+def ios_state_hash(package: str, activity: str, xml_str: str, screenshot: bytes | None = None) -> str:
+    """Hash iOS state identity from app identity, normalized tree, and pixels."""
+    xml_hash = xml_structure_hash(xml_str)
+    screenshot_hash = hashlib.md5(screenshot or b"").hexdigest()[:12] if screenshot else ""
+    material = "|".join(["ios", package or "", activity or "", xml_hash, screenshot_hash])
+    return hashlib.md5(material.encode()).hexdigest()[:12]
+
+
 # ── Explorer ─────────────────────────────────────────────────────────────────
 
 class AppExplorer:
@@ -259,7 +267,19 @@ class AppExplorer:
             log.warning("Empty XML dump, skipping")
             return None
 
-        state_id = xml_structure_hash(xml_str)
+        activity = self._get_activity()
+        screenshot_bytes: bytes | None = None
+        if self.platform == "ios":
+            try:
+                screenshot_bytes = self._screenshot_bytes()
+            except Exception as e:
+                log.warning(f"Screenshot failed: {e}")
+
+        state_id = (
+            ios_state_hash(self.package, activity, xml_str, screenshot_bytes)
+            if self.platform == "ios"
+            else xml_structure_hash(xml_str)
+        )
 
         # Already visited?
         if state_id in self.states:
@@ -272,12 +292,13 @@ class AppExplorer:
         # Screenshot
         ss_path = self.output_dir / "screenshots" / f"{state_id}.png"
         try:
-            ss_path.write_bytes(self._screenshot_bytes())
+            if screenshot_bytes is None:
+                screenshot_bytes = self._screenshot_bytes()
+            ss_path.write_bytes(screenshot_bytes)
         except Exception as e:
             log.warning(f"Screenshot failed: {e}")
 
         elements = extract_interactive_elements(xml_str)
-        activity = self._get_activity()
 
         state = AppState(
             state_id=state_id,

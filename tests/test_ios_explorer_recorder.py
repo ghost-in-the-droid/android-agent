@@ -1,7 +1,7 @@
 import base64
 import json
 
-from gitd.skills.auto_creator import AppExplorer
+from gitd.skills.auto_creator import AppExplorer, ios_state_hash
 from gitd.skills.macro_recorder import Macro, MacroRecorder, MacroStep
 
 
@@ -80,6 +80,15 @@ def test_ios_app_explorer_uses_bundle_id_and_wda_screenshot(tmp_path):
     assert (tmp_path / "state_graph.json").exists()
     assert (tmp_path / "screenshots" / f"{state['state_id']}.png").read_bytes() == PNG_BYTES
     assert json.loads((tmp_path / "state_graph.json").read_text())["platform"] == "ios"
+
+
+def test_ios_state_hash_uses_bundle_activity_tree_and_screenshot():
+    same = ios_state_hash("com.example.app", "com.example.app", IOS_XML, PNG_BYTES)
+
+    assert ios_state_hash("com.example.app", "com.example.app", IOS_XML, PNG_BYTES) == same
+    assert ios_state_hash("com.other.app", "com.example.app", IOS_XML, PNG_BYTES) != same
+    assert ios_state_hash("com.example.app", "com.other.app", IOS_XML, PNG_BYTES) != same
+    assert ios_state_hash("com.example.app", "com.example.app", IOS_XML, b"different") != same
 
 
 def test_ios_macro_recorder_replays_type_and_home_with_ios_primitives():
