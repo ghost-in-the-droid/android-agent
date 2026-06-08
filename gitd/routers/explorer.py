@@ -3,6 +3,7 @@
 import json
 import shutil
 import subprocess as _subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -49,7 +50,7 @@ def explorer_start(data: dict = Body({})):
     # Start directly as subprocess
     log_file = f"/tmp/explorer_{package.replace('.', '_')}.log"
     cmd = [
-        "python3",
+        sys.executable,
         "-u",
         str(_SCRIPT),
         "--package",

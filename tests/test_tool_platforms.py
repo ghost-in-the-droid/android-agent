@@ -1,5 +1,6 @@
 import ast
 import json
+import sys
 from pathlib import Path
 
 from gitd.services.agent_chat import DEFAULT_SYSTEM, openai_tools_for_device, platform_context, system_prompt_for_device
@@ -104,6 +105,37 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     assert health["connection"]["status"] == "wda_signing_failed"
     assert health["recommended_fix"] == "fix_wda_signing"
     assert unknown == "Unknown tool: does_not_exist"
+
+
+def test_agent_run_skill_uses_current_interpreter(monkeypatch):
+    captured = {}
+
+    class FakeRun:
+        returncode = 0
+        stdout = "skill ok"
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        return FakeRun()
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+
+    result = execute_tool(
+        "run_skill",
+        {
+            "device": "ios:abc123",
+            "skill": "safari",
+            "workflow": "read_news",
+            "params": {"url": "https://text.npr.org/"},
+        },
+    )
+
+    assert result == "skill ok"
+    assert captured["cmd"][:2] == [sys.executable, "-u"]
+    assert "gitd/skills/_run_skill.py" in captured["cmd"][2]
+    assert captured["kwargs"]["timeout"] == 120
 
 
 def test_tools_for_device_filters_by_platform():

@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import subprocess
+import sys
 from datetime import datetime, timedelta
 
 from sqlalchemy import text
@@ -234,7 +235,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
     elif job_type == "app_explore":
         script = script_dir / "skills" / "auto_creator.py"
         package = config.get("package", "")
-        cmd = ["python3", "-u", str(script), "--package", package]
+        cmd = [sys.executable, "-u", str(script), "--package", package]
         if phone:
             cmd += ["--device", phone]
         if config.get("max_depth"):
@@ -253,7 +254,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
         run_type = "workflow" if job_type == "skill_workflow" else "action"
         runner = script_dir / "skills" / "_run_skill.py"
         cmd = [
-            "python3",
+            sys.executable,
             "-u",
             str(runner),
             "--skill",

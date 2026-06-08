@@ -1,4 +1,5 @@
 import json
+import sys
 
 from fastapi.testclient import TestClient
 from sqlalchemy import text
@@ -7,7 +8,7 @@ from gitd.app import app
 from gitd.models.base import SessionLocal
 from gitd.routers.scheduler import _scheduler_platform_error
 from gitd.services.db_helpers import create_scheduled_job
-from gitd.services.job_engine import _job_platform_preflight
+from gitd.services.job_engine import _build_scheduled_cmd, _job_platform_preflight
 
 
 def test_tiktok_scheduler_jobs_are_guarded_on_ios():
@@ -140,6 +141,24 @@ def test_scheduler_allows_ios_supported_skill_job():
     assert err["error"] == "unsupported_platform"
     assert err["skill"] == "tiktok"
     assert "does not support ios" in err["message"]
+
+
+def test_ios_scheduled_skill_and_explorer_commands_use_current_interpreter():
+    skill_cmd = _build_scheduled_cmd(
+        "skill_workflow",
+        {"skill": "safari", "workflow": "read_news", "params": {"url": "https://text.npr.org/"}},
+        "ios:abc123",
+    )
+    explorer_cmd = _build_scheduled_cmd(
+        "app_explore",
+        {"package": "com.google.chrome.ios", "max_depth": 1, "max_states": 3},
+        "ios:abc123",
+    )
+
+    assert skill_cmd[:2] == [sys.executable, "-u"]
+    assert explorer_cmd[:2] == [sys.executable, "-u"]
+    assert "--device" in skill_cmd and "ios:abc123" in skill_cmd
+    assert "--device" in explorer_cmd and "ios:abc123" in explorer_cmd
 
 
 def test_scheduler_update_rejects_moving_android_only_job_to_ios():

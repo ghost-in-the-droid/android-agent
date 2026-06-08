@@ -3,6 +3,7 @@
 import io
 import json
 import shutil
+import sys
 import time
 import zipfile
 from pathlib import Path
@@ -412,7 +413,7 @@ def api_skill_verify(name: str, data: dict = Body({})):
 
     runner = Path(__file__).resolve().parent.parent / "skills" / "_run_skill.py"
     cmd = [
-        "python3",
+        sys.executable,
         "-u",
         str(runner),
         "--skill",
