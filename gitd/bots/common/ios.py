@@ -14,6 +14,7 @@ import json
 import os
 import re
 import signal
+import shlex
 import subprocess
 import threading
 import time
@@ -2320,8 +2321,28 @@ class IOSDevice:
         except requests.RequestException:
             pass
 
+        try:
+            command = shlex.split(os.getenv("IOS_APPIUM_COMMAND", "appium"))
+        except ValueError as e:
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": "start_appium",
+                "manual_action_required": True,
+                "message": f"IOS_APPIUM_COMMAND is not parseable: {e}",
+                "appium_url": self.appium_url,
+            }
+        if not command:
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": "start_appium",
+                "manual_action_required": True,
+                "message": "IOS_APPIUM_COMMAND is empty.",
+                "appium_url": self.appium_url,
+            }
         bind_host = "127.0.0.1" if host == "localhost" else host
-        command = ["appium", "--address", bind_host, "--port", str(port), "--log-level", "info"]
+        command = [*command, "--address", bind_host, "--port", str(port), "--log-level", "info"]
         log_path = os.getenv("IOS_APPIUM_LOG", f"/tmp/gitd-appium-{port}.log")
         try:
             log_fh = open(log_path, "a", encoding="utf-8")

@@ -1302,6 +1302,57 @@ def test_ios_start_appium_server_launches_loopback_process(monkeypatch, tmp_path
     assert calls == ["http://localhost:4729/status", "http://localhost:4729/status"]
 
 
+def test_ios_start_appium_server_honors_command_override(monkeypatch, tmp_path):
+    calls = []
+    popen_calls = []
+    log_path = tmp_path / "appium.log"
+
+    class FakePopen:
+        pid = 2468
+
+        def __init__(self, command, stdin=None, stdout=None, stderr=None, start_new_session=False):
+            popen_calls.append(command)
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append(url)
+        if len(calls) == 1:
+            raise __import__("requests").ConnectionError("connection refused")
+        return FakeResponse({"value": {"ready": True}}, status_code=200)
+
+    monkeypatch.setenv("IOS_APPIUM_COMMAND", "npx appium")
+    monkeypatch.setenv("IOS_APPIUM_LOG", str(log_path))
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    monkeypatch.setattr("gitd.bots.common.ios.subprocess.Popen", FakePopen)
+    monkeypatch.setattr("gitd.bots.common.ios.time.sleep", lambda *_args: None)
+
+    dev = IOSDevice("ios:abc123", appium_url="http://127.0.0.1:4729")
+    result = dev.start_appium_server()
+
+    assert result["ok"] is True
+    assert result["command"] == ["npx", "appium", "--address", "127.0.0.1", "--port", "4729", "--log-level", "info"]
+    assert popen_calls == [result["command"]]
+
+
+def test_ios_start_appium_server_rejects_invalid_command_override(monkeypatch):
+    monkeypatch.setenv("IOS_APPIUM_COMMAND", "npx 'appium")
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.subprocess.Popen",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should not start process")),
+    )
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.requests.request",
+        lambda *args, **kwargs: (_ for _ in ()).throw(__import__("requests").ConnectionError("down")),
+    )
+
+    dev = IOSDevice("ios:abc123", appium_url="http://127.0.0.1:4729")
+    result = dev.start_appium_server()
+
+    assert result["ok"] is False
+    assert result["manual_action_required"] is True
+    assert result["issue"] == "start_appium"
+    assert "IOS_APPIUM_COMMAND is not parseable" in result["message"]
+
+
 def test_ios_start_appium_server_refuses_remote_url():
     dev = IOSDevice("ios:abc123", appium_url="https://appium.example.test:4723")
 
