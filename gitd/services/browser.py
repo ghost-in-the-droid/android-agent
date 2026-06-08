@@ -719,7 +719,9 @@ def _open_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5)
         if url and url_errors:
             first = url_errors[0]
             if "navigation" in first:
-                return "url", first["navigation"]
+                navigation = first["navigation"]
+                error = navigation.get("error") or navigation.get("state") or "article URL navigation failed"
+                raise RuntimeError(f"article URL navigation failed: {error}")
             raise RuntimeError(str(first.get("error") or "article URL navigation failed"))
         raise
 
@@ -816,6 +818,7 @@ def read_news(
         result["extraction"]["front_page_text"] = front_page_evidence
 
         for index, headline in enumerate(headlines[:max_articles], start=1):
+            should_go_back = False
             article_result: dict[str, Any] = {
                 "index": index,
                 "source_headline": headline.get("title", ""),
@@ -829,6 +832,7 @@ def read_news(
             }
             try:
                 open_method, navigation = _open_article_candidate(dev, headline, delay=max(1.0, wait_s))
+                should_go_back = True
                 article_result["open_method"] = open_method
                 article_evidence["open_method"] = open_method
                 if navigation:
@@ -868,10 +872,11 @@ def read_news(
             finally:
                 result["articles"].append(article_result)
                 result["extraction"]["articles"].append(article_evidence)
-                try:
-                    dev.browser_back(delay=1.0)
-                except Exception as exc:
-                    result["errors"].append({"article": headline.get("title", ""), "back_error": str(exc)})
+                if should_go_back:
+                    try:
+                        dev.browser_back(delay=1.0)
+                    except Exception as exc:
+                        result["errors"].append({"article": headline.get("title", ""), "back_error": str(exc)})
 
         requested_articles = min(max_articles, len(result["headlines"]))
         opened_articles = [article for article in result["articles"] if article.get("opened")]
