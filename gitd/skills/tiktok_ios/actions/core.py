@@ -149,6 +149,80 @@ class CaptureVisibleText(Action):
         )
 
 
+class WaitVisibleText(Action):
+    name = "wait_visible_text"
+    description = "Wait until expected TikTok iOS text is visible"
+    max_retries = 1
+
+    def __init__(
+        self,
+        device,
+        elements=None,
+        expected: str = "TikTok",
+        timeout: float = 8.0,
+        interval: float = 0.5,
+        max_lines: int = 300,
+        **kwargs,
+    ):
+        super().__init__(device, elements)
+        self.expected = expected
+        self.timeout = max(0.0, float(timeout))
+        self.interval = max(0.1, float(interval))
+        self.max_lines = max(1, int(max_lines))
+
+    def _visible_text(self) -> str:
+        if hasattr(self.device, "wait_for_text"):
+            try:
+                return self.device.wait_for_text(self.expected, timeout=self.timeout, interval=self.interval)
+            except TypeError:
+                return self.device.wait_for_text(self.expected, timeout=self.timeout)
+        if hasattr(self.device, "extract_visible_text"):
+            return self.device.extract_visible_text(max_lines=self.max_lines)
+        return self.device.dump_xml()
+
+    def execute(self) -> ActionResult:
+        if not _is_ios_device(self.device):
+            return ActionResult(success=False, error="wait_visible_text requires an iOS device ref")
+        if not self.expected:
+            return ActionResult(success=False, error="No expected text provided")
+
+        deadline = time.time() + self.timeout
+        last_text = ""
+        attempts = 0
+        while True:
+            attempts += 1
+            try:
+                last_text = self._visible_text()
+            except Exception as exc:
+                last_text = str(exc)
+            if self.expected.lower() in last_text.lower():
+                lines = [line.strip() for line in last_text.splitlines() if line.strip()]
+                return ActionResult(
+                    success=True,
+                    data={
+                        "expected": self.expected,
+                        "attempts": attempts,
+                        "line_count": len(lines),
+                        "visible_text": "\n".join(lines[: min(12, len(lines))]),
+                    },
+                )
+            if time.time() >= deadline:
+                break
+            time.sleep(min(self.interval, max(0.0, deadline - time.time())))
+
+        lines = [line.strip() for line in last_text.splitlines() if line.strip()]
+        return ActionResult(
+            success=False,
+            error=f"Expected text not visible: {self.expected}",
+            data={
+                "expected": self.expected,
+                "attempts": attempts,
+                "line_count": len(lines),
+                "visible_text": "\n".join(lines[: min(12, len(lines))]),
+            },
+        )
+
+
 class VerifyVisibleText(Action):
     name = "verify_visible_text"
     description = "Verify expected text appears in TikTok iOS XML"

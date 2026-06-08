@@ -137,6 +137,7 @@ class Action(ABC):
                                 duration_ms=(time.time() - t0) * 1000)
 
         last_error = None
+        last_data = {}
         for attempt in range(1, self.max_retries + 1):
             try:
                 result = self.execute()
@@ -145,17 +146,20 @@ class Action(ABC):
                     return result
                 if not result:
                     last_error = result.error or f'{self.name}: execute returned failure'
+                    last_data = result.data
                 else:
                     last_error = f'{self.name}: postcondition failed'
+                    last_data = result.data
                     self.rollback()
             except Exception as e:
                 last_error = f'{self.name}: {e}'
+                last_data = {}
                 log.warning(f'Action {self.name} attempt {attempt} failed: {e}')
 
             if attempt < self.max_retries:
                 time.sleep(self.retry_delay)
 
-        return ActionResult(success=False, error=last_error,
+        return ActionResult(success=False, error=last_error, data=last_data,
                             duration_ms=(time.time() - t0) * 1000)
 
     def find_element(self, name: str, xml: str | None = None) -> tuple[int, int] | None:

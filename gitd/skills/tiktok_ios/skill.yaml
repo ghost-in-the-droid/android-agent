@@ -18,6 +18,7 @@ exports:
     - type_and_search
     - navigate_to_profile
     - capture_visible_text
+    - wait_visible_text
     - verify_visible_text
   workflows:
     - open_app_smoke
@@ -30,11 +31,18 @@ default_params:
       query: "#fyp"
     verify_visible_text:
       expected: "TikTok"
+    wait_visible_text:
+      expected: "TikTok"
+      timeout: 8
+      max_lines: 300
     capture_visible_text:
       max_lines: 80
   workflows:
     search_smoke:
       query: "#fyp"
       max_lines: 80
+      wait_timeout: 8
     profile_smoke:
       max_lines: 80
+      expected: "Profile"
+      wait_timeout: 8
