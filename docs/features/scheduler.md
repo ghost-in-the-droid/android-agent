@@ -70,6 +70,13 @@ State machine per job:
 
 iOS schedules use the same queue and schedule tables, but `ios:<udid>` devices are limited to supported skill workflows and app exploration for now. Android TikTok jobs such as `post`, `publish_draft`, and `crawl` return `unsupported_platform` for iOS because the iOS upload/crawl flows are not ported yet.
 
+TikTok account preflight is partially supported on iOS. The scheduler can launch
+TikTok, read visible WDA text, detect the active handle, and block an observed
+wrong-account run. Calling the account-switch endpoint for the already active
+iOS handle returns a successful no-op; switching from one iOS TikTok account to
+another still returns `unsupported_platform` until the iOS account-switcher flow
+is ported.
+
 The dashboard schedule form detects iOS devices and pre-fills one of these valid `skill_workflow` configs:
 
 ```json
