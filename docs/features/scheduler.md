@@ -105,6 +105,10 @@ without scraping logs:
 curl http://localhost:5055/api/scheduler/history/<run_id>/result | python3 -m json.tool
 ```
 
+In the dashboard, click a completed Recent Runs row to open the run detail panel.
+When structured output is present, the panel shows a compact result section above
+the raw logs; iOS Chrome/news runs render headlines and article snippets.
+
 ## Files
 
 | File | Purpose |
