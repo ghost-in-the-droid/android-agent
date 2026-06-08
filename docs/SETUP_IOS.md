@@ -183,11 +183,12 @@ Android-only for now:
 
 ## Troubleshooting
 
+- Health responses include `connection.status`, `recommended_fix`, and a
+  `recovery.steps` list. Use those fields for dashboard/agent recovery copy.
 - `Could not create Appium iOS session`: confirm Appium is running and `IOS_APPIUM_URL` is correct.
-- `xcodebuild failed`: fix WDA signing in Xcode.
-- Session hangs on real device: unlock the iPhone and accept trust/automation prompts.
+- `appium_down`: start Appium and verify `IOS_APPIUM_URL`.
+- `configured_unreachable`: check `ios:<udid>`, `IOS_DEVICE_UDID`, `IOS_DEVICES_JSON`, Appium URL, WDA URL, and ports.
+- `xcodebuild failed` or `wda_signing_failed`: fix WDA signing/provisioning in Xcode; set `IOS_XCODE_ORG_ID`, `IOS_XCODE_SIGNING_ID`, and `IOS_UPDATED_WDA_BUNDLE_ID`; use `IOS_SHOW_XCODE_LOG=true` for detailed xcodebuild output.
+- Session hangs on real device or `locked`: unlock the iPhone and accept trust/automation prompts.
 - Taps land in the wrong place: compare screenshot dimensions and WDA window rect in `get_phone_state`; Ghost scales WDA points to screenshot pixels and converts back for gestures.
 - Stale session: call `/api/phone/health/ios:<udid>/fix` with `{"issue":"reset_session"}`, restart Appium, or call the smoke script with `--close`.
-- `appium_down` from `/api/phone/health/ios:<udid>` means Ghost cannot reach `IOS_APPIUM_URL`.
-- `wda_signing_failed` means Appium reached Xcode/WDA but signing/provisioning is still incomplete.
-- `locked` means the phone is locked, untrusted, missing Developer Mode, or blocked on an automation/trust prompt.

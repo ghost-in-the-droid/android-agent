@@ -704,6 +704,69 @@ def build_llm_context(
 
 # ── Device health check ──────────────────────────────────────────────────────
 
+_IOS_HEALTH_RECOVERY: dict[str, dict] = {
+    "appium_down": {
+        "code": "start_appium",
+        "summary": "Appium is not reachable at the configured URL.",
+        "steps": [
+            "Start Appium with the XCUITest driver, for example: appium --address 127.0.0.1 --port 4723",
+            "Verify IOS_APPIUM_URL points to the running server.",
+            "Re-run /api/phone/devices?probe=deep or /api/phone/health/ios:<udid>.",
+        ],
+    },
+    "configured_unreachable": {
+        "code": "check_ios_device_config",
+        "summary": "The iOS device ref or Appium/WDA configuration is inconsistent.",
+        "steps": [
+            "Confirm the ref is ios:<udid> and the UDID appears in xcrun xctrace list devices.",
+            "Check IOS_DEVICE_UDID, IOS_DEVICES_JSON, IOS_APPIUM_URL, IOS_WDA_URL, and per-device ports.",
+            "Use a shallow device list first, then a deep probe after config is corrected.",
+        ],
+    },
+    "locked": {
+        "code": "unlock_and_trust_device",
+        "summary": "The iPhone is locked, not trusted, or Developer Mode/UI Automation is blocked.",
+        "steps": [
+            "Unlock the iPhone and keep it awake.",
+            "Accept the Trust This Computer prompt if shown.",
+            "Confirm Developer Mode and UI Automation are enabled, then retry the health probe.",
+        ],
+    },
+    "wda_signing_failed": {
+        "code": "fix_wda_signing",
+        "summary": "WebDriverAgent could not be built, signed, installed, or launched by Xcode/Appium.",
+        "steps": [
+            "Set IOS_XCODE_ORG_ID, IOS_XCODE_SIGNING_ID, and IOS_UPDATED_WDA_BUNDLE_ID for the device/team.",
+            "Unlock the device and manually run a WDA build once if Xcode needs account/device registration.",
+            "Set IOS_SHOW_XCODE_LOG=true for detailed xcodebuild output, then retry with /api/phone/health/ios:<udid>.",
+        ],
+    },
+    "session_error": {
+        "code": "reset_session",
+        "summary": "The cached Appium session is stale or WDA stopped responding.",
+        "steps": [
+            "Call /api/phone/health/ios:<udid>/fix with issue=reset_session.",
+            "If the next probe still fails, restart Appium and rerun the XCUITest tunnel for the device.",
+        ],
+    },
+    "error": {
+        "code": "reset_session",
+        "summary": "Ghost hit an unexpected iOS health-check error.",
+        "steps": [
+            "Reset the Appium session and retry.",
+            "If the error persists, inspect the Appium server log and WDA setup.",
+        ],
+    },
+}
+
+
+def _ios_recovery_for_state(state: str) -> dict:
+    recovery = dict(_IOS_HEALTH_RECOVERY.get(state) or {})
+    if not recovery:
+        return {"code": "", "summary": "iOS Appium/WDA session is usable.", "steps": []}
+    recovery["state"] = state
+    return recovery
+
 
 def device_health(device: str) -> dict:
     """Comprehensive device health check. Returns status for every subsystem."""
@@ -715,14 +778,8 @@ def device_health(device: str) -> dict:
             checks = status.get("checks") or {}
             screenshot_bytes = checks.get("screenshot_bytes") or 0
             source_bytes = checks.get("source_bytes") or 0
-            recommended_fix = {
-                "appium_down": "start_appium",
-                "configured_unreachable": "check_ios_device_config",
-                "locked": "unlock_and_trust_device",
-                "wda_signing_failed": "fix_wda_signing",
-                "session_error": "reset_session",
-                "error": "reset_session",
-            }.get(state, "")
+            recovery = _ios_recovery_for_state(state)
+            recommended_fix = recovery.get("code", "")
             return {
                 "serial": device,
                 "connection": {"type": "appium-wda", "status": state},
@@ -744,16 +801,19 @@ def device_health(device: str) -> dict:
                     "checks": status.get("checks") or {},
                 },
                 "recommended_fix": recommended_fix,
+                "recovery": recovery,
                 "device_info": status,
             }
         except Exception as e:
+            recovery = _ios_recovery_for_state("error")
             return {
                 "serial": device,
                 "connection": {"type": "appium-wda", "status": "error"},
                 "platform": "ios",
                 "appium": {"reachable": False, "message": str(e), "state": "error"},
                 "wda": {"session": "", "screenshot_ok": False, "source_ok": False, "checks": {"error": str(e)}},
-                "recommended_fix": "reset_session",
+                "recommended_fix": recovery["code"],
+                "recovery": recovery,
                 "error": str(e),
             }
     dev = Device(device)
