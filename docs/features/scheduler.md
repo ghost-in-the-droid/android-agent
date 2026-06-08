@@ -77,7 +77,26 @@ iOS handle returns a successful no-op; switching from one iOS TikTok account to
 another still returns `unsupported_platform` until the iOS account-switcher flow
 is ported.
 
-The dashboard schedule form detects iOS devices and pre-fills one of these valid `skill_workflow` configs:
+The dashboard schedule form detects iOS devices and now defaults to the
+release-quality Chrome/news workflow:
+
+```json
+{
+  "skill": "safari",
+  "workflow": "read_news",
+  "params": {
+    "url": "https://text.npr.org/",
+    "max_headlines": 5,
+    "max_articles": 3,
+    "wait_s": 2,
+    "bundle_id": "com.google.chrome.ios",
+    "save_screenshots": true,
+    "out_dir": "data/ios_chrome_news_smoke"
+  }
+}
+```
+
+The same form also exposes TikTok smoke workflows and `app_explore` for iOS:
 
 ```json
 {
@@ -89,28 +108,11 @@ The dashboard schedule form detects iOS devices and pre-fills one of these valid
 }
 ```
 
-The same form also exposes `app_explore` for iOS and pre-fills a bundle-style target:
-
 ```json
 {
   "package": "com.google.chrome.ios",
   "max_depth": 2,
   "max_states": 8
-}
-```
-
-```json
-{
-  "skill": "safari",
-  "workflow": "read_news",
-  "params": {
-    "url": "https://text.npr.org/",
-    "max_headlines": 5,
-    "max_articles": 3,
-    "bundle_id": "com.google.chrome.ios",
-    "save_screenshots": true,
-    "out_dir": "data/ios_chrome_news_smoke"
-  }
 }
 ```
 
