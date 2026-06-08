@@ -289,7 +289,9 @@ Android-only for now:
 ## Troubleshooting
 
 - Health responses include `connection.status`, `recommended_fix`, and a
-  `recovery.steps` list. The dashboard and `fix_device_health` can apply the
+  `recovery.steps` list. iOS RemoteXPC failures also include
+  `recovery.commands` with copyable shell commands when Ghost cannot apply the
+  fix automatically. The dashboard and `fix_device_health` can apply the
   supported automatic fixes; manual states should show the recovery steps.
 - `Could not create Appium iOS session`: confirm Appium is running and `IOS_APPIUM_URL` is correct.
 - `appium_down`: use `fix_device_health("ios:<udid>", "start_appium")` or the

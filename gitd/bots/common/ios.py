@@ -663,9 +663,15 @@ def remote_xpc_manual_recovery(udid: str, tunnel: dict[str, Any] | None = None) 
         steps.append(f"{prefix}: {', '.join(str(proc['pid']) for proc in stale)}")
     else:
         steps.append("Stop any stale XCUITest tunnel process for this device.")
+    kill_command = ""
+    if stale:
+        kill_prefix = "sudo kill" if foreign else "kill"
+        kill_command = f"{kill_prefix} {' '.join(str(proc['pid']) for proc in stale)}"
+    start_command = f"sudo appium driver run xcuitest tunnel-creation --udid {clean_udid}"
+    verify_command = f"curl -s {verify_url}"
     steps.extend(
         [
-            f"Run: sudo appium driver run xcuitest tunnel-creation --udid {clean_udid}",
+            f"Run: {start_command}",
             f"Verify: {verify_url}",
         ]
     )
@@ -677,6 +683,11 @@ def remote_xpc_manual_recovery(udid: str, tunnel: dict[str, Any] | None = None) 
         "processes": processes,
         "foreign_processes": foreign,
         "verify_url": verify_url,
+        "registry_port": registry_port,
+        "commands": [cmd for cmd in [kill_command, start_command, verify_command] if cmd],
+        "kill_command": kill_command,
+        "start_command": start_command,
+        "verify_command": verify_command,
     }
 
 
@@ -772,6 +783,10 @@ def remote_xpc_tunnel_status(udid: str, *, platform_version: str = "", host: dic
                 "ok": False,
                 "state": "stale",
                 "message": "RemoteXPC tunnel registry points at a stale tunnel address.",
+                "registry_address": registry_address,
+                "current_address": current_address,
+                "devicectl_connected": devicectl.get("tunnel_state") == "connected",
+                "stale_reason": "registry_address_mismatch",
             }
         )
         return status

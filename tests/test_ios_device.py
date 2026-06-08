@@ -321,6 +321,10 @@ def test_remote_xpc_tunnel_status_detects_stale_registry_address(monkeypatch):
     assert status["state"] == "stale"
     assert status["registry"]["address"] == "fd5d:d8f1:7a61::1"
     assert status["devicectl"]["tunnel_ip_address"] == "fdc0:1f0c:103c::1"
+    assert status["registry_address"] == "fd5d:d8f1:7a61::1"
+    assert status["current_address"] == "fdc0:1f0c:103c::1"
+    assert status["devicectl_connected"] is True
+    assert status["stale_reason"] == "registry_address_mismatch"
 
 
 def test_remote_xpc_tunnel_status_reports_missing_registry_entry(monkeypatch):
@@ -1060,6 +1064,12 @@ def test_restart_remote_xpc_tunnel_returns_manual_action_for_foreign_process(mon
     assert result["processes"][0]["uid"] == 0
     assert result["recovery"]["code"] == "restart_remote_xpc_tunnel"
     assert "sudo appium driver run xcuitest tunnel-creation --udid abc123" in result["recovery"]["steps"][1]
+    assert result["recovery"]["kill_command"] == "sudo kill 1234"
+    assert result["recovery"]["commands"] == [
+        "sudo kill 1234",
+        "sudo appium driver run xcuitest tunnel-creation --udid abc123",
+        "curl -s http://127.0.0.1:42314/remotexpc/tunnels/abc123",
+    ]
 
 
 def test_ios_error_classifier_promotes_real_device_readiness_failures():
@@ -1197,6 +1207,12 @@ def test_ios_device_health_includes_recovery_steps_for_remote_xpc_tunnel(monkeyp
         "Run: sudo appium driver run xcuitest tunnel-creation --udid abc123",
         "Verify: http://127.0.0.1:42314/remotexpc/tunnels/abc123",
     ]
+    assert health["recovery"]["commands"] == [
+        "sudo kill 1234",
+        "sudo appium driver run xcuitest tunnel-creation --udid abc123",
+        "curl -s http://127.0.0.1:42314/remotexpc/tunnels/abc123",
+    ]
+    assert health["recovery"]["registry_port"] == 42314
 
 
 def test_ios_device_health_includes_recovery_steps_for_wda_signing_failure(monkeypatch):
