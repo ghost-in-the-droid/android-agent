@@ -16,7 +16,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gitd.bots.common.device import get_device
-from gitd.bots.common.ios import IOS_PREFIX, IOSDevice, known_ios_udids
+from gitd.bots.common.ios import (
+    IOS_PREFIX,
+    IOSDevice,
+    configured_ios_udids,
+    discover_host_ios_devices,
+    ios_config_for_udid,
+    known_ios_udids,
+    strip_ios_prefix,
+)
 from gitd.services.browser import read_news
 from gitd.services.device_context import fix_device_health, ios_device_health
 
@@ -25,11 +33,55 @@ def _device_ref(value: str) -> str:
     return value if value.startswith(IOS_PREFIX) else f"{IOS_PREFIX}{value}"
 
 
-def _default_device(value: str) -> str:
+def _default_device(value: str, *, include_simulators: bool = True) -> str:
     if value:
         return value
-    known = known_ios_udids()
+    known = known_ios_udids(include_simulators=include_simulators)
     return known[0] if known else ""
+
+
+def _discovery_plan(selected_device: str = "", *, include_simulators: bool = True) -> dict:
+    selected_udid = strip_ios_prefix(selected_device) if selected_device else ""
+    configured = configured_ios_udids()
+    host_devices = discover_host_ios_devices(include_simulators=include_simulators)
+    host_by_udid = {item["udid"]: item for item in host_devices}
+    udids: list[str] = []
+    for value in [selected_udid, *configured, *(item["udid"] for item in host_devices)]:
+        udid = strip_ios_prefix(str(value or ""))
+        if udid and udid not in udids:
+            udids.append(udid)
+
+    devices = []
+    for udid in udids:
+        cfg = ios_config_for_udid(udid)
+        host = host_by_udid.get(udid, {})
+        source = host.get("source") or ("configured" if udid in configured else "explicit")
+        devices.append(
+            {
+                "device": _device_ref(udid),
+                "udid": udid,
+                "selected": udid == selected_udid if selected_udid else udid == (udids[0] if udids else ""),
+                "source": source,
+                "host_state": host.get("state", ""),
+                "device_name": host.get("name") or cfg.device_name,
+                "platform_version": cfg.platform_version or host.get("platform_version", ""),
+                "appium_url": cfg.appium_url,
+                "bundle_id": cfg.bundle_id,
+                "browser_name": cfg.browser_name,
+                "wda_url": cfg.wda_url,
+                "mjpeg_server_port": cfg.mjpeg_server_port,
+                "mjpeg_screenshot_url": cfg.mjpeg_screenshot_url,
+                "mjpeg_settings": cfg.mjpeg_settings(),
+                "capabilities": cfg.capabilities(),
+            }
+        )
+    selected = next((item for item in devices if item["selected"]), None)
+    return {
+        "ok": bool(devices),
+        "selected_device": selected["device"] if selected else "",
+        "devices": devices,
+        "include_simulators": include_simulators,
+    }
 
 
 def _preflight_health(device: str, bundle_id: str) -> dict:
@@ -50,6 +102,21 @@ def main() -> int:
     parser.add_argument("--max-articles", type=int, default=3)
     parser.add_argument("--wait", type=float, default=2.0)
     parser.add_argument("--out-dir", default="data/ios_chrome_news_smoke")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print resolved device/config plan without creating an Appium/WDA session",
+    )
+    parser.add_argument(
+        "--list-devices",
+        action="store_true",
+        help="Print configured and host-discovered iOS devices without running the smoke workflow",
+    )
+    parser.add_argument(
+        "--no-simulators",
+        action="store_true",
+        help="Exclude booted simulators from dry-run/list discovery",
+    )
     parser.add_argument("--skip-health", action="store_true", help="Skip the Appium/WDA health preflight")
     parser.add_argument(
         "--fix-health",
@@ -58,6 +125,23 @@ def main() -> int:
     )
     parser.add_argument("--close", action="store_true", help="Delete the Appium session before exiting")
     args = parser.parse_args()
+
+    if args.dry_run or args.list_devices:
+        args.device = _default_device(args.device, include_simulators=not args.no_simulators)
+        plan = _discovery_plan(args.device, include_simulators=not args.no_simulators)
+        plan.update(
+            {
+                "workflow": "read_news",
+                "url": args.url,
+                "requested_bundle_id": args.bundle_id,
+                "max_headlines": args.max_headlines,
+                "max_articles": args.max_articles,
+                "wait_s": args.wait,
+                "out_dir": args.out_dir,
+            }
+        )
+        print(json.dumps(plan, indent=2))
+        return 0 if plan.get("ok") else 2
 
     args.device = _default_device(args.device)
     if not args.device:

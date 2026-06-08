@@ -117,7 +117,7 @@ The smoke script is browser/app configurable. On a phone that uses Chrome:
 
 ```bash
 IOS_DEVICE_UDID="<udid>" IOS_BUNDLE_ID="com.google.chrome.ios" \
-python scripts/ios_safari_smoke.py \
+uv run python scripts/ios_safari_smoke.py \
   --url https://ghostinthedroid.com \
   --screenshot-out data/ios_chrome_smoke.png
 ```
@@ -126,7 +126,7 @@ On a simulator or phone with Mobile Safari available:
 
 ```bash
 IOS_DEVICE_UDID="<udid>" IOS_BUNDLE_ID="com.apple.mobilesafari" \
-python scripts/ios_safari_smoke.py \
+uv run python scripts/ios_safari_smoke.py \
   --url https://ghostinthedroid.com \
   --screenshot-out data/ios_browser_smoke.png
 ```
@@ -165,9 +165,23 @@ command Ghost should launch, for example `npx appium` or
 
 Chrome/news workflow smoke:
 
+Before touching Appium/WDA, inspect the resolved device/config plan:
+
+```bash
+uv run python scripts/ios_chrome_news_smoke.py --list-devices
+
+IOS_DEVICE_UDID="<udid>" IOS_BUNDLE_ID="com.google.chrome.ios" \
+uv run python scripts/ios_chrome_news_smoke.py --dry-run --no-simulators
+```
+
+`--list-devices` and `--dry-run` print configured plus host-discovered iPhones
+and booted simulators, the selected `ios:<udid>` ref, Appium URL, bundle
+defaults, WDA URL, and MJPEG settings without creating an Appium/WDA session.
+Use `--no-simulators` when the acceptance run must target real hardware only.
+
 ```bash
 IOS_DEVICE_UDID="<udid>" IOS_BUNDLE_ID="com.google.chrome.ios" \
-python scripts/ios_chrome_news_smoke.py \
+uv run python scripts/ios_chrome_news_smoke.py \
   --url https://text.npr.org/ \
   --max-headlines 5 \
   --max-articles 3 \
