@@ -16,6 +16,7 @@ from gitd.bots.common.ios import (
     IOSDevice,
     _parse_devicectl_details,
     _parse_xctrace_devices,
+    _skill_ios_app_inventory,
     classify_ios_error,
     configured_ios_udids,
     ios_config_for_udid,
@@ -561,6 +562,36 @@ def test_ios_known_apps_env_accepts_name_to_bundle_mapping(monkeypatch):
     assert cfg.known_apps == (("Chrome", "com.google.chrome.ios"), ("NPR", "org.npr.NPR"))
 
 
+def test_ios_skill_app_inventory_reads_local_ios_skill_bundle_ids():
+    bundles = {bundle_id for _name, bundle_id in _skill_ios_app_inventory()}
+
+    assert "com.google.chrome.ios" in bundles
+    assert "com.zhiliaoapp.musically" in bundles
+
+
+def test_list_apps_includes_ios_skill_bundle_candidates(monkeypatch):
+    monkeypatch.delenv("IOS_BUNDLE_ID", raising=False)
+    monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+    monkeypatch.delenv("IOS_KNOWN_APPS_JSON", raising=False)
+    monkeypatch.setattr("gitd.bots.common.ios._skill_ios_app_inventory", lambda: (("NPR Skill", "org.npr.NPR"),))
+
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+
+    apps = dev.list_apps(query="npr", verify=False)
+
+    assert apps == [
+        {
+            "name": "NPR Skill",
+            "package": "org.npr.NPR",
+            "bundle_id": "org.npr.NPR",
+            "platform": "ios",
+            "source": "skill",
+            "verified": False,
+            "installed": None,
+        }
+    ]
+
+
 def test_list_apps_verifies_known_ios_bundles_with_appium(monkeypatch):
     monkeypatch.delenv("IOS_BUNDLE_ID", raising=False)
     monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
@@ -589,7 +620,7 @@ def test_list_apps_verifies_known_ios_bundles_with_appium(monkeypatch):
             "package": "com.google.chrome.ios",
             "bundle_id": "com.google.chrome.ios",
             "platform": "ios",
-            "source": "common",
+            "source": "skill",
             "verified": True,
             "installed": True,
             "app_state": 4,
