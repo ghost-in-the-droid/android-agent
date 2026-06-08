@@ -44,6 +44,8 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("open_notifications", "ios") is True
     assert supports_platform("clear_notifications", "ios") is True
     assert supports_platform("open_camera", "ios") is True
+    assert supports_platform("explore_app", "ios") is True
+    assert supports_platform("create_skill", "ios") is True
 
     assert tool_platform_info("shell").support == "android_only"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
@@ -52,6 +54,8 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert tool_platform_info("list_apps").support == "cross_platform"
     assert tool_platform_info("get_notifications").support == "cross_platform"
     assert tool_platform_info("open_camera").support == "cross_platform"
+    assert tool_platform_info("explore_app").support == "cross_platform"
+    assert tool_platform_info("create_skill").support == "cross_platform"
 
 
 def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):

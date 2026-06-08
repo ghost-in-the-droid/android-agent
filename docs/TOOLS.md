@@ -169,6 +169,20 @@ Runs a workflow only when the skill supports the target platform. Android-only
 skills return a stable unsupported-platform error for `ios:<udid>` instead of
 being queued and failing later.
 
+### `explore_app(device, package, max_depth=2, max_states=10)`
+
+Builds a state graph by launching the app and exploring interactive elements.
+Android state identity uses the existing XML skeleton hash. iOS state identity
+adds bundle/activity, normalized WDA tree hash, and screenshot hash so visually
+different screens with similar accessibility trees do not collapse together.
+
+### `create_skill(name, app_package, steps, platforms="", ios_bundle_id="", elements_ios="", elements_android="")`
+
+Creates a recorded skill from JSON steps. Existing Android calls can keep using
+`app_package`. For iOS, pass `platforms="ios"` and either `ios_bundle_id` or the
+bundle id in `app_package`; optional `elements_ios` and `elements_android` JSON
+maps are written to `elements_ios.yaml` and `elements.yaml`.
+
 ## Intents (escape hatch)
 
 ### `launch_intent(device, action, data, package, extras)`
