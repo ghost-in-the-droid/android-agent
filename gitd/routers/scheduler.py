@@ -16,6 +16,19 @@ from gitd.models.base import get_db
 router = APIRouter(tags=["scheduler"])
 
 
+def _phone_platform(phone_serial: str | None) -> str | None:
+    if not phone_serial:
+        return None
+    from gitd.skills.platforms import platform_for_device_ref
+
+    return platform_for_device_ref(phone_serial)
+
+
+def _annotate_phone_platform(record: dict) -> dict:
+    record["platform"] = _phone_platform(record.get("phone_serial"))
+    return record
+
+
 def _sched_next_run(sched: dict, db: Session) -> str | None:
     """Compute the next scheduled run time as HH:MM string."""
     if sched["schedule_type"] == "daily":
@@ -139,6 +152,7 @@ def schedules_list(db: Session = Depends(get_db)):
     result = []
     for s in scheds:
         s = dict(s)
+        _annotate_phone_platform(s)
         last_run = (
             db.execute(
                 text("SELECT * FROM job_runs WHERE scheduled_job_id = :sid ORDER BY created_at DESC LIMIT 1"),
@@ -147,7 +161,7 @@ def schedules_list(db: Session = Depends(get_db)):
             .mappings()
             .first()
         )
-        s["last_run"] = dict(last_run) if last_run else None
+        s["last_run"] = _annotate_phone_platform(dict(last_run)) if last_run else None
         s["next_run"] = _sched_next_run(s, db) if s.get("is_enabled") else None
         result.append(s)
     return result
@@ -255,14 +269,15 @@ def scheduler_status(db: Session = Depends(get_db)):
     for row in db_running:
         row = dict(row)
         key = row.get("phone_serial") or "__none__"
-        phones[key] = {"running": True, "job": row, "pid": row.get("pid")}
+        _annotate_phone_platform(row)
+        phones[key] = {"running": True, "job": row, "pid": row.get("pid"), "platform": row["platform"]}
     pending = db.execute(
         text("SELECT phone_serial, COUNT(*) as cnt FROM job_queue WHERE status='pending' GROUP BY phone_serial")
     ).fetchall()
     for row in pending:
         key = row[0] or "__none__"
         if key not in phones:
-            phones[key] = {"running": False, "job": None, "pid": None}
+            phones[key] = {"running": False, "job": None, "pid": None, "platform": _phone_platform(row[0])}
         phones[key]["pending"] = row[1]
     return phones
 
@@ -274,6 +289,7 @@ def scheduler_queue(db: Session = Depends(get_db)):
     result = []
     for r in rows:
         r = dict(r)
+        _annotate_phone_platform(r)
         if r.get("scheduled_job_id"):
             s = db.execute(
                 text("SELECT name FROM scheduled_jobs WHERE id = :sid"),
@@ -392,6 +408,7 @@ def scheduler_history(db: Session = Depends(get_db)):
     result = []
     for r in rows:
         r = dict(r)
+        _annotate_phone_platform(r)
         if r.get("scheduled_job_id"):
             s = db.execute(
                 text("SELECT name FROM scheduled_jobs WHERE id = :sid"),
@@ -471,6 +488,7 @@ def scheduler_timeline(db: Session = Depends(get_db)):
             ).first()
             if s:
                 r["schedule_name"] = s[0]
+        _annotate_phone_platform(r)
         past.append(r)
 
     future = []
@@ -489,6 +507,7 @@ def scheduler_timeline(db: Session = Depends(get_db)):
                         "scheduled_job_id": s["id"],
                         "schedule_name": s["name"],
                         "phone_serial": s.get("phone_serial"),
+                        "platform": _phone_platform(s.get("phone_serial")),
                         "job_type": s["job_type"],
                         "time": t,
                         "is_past": t <= now_time,
@@ -517,6 +536,7 @@ def scheduler_timeline(db: Session = Depends(get_db)):
                     "plan_id": cp["id"],
                     "schedule_name": f"CP: {cp.get('style_id', '?')}",
                     "phone_serial": cp.get("phone_serial"),
+                    "platform": _phone_platform(cp.get("phone_serial")),
                     "job_type": "content_plan",
                     "time": cp.get("scheduled_time"),
                     "date": cp.get("scheduled_date"),

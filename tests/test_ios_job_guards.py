@@ -1,5 +1,6 @@
 import json
 import sys
+from datetime import datetime
 
 from fastapi.testclient import TestClient
 from sqlalchemy import text
@@ -7,7 +8,7 @@ from sqlalchemy import text
 from gitd.app import app
 from gitd.models.base import SessionLocal
 from gitd.routers.scheduler import _scheduler_platform_error
-from gitd.services.db_helpers import create_scheduled_job
+from gitd.services.db_helpers import create_scheduled_job, enqueue_job
 from gitd.services.job_engine import _build_scheduled_cmd, _job_platform_preflight
 
 
@@ -219,4 +220,92 @@ def test_scheduler_run_now_rejects_legacy_ios_android_only_schedule():
             db.execute(text("DELETE FROM scheduled_jobs WHERE id = :sid"), {"sid": sid})
             db.execute(text("DELETE FROM job_queue WHERE scheduled_job_id = :sid"), {"sid": sid})
             db.commit()
+        db.close()
+
+
+def test_scheduler_responses_include_platform_metadata_for_ios_jobs():
+    client = TestClient(app)
+    db = SessionLocal()
+    sid = None
+    qid = None
+    run_id = None
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    config = {"skill": "safari", "workflow": "read_news", "params": {"url": "https://text.npr.org/"}}
+    try:
+        sid = create_scheduled_job(
+            db,
+            name="ios news skill",
+            job_type="skill_workflow",
+            phone_serial="ios:abc123",
+            schedule_type="daily",
+            daily_times=["23:59"],
+            config_json=config,
+            is_enabled=1,
+        )
+        qid = enqueue_job(
+            db,
+            scheduled_job_id=sid,
+            phone_serial="ios:abc123",
+            job_type="skill_workflow",
+            config_json=config,
+            status="pending",
+            trigger="manual",
+        )
+        db.execute(
+            text(
+                "INSERT INTO job_runs "
+                "(scheduled_job_id, phone_serial, job_type, priority, config_json, status, "
+                "enqueued_at, started_at, finished_at, duration_s, trigger) "
+                "VALUES (:sid, :phone, :job_type, :priority, :config_json, :status, "
+                ":enqueued_at, :started_at, :finished_at, :duration_s, :trigger)"
+            ),
+            {
+                "sid": sid,
+                "phone": "ios:abc123",
+                "job_type": "skill_workflow",
+                "priority": 2,
+                "config_json": json.dumps(config),
+                "status": "completed",
+                "enqueued_at": now,
+                "started_at": now,
+                "finished_at": now,
+                "duration_s": 1,
+                "trigger": "manual",
+            },
+        )
+        run_id = db.execute(text("SELECT last_insert_rowid()")).scalar()
+        db.commit()
+
+        schedules = client.get("/api/schedules").json()
+        schedule = next(item for item in schedules if item["id"] == sid)
+        assert schedule["platform"] == "ios"
+        assert schedule["last_run"]["platform"] == "ios"
+
+        queue = client.get("/api/scheduler/queue").json()
+        queued = next(item for item in queue if item["id"] == qid)
+        assert queued["platform"] == "ios"
+        assert queued["schedule_name"] == "ios news skill"
+
+        status = client.get("/api/scheduler/status").json()
+        assert status["ios:abc123"]["platform"] == "ios"
+        assert status["ios:abc123"]["pending"] >= 1
+
+        history = client.get("/api/scheduler/history").json()
+        run = next(item for item in history if item["id"] == run_id)
+        assert run["platform"] == "ios"
+        assert run["schedule_name"] == "ios news skill"
+
+        timeline = client.get("/api/scheduler/timeline").json()
+        future = next(item for item in timeline["future"] if item["scheduled_job_id"] == sid)
+        past = next(item for item in timeline["past"] if item["id"] == run_id)
+        assert future["platform"] == "ios"
+        assert past["platform"] == "ios"
+    finally:
+        if qid:
+            db.execute(text("DELETE FROM job_queue WHERE id = :id"), {"id": qid})
+        if run_id:
+            db.execute(text("DELETE FROM job_runs WHERE id = :id"), {"id": run_id})
+        if sid:
+            db.execute(text("DELETE FROM scheduled_jobs WHERE id = :id"), {"id": sid})
+        db.commit()
         db.close()
