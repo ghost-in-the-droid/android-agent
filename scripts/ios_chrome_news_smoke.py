@@ -16,9 +16,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gitd.bots.common.device import get_device
-from gitd.bots.common.ios import IOS_PREFIX, known_ios_udids
+from gitd.bots.common.ios import IOS_PREFIX, IOSDevice, known_ios_udids
 from gitd.services.browser import read_news
-from gitd.services.device_context import device_health
+from gitd.services.device_context import ios_device_health
 
 
 def _device_ref(value: str) -> str:
@@ -30,6 +30,11 @@ def _default_device(value: str) -> str:
         return value
     known = known_ios_udids()
     return known[0] if known else ""
+
+
+def _preflight_health(device: str, bundle_id: str) -> dict:
+    ios_dev = IOSDevice(device, bundle_id=bundle_id or None)
+    return ios_device_health(device, ios_dev)
 
 
 def main() -> int:
@@ -63,7 +68,7 @@ def main() -> int:
         health_path = out_dir / "health.json"
         preflight_health = None
         if not args.skip_health:
-            preflight_health = device_health(device)
+            preflight_health = _preflight_health(device, args.bundle_id)
             health_path.write_text(json.dumps(preflight_health, indent=2), encoding="utf-8")
             state = str(preflight_health.get("connection", {}).get("status") or "")
             if state != "available":

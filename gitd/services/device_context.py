@@ -956,55 +956,59 @@ def ios_recovery_for_state(state: str) -> dict:
     return _ios_recovery_for_state(state)
 
 
+def ios_device_health(device: str, ios_dev=None) -> dict:
+    try:
+        ios_dev = ios_dev or get_device(device)
+        status = ios_dev.probe(deep=True).to_dict()
+        state = status.get("state", "session_error")
+        checks = status.get("checks") or {}
+        screenshot_bytes = checks.get("screenshot_bytes") or 0
+        source_bytes = checks.get("source_bytes") or 0
+        recovery = _ios_recovery_for_state(state)
+        recommended_fix = recovery.get("code", "")
+        return {
+            "serial": device,
+            "connection": {"type": "appium-wda", "status": state},
+            "platform": "ios",
+            "appium": {
+                "url": status.get("appium_url", ""),
+                "session_id": status.get("session_id", ""),
+                "reachable": state not in {"appium_down", "configured_unreachable"},
+                "state": state,
+                "message": status.get("message", ""),
+            },
+            "wda": {
+                "session": status.get("session_id", ""),
+                "active_app": status.get("active_app") or {},
+                "screen_size": status.get("screen_size") or {},
+                "screenshot_ok": bool(screenshot_bytes),
+                "source_ok": bool(source_bytes),
+                "mjpeg_url": ios_dev.mjpeg_url,
+                "mjpeg_settings": ios_dev.mjpeg_settings,
+                "checks": status.get("checks") or {},
+            },
+            "recommended_fix": recommended_fix,
+            "recovery": recovery,
+            "device_info": status,
+        }
+    except Exception as e:
+        recovery = _ios_recovery_for_state("error")
+        return {
+            "serial": device,
+            "connection": {"type": "appium-wda", "status": "error"},
+            "platform": "ios",
+            "appium": {"reachable": False, "message": str(e), "state": "error"},
+            "wda": {"session": "", "screenshot_ok": False, "source_ok": False, "checks": {"error": str(e)}},
+            "recommended_fix": recovery["code"],
+            "recovery": recovery,
+            "error": str(e),
+        }
+
+
 def device_health(device: str) -> dict:
     """Comprehensive device health check. Returns status for every subsystem."""
     if is_ios_ref(device):
-        try:
-            ios_dev = get_device(device)
-            status = ios_dev.probe(deep=True).to_dict()
-            state = status.get("state", "session_error")
-            checks = status.get("checks") or {}
-            screenshot_bytes = checks.get("screenshot_bytes") or 0
-            source_bytes = checks.get("source_bytes") or 0
-            recovery = _ios_recovery_for_state(state)
-            recommended_fix = recovery.get("code", "")
-            return {
-                "serial": device,
-                "connection": {"type": "appium-wda", "status": state},
-                "platform": "ios",
-                "appium": {
-                    "url": status.get("appium_url", ""),
-                    "session_id": status.get("session_id", ""),
-                    "reachable": state not in {"appium_down", "configured_unreachable"},
-                    "state": state,
-                    "message": status.get("message", ""),
-                },
-                "wda": {
-                    "session": status.get("session_id", ""),
-                    "active_app": status.get("active_app") or {},
-                    "screen_size": status.get("screen_size") or {},
-                    "screenshot_ok": bool(screenshot_bytes),
-                    "source_ok": bool(source_bytes),
-                    "mjpeg_url": ios_dev.mjpeg_url,
-                    "mjpeg_settings": ios_dev.mjpeg_settings,
-                    "checks": status.get("checks") or {},
-                },
-                "recommended_fix": recommended_fix,
-                "recovery": recovery,
-                "device_info": status,
-            }
-        except Exception as e:
-            recovery = _ios_recovery_for_state("error")
-            return {
-                "serial": device,
-                "connection": {"type": "appium-wda", "status": "error"},
-                "platform": "ios",
-                "appium": {"reachable": False, "message": str(e), "state": "error"},
-                "wda": {"session": "", "screenshot_ok": False, "source_ok": False, "checks": {"error": str(e)}},
-                "recommended_fix": recovery["code"],
-                "recovery": recovery,
-                "error": str(e),
-            }
+        return ios_device_health(device)
     dev = Device(device)
     health = {"serial": device}
 
