@@ -26,6 +26,10 @@ serials receive Android-supported tools; `ios:<udid>` sessions receive only
 iOS-supported and cross-platform tools. The full catalog remains visible in
 the tools hub for auditing.
 
+The dashboard Tools Hub displays Android/iOS support badges from the same
+platform registry. When testing a device-scoped tool, it blocks unsupported
+tool/device combinations before dispatching to `/api/tools/test`.
+
 ## App lifecycle
 
 ### `launch_app(device, package, fresh=false)`

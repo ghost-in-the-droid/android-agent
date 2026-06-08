@@ -3,7 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from '@/composables/useApi'
 
 interface ToolParam { name: string; type: string; required: boolean; default?: any }
-interface Tool { name: string; description: string; params: ToolParam[]; category: string }
+interface ToolPlatformSupport { support: string; android: boolean; ios: boolean; notes?: string }
+interface Tool { name: string; description: string; params: ToolParam[]; category: string; platform_support?: ToolPlatformSupport }
 interface ToolGroup { category: string; tools: Tool[] }
 
 const groups = ref<ToolGroup[]>([])
@@ -33,6 +34,47 @@ const filteredGroups = computed(() => {
 })
 
 const totalTools = computed(() => groups.value.reduce((sum, g) => sum + g.tools.length, 0))
+const selectedDevicePlatform = computed(() => testDevice.value.startsWith('ios:') ? 'ios' : 'android')
+const selectedToolNeedsDevice = computed(() =>
+  !!selectedTool.value?.params.some(p => p.name === 'device')
+)
+const selectedToolSupportsDevice = computed(() => {
+  if (!selectedTool.value || !selectedToolNeedsDevice.value) return true
+  return toolSupportsPlatform(selectedTool.value, selectedDevicePlatform.value)
+})
+const selectedToolSupportMessage = computed(() => {
+  if (!selectedTool.value || !selectedToolNeedsDevice.value || selectedToolSupportsDevice.value) return ''
+  const platform = selectedDevicePlatform.value === 'ios' ? 'iOS' : 'Android'
+  return `${selectedTool.value.name} does not support ${platform}. ${selectedTool.value.platform_support?.notes || ''}`.trim()
+})
+
+function isIosSerial(serial: string): boolean {
+  return serial.startsWith('ios:')
+}
+
+function deviceLabel(device: { serial: string; nickname?: string }): string {
+  const platform = isIosSerial(device.serial) ? 'iOS' : 'Android'
+  return `${device.nickname || device.serial} (${platform})`
+}
+
+function toolSupportsPlatform(tool: Tool, platform: 'android' | 'ios'): boolean {
+  const support = tool.platform_support
+  if (!support) return true
+  return platform === 'ios' ? !!support.ios : !!support.android
+}
+
+function supportLabel(tool: Tool): string {
+  const support = tool.platform_support
+  if (!support) return 'Unaudited'
+  if (support.android && support.ios) return 'Android + iOS'
+  if (support.ios) return 'iOS only'
+  if (support.android) return support.support === 'ios_planned' ? 'Android, iOS planned' : 'Android only'
+  return support.support || 'Unsupported'
+}
+
+function supportBadgeClass(tool: Tool, platform: 'android' | 'ios'): string {
+  return toolSupportsPlatform(tool, platform) ? 'tool-platform-badge--on' : 'tool-platform-badge--off'
+}
 
 async function load() {
   loading.value = true
@@ -55,6 +97,11 @@ function selectTool(tool: Tool) {
 
 async function runTest() {
   if (!selectedTool.value) return
+  if (!selectedToolSupportsDevice.value) {
+    testDuration.value = 0
+    testResult.value = `ERROR: ${selectedToolSupportMessage.value}`
+    return
+  }
   testRunning.value = true
   testResult.value = ''
   // Update device arg
@@ -115,6 +162,11 @@ onMounted(load)
                 {{ t.params.filter(p => p.required).length }} req / {{ t.params.length }} params
               </span>
             </div>
+            <div class="tool-platform-row">
+              <span class="tool-platform-badge" :class="supportBadgeClass(t, 'android')">Android</span>
+              <span class="tool-platform-badge" :class="supportBadgeClass(t, 'ios')">iOS</span>
+              <span class="tool-platform-summary">{{ supportLabel(t) }}</span>
+            </div>
             <div style="font-size: 11px; color: var(--text-3); line-height: 1.4">{{ t.description }}</div>
           </div>
         </div>
@@ -133,7 +185,13 @@ onMounted(load)
             {{ selectedTool.name }}
           </div>
           <div style="font-size: 10px; color: #6366f1; margin-bottom: 8px">{{ selectedTool.category }}</div>
+          <div class="tool-platform-row tool-platform-row--detail">
+            <span class="tool-platform-badge" :class="supportBadgeClass(selectedTool, 'android')">Android</span>
+            <span class="tool-platform-badge" :class="supportBadgeClass(selectedTool, 'ios')">iOS</span>
+            <span class="tool-platform-summary">{{ supportLabel(selectedTool) }}</span>
+          </div>
           <div style="font-size: 12px; color: var(--text-2); line-height: 1.5">{{ selectedTool.description }}</div>
+          <div v-if="selectedTool.platform_support?.notes" class="tool-platform-notes">{{ selectedTool.platform_support.notes }}</div>
         </div>
 
         <!-- Parameters -->
@@ -146,13 +204,13 @@ onMounted(load)
               <span style="font-size: 9px; color: var(--text-4); background: var(--bg-deep); padding: 1px 5px; border-radius: 3px">{{ p.type }}</span>
               <span v-if="p.required" style="font-size: 9px; color: #f59e0b">required</span>
             </div>
-            <input v-if="p.name === 'device'"
+            <select v-if="p.name === 'device' && devices.length" v-model="testDevice"
+              style="width: 100%; padding: 6px; font-size: 11px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1)">
+              <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ deviceLabel(d) }}</option>
+            </select>
+            <input v-else-if="p.name === 'device'"
               v-model="testDevice"
               style="width: 100%; padding: 6px 10px; font-size: 11px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1); outline: none; font-family: monospace" />
-            <select v-else-if="p.name === 'device'" v-model="testDevice"
-              style="width: 100%; padding: 6px; font-size: 11px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1)">
-              <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ d.nickname || d.serial }}</option>
-            </select>
             <input v-else v-model="testArgs[p.name]"
               :placeholder="p.default != null ? String(p.default) : ''"
               style="width: 100%; padding: 6px 10px; font-size: 11px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1); outline: none; font-family: monospace" />
@@ -164,13 +222,16 @@ onMounted(load)
             <select v-model="testDevice"
               style="width: 100%; padding: 6px; font-size: 11px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1)"
               @change="testArgs.device = testDevice">
-              <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ d.nickname || d.serial }}</option>
+              <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ deviceLabel(d) }}</option>
             </select>
           </div>
+          <div v-if="selectedToolSupportMessage" class="tool-platform-warning">
+            {{ selectedToolSupportMessage }}
+          </div>
 
-          <button @click="runTest" :disabled="testRunning"
+          <button @click="runTest" :disabled="testRunning || !selectedToolSupportsDevice"
             style="width: 100%; padding: 8px; font-size: 12px; font-weight: 600; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 4px"
-            :style="{ opacity: testRunning ? 0.5 : 1 }">
+            :style="{ opacity: testRunning || !selectedToolSupportsDevice ? 0.5 : 1 }">
             {{ testRunning ? 'Running...' : '▶ Test Tool' }}
           </button>
         </div>
@@ -188,3 +249,65 @@ onMounted(load)
     </div>
   </div>
 </template>
+
+<style scoped>
+.tool-platform-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 6px;
+}
+
+.tool-platform-row--detail {
+  margin-bottom: 10px;
+}
+
+.tool-platform-badge {
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0;
+  border: 1px solid transparent;
+}
+
+.tool-platform-badge--on {
+  color: #bbf7d0;
+  background: rgba(22, 101, 52, 0.32);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.tool-platform-badge--off {
+  color: #64748b;
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+.tool-platform-summary {
+  color: var(--text-4);
+  font-size: 9px;
+}
+
+.tool-platform-notes {
+  margin-top: 8px;
+  padding: 8px;
+  color: #94a3b8;
+  background: #0a0e14;
+  border: 1px solid #1e2438;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.tool-platform-warning {
+  margin-bottom: 8px;
+  padding: 8px;
+  color: #fca5a5;
+  background: rgba(127, 29, 29, 0.22);
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+</style>
