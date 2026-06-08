@@ -47,6 +47,15 @@ interface RtcSession { pc: RTCPeerConnection; sessionId: string; pollTimer: numb
 const rtcSessions = ref<Record<string, RtcSession>>({})
 const rtcStatus = ref<Record<string, string>>({})
 
+interface RecordingResponse {
+  ok?: boolean
+  running?: boolean
+  filename?: string
+  mode?: string
+  url?: string
+  error?: string
+}
+
 function isIosSerial(serial: string): boolean {
   return serial.startsWith('ios:')
 }
@@ -363,6 +372,80 @@ function hardwareKeys(serial: string): { label: string; key: number | string; ti
     { label: 'Vol+', key: 24, title: 'Volume up' },
     { label: 'Vol-', key: 25, title: 'Volume down' },
   ]
+}
+
+/* ── screen recording ───────────────────────────────────────────────── */
+const recordingState = ref<Record<string, boolean>>({})
+const recordingBusy = ref<Record<string, boolean>>({})
+const recordingStatus = ref<Record<string, string>>({})
+const recordingUrls = ref<Record<string, string>>({})
+const recordingFilenames = ref<Record<string, string>>({})
+
+function applyRecordingStatus(serial: string, result: RecordingResponse) {
+  recordingState.value[serial] = !!result.running
+  if (result.filename) recordingFilenames.value[serial] = result.filename
+  if (result.url) recordingUrls.value[serial] = result.url
+  if (result.error) {
+    recordingStatus.value[serial] = result.error
+  } else if (result.running) {
+    recordingStatus.value[serial] = result.mode ? `Recording ${result.mode}` : 'Recording'
+  } else if (result.url) {
+    recordingStatus.value[serial] = 'Saved recording'
+  } else {
+    recordingStatus.value[serial] = ''
+  }
+}
+
+function recordingErrorText(error: unknown): string {
+  if (error instanceof Error) return error.message.replace(/^API \d+:\s*/, '')
+  return 'Recording request failed'
+}
+
+async function refreshRecordingStatus(serial: string) {
+  if (!serial) return
+  try {
+    const result = await api<RecordingResponse>(`/api/phone/recording/status/${encodeURIComponent(serial)}`)
+    applyRecordingStatus(serial, result)
+  } catch (error) {
+    recordingStatus.value[serial] = recordingErrorText(error)
+  }
+}
+
+function refreshAllRecordingStatus() {
+  for (const d of devices.value) refreshRecordingStatus(d.serial)
+}
+
+function recordingButtonText(serial: string): string {
+  if (recordingBusy.value[serial]) return '...'
+  return recordingState.value[serial] ? 'Stop Rec' : 'Record'
+}
+
+function recordingTinyText(serial: string): string {
+  if (recordingBusy.value[serial]) return '...'
+  return recordingState.value[serial] ? 'Stop' : 'Rec'
+}
+
+function recordingTitle(serial: string): string {
+  if (recordingState.value[serial]) return 'Stop screen recording and save MP4'
+  return isIosSerial(serial) ? 'Record WDA MJPEG stream to MP4' : 'Record Android screen to MP4'
+}
+
+async function toggleRecording(serial: string) {
+  if (!serial || recordingBusy.value[serial]) return
+  recordingBusy.value[serial] = true
+  recordingStatus.value[serial] = ''
+  try {
+    const endpoint = recordingState.value[serial] ? '/api/phone/recording/stop' : '/api/phone/recording/start'
+    const result = await api<RecordingResponse>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify({ device: serial })
+    })
+    applyRecordingStatus(serial, result)
+  } catch (error) {
+    recordingStatus.value[serial] = recordingErrorText(error)
+  } finally {
+    recordingBusy.value[serial] = false
+  }
 }
 
 /* ── Frozen stream detection ──────────────────────────────────────────── */
@@ -999,6 +1082,7 @@ async function loadDevices() {
     devices.value = resp.devices || resp || []
     if (devices.value.length && !selectedDevice.value) selectedDevice.value = devices.value[0].serial
     statusText.value = devices.value.length ? `${devices.value.length} device(s)` : 'No devices'
+    refreshAllRecordingStatus()
   } catch (e: any) { statusText.value = e.message || 'ADB error' }
 }
 
@@ -1036,7 +1120,11 @@ onMounted(async () => {
   multiLogTimer = window.setInterval(pollMultiLogs, 4000)
   pollMultiLogs()
 })
-watch(selectedDevice, () => { loadConversations(); chatClear() })
+watch(selectedDevice, () => {
+  loadConversations()
+  chatClear()
+  refreshRecordingStatus(selectedDevice.value)
+})
 onUnmounted(() => {
   // Clean up all RTC sessions
   for (const serial of Object.keys(rtcSessions.value)) rtcStop(serial)
@@ -1207,9 +1295,23 @@ onUnmounted(() => {
             <span v-for="(c, i) in healthDots(selectedDevice)" :key="i" class="health-dot" :style="{ background: healthDotColor(c) }"></span>
           </span>
           <button v-if="iosHealthCanReset(selectedDevice)" class="ctrl-btn ctrl-btn--fix" @click="fixIssue(selectedDevice, 'reset_session')" title="Reset iOS Appium session">Reset WDA</button>
+          <button v-if="selectedDevice" class="ctrl-btn ctrl-btn--record"
+            :class="{ 'ctrl-btn--record-active': recordingState[selectedDevice] }"
+            :disabled="recordingBusy[selectedDevice]"
+            :title="recordingTitle(selectedDevice)"
+            @click="toggleRecording(selectedDevice)">
+            {{ recordingButtonText(selectedDevice) }}
+          </button>
+          <a v-if="recordingUrls[selectedDevice]" class="ctrl-btn ctrl-btn--record-link"
+            :href="recordingUrls[selectedDevice]" target="_blank" rel="noopener"
+            :title="recordingFilenames[selectedDevice] || 'Open recording'">MP4</a>
           <button v-if="streaming" class="ctrl-btn ctrl-btn--stop" style="font-size:9px;padding:3px 8px" @click="stopStream">&#x23F9; Stop</button>
           <button v-if="!selectedIsIos" class="ctrl-btn" style="font-size:9px;padding:3px 6px" @click="toggleOverlay(selectedDevice)"
             :style="{ background: overlayOn[selectedDevice] ? '#fbbf24' : '', color: overlayOn[selectedDevice] ? '#000' : '#fbbf24' }">&#x1F522;</button>
+        </div>
+        <div v-if="recordingStatus[selectedDevice]" class="recording-status-line" :title="recordingStatus[selectedDevice]">
+          <span v-if="recordingState[selectedDevice]" class="recording-dot"></span>
+          {{ recordingStatus[selectedDevice] }}
         </div>
         <div v-if="iosRecoveryVisible(selectedDevice)" class="ios-recovery-panel">
           <div class="ios-recovery-head">
@@ -1307,6 +1409,16 @@ onUnmounted(() => {
               <button v-if="rtcStatus[d.serial]?.includes('Portal') || rtcStatus[d.serial]?.includes('fix')"
                 class="ctrl-btn ctrl-btn--fix"
                 @click="rtcFixPortal(d.serial)" title="Fix Portal">Fix</button>
+              <button class="ctrl-btn ctrl-btn--record ctrl-btn--tiny"
+                :class="{ 'ctrl-btn--record-active': recordingState[d.serial] }"
+                :disabled="recordingBusy[d.serial]"
+                :title="recordingTitle(d.serial)"
+                @click="toggleRecording(d.serial)">
+                {{ recordingTinyText(d.serial) }}
+              </button>
+              <a v-if="recordingUrls[d.serial]" class="ctrl-btn ctrl-btn--record-link ctrl-btn--tiny"
+                :href="recordingUrls[d.serial]" target="_blank" rel="noopener"
+                :title="recordingFilenames[d.serial] || 'Open recording'">MP4</a>
               <template v-if="!multiStreaming[d.serial]">
                 <button v-if="!isIosSerial(d.serial)" class="ctrl-btn ctrl-btn--webrtc ctrl-btn--tiny" @click="startMultiStream(d.serial, 'rtc')" title="WebRTC">&#x26A1;</button>
                 <button class="ctrl-btn ctrl-btn--mjpeg ctrl-btn--tiny" @click="startMultiStream(d.serial, 'mjpeg')" title="MJPEG">&#x25B6;</button>
@@ -1323,6 +1435,10 @@ onUnmounted(() => {
           <div v-if="iosRecoveryVisible(d.serial)" class="ios-recovery-compact" :title="healthTitle(d.serial)">
             <span>{{ iosRecoveryState(d.serial) }}</span>
             <span v-if="iosRecoveryCode(d.serial)">{{ iosRecoveryCode(d.serial) }}</span>
+          </div>
+          <div v-if="recordingStatus[d.serial]" class="multi-recording-status" :title="recordingStatus[d.serial]">
+            <span v-if="recordingState[d.serial]" class="recording-dot"></span>
+            {{ recordingStatus[d.serial] }}
           </div>
 
           <!-- Stream area -->
@@ -1622,6 +1738,10 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 .ctrl-btn:hover { border-color: var(--accent); color: var(--text-1); }
+.ctrl-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 
 .ctrl-btn--webrtc { background: #0ea5e9; color: #fff; border-color: #0ea5e9; }
 .ctrl-btn--webrtc:hover { background: #0284c7; border-color: #0284c7; }
@@ -1630,8 +1750,59 @@ onUnmounted(() => {
 .ctrl-btn--stop { border-color: #475569; color: var(--text-3); }
 .ctrl-btn--confirm { color: #34d399; border-color: #34d399; }
 .ctrl-btn--fix { background: #f59e0b; color: #000; border: none; font-size: 9px; padding: 2px 6px; }
+.ctrl-btn--record {
+  border-color: #7f1d1d;
+  color: #fca5a5;
+  background: #1f1118;
+}
+.ctrl-btn--record:hover:not(:disabled) {
+  border-color: #ef4444;
+  color: #fecaca;
+}
+.ctrl-btn--record-active {
+  background: #ef444433;
+  border-color: #ef444466;
+  color: #fecaca;
+}
+.ctrl-btn--record-link {
+  border-color: #164e63;
+  color: #67e8f9;
+  background: #082f49;
+  text-decoration: none;
+}
 
 .ctrl-btn--tiny { font-size: 9px; padding: 2px 6px; }
+
+.recording-status-line,
+.multi-recording-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+
+.recording-status-line {
+  padding: 0 6px;
+  font-size: 9px;
+}
+
+.multi-recording-status {
+  padding: 2px 6px 0;
+  font-size: 8px;
+}
+
+.recording-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 2px #7f1d1d55;
+  flex-shrink: 0;
+}
 
 .btn-grid {
   display: grid;
