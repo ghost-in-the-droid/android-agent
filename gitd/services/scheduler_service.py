@@ -9,6 +9,7 @@ Public API:
     stop()   — set the stop flag (thread exits on next iteration)
 """
 
+import json
 import logging
 import os
 import signal
@@ -33,9 +34,12 @@ except ImportError:
     _content_plan_tick = None  # Premium feature
 from gitd.services.job_engine import (
     _is_job_due,
+    _job_platform_preflight,
     _kill_scheduled_job,
     _phone_procs,
     _process_phone_queue,
+    _skill_config_preflight,
+    _skill_platform_preflight,
 )
 
 logger = logging.getLogger(__name__)
@@ -96,6 +100,94 @@ def _wifi_reconnect_tick(db):
 
 
 # ── Main tick ───────────────────────────────────────────────────────────────
+
+
+def _coerce_config(value) -> dict:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str) and value.strip():
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _scheduled_job_preflight_error(sched: dict) -> str | None:
+    """Return the first scheduler preflight error that should block enqueue."""
+    job_type = str(sched.get("job_type") or "")
+    phone = sched.get("phone_serial")
+    config = _coerce_config(sched.get("config_json"))
+
+    message = _skill_config_preflight(job_type, config)
+    if message:
+        return message
+
+    message = _job_platform_preflight(phone, job_type)
+    if message:
+        return message
+
+    return _skill_platform_preflight(phone, job_type, config)
+
+
+def _record_blocked_scheduled_job(db, sched: dict, reason: str, now: datetime) -> int:
+    """Record a due scheduled job that failed preflight before entering queue."""
+    ts = now.strftime("%Y-%m-%d %H:%M:%S")
+    config_json = sched.get("config_json") or "{}"
+    if isinstance(config_json, dict):
+        config_json = json.dumps(config_json)
+    db.execute(
+        text(
+            "INSERT INTO job_runs "
+            "(scheduled_job_id, phone_serial, job_type, priority, config_json, status, "
+            "enqueued_at, started_at, finished_at, duration_s, exit_code, error_msg, trigger) "
+            "VALUES (:scheduled_job_id, :phone_serial, :job_type, :priority, :config_json, :status, "
+            ":enqueued_at, :started_at, :finished_at, :duration_s, :exit_code, :error_msg, :trigger)"
+        ),
+        {
+            "scheduled_job_id": sched.get("id"),
+            "phone_serial": sched.get("phone_serial"),
+            "job_type": sched.get("job_type"),
+            "priority": sched.get("priority", 2),
+            "config_json": config_json,
+            "status": "failed",
+            "enqueued_at": ts,
+            "started_at": ts,
+            "finished_at": ts,
+            "duration_s": 0,
+            "exit_code": None,
+            "error_msg": f"preflight: {reason}",
+            "trigger": "scheduled",
+        },
+    )
+    run_id = db.execute(text("SELECT last_insert_rowid()")).scalar()
+    db.commit()
+    return int(run_id)
+
+
+def _enqueue_due_schedule(db, sched: dict, now: datetime) -> dict:
+    reason = _scheduled_job_preflight_error(sched)
+    if reason:
+        run_id = _record_blocked_scheduled_job(db, sched, reason, now)
+        logger.warning(
+            "Scheduled job #%s (%s) blocked before enqueue: %s",
+            sched.get("id"),
+            sched.get("job_type"),
+            reason,
+        )
+        return {"ok": False, "run_id": run_id, "error": reason}
+
+    queue_id = _enqueue_job(
+        db,
+        scheduled_job_id=sched["id"],
+        phone_serial=sched.get("phone_serial"),
+        job_type=sched["job_type"],
+        priority=sched.get("priority", 2),
+        config_json=sched.get("config_json", "{}"),
+        max_duration_s=sched.get("max_duration_s", 3600),
+    )
+    return {"ok": True, "queue_id": queue_id}
 
 
 def _scheduler_tick():
@@ -175,15 +267,7 @@ def _scheduler_tick():
             for s in scheds:
                 s = dict(s)
                 if _is_job_due(s, now, db):
-                    _enqueue_job(
-                        db,
-                        scheduled_job_id=s["id"],
-                        phone_serial=s.get("phone_serial"),
-                        job_type=s["job_type"],
-                        priority=s.get("priority", 2),
-                        config_json=s.get("config_json", "{}"),
-                        max_duration_s=s.get("max_duration_s", 3600),
-                    )
+                    _enqueue_due_schedule(db, s, now)
 
             # 2. Collect all phones with pending/running work
             phones = set()
