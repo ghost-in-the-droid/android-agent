@@ -23,6 +23,9 @@ const logPanelTitle = ref('')
 const logPanelLines = ref<string[]>([])
 const logPanelAutoScroll = ref(true)
 const logPanelSource = ref<{ type: 'queue' | 'history'; id: number } | null>(null)
+const logPanelResult = ref<any | null>(null)
+const logPanelResultLoading = ref(false)
+const logPanelResultError = ref('')
 let logPollTimer: number | null = null
 
 /* form state */
@@ -131,9 +134,13 @@ function openLogPanel(source: { type: 'queue' | 'history'; id: number }, title: 
   logPanelOpen.value = true
   logPanelTitle.value = title
   logPanelLines.value = []
+  logPanelResult.value = null
+  logPanelResultLoading.value = false
+  logPanelResultError.value = ''
   logPanelAutoScroll.value = true
   logPanelSource.value = source
   pollLogPanel()
+  loadLogPanelResult(source)
   if (logPollTimer) clearInterval(logPollTimer)
   logPollTimer = window.setInterval(pollLogPanel, 1500)
 }
@@ -142,7 +149,32 @@ function closeLogPanel() {
   logPanelOpen.value = false
   logPanelSource.value = null
   logPanelLines.value = []
+  logPanelResult.value = null
+  logPanelResultLoading.value = false
+  logPanelResultError.value = ''
   if (logPollTimer) { clearInterval(logPollTimer); logPollTimer = null }
+}
+
+async function loadLogPanelResult(source: { type: 'queue' | 'history'; id: number }) {
+  if (source.type !== 'history') return
+  const stillCurrent = () => logPanelSource.value?.type === source.type && logPanelSource.value?.id === source.id
+  logPanelResultLoading.value = true
+  try {
+    const resp = await api(`/api/scheduler/history/${source.id}/result`)
+    if (!stillCurrent()) return
+    if (resp?.ok && resp.result) {
+      logPanelResult.value = resp
+    } else {
+      logPanelResult.value = null
+      logPanelResultError.value = resp?.error || ''
+    }
+  } catch (e: any) {
+    if (!stillCurrent()) return
+    logPanelResult.value = null
+    logPanelResultError.value = e?.message || 'result unavailable'
+  } finally {
+    if (stillCurrent()) logPanelResultLoading.value = false
+  }
 }
 
 async function pollLogPanel() {
@@ -280,6 +312,58 @@ function parseTimes(s: any): string {
 
 function parseConfig(json: string): any {
   try { return JSON.parse(json || '{}') } catch { return {} }
+}
+
+function findNestedResult(data: any, predicate: (item: any) => boolean): any | null {
+  if (!data || typeof data !== 'object') return null
+  if (predicate(data)) return data
+  if (data.data && typeof data.data === 'object') {
+    const nested = findNestedResult(data.data, predicate)
+    if (nested) return nested
+  }
+  const steps = Array.isArray(data.step_results) ? data.step_results : []
+  for (const step of steps) {
+    const nested = findNestedResult(step?.data, predicate)
+    if (nested) return nested
+  }
+  return null
+}
+
+const logPanelReadNews = computed(() =>
+  findNestedResult(
+    logPanelResult.value?.result,
+    item => Array.isArray(item?.headlines) && Array.isArray(item?.articles),
+  )
+)
+
+const logPanelGenericResult = computed(() => {
+  const result = logPanelResult.value?.result
+  if (!result || logPanelReadNews.value) return null
+  return result
+})
+
+const logPanelHeadlines = computed(() =>
+  Array.isArray(logPanelReadNews.value?.headlines) ? logPanelReadNews.value.headlines.slice(0, 5) : []
+)
+
+const logPanelArticles = computed(() =>
+  Array.isArray(logPanelReadNews.value?.articles) ? logPanelReadNews.value.articles.slice(0, 3) : []
+)
+
+const logPanelResultJson = computed(() =>
+  logPanelGenericResult.value ? JSON.stringify(logPanelGenericResult.value, null, 2) : ''
+)
+
+function resultTitle(item: any): string {
+  return String(item?.title || item?.page_title || item?.source_headline || '').trim()
+}
+
+function resultUrl(item: any): string {
+  return String(item?.url || item?.current_url || '').trim()
+}
+
+function resultSnippet(item: any): string {
+  return String(item?.body_snippet || item?.text || '').trim()
 }
 
 function stringifyConfig(config: Record<string, any>): string {
@@ -1087,6 +1171,42 @@ onUnmounted(() => {
           <button class="rounded px-2 py-0.5 text-xs" style="background: #1e293b; border: 1px solid #334155; color: #94a3b8; cursor: pointer" @click="closeLogPanel">Close</button>
         </div>
       </div>
+      <div v-if="logPanelResultLoading" class="run-result-note">Loading structured result...</div>
+      <div v-else-if="logPanelReadNews" class="run-result-section">
+        <div class="run-result-header">
+          <span>Structured Result</span>
+          <span>{{ logPanelResult?.summary || 'read_news result' }}</span>
+        </div>
+        <div class="run-result-metrics">
+          <span>{{ logPanelReadNews.headlines?.length || 0 }} headlines</span>
+          <span>{{ logPanelReadNews.articles?.length || 0 }} articles</span>
+          <span v-if="logPanelReadNews.current_url">{{ logPanelReadNews.current_url }}</span>
+        </div>
+        <div class="run-result-grid">
+          <div>
+            <div class="run-result-subtitle">Headlines</div>
+            <div v-for="(headline, i) in logPanelHeadlines" :key="`headline-${i}`" class="run-result-line">
+              <span class="run-result-index">{{ i + 1 }}</span>
+              <span>{{ resultTitle(headline) || 'Untitled headline' }}</span>
+            </div>
+          </div>
+          <div>
+            <div class="run-result-subtitle">Articles</div>
+            <div v-for="(article, i) in logPanelArticles" :key="`article-${i}`" class="run-result-article">
+              <div class="run-result-article-title">{{ resultTitle(article) || resultTitle({ title: article.source_headline }) || 'Untitled article' }}</div>
+              <div v-if="resultUrl(article)" class="run-result-url">{{ resultUrl(article) }}</div>
+              <div v-if="resultSnippet(article)" class="run-result-snippet">{{ resultSnippet(article) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="logPanelGenericResult" class="run-result-section">
+        <div class="run-result-header">
+          <span>Structured Result</span>
+          <span>{{ logPanelResult?.summary || 'skill result' }}</span>
+        </div>
+        <pre class="run-result-json">{{ logPanelResultJson }}</pre>
+      </div>
       <div id="sched-log-viewer"
         style="height: 320px; overflow-y: auto; background: #070b10; border: 1px solid #1e2438; border-radius: 8px; padding: 10px 12px; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 11px; line-height: 1.55; color: #94a3b8; white-space: pre-wrap; word-break: break-all">
         <div v-if="!logPanelLines.length" style="color: #475569">-- no log output --</div>
@@ -1528,6 +1648,139 @@ onUnmounted(() => {
 .form-actions .act-btn {
   font-size: 12px;
   padding: 4px 14px;
+}
+
+/* ── Run Result Panel ─────────────────────────────────────────────────── */
+.run-result-note {
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: var(--text-4);
+}
+
+.run-result-section {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #0b1220;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+}
+
+.run-result-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.run-result-header span:last-child {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.run-result-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.run-result-metrics span {
+  padding: 2px 6px;
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.run-result-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+}
+
+.run-result-subtitle {
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.run-result-line {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+  padding: 3px 0;
+  color: #dbeafe;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.run-result-index {
+  color: #64748b;
+  font-family: monospace;
+}
+
+.run-result-article {
+  padding: 6px 0;
+  border-top: 1px solid #1e293b;
+}
+.run-result-article:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.run-result-article-title {
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.run-result-url {
+  margin-top: 2px;
+  color: #38bdf8;
+  font-size: 10px;
+  word-break: break-all;
+}
+
+.run-result-snippet {
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.run-result-json {
+  max-height: 220px;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  background: #070b10;
+  border: 1px solid #1e2438;
+  border-radius: 4px;
+  color: #94a3b8;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 800px) {
+  .run-result-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Recent Runs Section ──────────────────────────────────────────────── */
