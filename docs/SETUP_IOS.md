@@ -153,6 +153,10 @@ IOS_BUNDLE_ID="com.google.chrome.ios" \
 uv run --extra test python -m pytest tests/test_browser_news.py::test_live_ios_chrome_news_workflow
 ```
 
+CI runs the non-live iOS parity suite on PRs to `main`, `master`, `rc/**`, and
+`ios`. Those tests mock Appium/WDA and skip live-device checks unless the live
+environment variables above are set.
+
 The demo skill is still named `safari` for compatibility, but it now defaults to Chrome and can launch any configured iOS browser bundle id:
 
 ```bash
