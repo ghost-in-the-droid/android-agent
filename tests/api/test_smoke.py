@@ -92,6 +92,24 @@ class TestPhone:
         assert calls == [True]
         assert r.json()["devices"][0]["serial"] == "ios:abc123"
 
+    def test_android_device_rows_include_platform(self, client, monkeypatch):
+        monkeypatch.setattr("gitd.routers.phone._try_wifi_reconnect", lambda db: None)
+        monkeypatch.setattr(
+            "gitd.routers.phone.subprocess.check_output",
+            lambda *args, **kwargs: (
+                b"List of devices attached\n"
+                b"emulator-5554 device product:sdk model:Pixel_8 device:emu transport_id:1\n"
+            ),
+        )
+        monkeypatch.setattr("gitd.routers.phone.list_configured_ios_devices", lambda deep_probe=False: [])
+
+        r = client.get("/api/phone/devices")
+
+        assert r.status_code == 200
+        device = r.json()["devices"][0]
+        assert device["serial"] == "emulator-5554"
+        assert device["platform"] == "android"
+
 
 class TestSkills:
     def test_list(self, client):

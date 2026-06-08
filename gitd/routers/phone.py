@@ -109,7 +109,14 @@ def phone_devices(probe: str = "", db: Session = Depends(get_db)):
                     },
                 )
                 db.commit()
-                devices.append({"serial": serial, "model": model or serial, "connection": conn_type})
+                devices.append(
+                    {
+                        "serial": serial,
+                        "model": model or serial,
+                        "connection": conn_type,
+                        "platform": "android",
+                    }
+                )
 
         # Deduplicate: if same model has both USB and WiFi, keep USB only
         usb_models = {d["model"] for d in devices if d["connection"] == "usb"}
