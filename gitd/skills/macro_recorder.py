@@ -48,6 +48,9 @@ class Macro:
     name: str
     steps: list[MacroStep] = field(default_factory=list)
     device_serial: str = ""
+    platform: str = ""
+    app_package: str = ""
+    ios_bundle_id: str = ""
     recorded_at: str = ""
     duration_s: float = 0.0
 
@@ -55,6 +58,9 @@ class Macro:
         return {
             "name": self.name,
             "device_serial": self.device_serial,
+            "platform": self.platform,
+            "app_package": self.app_package,
+            "ios_bundle_id": self.ios_bundle_id,
             "recorded_at": self.recorded_at,
             "duration_s": self.duration_s,
             "step_count": len(self.steps),
@@ -68,6 +74,9 @@ class Macro:
             name=d["name"],
             steps=steps,
             device_serial=d.get("device_serial", ""),
+            platform=d.get("platform", ""),
+            app_package=d.get("app_package", ""),
+            ios_bundle_id=d.get("ios_bundle_id", ""),
             recorded_at=d.get("recorded_at", ""),
             duration_s=d.get("duration_s", 0.0),
         )
@@ -104,14 +113,37 @@ class MacroRecorder:
         self._steps = []
         log.info("Recording started")
 
+    def _app_identity(self) -> tuple[str, str]:
+        try:
+            state = self.dev.get_phone_state()
+        except Exception:
+            state = {}
+        if not isinstance(state, dict):
+            return "", ""
+        package = (
+            state.get("packageName")
+            or state.get("package")
+            or state.get("bundleId")
+            or state.get("bundle_id")
+            or state.get("currentApp")
+            or ""
+        )
+        bundle_id = state.get("bundleId") or state.get("bundle_id") or ""
+        return str(package or ""), str(bundle_id or "")
+
     def stop(self) -> Macro:
         """Stop recording and return the Macro."""
         self._recording = False
         duration = time.time() - self._start_time
+        platform = "ios" if is_ios_ref(getattr(self.dev, "serial", "")) else "android"
+        app_package, ios_bundle_id = self._app_identity()
         macro = Macro(
             name="recording",
             steps=self._steps.copy(),
             device_serial=self.dev.serial,
+            platform=platform,
+            app_package=app_package,
+            ios_bundle_id=ios_bundle_id if platform == "ios" else "",
             recorded_at=time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
             duration_s=round(duration, 2),
         )
@@ -205,4 +237,4 @@ class MacroRecorder:
             else:
                 log.warning(f"  Unknown action: {action}")
 
-        log.info(f"Replay complete")
+        log.info("Replay complete")
