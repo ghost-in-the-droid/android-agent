@@ -24,6 +24,10 @@ def _platform(device: str) -> str:
     return "ios" if is_ios_ref(device) else "android"
 
 
+def _phone_error(device: str, error: str) -> dict:
+    return {"ok": False, "device": device, "platform": _platform(device), "error": error}
+
+
 def _try_wifi_reconnect(db: Session):
     """Try reconnecting known WiFi devices that aren't currently connected (max once per 30s)."""
     global _last_wifi_reconnect
@@ -159,7 +163,7 @@ def phone_nickname(data: dict = Body({}), db: Session = Depends(get_db)):
 @router.post("/input", summary="Send Input To Phone")
 def phone_input(data: dict = Body({})):
     """Send a tap, swipe, keyevent, or text input to a device."""
-    device = data.get("device")
+    device = data.get("device", "")
     action = data.get("action")
     if is_ios_ref(device):
         dev = get_device(device)
@@ -170,14 +174,17 @@ def phone_input(data: dict = Body({})):
                 dur = int(data.get("duration", 300))
                 dev.swipe(int(data["x1"]), int(data["y1"]), int(data["x2"]), int(data["y2"]), ms=dur)
             elif action == "keyevent":
-                dev.press_key(str(data["keycode"]))
+                key = data.get("keycode") or data.get("key")
+                if not key:
+                    return _phone_error(device, "key or keycode required")
+                dev.press_key(str(key))
             elif action == "text":
                 dev.type_text(data["text"])
             else:
-                return {"ok": False, "error": "unknown action"}
+                return _phone_error(device, "unknown action")
             return {"ok": True, "device": device, "platform": "ios"}
         except Exception as e:
-            return {"ok": False, "error": str(e)}
+            return _phone_error(device, str(e))
     cmd = ["adb"]
     if device:
         cmd += ["-s", device]
@@ -197,15 +204,18 @@ def phone_input(data: dict = Body({})):
                 str(dur),
             ]
         elif action == "keyevent":
-            cmd += ["shell", "input", "keyevent", str(data["keycode"])]
+            key = data.get("keycode") or data.get("key")
+            if not key:
+                return _phone_error(device, "key or keycode required")
+            cmd += ["shell", "input", "keyevent", str(key)]
         elif action == "text":
             cmd += ["shell", "input", "text", data["text"]]
         else:
-            return {"ok": False, "error": "unknown action"}
+            return _phone_error(device, "unknown action")
         subprocess.check_output(cmd, timeout=6)
         return {"ok": True, "device": device, "platform": "android"}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return _phone_error(device, str(e))
 
 
 @router.get("/elements/{device}", summary="Get Phone UI Elements")
