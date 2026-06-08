@@ -7,7 +7,14 @@ from fastapi.testclient import TestClient
 from gitd.app import app
 from gitd.bots.common.ios import IOSDevice
 from gitd.services.agent_tools import execute_tool
-from gitd.services.browser import extract_articles, extract_visible_text, open_url, read_news, wait_for_text
+from gitd.services.browser import (
+    extract_articles,
+    extract_visible_text,
+    get_current_url,
+    open_url,
+    read_news,
+    wait_for_text,
+)
 
 
 class FakeNewsIOSDevice:
@@ -321,6 +328,40 @@ def test_ios_open_url_service_returns_navigation_evidence(monkeypatch):
         },
     }
     assert fake.bundle_id == "com.google.chrome.ios"
+
+
+def test_ios_open_url_preserves_navigation_when_current_url_probe_fails(monkeypatch):
+    class NoCurrentUrlDevice(FakeNewsIOSDevice):
+        def get_current_url(self):
+            raise RuntimeError("web context not attached")
+
+    fake = NoCurrentUrlDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+
+    result = open_url("ios:abc123", "text.npr.org", bundle_id="com.google.chrome.ios")
+
+    assert result["ok"] is True
+    assert result["platform"] == "ios"
+    assert result["url"] == "https://text.npr.org"
+    assert result["navigation"]["state"] == "url_matched"
+    assert result["current_url_error"] == "web context not attached"
+
+
+def test_ios_get_current_url_returns_structured_error(monkeypatch):
+    class NoCurrentUrlDevice(FakeNewsIOSDevice):
+        def get_current_url(self):
+            raise RuntimeError("web context not attached")
+
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: NoCurrentUrlDevice())
+
+    result = get_current_url("ios:abc123")
+
+    assert result == {
+        "ok": False,
+        "platform": "ios",
+        "url": "",
+        "error": "web context not attached",
+    }
 
 
 def test_android_wait_for_text_retries_until_match(monkeypatch):
