@@ -33,6 +33,10 @@ def test_skill_platform_inference_and_targets():
 def test_installed_skills_expose_platform_metadata():
     skills = _load_all_skills()
 
+    assert skills["_base"]["platforms"] == ["android", "ios"]
+    assert skills["_base"]["supports_android"] is True
+    assert skills["_base"]["supports_ios"] is True
+
     assert skills["tiktok"]["platforms"] == ["android"]
     assert skills["tiktok"]["supports_ios"] is False
     assert skills["tiktok"]["android_package"] == "com.zhiliaoapp.musically"
@@ -65,6 +69,7 @@ def test_rest_skills_include_device_support_flags_and_guard_runs():
     listed = client.get("/api/skills", params={"device": "ios:abc123"})
     assert listed.status_code == 200
     by_dir = {item["dir"]: item for item in listed.json()}
+    assert by_dir["_base"]["supported_on_device"] is True
     assert by_dir["tiktok"]["supported_on_device"] is False
     assert by_dir["safari"]["supported_on_device"] is True
 
@@ -87,6 +92,7 @@ def test_agent_skill_tools_filter_and_guard_by_device():
     payload = json.loads(execute_tool("list_skills", {"device": "ios:abc123", "supported_only": True}))
     names = {item["name"] for item in payload}
 
+    assert "base" in names
     assert "safari" in names
     assert "tiktok_ios" in names
     assert "tiktok" not in names
