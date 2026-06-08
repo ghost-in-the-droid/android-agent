@@ -284,6 +284,28 @@ def test_read_news_marks_article_body_extraction_failure_as_partial(monkeypatch)
     assert result["errors"][-1]["stage"] == "success_criteria"
 
 
+def test_read_news_accepts_single_meaningful_article_paragraph(monkeypatch):
+    class SingleParagraphArticleDevice(FakeNewsIOSDevice):
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            if self.current_url.endswith("/article/1"):
+                return (
+                    "This single paragraph has enough substance to be treated as article body text even "
+                    "when iOS WebView extraction does not expose a separate title node."
+                )
+            return super().extract_visible_text(max_lines=max_lines, include_controls=include_controls)
+
+    fake = SingleParagraphArticleDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=1, max_articles=1, wait_s=0)
+
+    assert result["ok"] is True
+    assert result["completion"]["articles_with_body"] == 1
+    assert result["completion"]["workflow_complete"] is True
+    assert "single paragraph has enough substance" in result["articles"][0]["body_snippet"]
+
+
 def test_ios_extract_visible_text_falls_back_to_ocr(monkeypatch):
     class EmptyTextDevice(FakeNewsIOSDevice):
         def extract_visible_text(self, max_lines=200, include_controls=False):

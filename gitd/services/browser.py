@@ -217,7 +217,27 @@ def _content_line_count(text: str) -> int:
 
 
 def _article_has_body(article: dict[str, Any]) -> bool:
-    return bool(article.get("opened")) and _content_line_count(str(article.get("body_snippet") or "")) >= 2
+    if not article.get("opened"):
+        return False
+    text = str(article.get("body_snippet") or "")
+    lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines() if line.strip()]
+    if len(lines) >= 2:
+        return True
+    if not lines:
+        return False
+
+    # Some iOS WebView/WDA contexts expose article pages as one paragraph rather
+    # than separate title/body nodes. Count a substantial single paragraph as
+    # body text, but keep short title-only extraction as a failed partial.
+    title_like: set[str] = set()
+    if article.get("source_headline"):
+        title_like.add(re.sub(r"\s+", " ", str(article.get("source_headline") or "")).strip().lower())
+    if len(lines) > 1 and article.get("page_title"):
+        title_like.add(re.sub(r"\s+", " ", str(article.get("page_title") or "")).strip().lower())
+    only_line = lines[0]
+    if only_line.lower() in title_like:
+        return False
+    return len(only_line) >= 80 or len(re.findall(r"[A-Za-z0-9]+", only_line)) >= 14
 
 
 def _article_source(articles: list[dict[str, Any]]) -> str:
