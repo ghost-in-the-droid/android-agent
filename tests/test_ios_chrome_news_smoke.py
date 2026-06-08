@@ -85,6 +85,59 @@ def test_ios_chrome_news_smoke_can_skip_health_preflight(monkeypatch, tmp_path):
     assert result["headlines"] == [{"title": "One"}]
 
 
+def test_ios_chrome_news_smoke_can_apply_recommended_health_fix(monkeypatch, tmp_path):
+    calls = []
+    health_results = iter(
+        [
+            {
+                "platform": "ios",
+                "connection": {"type": "appium-wda", "status": "appium_down"},
+                "recommended_fix": "start_appium",
+            },
+            {
+                "platform": "ios",
+                "connection": {"type": "appium-wda", "status": "available"},
+                "recommended_fix": "",
+            },
+        ]
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["ios_chrome_news_smoke.py", "--device", "ios:abc123", "--out-dir", str(tmp_path), "--fix-health"],
+    )
+    monkeypatch.setattr(smoke, "_preflight_health", lambda device, bundle_id: next(health_results))
+    monkeypatch.setattr(
+        smoke,
+        "fix_device_health",
+        lambda device, issue: calls.append(("fix", device, issue))
+        or {"ok": True, "platform": "ios", "issue": issue, "pid": 2468},
+    )
+    monkeypatch.setattr(
+        smoke,
+        "read_news",
+        lambda device, url, **kwargs: {
+            "ok": True,
+            "device": device,
+            "url": url,
+            "headlines": [{"title": "One"}],
+            "articles": [],
+        },
+    )
+
+    rc = smoke.main()
+
+    assert rc == 0
+    result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+    health_fix = json.loads((tmp_path / "health_fix.json").read_text(encoding="utf-8"))
+    saved_health = json.loads((tmp_path / "health.json").read_text(encoding="utf-8"))
+    assert calls == [("fix", "ios:abc123", "start_appium")]
+    assert saved_health["connection"]["status"] == "available"
+    assert health_fix["issue"] == "start_appium"
+    assert result["health_fix"]["pid"] == 2468
+    assert result["headlines"] == [{"title": "One"}]
+
+
 def test_ios_chrome_news_smoke_uses_first_discovered_device(monkeypatch, tmp_path):
     monkeypatch.delenv("IOS_DEVICE_UDID", raising=False)
     monkeypatch.setattr(
