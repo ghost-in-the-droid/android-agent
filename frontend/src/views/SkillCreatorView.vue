@@ -17,6 +17,8 @@ const sending = ref(false)
 const streaming = ref(false)
 const streamImg = ref('')
 const mjpegUrl = ref('')
+const streamStatus = ref('')
+const streamInfo = ref<any | null>(null)
 const overlayOn = ref(false)
 const elements = ref<any[]>([])
 const actionHistory = ref<any[]>([])
@@ -91,13 +93,30 @@ function toggleStream() {
   }
 }
 
-function startStream() {
+async function resolveMjpegUrl(): Promise<string> {
+  const fallback = `/api/phone/stream?device=${encodeURIComponent(selectedDevice.value)}&fps=5&mode=wda-mjpeg`
+  try {
+    const info = await api(`/api/phone/stream-info?device=${encodeURIComponent(selectedDevice.value)}&fps=5&mode=mjpeg`)
+    streamInfo.value = info
+    streamStatus.value = info.effective_mode ? `${info.effective_mode}` : ''
+    return String(info.stream_url || fallback)
+  } catch (error) {
+    streamStatus.value = error instanceof Error ? error.message.replace(/^API \d+:\s*/, '') : 'Stream metadata unavailable'
+    return fallback
+  }
+}
+
+async function startStream() {
   if (!selectedDevice.value || streaming.value) return
   streaming.value = true
   streamImg.value = ''
   mjpegUrl.value = ''
+  streamStatus.value = ''
+  streamInfo.value = null
   if (streamMode.value === 'mjpeg') {
-    mjpegUrl.value = `/api/phone/stream?device=${encodeURIComponent(selectedDevice.value)}&fps=5&mode=wda-mjpeg`
+    streamStatus.value = 'Loading WDA MJPEG...'
+    const url = await resolveMjpegUrl()
+    if (streaming.value && streamMode.value === 'mjpeg') mjpegUrl.value = url
     return
   }
   pollFrame()
@@ -109,6 +128,8 @@ function stopStream() {
   if (streamTimer) { clearInterval(streamTimer); streamTimer = null }
   streamImg.value = ''
   mjpegUrl.value = ''
+  streamStatus.value = ''
+  streamInfo.value = null
   streamFrame.value = { width: 0, height: 0 }
 }
 
@@ -131,6 +152,19 @@ function updateStreamFrame() {
     height: img.naturalHeight || streamFrame.value.height,
   }
   nextTick(drawOverlay)
+}
+
+function handleStreamLoad() {
+  updateStreamFrame()
+  if (streamStatus.value.startsWith('Loading ')) {
+    streamStatus.value = streamInfo.value?.effective_mode ? String(streamInfo.value.effective_mode) : ''
+  }
+}
+
+function handleStreamError() {
+  streamStatus.value = selectedIsIos.value
+    ? 'WDA MJPEG failed — check iOS health or restart the stream'
+    : 'Stream failed — restart the stream'
 }
 
 async function refreshElements() {
@@ -234,18 +268,38 @@ function sendKey(key: number | string) {
   if (recording.value) recordedActions.value.push(step)
 }
 
-function handleStreamClick(e: MouseEvent) {
-  if (!selectedDevice.value) return
-  const el = e.target as HTMLImageElement
+function streamPoint(el: HTMLImageElement, clientX: number, clientY: number): { x: number; y: number; streamW: number; streamH: number } | null {
   const rect = el.getBoundingClientRect()
   const streamW = el.naturalWidth || streamFrame.value.width || 540
   const streamH = el.naturalHeight || streamFrame.value.height || 1200
-  const x = Math.round((e.clientX - rect.left) / rect.width * streamW)
-  const y = Math.round((e.clientY - rect.top) / rect.height * streamH)
-  api('/api/phone/tap', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, x, y, stream_w: streamW, stream_h: streamH }) })
-  const step = { action: 'tap', x, y }
+  if (!rect.width || !rect.height || !streamW || !streamH) return null
+  return {
+    x: Math.round((clientX - rect.left) / rect.width * streamW),
+    y: Math.round((clientY - rect.top) / rect.height * streamH),
+    streamW,
+    streamH,
+  }
+}
+
+function tapStreamAt(el: HTMLImageElement, clientX: number, clientY: number) {
+  if (!selectedDevice.value) return
+  const point = streamPoint(el, clientX, clientY)
+  if (!point) return
+  api('/api/phone/tap', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, x: point.x, y: point.y, stream_w: point.streamW, stream_h: point.streamH }) })
+  const step = { action: 'tap', x: point.x, y: point.y }
   actionHistory.value.push(step)
   if (recording.value) recordedActions.value.push(step)
+}
+
+function handleStreamClick(e: MouseEvent) {
+  tapStreamAt(e.target as HTMLImageElement, e.clientX, e.clientY)
+}
+
+function handleStreamTouchEnd(e: TouchEvent) {
+  const touch = e.changedTouches[0]
+  if (!touch) return
+  e.preventDefault()
+  tapStreamAt(e.target as HTMLImageElement, touch.clientX, touch.clientY)
 }
 
 function toggleRecord() {
@@ -505,8 +559,17 @@ onUnmounted(() => { stopStream() })
       <!-- Stream area -->
       <div class="sc-stream-area">
         <img v-if="streaming && streamSource" ref="streamImageEl" :src="streamSource" class="sc-stream-img"
-          draggable="false" @click="handleStreamClick" @load="updateStreamFrame" @dragstart.prevent />
+          draggable="false"
+          @click="handleStreamClick"
+          @touchstart.prevent
+          @touchend="handleStreamTouchEnd"
+          @load="handleStreamLoad"
+          @error="handleStreamError"
+          @dragstart.prevent />
         <canvas ref="overlayCanvas" width="360" height="800" class="sc-overlay-canvas"></canvas>
+        <div v-if="streamStatus" class="sc-stream-status" :title="streamStatus">
+          {{ streamStatus }}
+        </div>
         <div v-if="!streamSource" class="sc-stream-empty">
           {{ streamPlaceholder }}
         </div>
@@ -1083,6 +1146,22 @@ onUnmounted(() => { stopStream() })
   text-align: center;
   padding: 48px 24px;
   line-height: 1.6;
+}
+.sc-stream-status {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  max-width: calc(100% - 16px);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #cbd5e1;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 /* ── Element list ────────────────────────────────────────────────── */
