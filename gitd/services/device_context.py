@@ -740,7 +740,7 @@ def device_health(device: str) -> dict:
                     "screen_size": status.get("screen_size") or {},
                     "screenshot_ok": bool(screenshot_bytes),
                     "source_ok": bool(source_bytes),
-                    "mjpeg_url": ios_dev.mjpeg_url(),
+                    "mjpeg_url": ios_dev.mjpeg_url,
                     "checks": status.get("checks") or {},
                 },
                 "recommended_fix": recommended_fix,

@@ -358,6 +358,7 @@ def test_ios_device_health_promotes_stable_wda_fields(monkeypatch):
             assert deep is True
             return ProbeStatus()
 
+        @property
         def mjpeg_url(self):
             return "http://appium.local/session/session-1/appium/device/screen_stream"
 
