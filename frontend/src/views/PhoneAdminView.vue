@@ -5,6 +5,8 @@ import { api } from '@/composables/useApi'
 const devices = ref<any[]>([])
 const selectedDevice = ref('')
 const selectedIsIos = computed(() => selectedDevice.value.startsWith('ios:'))
+const hasIosDevices = computed(() => devices.value.some(d => isIosSerial(d.serial)))
+const hasAndroidDevices = computed(() => devices.value.some(d => !isIosSerial(d.serial)))
 const streaming = ref(false)
 const subTab = ref<'single' | 'multi'>('single')
 const nickname = ref('')
@@ -68,6 +70,31 @@ function streamModeTitle(serial: string, mode: 'rtc' | 'mjpeg'): string {
   return mode === 'rtc' ? 'Android Portal WebRTC stream' : 'Android MJPEG fallback stream'
 }
 
+function streamFallbackUrl(serial: string, fallback?: any): string {
+  const url = String(fallback?.url || '').trim()
+  return url || mjpegStreamUrl(serial)
+}
+
+function applyIosStreamFallback(serial: string, fallback?: any) {
+  rtcStatus.value[serial] = 'WDA MJPEG'
+  if (serial === selectedDevice.value) {
+    singleStreamMode.value = 'mjpeg'
+    singleMjpegUrl.value = streamFallbackUrl(serial, fallback)
+  }
+  if (multiStreaming.value[serial]) {
+    multiStreamMode.value[serial] = 'mjpeg'
+    mjpegUrls.value[serial] = streamFallbackUrl(serial, fallback)
+  }
+}
+
+function blackWarningText(serial: string): string {
+  return isIosSerial(serial) ? 'WDA stream stalled' : 'FLAG_SECURE - switch to MJPEG'
+}
+
+function streamPlaceholderText(serial: string): string {
+  return isIosSerial(serial) ? 'Press play for WDA MJPEG' : 'Press WebRTC or MJPEG'
+}
+
 function uuid(): string {
   return ([1e7] as any + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: any) =>
     (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & 15) >> c / 4).toString(16))
@@ -83,6 +110,10 @@ async function rtcFixPortal(serial: string) {
 
 async function rtcStart(serial: string, _reconnectAttempt = 0) {
   console.log(`[RTC ${serial}] rtcStart called (attempt=${_reconnectAttempt})`)
+  if (isIosSerial(serial)) {
+    applyIosStreamFallback(serial)
+    return
+  }
   if (rtcSessions.value[serial]) rtcStop(serial)
   const sessionId = uuid()
   const t0 = performance.now()
@@ -95,6 +126,10 @@ async function rtcStart(serial: string, _reconnectAttempt = 0) {
 
   console.log(`[RTC ${serial}] stream/start response:`, JSON.stringify(startRes).substring(0, 100))
   if (!startRes.ok) {
+    if (startRes.platform === 'ios' && startRes.stream_fallback) {
+      applyIosStreamFallback(serial, startRes.stream_fallback)
+      return
+    }
     const err = startRes.error || 'unknown'
     if (err.includes('Accessibility') || err.includes('Portal not')) {
       rtcStatus.value[serial] = 'Portal down — fixing...'
@@ -1212,8 +1247,8 @@ onUnmounted(() => {
             Select device &amp; start stream<br/>or chat — auto-starts
           </div>
           <div v-if="blackWarning[selectedDevice]" class="black-warning">
-            FLAG_SECURE — switch to MJPEG
-            <button @click="blackWarning[selectedDevice] = false; toggleSingleMode()" class="black-warning-btn">Switch</button>
+            {{ blackWarningText(selectedDevice) }}
+            <button v-if="!selectedIsIos" @click="blackWarning[selectedDevice] = false; toggleSingleMode()" class="black-warning-btn">Switch</button>
           </div>
           <!-- Frozen stream overlay -->
           <div v-if="streamFrozen[selectedDevice]" class="frozen-overlay" @click="reconnectStream(selectedDevice)">
@@ -1237,8 +1272,8 @@ onUnmounted(() => {
     <div v-if="subTab === 'multi'">
       <!-- Controls header -->
       <div class="multi-header">
-        <button class="ctrl-btn ctrl-btn--webrtc" @click="startAllStreams('rtc')" title="Android uses WebRTC; iOS devices use WDA MJPEG automatically">&#x26A1; Start All (WebRTC)</button>
-        <button class="ctrl-btn ctrl-btn--mjpeg" @click="startAllStreams('mjpeg')">&#x25B6; Start All (MJPEG)</button>
+        <button v-if="hasAndroidDevices" class="ctrl-btn ctrl-btn--webrtc" @click="startAllStreams('rtc')" title="Android devices use Portal WebRTC; iOS devices use WDA MJPEG automatically">&#x26A1; Start All (Auto)</button>
+        <button class="ctrl-btn ctrl-btn--mjpeg" @click="startAllStreams('mjpeg')" :title="hasIosDevices ? 'Start WDA MJPEG on iOS and MJPEG on Android' : 'Start Android MJPEG streams'">&#x25B6; Start All (MJPEG)</button>
         <button class="ctrl-btn ctrl-btn--stop" @click="stopAllStreams">&#x23F9; Stop All</button>
         <button class="ctrl-btn" @click="showWirelessModal = true" style="background: #0ea5e922; color: #38bdf8; border-color: #0ea5e955">&#x1F4F6; WiFi Connect</button>
         <button class="ctrl-btn" @click="loadAllHealth" style="font-size: 10px">Health &#x27F3;</button>
@@ -1312,11 +1347,11 @@ onUnmounted(() => {
               @mouseup="mjpegMouseUp(d.serial, $event)"
               @mouseleave="videoMouseLeave(d.serial)"
               @dragstart.prevent />
-            <div v-else class="multi-stream-placeholder">Press &#x26A1; or &#x25B6; to stream</div>
+            <div v-else class="multi-stream-placeholder">{{ streamPlaceholderText(d.serial) }}</div>
             <!-- Black screen warning -->
             <div v-if="blackWarning[d.serial]" class="black-warning black-warning--compact">
-              FLAG_SECURE — switch to MJPEG
-              <button @click="blackWarning[d.serial] = false; toggleMultiMode(d.serial)" class="black-warning-btn">Switch</button>
+              {{ blackWarningText(d.serial) }}
+              <button v-if="!isIosSerial(d.serial)" @click="blackWarning[d.serial] = false; toggleMultiMode(d.serial)" class="black-warning-btn">Switch</button>
             </div>
             <!-- Frozen stream overlay -->
             <div v-if="streamFrozen[d.serial]" class="frozen-overlay" @click="reconnectStream(d.serial)">
