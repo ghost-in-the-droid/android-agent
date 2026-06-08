@@ -525,6 +525,34 @@ TOOLS = [
             "required": ["device", "skill", "workflow"],
         },
     },
+    {
+        "name": "run_workflow",
+        "description": "Run a skill workflow. Alias of run_skill for MCP/agent parity.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "skill": {"type": "string"},
+                "workflow": {"type": "string"},
+                "params": {"type": "object", "default": {}},
+            },
+            "required": ["device", "skill", "workflow"],
+        },
+    },
+    {
+        "name": "run_action",
+        "description": "Run a single skill action when the skill supports the target device platform.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "skill": {"type": "string"},
+                "action": {"type": "string"},
+                "params": {"type": "object", "default": {}},
+            },
+            "required": ["device", "skill", "action"],
+        },
+    },
     # System
     {
         "name": "wait",
@@ -1173,7 +1201,7 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                     entry["actions"] = s.list_actions()
                 result.append(entry)
             return json.dumps(result, indent=2)
-        elif name == "run_skill":
+        elif name in {"run_skill", "run_workflow", "run_action"}:
             from gitd.routers.skills import _load_all_skills
 
             skills = _load_all_skills()
@@ -1182,6 +1210,8 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 return skill_platform_error_text(args["skill"], skill_info.get("metadata") or {}, device)
             runner = __import__("pathlib").Path(__file__).parent.parent / "skills" / "_run_skill.py"
             params = json.dumps(args.get("params", {}))
+            mode_arg = "--action" if name == "run_action" else "--workflow"
+            target = args["action"] if name == "run_action" else args["workflow"]
             r = subprocess.run(
                 [
                     sys.executable,
@@ -1189,8 +1219,8 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                     str(runner),
                     "--skill",
                     args["skill"],
-                    "--workflow",
-                    args["workflow"],
+                    mode_arg,
+                    target,
                     "--device",
                     device,
                     "--params",

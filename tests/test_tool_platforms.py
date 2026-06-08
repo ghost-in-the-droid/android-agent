@@ -168,6 +168,40 @@ def test_agent_run_skill_uses_current_interpreter(monkeypatch):
     assert captured["kwargs"]["timeout"] == 120
 
 
+def test_agent_run_action_uses_current_interpreter(monkeypatch):
+    captured = {}
+
+    class FakeRun:
+        returncode = 0
+        stdout = "action ok"
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        return FakeRun()
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+
+    result = execute_tool(
+        "run_action",
+        {
+            "device": "ios:abc123",
+            "skill": "safari",
+            "action": "read_news",
+            "params": {"url": "https://text.npr.org/"},
+        },
+    )
+
+    assert result == "action ok"
+    assert captured["cmd"][:2] == [sys.executable, "-u"]
+    assert "gitd/skills/_run_skill.py" in captured["cmd"][2]
+    assert "--action" in captured["cmd"]
+    assert captured["cmd"][captured["cmd"].index("--action") + 1] == "read_news"
+    assert "--workflow" not in captured["cmd"]
+    assert captured["kwargs"]["timeout"] == 120
+
+
 def test_agent_explore_app_uses_auto_creator_subprocess(monkeypatch):
     captured = {}
 
@@ -227,6 +261,8 @@ def test_tools_for_device_filters_by_platform():
     assert "list_apps" in ios_names
     assert "search_apps" in ios_names
     assert "list_packages" in ios_names
+    assert "run_workflow" in ios_names
+    assert "run_action" in ios_names
     assert "app_state" in ios_names
     assert "get_notifications" in ios_names
     assert "open_notifications" in ios_names
@@ -240,6 +276,8 @@ def test_tools_for_device_filters_by_platform():
     assert "press_back" in android_names
     assert "press_home" in android_names
     assert "type_unicode" in android_names
+    assert "run_workflow" in android_names
+    assert "run_action" in android_names
     assert "start_screen_recording" in android_names
     assert "device_health" in android_names
     assert "fix_device_health" in android_names
@@ -398,6 +436,8 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "press_home" in ios_names
     assert "type_unicode" in ios_names
     assert "get_screen_xml" in ios_names
+    assert "run_workflow" in ios_names
+    assert "run_action" in ios_names
     assert "get_current_url" in ios_names
     assert "read_news" in ios_names
     assert "shell" in android_names
@@ -407,5 +447,7 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "press_home" in android_names
     assert "type_unicode" in android_names
     assert "get_screen_xml" in android_names
+    assert "run_workflow" in android_names
+    assert "run_action" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names

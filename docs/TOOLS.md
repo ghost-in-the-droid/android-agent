@@ -206,11 +206,20 @@ Android package, iOS bundle id, actions, and workflows. Supplying `device`
 adds `supported_on_device`; `supported_only=true` filters incompatible skills
 for the target device.
 
-### `run_skill(device, skill, workflow, params={})`
+### `run_skill(device, skill, workflow, params={})` / `run_workflow(...)`
 
 Runs a workflow only when the skill supports the target platform. Android-only
 skills return a stable unsupported-platform error for `ios:<udid>` instead of
 being queued and failing later.
+
+`run_workflow` is the MCP-compatible alias exposed to in-process agents and the
+Tools Hub. It uses the same platform-aware skill runner as `run_skill`.
+
+### `run_action(device, skill, action, params={})`
+
+Runs one exported skill action through the same platform guard. Use this for
+small validation steps such as an iOS browser/news action or a TikTok iOS smoke
+action when a full workflow would be too broad.
 
 ### `explore_app(device, package, max_depth=2, max_states=10)`
 
