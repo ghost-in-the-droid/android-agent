@@ -1,4 +1,4 @@
-from gitd.routers.streaming import _webrtc_signal_sync, phone_stream, webrtc_ws_poll, webrtc_ws_send
+from gitd.routers.streaming import _webrtc_signal_sync, phone_stream, phone_stream_info, webrtc_ws_poll, webrtc_ws_send
 
 
 class FakeIOSStreamDevice:
@@ -26,6 +26,41 @@ def test_ios_stream_headers_expose_effective_wda_mjpeg_mode(monkeypatch):
     )
 
 
+def test_ios_stream_info_exposes_wda_mjpeg_and_recovery_metadata(monkeypatch):
+    monkeypatch.setattr("gitd.routers.streaming.get_device", lambda device: FakeIOSStreamDevice())
+
+    response = phone_stream_info(device="ios:abc123", fps=99, mode="mjpeg")
+
+    assert response == {
+        "ok": True,
+        "device": "ios:abc123",
+        "platform": "ios",
+        "requested_mode": "mjpeg",
+        "effective_mode": "wda-mjpeg",
+        "recommended_mode": "wda-mjpeg",
+        "fallback_mode": "screenshot-polling",
+        "stream_url": "/api/phone/stream?device=ios%3Aabc123&fps=10&mode=wda-mjpeg",
+        "mjpeg_url": "http://127.0.0.1:9123",
+        "mjpeg_settings": {
+            "mjpegServerFramerate": 12,
+            "mjpegScalingFactor": 60.0,
+            "mjpegServerScreenshotQuality": 45,
+        },
+        "fps": 10,
+        "quality": 8,
+        "portal_supported": False,
+        "webrtc_supported": False,
+        "control_supported": True,
+        "unsupported_actions": ["portal", "webrtc", "wireless_adb", "overlay"],
+        "recovery": {
+            "health_endpoint": "/api/phone/health/ios:abc123",
+            "fix_endpoint": "/api/phone/health/ios:abc123/fix",
+            "fix_tool": "fix_device_health",
+            "common_fixes": ["start_appium", "reset_session", "restart_remote_xpc_tunnel"],
+        },
+    }
+
+
 def test_ios_stream_headers_expose_screenshot_polling_fallback_mode(monkeypatch):
     monkeypatch.setattr("gitd.routers.streaming.get_device", lambda device: FakeIOSStreamDevice())
 
@@ -33,6 +68,32 @@ def test_ios_stream_headers_expose_screenshot_polling_fallback_mode(monkeypatch)
 
     assert response.headers["x-phone-platform"] == "ios"
     assert response.headers["x-phone-stream-mode"] == "screenshot-polling"
+
+
+def test_android_stream_info_exposes_portal_and_screencap_modes():
+    response = phone_stream_info(device="emulator-5554", fps=5, mode="h264")
+
+    assert response == {
+        "ok": True,
+        "device": "emulator-5554",
+        "platform": "android",
+        "requested_mode": "h264",
+        "effective_mode": "h264",
+        "recommended_mode": "portal",
+        "fallback_mode": "screencap",
+        "stream_url": "/api/phone/stream?device=emulator-5554&fps=5&mode=h264",
+        "fps": 5,
+        "quality": 8,
+        "portal_supported": True,
+        "webrtc_supported": True,
+        "control_supported": True,
+        "unsupported_actions": [],
+        "recovery": {
+            "health_endpoint": "/api/phone/health/emulator-5554",
+            "fix_endpoint": "/api/phone/health/emulator-5554/fix",
+            "fix_tool": "fix_device_health",
+        },
+    }
 
 
 def test_android_stream_headers_expose_effective_mode():

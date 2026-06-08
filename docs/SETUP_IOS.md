@@ -262,12 +262,16 @@ Supported on iOS:
 - Browser primitives: `open_url`, `web_search`, `browser_back`, `get_current_url`, `wait_for_text`, `extract_visible_text`, `extract_articles`
 - REST browser routes under `/api/phone/browser/*`
 - `/api/phone/stream?device=ios:<udid>` with WDA MJPEG mode when requested and screenshot polling fallback
+- `/api/phone/stream-info?device=ios:<udid>&mode=mjpeg` for dashboard/client
+  preflight metadata: effective stream mode, WDA MJPEG URL/settings,
+  screenshot-polling fallback, health/fix links, and iOS unsupported Portal
+  actions.
 - iOS MJPEG tuning through `IOS_MJPEG_SERVER_FRAMERATE`,
   `IOS_MJPEG_SCALING_FACTOR`, `IOS_MJPEG_SERVER_SCREENSHOT_QUALITY`,
   `IOS_MJPEG_FIX_ORIENTATION`, and per-device JSON equivalents.
-  `/api/phone/health/<device>` and stream headers expose the effective WDA
-  MJPEG settings. By default Ghost builds the MJPEG stream URL from the
-  `IOS_APPIUM_URL` host plus `IOS_MJPEG_SERVER_PORT`; set
+  `/api/phone/health/<device>`, `/api/phone/stream-info`, and stream headers
+  expose the effective WDA MJPEG settings. By default Ghost builds the MJPEG
+  stream URL from the `IOS_APPIUM_URL` host plus `IOS_MJPEG_SERVER_PORT`; set
   `IOS_MJPEG_SCREENSHOT_URL` only when the stream is exposed through a custom
   tunnel or proxy.
 - `start_screen_recording`, `stop_screen_recording`, and
