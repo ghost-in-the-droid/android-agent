@@ -76,7 +76,7 @@ class Element:
                     return device.bounds_center(bounds)
         # Fallback to class name
         if self.class_name:
-            bounds = device.find_bounds(xml, resource_id=self.class_name)
+            bounds = device.find_bounds(xml, class_name=self.class_name)
             if bounds:
                 return device.bounds_center(bounds)
         # Last resort: fixed coords
@@ -91,7 +91,7 @@ class Element:
             content_desc=d.get('content_desc'),
             text=d.get('text'),
             resource_id=d.get('resource_id'),
-            class_name=d.get('class_name'),
+            class_name=d.get('class_name') or d.get('class'),
             x=d.get('x'),
             y=d.get('y'),
         )
