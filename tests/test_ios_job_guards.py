@@ -2,11 +2,13 @@ import json
 import sys
 from datetime import datetime
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from gitd.app import app
 from gitd.models.base import SessionLocal
+from gitd.routers import bot
 from gitd.routers.scheduler import _scheduler_platform_error
 from gitd.services.db_helpers import create_scheduled_job, enqueue_job
 from gitd.services.job_engine import (
@@ -25,6 +27,36 @@ def test_tiktok_scheduler_jobs_are_guarded_on_ios():
     )
     assert _job_platform_preflight("ios:abc123", "app_explore") is None
     assert _job_platform_preflight("emulator-5554", "post") is None
+
+
+def test_legacy_bot_queue_rejects_ios_tiktok_post_before_launch(monkeypatch):
+    def fail_launch(job):
+        raise AssertionError("_launch_job should not be called for unsupported iOS bot jobs")
+
+    monkeypatch.setattr(bot, "_launch_job", fail_launch)
+    with bot._queue_lock:
+        queue_len = len(bot._queue)
+
+    response = TestClient(app).post(
+        "/api/bot/queue/add",
+        json={"job_type": "post", "device": "ios:abc123", "video": "/tmp/clip.mp4"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ok"] is False
+    assert body["error"] == "unsupported_platform"
+    assert body["platform"] == "ios"
+    assert body["job_type"] == "post"
+    assert body["device"] == "ios:abc123"
+    assert body["supported_platforms"] == ["android"]
+    with bot._queue_lock:
+        assert len(bot._queue) == queue_len
+
+
+def test_legacy_bot_build_cmd_rejects_ios_publish_draft():
+    with pytest.raises(ValueError, match="Android-only.*iOS TikTok"):
+        bot._build_cmd({"job_type": "publish_draft", "device": "ios:abc123", "grid_index": 0})
 
 
 def test_marketing_job_rejects_ios_device_before_enqueue(tmp_path):
