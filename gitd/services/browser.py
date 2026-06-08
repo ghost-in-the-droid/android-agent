@@ -137,6 +137,42 @@ def _save_device_screenshot(dev, path: Path) -> str:
     return str(path)
 
 
+def _retry_deadline(timeout: float) -> float:
+    return time.time() + max(0.0, float(timeout))
+
+
+def _extract_articles_with_retry(dev, *, max_items: int, timeout: float, interval: float = 0.5) -> list[dict[str, Any]]:
+    deadline = _retry_deadline(timeout)
+    last: list[dict[str, Any]] = []
+    while True:
+        try:
+            articles = dev.extract_articles(max_items=max_items)
+            if articles:
+                return articles
+            last = articles or []
+        except Exception:
+            last = []
+        if time.time() >= deadline:
+            return last
+        time.sleep(interval)
+
+
+def _extract_visible_text_with_retry(dev, *, max_lines: int, timeout: float, interval: float = 0.5) -> str:
+    deadline = _retry_deadline(timeout)
+    last = ""
+    while True:
+        try:
+            text = dev.extract_visible_text(max_lines=max_lines)
+            if text.strip():
+                return text
+            last = text
+        except Exception:
+            last = ""
+        if time.time() >= deadline:
+            return last
+        time.sleep(interval)
+
+
 def _open_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5) -> tuple[str, dict[str, Any]]:
     url = str(article.get("url") or "").strip()
     if url:
@@ -225,9 +261,10 @@ def read_news(
         except Exception as exc:
             result["errors"].append({"stage": "current_url", "error": str(exc)})
 
-        headlines = dev.extract_articles(max_items=max_headlines)
+        headlines = _extract_articles_with_retry(dev, max_items=max_headlines, timeout=wait_s)
         result["headlines"] = headlines[:max_headlines]
-        result["front_page_text"] = _snippet(dev.extract_visible_text(max_lines=120), max_chars=2400)
+        front_page_text = _extract_visible_text_with_retry(dev, max_lines=120, timeout=wait_s)
+        result["front_page_text"] = _snippet(front_page_text, max_chars=2400)
 
         for index, headline in enumerate(headlines[:max_articles], start=1):
             article_result: dict[str, Any] = {
@@ -248,7 +285,7 @@ def read_news(
                     article_result["current_url"] = dev.get_current_url()
                 except Exception as exc:
                     article_result["current_url_error"] = str(exc)
-                visible_text = dev.extract_visible_text(max_lines=160)
+                visible_text = _extract_visible_text_with_retry(dev, max_lines=160, timeout=wait_s)
                 lines = [line.strip() for line in visible_text.splitlines() if line.strip()]
                 article_result["page_title"] = lines[0] if lines else ""
                 article_result["body_snippet"] = _snippet(visible_text, max_chars=2400)
