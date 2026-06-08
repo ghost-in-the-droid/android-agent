@@ -41,34 +41,56 @@ def _set_ios_bundle_override(dev, bundle_id: str | None) -> None:
         dev.bundle_id = bundle_id
 
 
+def _platform(device: str) -> str:
+    return "ios" if is_ios_ref(device) else "android"
+
+
+def _error_text(exc: Exception) -> str:
+    return str(exc) or exc.__class__.__name__
+
+
+def _browser_error(device: str, operation: str, exc: Exception, **extra: Any) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "platform": _platform(device),
+        "device": device,
+        "operation": operation,
+        "error": _error_text(exc),
+        **extra,
+    }
+
+
 def open_url(device: str, url: str, bundle_id: str | None = None) -> dict[str, Any]:
     normalized_url = _normalize_url(url)
-    if is_ios_ref(device):
-        dev = get_device(device)
-        _set_ios_bundle_override(dev, bundle_id)
-        navigation = dev.open_url(normalized_url)
-        current_url = ""
-        current_url_error = ""
-        try:
-            current_url = dev.get_current_url() or ""
-        except Exception as exc:
-            current_url_error = str(exc)
-        if not current_url and isinstance(navigation, dict):
-            current_url = str(navigation.get("url") or "")
-        result = {
-            "ok": navigation.get("ok", True) if isinstance(navigation, dict) else True,
-            "platform": "ios",
-            "url": current_url or normalized_url,
-            "navigation": navigation if isinstance(navigation, dict) else {},
-        }
-        if current_url_error:
-            result["current_url_error"] = current_url_error
-        return result
+    try:
+        if is_ios_ref(device):
+            dev = get_device(device)
+            _set_ios_bundle_override(dev, bundle_id)
+            navigation = dev.open_url(normalized_url)
+            current_url = ""
+            current_url_error = ""
+            try:
+                current_url = dev.get_current_url() or ""
+            except Exception as exc:
+                current_url_error = str(exc)
+            if not current_url and isinstance(navigation, dict):
+                current_url = str(navigation.get("url") or "")
+            result = {
+                "ok": navigation.get("ok", True) if isinstance(navigation, dict) else True,
+                "platform": "ios",
+                "url": current_url or normalized_url,
+                "navigation": navigation if isinstance(navigation, dict) else {},
+            }
+            if current_url_error:
+                result["current_url_error"] = current_url_error
+            return result
 
-    from gitd.services.device_context import launch_intent
+        from gitd.services.device_context import launch_intent
 
-    out = launch_intent(device, action="android.intent.action.VIEW", data=normalized_url)
-    return {"ok": not out.lower().startswith("error"), "platform": "android", "result": out, "url": normalized_url}
+        out = launch_intent(device, action="android.intent.action.VIEW", data=normalized_url)
+        return {"ok": not out.lower().startswith("error"), "platform": "android", "result": out, "url": normalized_url}
+    except Exception as exc:
+        return _browser_error(device, "open_url", exc, url=normalized_url)
 
 
 def web_search(device: str, query: str, engine: str = "google", bundle_id: str | None = None) -> dict[str, Any]:
@@ -80,16 +102,22 @@ def web_search(device: str, query: str, engine: str = "google", bundle_id: str |
 
 
 def browser_back(device: str) -> dict[str, Any]:
-    dev = get_device(device)
-    if is_ios_ref(device) and hasattr(dev, "browser_back"):
-        dev.browser_back()
-    else:
-        dev.back()
-    return {"ok": True, "platform": "ios" if is_ios_ref(device) else "android"}
+    try:
+        dev = get_device(device)
+        if is_ios_ref(device) and hasattr(dev, "browser_back"):
+            dev.browser_back()
+        else:
+            dev.back()
+        return {"ok": True, "platform": _platform(device)}
+    except Exception as exc:
+        return _browser_error(device, "browser_back", exc)
 
 
 def get_current_url(device: str) -> dict[str, Any]:
-    dev = get_device(device)
+    try:
+        dev = get_device(device)
+    except Exception as exc:
+        return _browser_error(device, "get_current_url", exc, url="")
     if is_ios_ref(device) and hasattr(dev, "get_current_url"):
         try:
             current_url = dev.get_current_url() or ""
@@ -107,7 +135,10 @@ def get_current_url(device: str) -> dict[str, Any]:
 
 
 def wait_for_text(device: str, text: str, timeout: float = 12.0) -> dict[str, Any]:
-    dev = get_device(device)
+    try:
+        dev = get_device(device)
+    except Exception as exc:
+        return _browser_error(device, "wait_for_text", exc, text=text, found=False, visible_text="")
     if is_ios_ref(device) and hasattr(dev, "wait_for_text"):
         try:
             visible = dev.wait_for_text(text, timeout=timeout)
@@ -136,7 +167,19 @@ def wait_for_text(device: str, text: str, timeout: float = 12.0) -> dict[str, An
     attempts = 0
     while True:
         attempts += 1
-        found = find_on_screen(device, text)
+        try:
+            found = find_on_screen(device, text)
+        except Exception as exc:
+            return _browser_error(
+                device,
+                "wait_for_text",
+                exc,
+                text=text,
+                found=False,
+                match=None,
+                attempts=attempts,
+                timeout=timeout,
+            )
         if found:
             return {
                 "ok": True,
@@ -162,37 +205,92 @@ def wait_for_text(device: str, text: str, timeout: float = 12.0) -> dict[str, An
 
 
 def extract_visible_text(device: str, max_lines: int = 200, include_controls: bool = False) -> dict[str, Any]:
-    dev = get_device(device)
+    try:
+        dev = get_device(device)
+    except Exception as exc:
+        return _browser_error(device, "extract_visible_text", exc, text="", lines=[], source="")
     if is_ios_ref(device) and hasattr(dev, "extract_visible_text"):
-        text, source = _device_visible_text(dev, max_lines=max_lines, include_controls=include_controls)
+        extraction_error = ""
+        source = "native_or_web"
+        try:
+            text, source = _device_visible_text(dev, max_lines=max_lines, include_controls=include_controls)
+        except Exception as exc:
+            extraction_error = _error_text(exc)
+            text = ""
         if not text.strip() and not include_controls:
             text = _ocr_visible_text(device, max_lines=max_lines)
             source = "ocr" if text.strip() else source
-        return {"ok": True, "platform": "ios", "text": text, "lines": text.splitlines(), "source": source}
+        if text.strip():
+            result = {"ok": True, "platform": "ios", "text": text, "lines": text.splitlines(), "source": source}
+            if extraction_error:
+                result["extraction_error"] = extraction_error
+            return result
+        if extraction_error:
+            return _browser_error(
+                device,
+                "extract_visible_text",
+                RuntimeError(extraction_error),
+                text="",
+                lines=[],
+                source=source,
+            )
+        return {"ok": True, "platform": "ios", "text": text, "lines": [], "source": source}
 
     from gitd.services.device_context import get_interactive_elements
 
-    lines = []
-    for element in get_interactive_elements(device, interactive_only=False):
-        label = element.get("text") or element.get("content_desc") or ""
-        if label and label not in lines:
-            lines.append(label)
-        if len(lines) >= max_lines:
-            break
-    return {"ok": True, "platform": "android", "text": "\n".join(lines), "lines": lines}
+    try:
+        lines = []
+        for element in get_interactive_elements(device, interactive_only=False):
+            label = element.get("text") or element.get("content_desc") or ""
+            if label and label not in lines:
+                lines.append(label)
+            if len(lines) >= max_lines:
+                break
+        return {"ok": True, "platform": "android", "text": "\n".join(lines), "lines": lines}
+    except Exception as exc:
+        return _browser_error(device, "extract_visible_text", exc, text="", lines=[], source="")
 
 
 def extract_articles(device: str, max_items: int = 5) -> dict[str, Any]:
-    dev = get_device(device)
+    try:
+        dev = get_device(device)
+    except Exception as exc:
+        return _browser_error(device, "extract_articles", exc, articles=[], source="")
     if is_ios_ref(device) and hasattr(dev, "extract_articles"):
-        articles = _dedupe_article_candidates(dev.extract_articles(max_items=max_items * 2), max_items=max_items)
+        extraction_error = ""
         source = "native_or_web"
+        try:
+            articles = _dedupe_article_candidates(dev.extract_articles(max_items=max_items * 2), max_items=max_items)
+            source = _article_source(articles) or source
+        except Exception as exc:
+            extraction_error = _error_text(exc)
+            articles = []
         if not articles:
             articles = _ocr_articles(device, max_items=max_items)
             source = "ocr" if articles else source
+        if articles:
+            result = {"ok": True, "platform": "ios", "articles": articles, "source": source}
+            if extraction_error:
+                result["extraction_error"] = extraction_error
+            return result
+        if extraction_error:
+            return _browser_error(
+                device,
+                "extract_articles",
+                RuntimeError(extraction_error),
+                articles=[],
+                source=source,
+            )
         return {"ok": True, "platform": "ios", "articles": articles, "source": source}
 
     visible = extract_visible_text(device, max_lines=200)
+    if not visible.get("ok", True):
+        return {
+            "ok": False,
+            "platform": "android",
+            "articles": [],
+            "error": visible.get("error", "visible text extraction failed"),
+        }
     articles = [{"title": line} for line in visible.get("lines", []) if len(line) > 18][:max_items]
     return {"ok": True, "platform": "android", "articles": articles}
 
@@ -650,9 +748,6 @@ def read_news(
             "error": "read_news is currently implemented for iOS browser/WebDriver sessions",
         }
 
-    dev = get_device(device)
-    _set_ios_bundle_override(dev, bundle_id)
-
     max_headlines = max(1, int(max_headlines))
     max_articles = max(0, int(max_articles))
     wait_s = max(0.0, float(wait_s))
@@ -662,7 +757,7 @@ def read_news(
         "ok": False,
         "platform": "ios",
         "device": device,
-        "bundle_id": getattr(dev, "bundle_id", bundle_id or ""),
+        "bundle_id": bundle_id or "",
         "url": normalized_url,
         "headlines": [],
         "articles": [],
@@ -676,6 +771,10 @@ def read_news(
     }
 
     try:
+        dev = get_device(device)
+        _set_ios_bundle_override(dev, bundle_id)
+        result["bundle_id"] = getattr(dev, "bundle_id", bundle_id or "")
+
         launch_bundle = getattr(dev, "bundle_id", "") or bundle_id or ""
         if launch_bundle:
             try:

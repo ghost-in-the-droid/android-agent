@@ -8,6 +8,7 @@ from gitd.app import app
 from gitd.bots.common.ios import IOSDevice
 from gitd.services.agent_tools import execute_tool
 from gitd.services.browser import (
+    browser_back,
     extract_articles,
     extract_visible_text,
     get_current_url,
@@ -672,6 +673,43 @@ def test_ios_open_url_preserves_navigation_when_current_url_probe_fails(monkeypa
     assert result["current_url_error"] == "web context not attached"
 
 
+def test_ios_open_url_returns_structured_error_when_navigation_fails(monkeypatch):
+    class FailingOpenDevice(FakeNewsIOSDevice):
+        def open_url(self, url, delay=2.0):
+            raise RuntimeError("wda navigation failed")
+
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: FailingOpenDevice())
+
+    result = open_url("ios:abc123", "text.npr.org", bundle_id="com.google.chrome.ios")
+
+    assert result == {
+        "ok": False,
+        "platform": "ios",
+        "device": "ios:abc123",
+        "operation": "open_url",
+        "error": "wda navigation failed",
+        "url": "https://text.npr.org",
+    }
+
+
+def test_ios_browser_back_returns_structured_error(monkeypatch):
+    class FailingBackDevice(FakeNewsIOSDevice):
+        def browser_back(self, delay=1.0):
+            raise RuntimeError("wda back failed")
+
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: FailingBackDevice())
+
+    result = browser_back("ios:abc123")
+
+    assert result == {
+        "ok": False,
+        "platform": "ios",
+        "device": "ios:abc123",
+        "operation": "browser_back",
+        "error": "wda back failed",
+    }
+
+
 def test_ios_get_current_url_returns_structured_error(monkeypatch):
     class NoCurrentUrlDevice(FakeNewsIOSDevice):
         def get_current_url(self):
@@ -686,6 +724,24 @@ def test_ios_get_current_url_returns_structured_error(monkeypatch):
         "platform": "ios",
         "url": "",
         "error": "web context not attached",
+    }
+
+
+def test_ios_get_current_url_reports_setup_failure(monkeypatch):
+    monkeypatch.setattr(
+        "gitd.services.browser.get_device",
+        lambda device: (_ for _ in ()).throw(RuntimeError("appium unavailable")),
+    )
+
+    result = get_current_url("ios:abc123")
+
+    assert result == {
+        "ok": False,
+        "platform": "ios",
+        "device": "ios:abc123",
+        "operation": "get_current_url",
+        "error": "appium unavailable",
+        "url": "",
     }
 
 
@@ -769,6 +825,116 @@ def test_ios_wait_for_text_returns_structured_timeout(monkeypatch):
     assert result["found"] is False
     assert result["visible_text"].startswith("NPR text home")
     assert "Timed out waiting" in result["error"]
+
+
+def test_ios_wait_for_text_reports_setup_failure(monkeypatch):
+    monkeypatch.setattr(
+        "gitd.services.browser.get_device",
+        lambda device: (_ for _ in ()).throw(RuntimeError("appium unavailable")),
+    )
+
+    result = wait_for_text("ios:abc123", "headline", timeout=0)
+
+    assert result == {
+        "ok": False,
+        "platform": "ios",
+        "device": "ios:abc123",
+        "operation": "wait_for_text",
+        "error": "appium unavailable",
+        "text": "headline",
+        "found": False,
+        "visible_text": "",
+    }
+
+
+def test_ios_extract_visible_text_uses_ocr_after_native_failure(monkeypatch):
+    class FailingTextDevice(FakeNewsIOSDevice):
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            raise RuntimeError("native text failed")
+
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: FailingTextDevice())
+    monkeypatch.setattr(
+        "gitd.services.device_context.ocr_screen",
+        lambda device: [
+            {"text": "OCR headline one", "conf": 0.9, "x": 10, "y": 20, "w": 100, "h": 20},
+            {"text": "OCR body line", "conf": 0.8, "x": 10, "y": 60, "w": 100, "h": 20},
+        ],
+    )
+
+    result = extract_visible_text("ios:abc123", max_lines=5)
+
+    assert result["ok"] is True
+    assert result["platform"] == "ios"
+    assert result["source"] == "ocr"
+    assert result["extraction_error"] == "native text failed"
+    assert result["lines"] == ["OCR headline one", "OCR body line"]
+
+
+def test_ios_extract_visible_text_reports_failure_when_all_sources_fail(monkeypatch):
+    class FailingTextDevice(FakeNewsIOSDevice):
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            raise RuntimeError("native text failed")
+
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: FailingTextDevice())
+    monkeypatch.setattr("gitd.services.device_context.ocr_screen", lambda device: [])
+
+    result = extract_visible_text("ios:abc123", max_lines=5)
+
+    assert result == {
+        "ok": False,
+        "platform": "ios",
+        "device": "ios:abc123",
+        "operation": "extract_visible_text",
+        "error": "native text failed",
+        "text": "",
+        "lines": [],
+        "source": "native_or_web",
+    }
+
+
+def test_ios_extract_articles_uses_ocr_after_native_failure(monkeypatch):
+    class FailingArticleDevice(FakeNewsIOSDevice):
+        def extract_articles(self, max_items=5):
+            raise RuntimeError("native articles failed")
+
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: FailingArticleDevice())
+    monkeypatch.setattr(
+        "gitd.services.device_context.ocr_screen",
+        lambda device: [
+            {
+                "text": "World leaders meet for climate talks today",
+                "conf": 0.91,
+                "x": 10,
+                "y": 40,
+                "w": 300,
+                "h": 24,
+            }
+        ],
+    )
+
+    result = extract_articles("ios:abc123", max_items=3)
+
+    assert result["ok"] is True
+    assert result["platform"] == "ios"
+    assert result["source"] == "ocr"
+    assert result["extraction_error"] == "native articles failed"
+    assert result["articles"][0]["title"] == "World leaders meet for climate talks today"
+
+
+def test_read_news_reports_ios_setup_failure(monkeypatch):
+    monkeypatch.setattr(
+        "gitd.services.browser.get_device",
+        lambda device: (_ for _ in ()).throw(RuntimeError("appium unavailable")),
+    )
+
+    result = read_news("ios:abc123", "text.npr.org", max_headlines=1, max_articles=1, wait_s=0)
+
+    assert result["ok"] is False
+    assert result["platform"] == "ios"
+    assert result["device"] == "ios:abc123"
+    assert result["url"] == "https://text.npr.org"
+    assert result["error"] == "appium unavailable"
+    assert result["errors"] == [{"stage": "workflow", "error": "appium unavailable"}]
 
 
 def test_read_news_rest_route_uses_browser_service(monkeypatch):
