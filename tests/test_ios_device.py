@@ -287,6 +287,9 @@ Current device information:
 
 
 def test_remote_xpc_tunnel_status_detects_stale_registry_address(monkeypatch):
+    monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORT", raising=False)
+    monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORTS", raising=False)
+
     def fake_request(method, url, timeout=None, **kwargs):
         assert method == "GET"
         assert "42314/remotexpc/tunnels/00008110-0016443101D0401E" in url
@@ -319,6 +322,9 @@ def test_remote_xpc_tunnel_status_detects_stale_registry_address(monkeypatch):
 
 
 def test_remote_xpc_tunnel_status_reports_missing_registry_entry(monkeypatch):
+    monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORT", raising=False)
+    monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORTS", raising=False)
+
     def fake_request(method, url, timeout=None, **kwargs):
         return FakeResponse({"status": "NOT_FOUND"}, status_code=404)
 
@@ -334,6 +340,41 @@ def test_remote_xpc_tunnel_status_reports_missing_registry_entry(monkeypatch):
     assert status["ok"] is False
     assert status["state"] == "missing"
     assert status["registry"]["status_code"] == 404
+
+
+def test_remote_xpc_tunnel_status_uses_configured_registry_ports(monkeypatch):
+    urls = []
+    monkeypatch.setenv("IOS_REMOTE_XPC_REGISTRY_PORTS", "50000, 42314")
+
+    def fake_request(method, url, timeout=None, **kwargs):
+        urls.append(url)
+        if ":50000/" in url:
+            return FakeResponse({"status": "NOT_FOUND"}, status_code=404)
+        return FakeResponse(
+            {
+                "status": "OK",
+                "udid": "00008110-0016443101D0401E",
+                "address": "fdc0:1f0c:103c::1",
+            }
+        )
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.devicectl_device_details",
+        lambda udid: {"tunnel_ip_address": "fdc0:1f0c:103c::1", "tunnel_state": "connected"},
+    )
+
+    status = remote_xpc_tunnel_status(
+        "00008110-0016443101D0401E",
+        platform_version="26.5",
+        host={"source": "host", "platform_version": "26.5"},
+    )
+
+    assert status["ok"] is True
+    assert status["state"] == "available"
+    assert status["checked_ports"] == [50000, 42314]
+    assert status["registry"]["port"] == 42314
+    assert [":50000/" in url for url in urls] == [True, False]
 
 
 def test_remote_xpc_tunnel_status_skips_simulators(monkeypatch):
@@ -715,6 +756,8 @@ def test_probe_classifies_unreachable_appium(monkeypatch):
 def test_probe_fails_fast_when_required_remote_xpc_tunnel_is_stale(monkeypatch):
     IOSDevice._sessions.clear()
     calls = []
+    monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORT", raising=False)
+    monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORTS", raising=False)
 
     def fake_request(method, url, json=None, timeout=None):
         calls.append(url)
