@@ -119,6 +119,16 @@ def test_scheduler_allows_ios_supported_skill_job():
         )
         is None
     )
+    assert (
+        _scheduler_platform_error(
+            {
+                "job_type": "skill_workflow",
+                "phone_serial": "ios:abc123",
+                "config_json": {"skill": "safari", "workflow": "read_news"},
+            }
+        )
+        is None
+    )
 
     err = _scheduler_platform_error(
         {

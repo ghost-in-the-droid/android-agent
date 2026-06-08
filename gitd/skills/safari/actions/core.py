@@ -70,3 +70,56 @@ class VerifyPage(Action):
         if self.expected.lower() in xml.lower():
             return ActionResult(success=True, data={"expected": self.expected})
         return ActionResult(success=False, error=f"Expected text not visible: {self.expected}")
+
+
+class ReadNews(Action):
+    name = "read_news"
+    description = "Open a news site in iOS Chrome/browser and extract headlines plus article snippets"
+    max_retries = 1
+
+    def __init__(
+        self,
+        device,
+        elements=None,
+        url: str = "https://text.npr.org/",
+        max_headlines: int = 5,
+        max_articles: int = 3,
+        bundle_id: str | None = None,
+        wait_s: float = 2.0,
+        save_screenshots: bool = False,
+        out_dir: str | None = None,
+        **kw,
+    ):
+        super().__init__(device, elements)
+        self.url = url
+        self.max_headlines = max_headlines
+        self.max_articles = max_articles
+        self.bundle_id = bundle_id or _default_bundle_id()
+        self.wait_s = wait_s
+        self.save_screenshots = save_screenshots
+        self.out_dir = out_dir
+
+    def execute(self) -> ActionResult:
+        serial = getattr(self.device, "serial", "")
+        if not is_ios_ref(serial):
+            return ActionResult(success=False, error="read_news requires an iOS device ref")
+
+        from gitd.services.browser import read_news
+
+        result = read_news(
+            serial,
+            self.url,
+            max_headlines=self.max_headlines,
+            max_articles=self.max_articles,
+            bundle_id=self.bundle_id,
+            wait_s=self.wait_s,
+            save_screenshots=self.save_screenshots,
+            out_dir=self.out_dir,
+        )
+        if result.get("ok"):
+            return ActionResult(success=True, data=result)
+        return ActionResult(
+            success=False,
+            data=result,
+            error=result.get("error") or "read_news did not return headlines",
+        )

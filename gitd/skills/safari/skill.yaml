@@ -12,8 +12,10 @@ exports:
     - open_safari
     - open_url
     - verify_page
+    - read_news
   workflows:
     - open_ghost_site
+    - read_news
 
 default_params:
   actions:
@@ -23,7 +25,19 @@ default_params:
       url: "https://ghostinthedroid.com"
     verify_page:
       expected: "ghostinthedroid"
+    read_news:
+      url: "https://text.npr.org/"
+      max_headlines: 5
+      max_articles: 3
+      bundle_id: "com.google.chrome.ios"
   workflows:
     open_ghost_site:
       url: "https://ghostinthedroid.com"
       bundle_id: "com.google.chrome.ios"
+    read_news:
+      url: "https://text.npr.org/"
+      max_headlines: 5
+      max_articles: 3
+      bundle_id: "com.google.chrome.ios"
+      save_screenshots: true
+      out_dir: "data/ios_chrome_news_smoke"
