@@ -401,6 +401,11 @@ def api_phone_browser_back(data: dict = Body({})):
 @router.get("/browser/current-url/{device}", summary="Get Current Browser URL")
 def api_phone_browser_current_url(device: str):
     """Return the current browser URL when available."""
+    from gitd.services.tool_platforms import platform_error, supports_platform
+
+    platform = _platform(device)
+    if not supports_platform("get_current_url", platform):
+        return platform_error("get_current_url", platform)
     from gitd.services.browser import get_current_url
 
     return get_current_url(device)
@@ -437,11 +442,17 @@ def api_phone_browser_articles(device: str, max_items: int = 5):
 @router.post("/browser/read-news", summary="Read News In Browser")
 def api_phone_browser_read_news(data: dict = Body({})):
     """Open a news page and return headlines plus article snippets."""
-    from gitd.services.browser import read_news
-
     device = data.get("device", "")
     if not device:
         raise HTTPException(status_code=400, detail="device required")
+    from gitd.services.tool_platforms import platform_error, supports_platform
+
+    platform = _platform(device)
+    if not supports_platform("read_news", platform):
+        return platform_error("read_news", platform)
+
+    from gitd.services.browser import read_news
+
     return read_news(
         device,
         data.get("url", "https://text.npr.org/"),

@@ -675,6 +675,27 @@ def test_read_news_rest_route_uses_browser_service(monkeypatch):
     assert body["kwargs"]["max_articles"] == 2
 
 
+def test_browser_rest_routes_reject_unsupported_platform():
+    client = TestClient(app)
+
+    current_url = client.get("/api/phone/browser/current-url/emulator-5554")
+    news = client.post(
+        "/api/phone/browser/read-news",
+        json={"device": "emulator-5554", "url": "https://text.npr.org/"},
+    )
+
+    assert current_url.status_code == 200
+    assert current_url.json()["ok"] is False
+    assert current_url.json()["platform"] == "android"
+    assert current_url.json()["support"] == "ios_supported"
+
+    assert news.status_code == 200
+    assert news.json()["ok"] is False
+    assert news.json()["platform"] == "android"
+    assert news.json()["support"] == "ios_supported"
+    assert "implemented only for iOS" in news.json()["error"]
+
+
 def test_read_news_agent_tool_dispatches_to_browser_service(monkeypatch):
     def fake_read_news(device, url, **kwargs):
         return {"ok": True, "device": device, "url": url, "kwargs": kwargs, "headlines": [{"title": "One"}]}
