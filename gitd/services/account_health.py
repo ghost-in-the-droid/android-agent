@@ -16,10 +16,11 @@ Public API:
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Optional
 
-from gitd.bots.common.device import is_ios_ref
+from gitd.bots.common.device import get_device, is_ios_ref
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,8 @@ logger = logging.getLogger(__name__)
 # navigations on every job preflight (each call takes 8-15s).
 _CACHE_TTL_S = 60
 _cache: dict[str, tuple[float, dict]] = {}
+_TIKTOK_IOS_BUNDLE_ID = "com.zhiliaoapp.musically"
+_HANDLE_RE = re.compile(r"(?<![\w.])@([A-Za-z0-9._]{2,30})")
 
 
 def _ios_unsupported_result(device: str, *, action: str = "account_health") -> dict:
@@ -43,6 +46,90 @@ def _ios_unsupported_result(device: str, *, action: str = "account_health") -> d
     if action == "account_health":
         result.update({"active": None, "logged_in": [], "cached": False})
     return result
+
+
+def _normalize_handle(value: str) -> str:
+    return value.lstrip("@").strip().strip(".").lower()
+
+
+def _ios_visible_text(dev, *, max_lines: int = 120) -> tuple[str, list[str]]:
+    if hasattr(dev, "extract_visible_text"):
+        text = dev.extract_visible_text(max_lines=max_lines)
+    else:
+        xml = dev.dump_xml()
+        lines = []
+        seen = set()
+        if hasattr(dev, "nodes"):
+            for node in dev.nodes(xml):
+                parts = []
+                for method_name in ("node_text", "node_content_desc", "node_rid"):
+                    method = getattr(dev, method_name, None)
+                    if method:
+                        parts.append(method(node))
+                label = " ".join(part for part in parts if part).strip()
+                if label and label not in seen:
+                    seen.add(label)
+                    lines.append(label)
+                if len(lines) >= max_lines:
+                    break
+        text = "\n".join(lines)
+    lines = [line.strip() for line in str(text or "").splitlines() if line.strip()][:max_lines]
+    return "\n".join(lines), lines
+
+
+def _handles_from_text(text: str) -> list[str]:
+    handles: list[str] = []
+    seen: set[str] = set()
+    for match in _HANDLE_RE.finditer(text or ""):
+        handle = _normalize_handle(match.group(1))
+        if not handle or handle in seen:
+            continue
+        seen.add(handle)
+        handles.append(handle)
+    return handles
+
+
+def _ios_tiktok_account_health(device: str) -> dict:
+    result = {
+        "device": device,
+        "platform": "ios",
+        "ok": False,
+        "active": None,
+        "logged_in": [],
+        "error": None,
+        "cached": False,
+        "checked_at": _now_iso(),
+        "detection": {
+            "method": "wda_visible_text",
+            "bundle_id": _TIKTOK_IOS_BUNDLE_ID,
+            "limitations": [
+                "Best-effort iOS detection reads visible TikTok text; full account switcher enumeration is not implemented yet."
+            ],
+        },
+    }
+    try:
+        dev = get_device(device)
+        if hasattr(dev, "launch_app"):
+            dev.launch_app(_TIKTOK_IOS_BUNDLE_ID)
+            time.sleep(1)
+        text, lines = _ios_visible_text(dev)
+        handles = _handles_from_text(text)
+        result["detection"].update(
+            {
+                "line_count": len(lines),
+                "text_excerpt": "\n".join(lines[:20]),
+            }
+        )
+        if not handles:
+            result["error"] = "no visible TikTok account handle detected"
+            return result
+        result["ok"] = True
+        result["active"] = handles[0]
+        result["logged_in"] = handles
+        return result
+    except Exception as e:
+        result["error"] = str(e)[:200]
+        return result
 
 
 def _premium_available() -> bool:
@@ -73,7 +160,13 @@ def device_account_health(device: str, fresh: bool = False) -> dict:
         }
     """
     if is_ios_ref(device):
-        return _ios_unsupported_result(device)
+        if not fresh:
+            cached = _cache.get(device)
+            if cached and time.time() - cached[0] < _CACHE_TTL_S:
+                return {**cached[1], "cached": True}
+        result = _ios_tiktok_account_health(device)
+        _cache[device] = (time.time(), result)
+        return result
 
     if not fresh:
         cached = _cache.get(device)
@@ -265,10 +358,21 @@ def expected_account_matches(device: str, expected: Optional[str]) -> dict:
 
     expected_clean = expected.lstrip("@").strip()
     if is_ios_ref(device):
+        health = device_account_health(device)
+        if not health["ok"]:
+            return {
+                "ok": True,
+                "reason": f"undetectable: {health['error']}",
+                "active": None,
+                "expected": expected_clean,
+            }
+        active = _normalize_handle(health["active"] or "")
+        if active == _normalize_handle(expected_clean):
+            return {"ok": True, "reason": None, "active": active, "expected": expected_clean}
         return {
-            "ok": True,
-            "reason": "undetectable: iOS TikTok account health is not implemented yet",
-            "active": None,
+            "ok": False,
+            "reason": f"wrong active account: have @{active or '?'}, expected @{expected_clean}",
+            "active": active,
             "expected": expected_clean,
         }
 
