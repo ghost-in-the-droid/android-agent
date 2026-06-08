@@ -1,8 +1,10 @@
 # Device Context Extraction — Feature Summary
 
-Shared context extraction layer that powers MCP tools, REST API endpoints, and the Skill Creator. Single source of truth in `gitd/services/device_context.py` — no duplicate code across consumers.
+Shared context extraction layer that powers MCP tools, REST API endpoints, the
+dashboard, and the Skill Creator. Single source of truth in
+`gitd/services/device_context.py` — no duplicate code across consumers.
 
-## Tools (19 functions, all available as MCP tools + REST endpoints)
+## Shared Helpers
 
 ### Screen Understanding
 
@@ -66,7 +68,7 @@ Shared context extraction layer that powers MCP tools, REST API endpoints, and t
 ## Architecture
 
 ```
-services/device_context.py (19 shared functions)
+services/device_context.py (shared Android/iOS context helpers)
          |
     +----+----+----+
     |         |         |

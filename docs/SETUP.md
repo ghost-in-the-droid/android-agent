@@ -33,6 +33,8 @@ sudo apt install python3 python3-pip nodejs npm android-tools-adb ffmpeg git
 
 ## Phone Setup
 
+### Android
+
 1. **Settings > About Phone** — tap **Build Number** 7 times to enable Developer Options
 2. **Settings > Developer Options** — enable **USB Debugging**
 3. Plug in USB, run `adb devices`, tap **Allow** on the authorization prompt
@@ -42,6 +44,12 @@ sudo apt install python3 python3-pip nodejs npm android-tools-adb ffmpeg git
 adb devices
 # XXXXXXXXXXXXXXX    device
 ```
+
+### iOS
+
+iOS automation requires macOS, Xcode/device trust, Appium XCUITest, and
+WebDriverAgent signing. Use the dedicated guide:
+[SETUP_IOS.md](SETUP_IOS.md).
 
 ---
 
@@ -187,7 +195,9 @@ DEVICE=SERIAL python3 -m pytest tests/ -v
 
 ## MCP Server (AI Agent Tools)
 
-The project includes an MCP server that exposes 35 Android automation tools to any AI client. If you cloned this repo, the `.mcp.json` is already configured.
+The project includes an MCP server that exposes 61 Android/iOS automation tools
+to any AI client. If you cloned this repo, the `.mcp.json` is already
+configured.
 
 **Claude Code / Codex** (if not using the repo's `.mcp.json`):
 ```bash
@@ -195,7 +205,8 @@ claude mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
 codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
 ```
 
-**Claude Desktop / Cursor / VS Code / Windsurf** — see the [MCP section in README.md](../README.md#mcp-server--give-any-ai-agent-an-android-body) for config snippets.
+**Claude Desktop / Cursor / VS Code / Windsurf** — see the MCP section in
+[README.md](../README.md) for config snippets.
 
 Verify it works:
 ```bash
