@@ -39,6 +39,8 @@ def _ios_unsupported(feature: str) -> dict:
 
 
 def _ios_stream_fallback(device: str, feature: str) -> dict:
+    health_endpoint = f"/api/phone/health/{device}"
+    fix_endpoint = f"{health_endpoint}/fix"
     return {
         "ok": False,
         "platform": "ios",
@@ -51,7 +53,10 @@ def _ios_stream_fallback(device: str, feature: str) -> dict:
             "url": f"/api/phone/stream?device={device}&mode=mjpeg",
         },
         "recovery": {
-            "health_endpoint": f"/api/phone/health/{device}",
+            "health_endpoint": health_endpoint,
+            "fix_endpoint": fix_endpoint,
+            "fix_tool": "fix_device_health",
+            "common_fixes": ["reset_session", "restart_remote_xpc_tunnel"],
             "message": "Use WDA MJPEG for iOS live view, or screenshot polling if Appium/WDA MJPEG is unavailable.",
         },
     }
@@ -105,6 +110,9 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
                 "X-Accel-Buffering": "no",
                 "X-Phone-Platform": "ios",
                 "X-Phone-Stream-Mode": ios_stream_mode,
+                "X-Phone-Stream-Fallback-Mode": "screenshot-polling",
+                "X-Phone-Health-URL": f"/api/phone/health/{device}",
+                "X-Phone-Health-Fix-URL": f"/api/phone/health/{device}/fix",
                 "X-Phone-MJPEG-URL": stream_url,
                 "X-Phone-MJPEG-Settings": json.dumps(stream_settings, sort_keys=True),
             },
@@ -262,6 +270,8 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
             "X-Accel-Buffering": "no",
             "X-Phone-Platform": "android",
             "X-Phone-Stream-Mode": android_stream_mode,
+            "X-Phone-Health-URL": f"/api/phone/health/{device}",
+            "X-Phone-Health-Fix-URL": f"/api/phone/health/{device}/fix",
         },
     )
 

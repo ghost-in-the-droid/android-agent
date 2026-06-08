@@ -17,6 +17,9 @@ def test_ios_stream_headers_expose_effective_wda_mjpeg_mode(monkeypatch):
 
     assert response.headers["x-phone-platform"] == "ios"
     assert response.headers["x-phone-stream-mode"] == "wda-mjpeg"
+    assert response.headers["x-phone-stream-fallback-mode"] == "screenshot-polling"
+    assert response.headers["x-phone-health-url"] == "/api/phone/health/ios:abc123"
+    assert response.headers["x-phone-health-fix-url"] == "/api/phone/health/ios:abc123/fix"
     assert response.headers["x-phone-mjpeg-url"] == "http://127.0.0.1:9123"
     assert response.headers["x-phone-mjpeg-settings"] == (
         '{"mjpegScalingFactor": 60.0, "mjpegServerFramerate": 12, "mjpegServerScreenshotQuality": 45}'
@@ -37,6 +40,8 @@ def test_android_stream_headers_expose_effective_mode():
 
     assert response.headers["x-phone-platform"] == "android"
     assert response.headers["x-phone-stream-mode"] == "h264"
+    assert response.headers["x-phone-health-url"] == "/api/phone/health/emulator-5554"
+    assert response.headers["x-phone-health-fix-url"] == "/api/phone/health/emulator-5554/fix"
 
 
 def test_ios_webrtc_signal_returns_wda_stream_fallback():
@@ -48,6 +53,9 @@ def test_ios_webrtc_signal_returns_wda_stream_fallback():
     assert response["stream_fallback"]["recommended_mode"] == "mjpeg"
     assert response["stream_fallback"]["url"] == "/api/phone/stream?device=ios:abc123&mode=mjpeg"
     assert response["recovery"]["health_endpoint"] == "/api/phone/health/ios:abc123"
+    assert response["recovery"]["fix_endpoint"] == "/api/phone/health/ios:abc123/fix"
+    assert response["recovery"]["fix_tool"] == "fix_device_health"
+    assert "restart_remote_xpc_tunnel" in response["recovery"]["common_fixes"]
 
 
 def test_ios_webrtc_ws_send_returns_wda_stream_fallback():
