@@ -575,6 +575,20 @@ TOOLS = [
             "required": ["name", "app_package", "steps"],
         },
     },
+    {
+        "name": "lookup_lead",
+        "description": "Get the marketing fact sheet for one influencer lead by handle.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"handle": {"type": "string", "description": "TikTok handle with or without @."}},
+            "required": ["handle"],
+        },
+    },
+    {
+        "name": "list_unread_leads",
+        "description": "List influencer leads with unread replies, sorted by recency.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
     # System
     {
         "name": "wait",
@@ -1300,6 +1314,14 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 },
                 indent=2,
             )
+        elif name == "lookup_lead":
+            from gitd.services.marketing_lookup import lookup_lead
+
+            return lookup_lead(args["handle"])
+        elif name == "list_unread_leads":
+            from gitd.services.marketing_lookup import list_unread_leads
+
+            return list_unread_leads()
         elif name == "wait":
             time.sleep(args.get("seconds", 2))
             return f"Waited {args.get('seconds', 2)}s"

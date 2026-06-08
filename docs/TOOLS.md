@@ -286,6 +286,17 @@ REST equivalents are `GET /api/phone/notifications/{device}`,
 `POST /api/phone/notifications/open`, and
 `POST /api/phone/notifications/clear`.
 
+## Marketing Data
+
+| tool | purpose |
+|---|---|
+| `lookup_lead(handle)` | Return the stored TikTok lead fact sheet, outreach history, and latest inbox state for one handle. |
+| `list_unread_leads()` | List influencer inbox replies with unread count and latest message preview. |
+
+These tools are device-neutral and are available to Android and iOS agent
+sessions. They do not control the phone; they read Ghost's local marketing DB
+so an agent can decide which mobile workflow to run next.
+
 ---
 
 ## Adding a new tool
