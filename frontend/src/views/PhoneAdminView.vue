@@ -4,6 +4,7 @@ import { api } from '@/composables/useApi'
 
 const devices = ref<any[]>([])
 const selectedDevice = ref('')
+const selectedIsIos = computed(() => selectedDevice.value.startsWith('ios:'))
 const streaming = ref(false)
 const subTab = ref<'single' | 'multi'>('single')
 const nickname = ref('')
@@ -43,6 +44,29 @@ const BOT_LOG_TYPES = [
 interface RtcSession { pc: RTCPeerConnection; sessionId: string; pollTimer: number; sse: EventSource | null; status: string }
 const rtcSessions = ref<Record<string, RtcSession>>({})
 const rtcStatus = ref<Record<string, string>>({})
+
+function isIosSerial(serial: string): boolean {
+  return serial.startsWith('ios:')
+}
+
+function mjpegStreamUrl(serial: string): string {
+  const modeParam = isIosSerial(serial) ? '&mode=wda-mjpeg' : ''
+  return `/api/phone/stream?device=${encodeURIComponent(serial)}&fps=5${modeParam}`
+}
+
+function effectiveStreamMode(serial: string, mode: 'rtc' | 'mjpeg'): 'rtc' | 'mjpeg' {
+  return isIosSerial(serial) ? 'mjpeg' : mode
+}
+
+function streamModeText(serial: string, mode: 'rtc' | 'mjpeg'): string {
+  if (mode === 'rtc') return 'WebRTC'
+  return isIosSerial(serial) ? 'WDA MJPEG' : 'MJPEG'
+}
+
+function streamModeTitle(serial: string, mode: 'rtc' | 'mjpeg'): string {
+  if (isIosSerial(serial)) return 'iOS streams through WebDriverAgent MJPEG'
+  return mode === 'rtc' ? 'Android Portal WebRTC stream' : 'Android MJPEG fallback stream'
+}
 
 function uuid(): string {
   return ([1e7] as any + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: any) =>
@@ -288,6 +312,24 @@ function sendKeyTo(serial: string, key: number | string) {
   }
 }
 
+function hardwareKeys(serial: string): { label: string; key: number | string; title: string }[] {
+  if (isIosSerial(serial)) {
+    return [
+      { label: 'Back', key: 'BACK', title: 'Back' },
+      { label: 'Home', key: 'HOME', title: 'Home' },
+      { label: 'Enter', key: 'ENTER', title: 'Enter' },
+    ]
+  }
+  return [
+    { label: '\u25C0', key: 4, title: 'Back' },
+    { label: '\u2302', key: 3, title: 'Home' },
+    { label: '\u25A6', key: 187, title: 'Recents' },
+    { label: '\u23FB', key: 26, title: 'Power' },
+    { label: 'Vol+', key: 24, title: 'Volume up' },
+    { label: 'Vol-', key: 25, title: 'Volume down' },
+  ]
+}
+
 /* ── Frozen stream detection ──────────────────────────────────────────── */
 const streamFrozen = ref<Record<string, boolean>>({})
 const frozenTimers = ref<Record<string, number>>({})
@@ -344,6 +386,17 @@ function clearBlackCheck(serial: string) {
 
 function reconnectStream(serial: string) {
   streamFrozen.value[serial] = false
+  if (isIosSerial(serial)) {
+    if (streaming.value && serial === selectedDevice.value) {
+      stopStream()
+      singleStreamMode.value = 'mjpeg'
+      setTimeout(() => startStream(), 500)
+    } else {
+      stopMultiStream(serial)
+      setTimeout(() => startMultiStream(serial, 'mjpeg'), 500)
+    }
+    return
+  }
   rtcStop(serial)
   setTimeout(() => rtcStart(serial), 500)
 }
@@ -351,6 +404,7 @@ function reconnectStream(serial: string) {
 /* ── toggle stream mode (switch while streaming) ────────────────────── */
 function toggleMultiMode(serial: string) {
   if (!multiStreaming.value[serial]) return
+  if (isIosSerial(serial)) return
   const newMode = multiStreamMode.value[serial] === 'rtc' ? 'mjpeg' : 'rtc'
   stopMultiStream(serial)
   startMultiStream(serial, newMode)
@@ -358,6 +412,7 @@ function toggleMultiMode(serial: string) {
 
 function toggleSingleMode() {
   if (!streaming.value || !selectedDevice.value) return
+  if (selectedIsIos.value) return
   stopStream()
   singleStreamMode.value = singleStreamMode.value === 'rtc' ? 'mjpeg' : 'rtc'
   startStream()
@@ -367,6 +422,7 @@ function toggleSingleMode() {
 const overlayOn = ref<Record<string, boolean>>({})
 
 async function toggleOverlay(serial: string) {
+  if (isIosSerial(serial)) return
   overlayOn.value[serial] = !overlayOn.value[serial]
   await api(`/api/phone/overlay/${serial}`, {
     method: 'POST', body: JSON.stringify({ visible: overlayOn.value[serial] })
@@ -381,12 +437,13 @@ const mjpegUrls = ref<Record<string, string>>({})
 function startMultiStream(serial: string, mode: 'rtc' | 'mjpeg' = 'rtc') {
   // Clean up any existing stream first
   if (multiStreaming.value[serial]) stopMultiStream(serial)
+  const actualMode = effectiveStreamMode(serial, mode)
   multiStreaming.value[serial] = true
-  multiStreamMode.value[serial] = mode
-  if (mode === 'rtc') {
+  multiStreamMode.value[serial] = actualMode
+  if (actualMode === 'rtc') {
     rtcStart(serial)
   } else {
-    mjpegUrls.value[serial] = `/api/phone/stream?device=${encodeURIComponent(serial)}&fps=5`
+    mjpegUrls.value[serial] = mjpegStreamUrl(serial)
   }
 }
 function stopMultiStream(serial: string) {
@@ -406,6 +463,7 @@ const singleMjpegUrl = ref('')
 
 function startStream() {
   if (!selectedDevice.value) return
+  singleStreamMode.value = effectiveStreamMode(selectedDevice.value, singleStreamMode.value)
   streaming.value = true
   if (singleStreamMode.value === 'rtc') {
     rtcStart(selectedDevice.value)
@@ -414,11 +472,11 @@ function startStream() {
       if (streaming.value && singleStreamMode.value === 'rtc' && rtcStatus[selectedDevice.value] !== 'Streaming') {
         console.log('RTC timeout — falling back to MJPEG')
         singleStreamMode.value = 'mjpeg'
-        singleMjpegUrl.value = `/api/phone/stream?device=${encodeURIComponent(selectedDevice.value)}&fps=5`
+        singleMjpegUrl.value = mjpegStreamUrl(selectedDevice.value)
       }
     }, 5000)
   } else {
-    singleMjpegUrl.value = `/api/phone/stream?device=${encodeURIComponent(selectedDevice.value)}&fps=5`
+    singleMjpegUrl.value = mjpegStreamUrl(selectedDevice.value)
   }
 }
 function stopStream() {
@@ -1018,15 +1076,19 @@ onUnmounted(() => {
               {{ d.connection === 'wifi' ? '\uD83D\uDCF6' : '\uD83D\uDD0C' }} {{ d.nickname || d.model || d.serial }}
             </option>
           </select>
-          <button v-if="!streaming" class="ctrl-btn ctrl-btn--webrtc" style="font-size:9px;padding:3px 8px" @click="singleStreamMode = 'rtc'; startStream()">&#x26A1; Stream</button>
+          <button v-if="!streaming" class="ctrl-btn" :class="selectedIsIos ? 'ctrl-btn--mjpeg' : 'ctrl-btn--webrtc'"
+            style="font-size:9px;padding:3px 8px"
+            :title="selectedIsIos ? 'Start iOS WDA MJPEG stream' : 'Start Android WebRTC stream'"
+            @click="singleStreamMode = selectedIsIos ? 'mjpeg' : 'rtc'; startStream()">Stream</button>
           <span v-if="streaming" style="font-size:8px;padding:1px 6px;border-radius:10px;white-space:nowrap"
+            :title="streamModeTitle(selectedDevice, singleStreamMode)"
             :style="singleStreamMode === 'rtc'
               ? { background: '#22c55e20', color: '#4ade80', border: '1px solid #22c55e40' }
               : { background: '#6366f120', color: '#a5b4fc', border: '1px solid #6366f140' }">
-            {{ singleStreamMode === 'rtc' ? '⚡ WebRTC' : '📷 MJPEG' }}
+            {{ streamModeText(selectedDevice, singleStreamMode) }}
           </span>
           <button v-if="streaming" class="ctrl-btn ctrl-btn--stop" style="font-size:9px;padding:3px 8px" @click="stopStream">&#x23F9; Stop</button>
-          <button class="ctrl-btn" style="font-size:9px;padding:3px 6px" @click="toggleOverlay(selectedDevice)"
+          <button v-if="!selectedIsIos" class="ctrl-btn" style="font-size:9px;padding:3px 6px" @click="toggleOverlay(selectedDevice)"
             :style="{ background: overlayOn[selectedDevice] ? '#fbbf24' : '', color: overlayOn[selectedDevice] ? '#000' : '#fbbf24' }">&#x1F522;</button>
         </div>
         <!-- Stream -->
@@ -1067,12 +1129,10 @@ onUnmounted(() => {
       </div>
         <!-- Bottom: hardware keys -->
         <div style="display: flex; gap: 3px; padding: 4px; justify-content: center; flex-wrap: wrap">
-          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_BACK')">&#x25C0;</button>
-          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_HOME')">&#x23FA;</button>
-          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_APP_SWITCH')">&#x2B1C;</button>
-          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_POWER')">&#x23FB;</button>
-          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_VOLUME_UP')">&#x1F50A;</button>
-          <button class="ctrl-btn" style="font-size:9px;padding:3px 8px" @click="sendKeyTo(selectedDevice, 'KEYCODE_VOLUME_DOWN')">&#x1F509;</button>
+          <button v-for="key in hardwareKeys(selectedDevice)" :key="String(key.key)" class="ctrl-btn"
+            style="font-size:9px;padding:3px 8px" :title="key.title" @click="sendKeyTo(selectedDevice, key.key)">
+            {{ key.label }}
+          </button>
         </div>
       </div>
     </div>
@@ -1081,7 +1141,7 @@ onUnmounted(() => {
     <div v-if="subTab === 'multi'">
       <!-- Controls header -->
       <div class="multi-header">
-        <button class="ctrl-btn ctrl-btn--webrtc" @click="startAllStreams('rtc')">&#x26A1; Start All (WebRTC)</button>
+        <button class="ctrl-btn ctrl-btn--webrtc" @click="startAllStreams('rtc')" title="Android uses WebRTC; iOS devices use WDA MJPEG automatically">&#x26A1; Start All (WebRTC)</button>
         <button class="ctrl-btn ctrl-btn--mjpeg" @click="startAllStreams('mjpeg')">&#x25B6; Start All (MJPEG)</button>
         <button class="ctrl-btn ctrl-btn--stop" @click="stopAllStreams">&#x23F9; Stop All</button>
         <button class="ctrl-btn" @click="showWirelessModal = true" style="background: #0ea5e922; color: #38bdf8; border-color: #0ea5e955">&#x1F4F6; WiFi Connect</button>
@@ -1101,30 +1161,27 @@ onUnmounted(() => {
             <button v-if="healthData[d.serial]?.wifi?.ip && !d.serial.includes(':')" class="hw-key-btn"
               @click="goWireless(d.serial)" title="Go Wireless" style="color: #38bdf8">&#x1F4F6;</button>
             <div class="multi-hw-keys">
-              <button class="hw-key-btn" @click="sendKeyTo(d.serial, 4)" title="Back">&#x25C0;</button>
-              <button class="hw-key-btn" @click="sendKeyTo(d.serial, 3)" title="Home">&#x2302;</button>
-              <button class="hw-key-btn" @click="sendKeyTo(d.serial, 187)" title="Recents">&#x25A6;</button>
-              <button class="hw-key-btn" @click="sendKeyTo(d.serial, 26)" title="Power">&#x23FB;</button>
-              <button class="hw-key-btn" @click="sendKeyTo(d.serial, 24)" title="Vol+">&#x1F50A;</button>
-              <button class="hw-key-btn" @click="sendKeyTo(d.serial, 25)" title="Vol-">&#x1F509;</button>
-              <button class="hw-key-btn" @click="toggleOverlay(d.serial)"
+              <button v-for="key in hardwareKeys(d.serial)" :key="String(key.key)" class="hw-key-btn"
+                @click="sendKeyTo(d.serial, key.key)" :title="key.title">{{ key.label }}</button>
+              <button v-if="!isIosSerial(d.serial)" class="hw-key-btn" @click="toggleOverlay(d.serial)"
                 :style="{ background: overlayOn[d.serial] ? '#fbbf24' : '', color: overlayOn[d.serial] ? '#000' : '#fbbf24' }" title="Toggle UI Grid">&#x1F522;</button>
             </div>
             <div class="multi-stream-btns">
               <span class="multi-mode-badge"
+                :title="streamModeTitle(d.serial, multiStreamMode[d.serial] || 'mjpeg')"
                 :style="multiStreamMode[d.serial] === 'mjpeg' ? { background: '#6366f133', color: '#a5b4fc' } : rtcStatus[d.serial] === 'Streaming' ? { background: '#22c55e22', color: '#4ade80' } : { color: '#475569' }">
-                {{ multiStreaming[d.serial] ? (multiStreamMode[d.serial] === 'mjpeg' ? 'MJPEG' : (rtcStatus[d.serial] || 'RTC')) : '' }}
+                {{ multiStreaming[d.serial] ? (multiStreamMode[d.serial] === 'rtc' ? (rtcStatus[d.serial] || 'RTC') : streamModeText(d.serial, multiStreamMode[d.serial])) : '' }}
               </span>
               <button v-if="rtcStatus[d.serial]?.includes('Portal') || rtcStatus[d.serial]?.includes('fix')"
                 class="ctrl-btn ctrl-btn--fix"
                 @click="rtcFixPortal(d.serial)" title="Fix Portal">Fix</button>
               <template v-if="!multiStreaming[d.serial]">
-                <button class="ctrl-btn ctrl-btn--webrtc ctrl-btn--tiny" @click="startMultiStream(d.serial, 'rtc')" title="WebRTC">&#x26A1;</button>
+                <button v-if="!isIosSerial(d.serial)" class="ctrl-btn ctrl-btn--webrtc ctrl-btn--tiny" @click="startMultiStream(d.serial, 'rtc')" title="WebRTC">&#x26A1;</button>
                 <button class="ctrl-btn ctrl-btn--mjpeg ctrl-btn--tiny" @click="startMultiStream(d.serial, 'mjpeg')" title="MJPEG">&#x25B6;</button>
               </template>
               <template v-else>
                 <button class="ctrl-btn ctrl-btn--stop ctrl-btn--tiny" @click="stopMultiStream(d.serial)">&#x23F9;</button>
-                <button class="ctrl-btn ctrl-btn--tiny" @click="toggleMultiMode(d.serial)"
+                <button v-if="!isIosSerial(d.serial)" class="ctrl-btn ctrl-btn--tiny" @click="toggleMultiMode(d.serial)"
                   :style="{ background: multiStreamMode[d.serial] === 'rtc' ? '#0ea5e922' : '#6366f122', color: multiStreamMode[d.serial] === 'rtc' ? '#38bdf8' : '#a5b4fc', borderColor: multiStreamMode[d.serial] === 'rtc' ? '#0ea5e955' : '#6366f155' }"
                   :title="'Switch to ' + (multiStreamMode[d.serial] === 'rtc' ? 'MJPEG' : 'WebRTC')">&#x21C4;</button>
               </template>
