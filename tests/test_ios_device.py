@@ -384,6 +384,76 @@ def test_remote_xpc_tunnel_status_uses_configured_registry_ports(monkeypatch):
     assert [":50000/" in url for url in urls] == [True, False]
 
 
+def test_remote_xpc_tunnel_status_rejects_disconnected_devicectl_tunnel(monkeypatch):
+    monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORT", raising=False)
+    monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORTS", raising=False)
+
+    def fake_request(method, url, timeout=None, **kwargs):
+        return FakeResponse(
+            {
+                "status": "OK",
+                "udid": "00008110-0016443101D0401E",
+                "address": "fdc0:1f0c:103c::1",
+            }
+        )
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.devicectl_device_details",
+        lambda udid: {"tunnel_state": "disconnected"},
+    )
+
+    status = remote_xpc_tunnel_status(
+        "00008110-0016443101D0401E",
+        platform_version="26.5",
+        host={"source": "host", "platform_version": "26.5"},
+    )
+
+    assert status["required"] is True
+    assert status["ok"] is False
+    assert status["state"] == "stale"
+    assert status["registry_address"] == "fdc0:1f0c:103c::1"
+    assert status["current_address"] == ""
+    assert status["devicectl_connected"] is False
+    assert status["stale_reason"] == "devicectl_tunnel_disconnected"
+    assert "not connected" in status["message"]
+
+
+def test_remote_xpc_tunnel_status_requires_devicectl_tunnel_address(monkeypatch):
+    monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORT", raising=False)
+    monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORTS", raising=False)
+
+    def fake_request(method, url, timeout=None, **kwargs):
+        return FakeResponse(
+            {
+                "status": "OK",
+                "udid": "00008110-0016443101D0401E",
+                "address": "fdc0:1f0c:103c::1",
+            }
+        )
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.devicectl_device_details",
+        lambda udid: {"tunnel_state": "connected"},
+    )
+
+    status = remote_xpc_tunnel_status(
+        "00008110-0016443101D0401E",
+        platform_version="26.5",
+        host={"source": "host", "platform_version": "26.5"},
+    )
+
+    assert status["required"] is True
+    assert status["ok"] is False
+    assert status["state"] == "stale"
+    assert status["registry_address"] == "fdc0:1f0c:103c::1"
+    assert status["current_address"] == ""
+    assert status["devicectl_connected"] is True
+    assert status["stale_reason"] == "devicectl_address_missing"
+    assert "no tunnel IP address" in status["message"]
+
+
 def test_remote_xpc_tunnel_status_skips_simulators(monkeypatch):
     calls = []
 

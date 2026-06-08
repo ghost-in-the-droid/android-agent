@@ -794,6 +794,46 @@ def remote_xpc_tunnel_status(udid: str, *, platform_version: str = "", host: dic
     status["devicectl"] = devicectl
     registry_address = str(registry.get("address") or "")
     current_address = str(devicectl.get("tunnel_ip_address") or "")
+    tunnel_state = str(devicectl.get("tunnel_state") or "").lower()
+    if devicectl.get("error"):
+        status.update(
+            {
+                "ok": False,
+                "state": "stale",
+                "message": "RemoteXPC tunnel registry cannot be validated because devicectl details are unavailable.",
+                "registry_address": registry_address,
+                "current_address": current_address,
+                "devicectl_connected": False,
+                "stale_reason": "devicectl_unavailable",
+            }
+        )
+        return status
+    if tunnel_state and tunnel_state != "connected":
+        status.update(
+            {
+                "ok": False,
+                "state": "stale",
+                "message": "RemoteXPC tunnel is not connected according to devicectl.",
+                "registry_address": registry_address,
+                "current_address": current_address,
+                "devicectl_connected": False,
+                "stale_reason": "devicectl_tunnel_disconnected",
+            }
+        )
+        return status
+    if not current_address:
+        status.update(
+            {
+                "ok": False,
+                "state": "stale",
+                "message": "RemoteXPC tunnel registry cannot be validated because devicectl has no tunnel IP address.",
+                "registry_address": registry_address,
+                "current_address": current_address,
+                "devicectl_connected": tunnel_state == "connected",
+                "stale_reason": "devicectl_address_missing",
+            }
+        )
+        return status
     if registry_address and current_address and registry_address != current_address:
         status.update(
             {
