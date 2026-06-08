@@ -173,9 +173,10 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
 
         ios_stream_mode = "wda-mjpeg" if mode in {"mjpeg", "wda", "wda-mjpeg"} else "screenshot-polling"
         gen = gen_ios_mjpeg if ios_stream_mode == "wda-mjpeg" else gen_ios_screencap
+        boundary = "BoundaryString" if ios_stream_mode == "wda-mjpeg" else "frame"
         return StreamingResponse(
             gen(),
-            media_type="multipart/x-mixed-replace; boundary=frame",
+            media_type=f"multipart/x-mixed-replace; boundary={boundary}",
             headers={
                 "Cache-Control": "no-cache",
                 "X-Accel-Buffering": "no",
