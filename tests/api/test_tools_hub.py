@@ -53,6 +53,29 @@ def test_tools_platforms_endpoint(client):
     assert set(body["categories"]) == {"cross_platform", "android_only", "ios_supported", "ios_planned"}
 
 
+def test_tools_test_endpoint_rejects_unsupported_platform_combo(client):
+    android_news = client.post(
+        "/api/tools/test",
+        json={"name": "read_news", "args": {"device": "emulator-5554", "url": "https://text.npr.org/"}},
+    )
+    ios_shell = client.post(
+        "/api/tools/test",
+        json={"name": "shell", "args": {"device": "ios:abc123", "command": "ls"}},
+    )
+
+    assert android_news.status_code == 200
+    assert android_news.json()["ok"] is False
+    assert android_news.json()["platform"] == "android"
+    assert android_news.json()["support"] == "ios_supported"
+    assert "implemented only for iOS" in android_news.json()["error"]
+
+    assert ios_shell.status_code == 200
+    assert ios_shell.json()["ok"] is False
+    assert ios_shell.json()["platform"] == "ios"
+    assert ios_shell.json()["support"] == "android_only"
+    assert "Android-only" in ios_shell.json()["error"]
+
+
 def test_ios_packages_endpoint_returns_verified_bundle_inventory(client, monkeypatch):
     class FakeIOSDevice:
         def list_apps(self, query="", verify=True):
