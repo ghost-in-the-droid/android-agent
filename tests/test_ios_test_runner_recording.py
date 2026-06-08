@@ -1,5 +1,4 @@
 import sys
-from pathlib import Path
 
 from gitd.routers import tests as test_runner
 
@@ -8,15 +7,22 @@ class FakeProc:
     def __init__(self):
         self.terminated = False
         self.killed = False
+        self.returncode = None
+
+    def poll(self):
+        return self.returncode
 
     def terminate(self):
         self.terminated = True
+        self.returncode = 0
 
     def wait(self, timeout=None):
+        self.returncode = 0
         return 0
 
     def kill(self):
         self.killed = True
+        self.returncode = -9
 
 
 def test_ios_screen_recording_uses_wda_mjpeg_and_ffmpeg(tmp_path, monkeypatch):
@@ -27,18 +33,21 @@ def test_ios_screen_recording_uses_wda_mjpeg_and_ffmpeg(tmp_path, monkeypatch):
         mjpeg_url = "http://127.0.0.1:9100"
 
     monkeypatch.setattr(test_runner, "_TR_RECORDINGS_DIR", tmp_path)
-    monkeypatch.setattr(test_runner, "get_device", lambda serial: FakeIOSDevice())
+    monkeypatch.setattr(test_runner.phone_recording, "get_device", lambda serial: FakeIOSDevice())
+    test_runner.phone_recording._active.clear()
 
     def fake_popen(cmd, stdout=None, stderr=None):
         calls.append(cmd)
         return proc
 
-    monkeypatch.setattr(test_runner.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(test_runner.phone_recording.subprocess, "Popen", fake_popen)
 
-    returned_proc, local_path = test_runner._sr_start("ios:abc123", "ios_abc123_smoke.mp4")
+    result = test_runner._sr_start("ios:abc123", "ios_abc123_smoke.mp4")
 
-    assert returned_proc is proc
-    assert local_path == str(tmp_path / "ios_abc123_smoke.mp4")
+    assert result["ok"] is True
+    assert result["platform"] == "ios"
+    assert result["mode"] == "wda-mjpeg"
+    assert result["path"] == str(tmp_path / "ios_abc123_smoke.mp4")
     assert calls == [
         [
             "ffmpeg",
@@ -59,15 +68,28 @@ def test_ios_screen_recording_uses_wda_mjpeg_and_ffmpeg(tmp_path, monkeypatch):
     ]
 
 
-def test_ios_screen_recording_stop_returns_local_file(tmp_path):
+def test_ios_screen_recording_stop_returns_local_file(tmp_path, monkeypatch):
     proc = FakeProc()
     local_path = tmp_path / "ios_recording.mp4"
     local_path.write_bytes(b"mp4")
+    test_runner.phone_recording._active.clear()
+    test_runner.phone_recording._active["ios:abc123"] = {
+        "device": "ios:abc123",
+        "platform": "ios",
+        "mode": "wda-mjpeg",
+        "filename": local_path.name,
+        "local_path": str(local_path),
+        "device_path": "",
+        "mjpeg_url": "http://127.0.0.1:9100",
+        "proc": proc,
+        "started_at": 0,
+    }
 
-    result = test_runner._sr_stop_and_pull("ios:abc123", proc, str(local_path), local_path.name)
+    result = test_runner._sr_stop_and_pull("ios:abc123", local_path.name)
 
     assert proc.terminated is True
     assert result == local_path
+    assert test_runner.phone_recording.recording_status("ios:abc123")["running"] is False
 
 
 def test_recording_names_are_filesystem_safe():

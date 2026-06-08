@@ -32,14 +32,16 @@ def _platform(device: str) -> str:
     return "ios" if is_ios_ref(device) else "android"
 
 
-def _recording_path(filename: str) -> Path:
+def _recording_path(filename: str, recordings_dir: Path | str | None = None) -> Path:
     name = Path(filename).name
     if name != filename:
         raise ValueError("invalid recording filename")
-    return RECORDINGS_DIR / name
+    root = Path(recordings_dir) if recordings_dir is not None else RECORDINGS_DIR
+    root.mkdir(parents=True, exist_ok=True)
+    return root / name
 
 
-def start_recording(device: str, filename: str = "") -> dict:
+def start_recording(device: str, filename: str = "", recordings_dir: Path | str | None = None) -> dict:
     """Start recording a device screen.
 
     iOS records WDA MJPEG through ffmpeg. Android records on-device with
@@ -61,7 +63,7 @@ def start_recording(device: str, filename: str = "") -> dict:
         name = safe_recording_name(filename) if filename else _new_filename(device)
         if not name.endswith(".mp4"):
             name += ".mp4"
-        local_path = _recording_path(name)
+        local_path = _recording_path(name, recordings_dir=recordings_dir)
         platform = _platform(device)
 
         if platform == "ios":
