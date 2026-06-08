@@ -713,6 +713,8 @@ async function startMultiStream(serial: string, mode: 'rtc' | 'mjpeg' = 'rtc') {
   if (actualMode === 'rtc') {
     rtcStart(serial)
   } else {
+    streamFrozen.value[serial] = false
+    streamInfoStatus.value[serial] = isIosDevice(serial) ? 'Loading WDA MJPEG...' : ''
     mjpegUrls.value[serial] = mjpegStreamUrl(serial)
     mjpegUrls.value[serial] = await resolveMjpegStreamUrl(serial, actualMode)
   }
@@ -752,6 +754,8 @@ async function startStream() {
       }
     }, 5000)
   } else {
+    streamFrozen.value[serial] = false
+    streamInfoStatus.value[serial] = isIosDevice(serial) ? 'Loading WDA MJPEG...' : ''
     singleMjpegUrl.value = mjpegStreamUrl(serial)
     singleMjpegUrl.value = await resolveMjpegStreamUrl(serial, singleStreamMode.value)
   }
@@ -764,29 +768,97 @@ function stopStream() {
 }
 
 /* ── MJPEG tap/swipe (uses naturalWidth/Height for coordinate scaling) ─ */
+function mjpegImageLoaded(serial: string) {
+  streamFrozen.value[serial] = false
+  blackWarning.value[serial] = false
+  if (streamInfoStatus.value[serial]?.startsWith('Loading ')) streamInfoStatus.value[serial] = ''
+  if (isIosDevice(serial)) rtcStatus.value[serial] = 'WDA MJPEG'
+}
+
+function mjpegImageError(serial: string) {
+  streamFrozen.value[serial] = true
+  streamInfoStatus.value[serial] = isIosDevice(serial)
+    ? 'WDA MJPEG failed — tap stream to reconnect or check iOS health'
+    : 'MJPEG stream failed — tap stream to reconnect'
+}
+
+function mjpegImagePoint(img: HTMLImageElement, clientX: number, clientY: number): { x: number; y: number; width: number; height: number } | null {
+  const rect = img.getBoundingClientRect()
+  const sw = img.naturalWidth
+  const sh = img.naturalHeight
+  if (!sw || !sh || !rect.width || !rect.height) return null
+  const sx = sw / rect.width
+  const sy = sh / rect.height
+  return {
+    x: Math.round((clientX - rect.left) * sx),
+    y: Math.round((clientY - rect.top) * sy),
+    width: sw,
+    height: sh,
+  }
+}
+
 function mjpegMouseDown(serial: string, e: MouseEvent) {
   e.preventDefault()
   const img = e.target as HTMLImageElement
-  const rect = img.getBoundingClientRect()
-  const sx = img.naturalWidth / rect.width, sy = img.naturalHeight / rect.height
-  dragState.value[serial] = { x: Math.round((e.clientX - rect.left) * sx), y: Math.round((e.clientY - rect.top) * sy), t: Date.now() }
+  const point = mjpegImagePoint(img, e.clientX, e.clientY)
+  if (!point) return
+  dragState.value[serial] = { x: point.x, y: point.y, t: Date.now() }
   dragMoved.value[serial] = false
 }
+
+function mjpegMove(serial: string) {
+  if (dragState.value[serial]) dragMoved.value[serial] = true
+}
+
 function mjpegMouseUp(serial: string, e: MouseEvent) {
   const ds = dragState.value[serial]; if (!ds) return; e.preventDefault()
   const img = e.target as HTMLImageElement
-  const rect = img.getBoundingClientRect()
-  const sx = img.naturalWidth / rect.width, sy = img.naturalHeight / rect.height
-  const ex = Math.round((e.clientX - rect.left) * sx), ey = Math.round((e.clientY - rect.top) * sy)
-  const sw = img.naturalWidth, sh = img.naturalHeight
-  const dx = ex - ds.x, dy = ey - ds.y, dist = Math.sqrt(dx * dx + dy * dy)
+  const point = mjpegImagePoint(img, e.clientX, e.clientY)
+  if (!point) { dragState.value[serial] = null; return }
+  const dx = point.x - ds.x, dy = point.y - ds.y, dist = Math.sqrt(dx * dx + dy * dy)
   if (!dragMoved.value[serial] || dist < 20) {
-    api('/api/phone/tap', { method: 'POST', body: JSON.stringify({ device: serial, x: ex, y: ey, stream_w: sw, stream_h: sh }) })
+    api('/api/phone/tap', { method: 'POST', body: JSON.stringify({ device: serial, x: point.x, y: point.y, stream_w: point.width, stream_h: point.height }) })
   } else {
-    api('/api/phone/swipe', { method: 'POST', body: JSON.stringify({ device: serial, x1: ds.x, y1: ds.y, x2: ex, y2: ey, stream_w: sw, stream_h: sh }) })
+    api('/api/phone/swipe', { method: 'POST', body: JSON.stringify({ device: serial, x1: ds.x, y1: ds.y, x2: point.x, y2: point.y, stream_w: point.width, stream_h: point.height }) })
   }
   dragState.value[serial] = null
 }
+
+function mjpegTouchStart(serial: string, e: TouchEvent) {
+  if (!e.touches.length) return
+  e.preventDefault()
+  const touch = e.touches[0]
+  if (!touch) return
+  const point = mjpegImagePoint(e.target as HTMLImageElement, touch.clientX, touch.clientY)
+  if (!point) return
+  dragState.value[serial] = { x: point.x, y: point.y, t: Date.now() }
+  dragMoved.value[serial] = false
+}
+
+function mjpegTouchMove(serial: string, e: TouchEvent) {
+  if (!dragState.value[serial]) return
+  e.preventDefault()
+  dragMoved.value[serial] = true
+}
+
+function mjpegTouchEnd(serial: string, e: TouchEvent) {
+  const ds = dragState.value[serial]
+  if (!ds) return
+  e.preventDefault()
+  const touch = e.changedTouches[0]
+  if (!touch) { dragState.value[serial] = null; return }
+  const point = mjpegImagePoint(e.target as HTMLImageElement, touch.clientX, touch.clientY)
+  if (!point) { dragState.value[serial] = null; return }
+  const dx = point.x - ds.x, dy = point.y - ds.y, dist = Math.sqrt(dx * dx + dy * dy)
+  if (!dragMoved.value[serial] || dist < 20) {
+    api('/api/phone/tap', { method: 'POST', body: JSON.stringify({ device: serial, x: point.x, y: point.y, stream_w: point.width, stream_h: point.height }) })
+  } else {
+    api('/api/phone/swipe', { method: 'POST', body: JSON.stringify({ device: serial, x1: ds.x, y1: ds.y, x2: point.x, y2: point.y, stream_w: point.width, stream_h: point.height }) })
+  }
+  dragState.value[serial] = null
+}
+
+function mjpegTouchCancel(serial: string) { dragState.value[serial] = null }
 
 /* ── per-device logs ─────────────────────────────────────────────────── */
 const multiLogs = ref<Record<string, string[]>>({})
@@ -1652,10 +1724,16 @@ onUnmounted(() => {
             :src="singleMjpegUrl"
             class="stream-media"
             draggable="false"
+            @load="mjpegImageLoaded(selectedDevice)"
+            @error="mjpegImageError(selectedDevice)"
             @mousedown="mjpegMouseDown(selectedDevice, $event)"
-            @mousemove="videoMouseMove(selectedDevice)"
+            @mousemove="mjpegMove(selectedDevice)"
             @mouseup="mjpegMouseUp(selectedDevice, $event)"
             @mouseleave="videoMouseLeave(selectedDevice)"
+            @touchstart="mjpegTouchStart(selectedDevice, $event)"
+            @touchmove="mjpegTouchMove(selectedDevice, $event)"
+            @touchend="mjpegTouchEnd(selectedDevice, $event)"
+            @touchcancel="mjpegTouchCancel(selectedDevice)"
             @dragstart.prevent />
           <div v-if="!streaming" class="stream-placeholder">
             Select device &amp; start stream<br/>or chat — auto-starts
@@ -1779,10 +1857,16 @@ onUnmounted(() => {
               :src="mjpegUrls[d.serial]"
               class="multi-stream-media"
               draggable="false"
+              @load="mjpegImageLoaded(d.serial)"
+              @error="mjpegImageError(d.serial)"
               @mousedown="mjpegMouseDown(d.serial, $event)"
-              @mousemove="videoMouseMove(d.serial)"
+              @mousemove="mjpegMove(d.serial)"
               @mouseup="mjpegMouseUp(d.serial, $event)"
               @mouseleave="videoMouseLeave(d.serial)"
+              @touchstart="mjpegTouchStart(d.serial, $event)"
+              @touchmove="mjpegTouchMove(d.serial, $event)"
+              @touchend="mjpegTouchEnd(d.serial, $event)"
+              @touchcancel="mjpegTouchCancel(d.serial)"
               @dragstart.prevent />
             <div v-else class="multi-stream-placeholder">{{ streamPlaceholderText(d.serial) }}</div>
             <!-- Black screen warning -->
