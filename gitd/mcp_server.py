@@ -251,6 +251,14 @@ def launch_app(device: str, package: str, fresh: bool = False) -> str:
 
 
 @mcp.tool()
+def force_stop(device: str, package: str) -> str:
+    """Force-stop an Android package or terminate an iOS bundle id."""
+    from gitd.services.agent_tools import execute_tool
+
+    return execute_tool("force_stop", {"device": device, "package": package})
+
+
+@mcp.tool()
 def app_state(device: str, package: str) -> str:
     """Check whether an Android package or iOS bundle id is installed, running, or foreground."""
     from gitd.services.device_context import app_state as _app_state
@@ -312,6 +320,14 @@ def list_apps(device: str) -> str:
     iOS is limited to configured/common bundle ids verified through Appium."""
     from gitd.services.agent_tools import execute_tool
     return execute_tool("list_apps", {"device": device})
+
+
+@mcp.tool()
+def list_packages(device: str) -> str:
+    """List raw Android package names or iOS bundle ids. Prefer list_apps() for display names."""
+    from gitd.services.agent_tools import execute_tool
+
+    return execute_tool("list_packages", {"device": device})
 
 
 @mcp.tool()
@@ -763,6 +779,16 @@ def run_workflow(device: str, skill: str, workflow: str, params: str = "{}") -> 
 
 
 @mcp.tool()
+def run_skill(device: str, skill: str, workflow: str, params: str = "{}") -> str:
+    """Run an installed skill workflow on the device.
+
+    Alias of run_workflow() kept for parity with REST and in-process agent tools.
+    params is a JSON string of keyword arguments for the workflow.
+    """
+    return run_workflow(device, skill, workflow, params=params)
+
+
+@mcp.tool()
 def run_action(device: str, skill: str, action: str, params: str = "{}") -> str:
     """Run a single skill action on the device.
 
@@ -803,6 +829,22 @@ def run_action(device: str, skill: str, action: str, params: str = "{}") -> str:
 
 
 # ── Tier 3: Meta / Discovery ────────────────────────────────────────────
+
+
+@mcp.tool()
+def shell(device: str, command: str) -> str:
+    """Run an ADB shell command on an Android device. Android-only."""
+    from gitd.services.agent_tools import execute_tool
+
+    return execute_tool("shell", {"device": device, "command": command})
+
+
+@mcp.tool()
+def wait(seconds: float = 2.0) -> str:
+    """Pause execution for a fixed number of seconds."""
+    from gitd.services.agent_tools import execute_tool
+
+    return execute_tool("wait", {"seconds": seconds})
 
 
 @mcp.tool()
