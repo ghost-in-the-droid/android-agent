@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MCP Server — expose Android automation as tools for any LLM agent.
+"""MCP Server - expose mobile automation as tools for any LLM agent.
 
 Usage:
   stdio:  python3 -m gitd.mcp_server
@@ -98,7 +98,7 @@ def _format_ios_device(serial: str, details: dict | None) -> str:
     return f"{serial} ({'; '.join(parts)})"
 
 
-# ── Tier 1: Raw Android Control ──────────────────────────────────────────
+# ── Tier 1: Device Control ────────────────────────────────────────────────
 
 
 @mcp.tool()
@@ -191,8 +191,9 @@ def type_text(device: str, text: str) -> str:
 
 @mcp.tool()
 def type_unicode(device: str, text: str) -> str:
-    """Type unicode text (emoji, CJK, accented chars) via ADBKeyboard broadcast.
-    Requires ADBKeyboard APK installed. Use type_text() for plain ASCII."""
+    """Type unicode text into the focused field.
+    Android uses ADBKeyboard when configured; iOS uses WDA text entry.
+    Use type_text() for plain ASCII."""
     if is_ios_ref(device):
         get_device(device).type_text(text)
     else:
@@ -219,8 +220,9 @@ def press_home(device: str) -> str:
 
 @mcp.tool()
 def press_key(device: str, key: str) -> str:
-    """Send a key event. key examples: POWER, VOLUME_UP, VOLUME_DOWN, ENTER, TAB, MENU.
-    Full list: KEYCODE_ prefix is added automatically if missing."""
+    """Send a platform key event.
+    Android accepts KEYCODE_* names, with the KEYCODE_ prefix added automatically.
+    iOS supports WDA-backed HOME, ENTER/RETURN, and BACK/ESCAPE."""
     if is_ios_ref(device):
         get_device(device).press_key(key)
         return f"Sent {key}"
@@ -358,7 +360,8 @@ def get_screen_tree(device: str) -> str:
 
 @mcp.tool()
 def get_screen_xml(device: str) -> str:
-    """Get the raw UI XML dump from the device (uiautomator).
+    """Get the raw normalized UI XML dump from the device.
+    Android returns uiautomator XML; iOS returns normalized Appium/WDA XML.
     Use get_screen_tree() instead for a readable summary.
     Use this only when you need exact attribute values or the full hierarchy."""
     from gitd.services.device_context import get_screen_xml as _xml
