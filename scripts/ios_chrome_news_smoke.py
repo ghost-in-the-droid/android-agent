@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from gitd.bots.common.device import get_device
 from gitd.bots.common.ios import IOS_PREFIX, IOSDevice, known_ios_udids
 from gitd.services.browser import read_news
-from gitd.services.device_context import ios_device_health
+from gitd.services.device_context import fix_device_health, ios_device_health
 
 
 def _device_ref(value: str) -> str:
@@ -51,6 +51,11 @@ def main() -> int:
     parser.add_argument("--wait", type=float, default=2.0)
     parser.add_argument("--out-dir", default="data/ios_chrome_news_smoke")
     parser.add_argument("--skip-health", action="store_true", help="Skip the Appium/WDA health preflight")
+    parser.add_argument(
+        "--fix-health",
+        action="store_true",
+        help="Apply device_health.recommended_fix once, then re-run the health preflight before reading news",
+    )
     parser.add_argument("--close", action="store_true", help="Delete the Appium session before exiting")
     args = parser.parse_args()
 
@@ -67,10 +72,19 @@ def main() -> int:
         result_path = out_dir / "result.json"
         health_path = out_dir / "health.json"
         preflight_health = None
+        health_fix = None
         if not args.skip_health:
             preflight_health = _preflight_health(device, args.bundle_id)
             health_path.write_text(json.dumps(preflight_health, indent=2), encoding="utf-8")
             state = str(preflight_health.get("connection", {}).get("status") or "")
+            if state != "available" and args.fix_health:
+                fix_issue = str(preflight_health.get("recommended_fix") or "")
+                if fix_issue:
+                    health_fix = fix_device_health(device, fix_issue)
+                    (out_dir / "health_fix.json").write_text(json.dumps(health_fix, indent=2), encoding="utf-8")
+                    preflight_health = _preflight_health(device, args.bundle_id)
+                    health_path.write_text(json.dumps(preflight_health, indent=2), encoding="utf-8")
+                    state = str(preflight_health.get("connection", {}).get("status") or "")
             if state != "available":
                 result = {
                     "ok": False,
@@ -79,7 +93,9 @@ def main() -> int:
                     "stage": "health",
                     "error": "iOS Appium/WDA health preflight is not available",
                     "health": preflight_health,
+                    "health_fix": health_fix,
                     "health_json": str(health_path),
+                    "health_fix_json": str(out_dir / "health_fix.json") if health_fix is not None else "",
                     "result_json": str(result_path),
                 }
                 result_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
@@ -98,6 +114,9 @@ def main() -> int:
         if preflight_health is not None:
             result["health"] = preflight_health
             result["health_json"] = str(health_path)
+        if health_fix is not None:
+            result["health_fix"] = health_fix
+            result["health_fix_json"] = str(out_dir / "health_fix.json")
         result["result_json"] = str(result_path)
         result_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
         print(json.dumps(result, indent=2))
