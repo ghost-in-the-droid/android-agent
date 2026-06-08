@@ -2,18 +2,25 @@
 
 ## What It Does
 
-Exposes the entire Android automation system as tools that any LLM agent can use. Supports MCP (Model Context Protocol) for Claude Code, Cursor, Codex CLI, and OpenClaw, plus an OpenAPI-compatible REST layer for ChatGPT/GPT Actions.
+Exposes Ghost in the Droid's Android and iOS automation system as tools that
+LLM agents can use. Supports MCP (Model Context Protocol) for Claude Code,
+Cursor, Codex CLI, and OpenClaw, plus OpenAPI-compatible REST endpoints for
+ChatGPT/GPT Actions.
 
 ## Current State
 
 **Working:**
-- 19 MCP tools across 3 tiers (raw control, skill workflows, meta/discovery)
+- 61 MCP tools across raw device control, observation, browser automation,
+  skills, app lifecycle, streaming/recording, marketing data, and discovery
 - stdio transport (Claude Code, Cursor, Codex CLI)
 - HTTP transport on port 8002 (Claude Desktop, OpenClaw, web agents)
-- REST API on port 5055 (ChatGPT/GPT Actions via existing Flask server)
+- REST API on port 5055 (ChatGPT/GPT Actions via FastAPI)
 - Dynamic skill loading (auto-discovers all installed skills including recorded ones)
-- Full device interaction: tap, swipe, type, screenshot, elements, key events
+- Platform-aware device interaction: tap, swipe, type, screenshot, normalized
+  elements, app launch/state, browser tools, health checks, and stream metadata
 - Workflow execution via `_run_skill.py` subprocess (same pipeline as Skill Hub)
+- Platform support registry: 55 cross-platform tools, 2 iOS-only workflow
+  tools, and 4 intentionally Android-only escape hatches
 
 ## Architecture
 
@@ -28,61 +35,71 @@ Exposes the entire Android automation system as tools that any LLM agent can use
                  │ MCP              │ REST/OpenAPI
                  ▼                  ▼
 ┌─────────────────────┐  ┌──────────────────────┐
-│ mcp_server.py       │  │ server.py (Flask)     │
+│ mcp_server.py       │  │ run.py / FastAPI      │
 │ port 8002           │  │ port 5055             │
-│ 19 tools            │  │ /api/phone/* endpoints│
+│ 61 tools            │  │ /api/phone/* endpoints│
 └────────┬────────────┘  └────────┬──────────────┘
          │ Python (Device + Skills)              │
          └────────────┬──────────────────────────┘
                       ▼
-          Physical Android phones via ADB
+          Android via ADB · iOS via Appium/WDA
 ```
 
 ## File
 
-`gitd/mcp_server.py` — single file, ~280 lines.
+`gitd/mcp_server.py` — thin MCP wrappers over shared service modules.
 
 ## Tool Tiers
 
-### Tier 1: Raw Android Control (14 tools)
+### Tier 1: Device Control And Observation
 
-Work with ANY app. The agent figures out what to do by looking at elements/screenshots.
+Work with any supported app. The agent figures out what to do by looking at
+normalized elements, screen trees, screenshots, OCR, and device health.
 
 | Tool | Description |
 |------|-------------|
-| `list_devices` | List connected phones with serial + model |
-| `screenshot` | Base64 PNG of current screen |
-| `get_elements` | JSON array of all UI elements (idx, text, bounds, clickable) |
-| `get_phone_state` | Current app, activity, keyboard state, focused element |
+| `list_devices` | List connected Android ADB refs and configured iOS Appium refs |
+| `device_health` / `fix_device_health` | Android Portal/device checks or iOS Appium/WDA checks with recovery steps |
+| `screenshot` / `screenshot_annotated` / `screenshot_cropped` | Base64 screenshots and annotated/cropped variants |
+| `get_elements` / `get_screen_tree` / `get_screen_xml` | Normalized Android UIAutomator or iOS WDA accessibility trees |
+| `get_phone_state` | Current app/activity on Android or active app/window on iOS |
+| `find_on_screen` / `ocr_screen` / `ocr_region` | Text search and OCR fallback |
 | `tap` | Tap at (x, y) coordinates |
 | `tap_element` | Tap element by idx from `get_elements()` |
 | `swipe` | Swipe from (x1,y1) to (x2,y2) with duration |
-| `type_text` | Type ASCII text into focused field |
-| `type_unicode` | Type emoji/CJK via ADBKeyboard |
-| `press_back` | Android Back button |
-| `press_home` | Android Home button |
-| `press_key` | Any key event (POWER, VOLUME_UP, ENTER, etc.) |
-| `launch_app` | Launch app by package name |
+| `type_text` / `type_unicode` / `paste_text` | Enter text through ADB/Portal or WDA/clipboard helpers |
+| `press_back` / `press_home` / `press_key` | Platform navigation controls |
+| `launch_app` / `force_stop` / `app_state` | Launch, terminate, and inspect Android packages or iOS bundle IDs |
 | `long_press` | Long press at coordinates |
+| `open_notifications` / `get_notifications` / `clear_notifications` | Android notification shade or iOS Notification Center UI extraction |
 
-### Tier 2: Skill Workflows (2 tools)
+### Tier 2: Browser, Stream, And Recording
 
-One tool call = one complete automation task. Uses installed skills.
-
-| Tool | Description |
-|------|-------------|
-| `run_workflow` | Run a skill workflow (e.g. TikTok upload_video, Gmail recorded) |
-| `run_action` | Run a single skill action (e.g. tiktok/open_app) |
-
-### Tier 3: Meta / Discovery (3 tools)
-
-Let the agent discover capabilities and create new ones.
+Browser tools are the first iOS release-quality workflow surface. Android uses
+intents and normalized screen extraction; iOS uses Appium/WebDriverAgent,
+WebView contexts where available, then accessibility/OCR fallback.
 
 | Tool | Description |
 |------|-------------|
-| `list_skills` | List all installed skills with actions/workflows |
-| `explore_app` | BFS explore an app's UI, returns state graph |
-| `create_skill` | Create new skill from JSON step list |
+| `open_url` / `web_search` | Open URLs/search results in the platform browser |
+| `browser_back` / `get_current_url` / `wait_for_text` | Browser navigation and readiness checks |
+| `extract_visible_text` / `extract_articles` / `read_news` | Page text/headline/article extraction, including the iOS Chrome news workflow |
+| `get_stream_info` | Android Portal/H264/screencap or iOS WDA MJPEG stream metadata |
+| `start_screen_recording` / `stop_screen_recording` / `screen_recording_status` | Android screenrecord or iOS MJPEG captured through ffmpeg |
+
+### Tier 3: Skills, Discovery, And Escape Hatches
+
+Let the agent discover capabilities, run platform-aware skills, and create new
+ones. Android-only escape hatches return stable platform errors for iOS.
+
+| Tool | Description |
+|------|-------------|
+| `list_skills` | List installed skills with Android/iOS metadata |
+| `run_skill` / `run_workflow` / `run_action` | Run platform-compatible skills and actions |
+| `explore_app` | BFS explore an app UI, using Android or iOS state identity |
+| `create_skill` | Create recorded skills with `elements.yaml` / `elements_ios.yaml` support |
+| `list_apps` / `search_apps` / `list_packages` | Android package discovery or configured iOS bundle inventory |
+| `launch_intent` / `shell` / `toggle_overlay` / `speak_text` | Android-only escape hatches with stable iOS errors |
 
 ---
 
@@ -103,7 +120,9 @@ Already configured in `.mcp.json`:
 }
 ```
 
-Usage: tools appear automatically in Claude Code. Ask "list connected Android devices" and it calls `list_devices()`.
+Usage: tools appear automatically in Claude Code. Ask "list connected devices"
+and it calls `list_devices()`, returning Android serials and configured
+`ios:<udid>` refs.
 
 ### Cursor (stdio) — Ready
 
@@ -172,29 +191,29 @@ Create `~/.openclaw/workspace/skills/android-agent/SKILL.md`:
 ```markdown
 ---
 name: android-agent
-description: Control Android phones via ADB
+description: Control Android phones via ADB and iOS devices via Appium/WDA
 tools: [exec]
 ---
 
-You can control connected Android phones. To interact:
+You can control connected Android phones and configured iOS devices. To interact:
 
 1. List devices: `curl -s http://localhost:5055/api/phone/devices`
-2. Screenshot: `curl -s http://localhost:5055/api/phone/screenshot/SERIAL`
-3. Get elements: `curl -s http://localhost:5055/api/phone/elements/SERIAL`
-4. Tap: `curl -X POST http://localhost:5055/api/phone/tap -H 'Content-Type: application/json' -d '{"device":"SERIAL","x":540,"y":1200}'`
-5. Type: `curl -X POST http://localhost:5055/api/phone/type -H 'Content-Type: application/json' -d '{"device":"SERIAL","text":"hello"}'`
-6. Run skill: `curl -X POST http://localhost:5055/api/skills/SKILL/run -H 'Content-Type: application/json' -d '{"workflow":"recorded","device":"SERIAL","params":{}}'`
+2. Screenshot: `curl -s http://localhost:5055/api/phone/screenshot/DEVICE_REF`
+3. Get elements: `curl -s http://localhost:5055/api/phone/elements/DEVICE_REF`
+4. Tap: `curl -X POST http://localhost:5055/api/phone/tap -H 'Content-Type: application/json' -d '{"device":"DEVICE_REF","x":540,"y":1200}'`
+5. Type: `curl -X POST http://localhost:5055/api/phone/type -H 'Content-Type: application/json' -d '{"device":"DEVICE_REF","text":"hello"}'`
+6. Run skill: `curl -X POST http://localhost:5055/api/skills/SKILL/run -H 'Content-Type: application/json' -d '{"workflow":"recorded","device":"DEVICE_REF","params":{}}'`
 
-Always call list devices first to get the serial number.
+Always call list devices first to get the Android serial number or `ios:<udid>` ref.
 ```
 
 **Option C: Native plugin (deepest integration)**
 
 See `docs/integrations/openclaw-plugin/` for a TypeScript plugin that registers all tools natively with `api.registerTool()`.
 
-### ChatGPT / GPT Actions (OpenAPI REST) — Via Flask server
+### ChatGPT / GPT Actions (OpenAPI REST) — Via FastAPI server
 
-ChatGPT uses OpenAPI specs, not MCP. Our Flask server on port 5055 already has all the REST endpoints. To create a GPT Action:
+ChatGPT uses OpenAPI specs, not MCP. The FastAPI server on port 5055 already has the REST endpoints. To create a GPT Action:
 
 1. Expose port 5055 publicly (ngrok, Cloudflare Tunnel, or deploy):
    ```bash
@@ -206,16 +225,16 @@ ChatGPT uses OpenAPI specs, not MCP. Our Flask server on port 5055 already has a
 ```yaml
 openapi: "3.1.0"
 info:
-  title: Android Agent
+  title: Ghost in the Droid
   version: "1.0"
-  description: Control Android phones via ADB
+  description: Control Android phones via ADB and iOS devices via Appium/WDA
 servers:
   - url: https://YOUR-NGROK-URL.ngrok-free.app
 paths:
   /api/phone/devices:
     get:
       operationId: listDevices
-      summary: List connected Android devices
+      summary: List connected Android devices and configured iOS refs
       responses:
         "200":
           description: Device list
@@ -328,7 +347,7 @@ paths:
   /api/phone/launch:
     post:
       operationId: launchApp
-      summary: Launch app by package name
+      summary: Launch app by Android package name or iOS bundle id
       requestBody:
         required: true
         content:
@@ -395,7 +414,7 @@ paths:
 
 4. In the GPT's instructions, add:
    ```
-   You control Android phones. Always call listDevices first to get the serial.
+   You control Android phones via ADB and iOS devices via Appium/WDA. Always call listDevices first to get the serial or ios:<udid> ref.
    Use listSkills to check for existing automations before using raw tap/swipe.
    ```
 
@@ -415,7 +434,7 @@ pip install "mcp[cli]"
 
 ```bash
 # Verify tools load
-python3 -c "from gitd.mcp_server import mcp; print(f'{len(mcp._tool_manager._tools)} tools')"
+python3 -c "from gitd.mcp_server import mcp; print(f'{len(mcp._tool_manager.list_tools())} tools')"
 
 # Test directly
 python3 -c "from gitd.mcp_server import list_devices; print(list_devices())"
@@ -429,7 +448,7 @@ curl -s http://localhost:8002/mcp -X POST \
 
 ## Typical Agent Flow
 
-1. `list_devices()` → get device serial
+1. `list_devices()` → get an Android serial or `ios:<udid>` ref
 2. `list_skills()` → check if a skill exists for the task
 3. If skill exists: `run_workflow(device, skill, workflow, params)`
 4. If not: `get_elements(device)` → understand screen → `tap`/`type`/`swipe` raw
