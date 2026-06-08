@@ -378,6 +378,43 @@ def test_ios_device_health_promotes_stable_wda_fields(monkeypatch):
     assert health["wda"]["active_app"]["bundleId"] == "com.google.chrome.ios"
     assert health["wda"]["mjpeg_url"].endswith("/screen_stream")
     assert health["recommended_fix"] == ""
+    assert health["recovery"] == {"code": "", "summary": "iOS Appium/WDA session is usable.", "steps": []}
+
+
+def test_ios_device_health_includes_recovery_steps_for_wda_signing_failure(monkeypatch):
+    class ProbeStatus:
+        def to_dict(self):
+            return {
+                "device": "ios:abc123",
+                "udid": "abc123",
+                "state": "wda_signing_failed",
+                "message": "WebDriverAgent signing/provisioning failed: xcodebuild failed with code 65",
+                "appium_url": "http://appium.local",
+                "session_id": "",
+                "checks": {"appium_status_code": 200, "error": "xcodebuild failed with code 65"},
+            }
+
+    class FakeIOSDevice:
+        def probe(self, deep=True):
+            assert deep is True
+            return ProbeStatus()
+
+        @property
+        def mjpeg_url(self):
+            return "http://127.0.0.1:9100"
+
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
+
+    from gitd.services.device_context import device_health
+
+    health = device_health("ios:abc123")
+
+    assert health["connection"]["status"] == "wda_signing_failed"
+    assert health["recommended_fix"] == "fix_wda_signing"
+    assert health["recovery"]["state"] == "wda_signing_failed"
+    assert health["recovery"]["code"] == "fix_wda_signing"
+    assert "WebDriverAgent" in health["recovery"]["summary"]
+    assert any("IOS_XCODE_ORG_ID" in step for step in health["recovery"]["steps"])
 
 
 def test_visible_text_entries_filter_controls_and_offscreen_nodes():
