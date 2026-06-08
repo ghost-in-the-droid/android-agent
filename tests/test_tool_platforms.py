@@ -109,6 +109,11 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     health = json.loads(execute_tool("device_health", {"device": "ios:abc123"}))
     fix = json.loads(execute_tool("fix_device_health", {"device": "ios:abc123", "issue": "fix_wda_signing"}))
     unknown = execute_tool("does_not_exist", {"device": "ios:abc123"})
+    android_current_url = execute_tool("get_current_url", {"device": "emulator-5554"})
+    android_news = execute_tool(
+        "read_news",
+        {"device": "emulator-5554", "url": "https://text.npr.org/"},
+    )
 
     assert shell.startswith("ERROR: shell is Android-only")
     assert clipboard == "ios clipboard"
@@ -120,6 +125,8 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     assert fix["issue"] == "fix_wda_signing"
     assert fix["manual_action_required"] is True
     assert unknown == "Unknown tool: does_not_exist"
+    assert android_current_url == "ERROR: get_current_url is currently implemented only for iOS"
+    assert android_news == "ERROR: read_news is currently implemented only for iOS"
 
 
 def test_agent_run_skill_uses_current_interpreter(monkeypatch):
