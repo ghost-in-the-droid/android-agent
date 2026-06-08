@@ -666,7 +666,7 @@ def find_on_screen(device: str, text: str) -> str:
 
 
 @mcp.tool()
-def list_skills(device: str = "") -> str:
+def list_skills(device: str = "", supported_only: bool = False) -> str:
     """List all installed mobile automation skills with their actions, workflows, and platform support.
     Use this to discover what high-level automations are available.
     Prefer using run_workflow() over raw tap/swipe when a skill exists for the task."""
@@ -679,6 +679,9 @@ def list_skills(device: str = "") -> str:
         if d.is_dir() and meta_path.exists() and not d.name.startswith("__"):
             meta = yaml.safe_load(meta_path.read_text()) or {}
             platform_summary = skill_platform_summary(meta)
+            supported = skill_supports_device(meta, device) if device else None
+            if supported_only and supported is False:
+                continue
             info = {
                 "name": meta.get("name", d.name),
                 "app_package": platform_summary["app_package"],
@@ -687,10 +690,12 @@ def list_skills(device: str = "") -> str:
                 "platforms": platform_summary["platforms"],
                 "supports_android": platform_summary["supports_android"],
                 "supports_ios": platform_summary["supports_ios"],
+                "platform_limitations": platform_summary["platform_limitations"],
+                "default_params": meta.get("default_params", {}),
                 "description": meta.get("description", ""),
             }
-            if device:
-                info["supported_on_device"] = skill_supports_device(meta, device)
+            if supported is not None:
+                info["supported_on_device"] = supported
             # Try loading runtime actions/workflows
             try:
                 mod = importlib.import_module(f"gitd.skills.{d.name}")
