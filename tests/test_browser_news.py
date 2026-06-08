@@ -722,6 +722,16 @@ def test_mcp_web_search_forwards_ios_bundle_override(monkeypatch):
     assert result["kwargs"] == {"engine": "ddg", "bundle_id": "com.google.chrome.ios"}
 
 
+def test_mcp_ios_only_browser_tools_reject_android_device():
+    from gitd import mcp_server
+
+    current_url = mcp_server.get_current_url("emulator-5554")
+    news = mcp_server.read_news("emulator-5554", "https://text.npr.org/")
+
+    assert current_url == "ERROR: get_current_url is currently implemented only for iOS"
+    assert news == "ERROR: read_news is currently implemented only for iOS"
+
+
 def test_ios_wait_for_text_checks_webview_text_before_native_xml(monkeypatch):
     dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
     calls = []

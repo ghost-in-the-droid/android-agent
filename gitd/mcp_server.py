@@ -24,7 +24,7 @@ from gitd.bots.common.device import (
     list_configured_ios_devices,
     list_connected_device_refs,
 )
-from gitd.services.tool_platforms import platform_error_text
+from gitd.services.tool_platforms import platform_error_text, supports_platform
 from gitd.skills.platforms import (
     normalize_platforms,
     skill_platform_error_text,
@@ -44,6 +44,14 @@ mcp = FastMCP(
 
 def _ios_unsupported(tool_name: str) -> str:
     return platform_error_text(tool_name, "ios")
+
+
+def _device_platform(device: str) -> str:
+    return "ios" if is_ios_ref(device) else "android"
+
+
+def _platform_unsupported(tool_name: str, device: str) -> str:
+    return platform_error_text(tool_name, _device_platform(device))
 
 
 def _load_skill_metadata(skill: str) -> dict:
@@ -547,6 +555,8 @@ def browser_back(device: str) -> str:
 @mcp.tool()
 def get_current_url(device: str) -> str:
     """Get the current browser URL when the platform exposes it."""
+    if not supports_platform("get_current_url", _device_platform(device)):
+        return _platform_unsupported("get_current_url", device)
     from gitd.services.browser import dumps
     from gitd.services.browser import get_current_url as _get_current_url
 
@@ -594,6 +604,8 @@ def read_news(
 
     This is the iOS Chrome/WebDriver smoke workflow exposed as a single tool.
     """
+    if not supports_platform("read_news", _device_platform(device)):
+        return _platform_unsupported("read_news", device)
     from gitd.services.browser import dumps
     from gitd.services.browser import read_news as _read_news
 
