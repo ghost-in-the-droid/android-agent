@@ -178,7 +178,7 @@ def extract_visible_text(device: str, max_lines: int = 200, include_controls: bo
 def extract_articles(device: str, max_items: int = 5) -> dict[str, Any]:
     dev = get_device(device)
     if is_ios_ref(device) and hasattr(dev, "extract_articles"):
-        articles = dev.extract_articles(max_items=max_items)
+        articles = _dedupe_article_candidates(dev.extract_articles(max_items=max_items * 2), max_items=max_items)
         source = "native_or_web"
         if not articles:
             articles = _ocr_articles(device, max_items=max_items)
@@ -251,6 +251,68 @@ def _looks_like_article_title(text: str) -> bool:
         return False
     words = re.findall(r"[A-Za-z0-9]+", cleaned)
     return len(words) >= 4
+
+
+def _article_title_key(article: dict[str, Any]) -> str:
+    title = re.sub(
+        r"\W+",
+        "",
+        str(article.get("title") or article.get("source_headline") or article.get("text") or "").lower(),
+    )
+    return f"text:{title}" if title else ""
+
+
+def _article_candidate_keys(article: dict[str, Any]) -> list[str]:
+    keys: list[str] = []
+    url = str(article.get("url") or "").strip()
+    if url:
+        try:
+            parsed = urllib.parse.urlparse(url)
+            keys.append(f"url:{parsed.netloc.lower()}{parsed.path.rstrip('/').lower()}")
+        except Exception:
+            keys.append(f"url:{url.lower()}")
+    title_key = _article_title_key(article)
+    if title_key:
+        keys.append(title_key)
+    return keys
+
+
+def _article_candidate_quality(article: dict[str, Any]) -> int:
+    score = 0
+    if article.get("url"):
+        score += 30
+    if article.get("provenance") == "web_context":
+        score += 20
+    if article.get("center"):
+        score += 8
+    if article.get("bounds"):
+        score += 5
+    if str(article.get("class") or "").lower() in {"a", "h1", "h2", "h3"}:
+        score += 5
+    score += min(len(str(article.get("title") or "").split()), 10)
+    return score
+
+
+def _dedupe_article_candidates(articles: list[dict[str, Any]], *, max_items: int | None = None) -> list[dict[str, Any]]:
+    ordered_keys: list[str] = []
+    by_key: dict[str, dict[str, Any]] = {}
+    quality: dict[str, int] = {}
+    aliases: dict[str, str] = {}
+    for index, article in enumerate(articles or []):
+        keys = _article_candidate_keys(article) or [f"index:{index}"]
+        key = next((aliases[item] for item in keys if item in aliases), keys[0])
+        score = _article_candidate_quality(article)
+        if key not in by_key:
+            ordered_keys.append(key)
+            by_key[key] = article
+            quality[key] = score
+        elif score > quality[key]:
+            by_key[key] = article
+            quality[key] = score
+        for alias in keys:
+            aliases[alias] = key
+    deduped = [by_key[key] for key in ordered_keys]
+    return deduped[:max_items] if max_items is not None else deduped
 
 
 def _ocr_entries(device: str, *, max_items: int = 200) -> list[dict[str, Any]]:
@@ -361,7 +423,7 @@ def _extract_articles_with_retry(
     while True:
         attempts += 1
         try:
-            articles = dev.extract_articles(max_items=max_items)
+            articles = _dedupe_article_candidates(dev.extract_articles(max_items=max_items * 2), max_items=max_items)
             if len(articles or []) > len(best):
                 best = articles or []
                 best_source = _article_source(best) or "native_or_web"

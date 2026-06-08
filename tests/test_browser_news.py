@@ -296,6 +296,116 @@ def test_ios_extract_articles_falls_back_to_ocr(monkeypatch):
     ]
 
 
+def test_ios_extract_articles_deduplicates_candidates_and_prefers_url(monkeypatch):
+    class DuplicateArticleDevice(FakeNewsIOSDevice):
+        def __init__(self):
+            super().__init__()
+            self.requested_items = []
+
+        def extract_articles(self, max_items=5):
+            self.requested_items.append(max_items)
+            return [
+                {
+                    "title": "First major story from the test fixture",
+                    "url": "",
+                    "bounds": {"x1": 10, "y1": 20, "x2": 350, "y2": 60},
+                    "center": {"x": 180, "y": 40},
+                    "class": "StaticText",
+                    "provenance": "native",
+                },
+                {
+                    "title": "First major story from the test fixture",
+                    "url": "https://text.npr.org/article/1",
+                    "bounds": {"x1": 10, "y1": 80, "x2": 350, "y2": 120},
+                    "center": {"x": 180, "y": 100},
+                    "class": "a",
+                    "provenance": "web_context",
+                },
+                {
+                    "title": "First major story duplicate from URL",
+                    "url": "https://text.npr.org/article/1/",
+                    "bounds": {"x1": 10, "y1": 140, "x2": 350, "y2": 180},
+                    "center": {"x": 180, "y": 160},
+                    "class": "a",
+                    "provenance": "web_context",
+                },
+                {
+                    "title": "Second major story from the test fixture",
+                    "url": "https://text.npr.org/article/2",
+                    "bounds": {"x1": 10, "y1": 200, "x2": 350, "y2": 240},
+                    "center": {"x": 180, "y": 220},
+                    "class": "a",
+                    "provenance": "web_context",
+                },
+            ][:max_items]
+
+    fake = DuplicateArticleDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+
+    result = extract_articles("ios:abc123", max_items=3)
+
+    assert fake.requested_items == [6]
+    assert [item["url"] for item in result["articles"]] == [
+        "https://text.npr.org/article/1",
+        "https://text.npr.org/article/2",
+    ]
+    assert result["articles"][0]["provenance"] == "web_context"
+
+
+def test_read_news_waits_for_distinct_headlines_not_duplicate_nodes(monkeypatch):
+    class DuplicateHeadlineDevice(FakeNewsIOSDevice):
+        def __init__(self):
+            super().__init__()
+            self.article_extraction_calls = 0
+
+        def extract_articles(self, max_items=5):
+            self.article_extraction_calls += 1
+            duplicate = [
+                {
+                    "title": "First major story from the test fixture",
+                    "url": "",
+                    "bounds": {"x1": 10, "y1": 20, "x2": 350, "y2": 60},
+                    "center": {"x": 180, "y": 40},
+                    "class": "StaticText",
+                    "provenance": "native",
+                },
+                {
+                    "title": "First major story from the test fixture",
+                    "url": "https://text.npr.org/article/1",
+                    "bounds": {"x1": 10, "y1": 80, "x2": 350, "y2": 120},
+                    "center": {"x": 180, "y": 100},
+                    "class": "a",
+                    "provenance": "web_context",
+                },
+            ]
+            if self.article_extraction_calls == 1:
+                return duplicate[:max_items]
+            return [
+                *duplicate,
+                {
+                    "title": "Second major story from the test fixture",
+                    "url": "https://text.npr.org/article/2",
+                    "bounds": {"x1": 10, "y1": 140, "x2": 350, "y2": 180},
+                    "center": {"x": 180, "y": 160},
+                    "class": "a",
+                    "provenance": "web_context",
+                },
+            ][:max_items]
+
+    fake = DuplicateHeadlineDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=2, max_articles=0, wait_s=1)
+
+    assert result["ok"] is True
+    assert fake.article_extraction_calls == 2
+    assert [item["url"] for item in result["headlines"]] == [
+        "https://text.npr.org/article/1",
+        "https://text.npr.org/article/2",
+    ]
+
+
 def test_read_news_can_complete_with_ocr_only_extraction(monkeypatch):
     class OcrOnlyDevice(FakeNewsIOSDevice):
         def __init__(self):
