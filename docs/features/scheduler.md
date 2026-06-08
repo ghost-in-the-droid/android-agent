@@ -83,10 +83,14 @@ The dashboard schedule form detects iOS devices and pre-fills one of these valid
 ```json
 {
   "skill": "safari",
-  "workflow": "open_ghost_site",
+  "workflow": "read_news",
   "params": {
-    "url": "https://ghostinthedroid.com",
-    "bundle_id": "com.google.chrome.ios"
+    "url": "https://text.npr.org/",
+    "max_headlines": 5,
+    "max_articles": 3,
+    "bundle_id": "com.google.chrome.ios",
+    "save_screenshots": true,
+    "out_dir": "data/ios_chrome_news_smoke"
   }
 }
 ```

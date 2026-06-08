@@ -76,10 +76,14 @@ const IOS_SCHEDULE_TEMPLATES: IosScheduleTemplate[] = [
     max_duration_s: 300,
     config: {
       skill: 'safari',
-      workflow: 'open_ghost_site',
+      workflow: 'read_news',
       params: {
-        url: 'https://ghostinthedroid.com',
+        url: 'https://text.npr.org/',
+        max_headlines: 5,
+        max_articles: 3,
         bundle_id: 'com.google.chrome.ios',
+        save_screenshots: true,
+        out_dir: 'data/ios_chrome_news_smoke',
       },
     },
   },

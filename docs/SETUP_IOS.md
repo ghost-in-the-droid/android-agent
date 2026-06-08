@@ -167,6 +167,17 @@ python -m gitd.skills._run_skill \
   --workflow open_ghost_site
 ```
 
+It also exposes the scheduler-ready Chrome/news workflow:
+
+```bash
+IOS_BUNDLE_ID="com.google.chrome.ios" \
+python -m gitd.skills._run_skill \
+  --device "ios:<udid>" \
+  --skill safari \
+  --workflow read_news \
+  --params '{"url":"https://text.npr.org/","max_headlines":5,"max_articles":3,"save_screenshots":true}'
+```
+
 The first TikTok iOS skill is intentionally smoke-level. It can launch TikTok,
 run a search, or navigate to Profile and return visible-text evidence through
 the scheduler-safe `profile_smoke` workflow:

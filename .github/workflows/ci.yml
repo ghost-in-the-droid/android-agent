@@ -54,6 +54,7 @@ jobs:
           tests/api/test_streaming.py
           tests/test_creator_ios.py
           tests/test_ios_job_guards.py
+          tests/test_safari_ios_skill.py
           tests/test_tiktok_ios_skill.py
           tests/test_skill_platforms.py
           tests/test_ios_explorer_recorder.py
