@@ -624,6 +624,23 @@ def _remote_xpc_tunnel_start_timeout() -> float:
         return 10.0
 
 
+def _appium_command_base() -> tuple[list[str], str]:
+    try:
+        command = shlex.split(os.getenv("IOS_APPIUM_COMMAND", "appium"))
+    except ValueError as e:
+        return [], f"IOS_APPIUM_COMMAND is not parseable: {e}"
+    if not command:
+        return [], "IOS_APPIUM_COMMAND is empty."
+    return command, ""
+
+
+def _appium_command_display() -> str:
+    command, error = _appium_command_base()
+    if error:
+        command = ["appium"]
+    return shlex.join(command)
+
+
 def _remote_xpc_tunnel_processes(udid: str) -> list[dict[str, Any]]:
     clean_udid = strip_ios_prefix(udid)
     try:
@@ -667,7 +684,7 @@ def remote_xpc_manual_recovery(udid: str, tunnel: dict[str, Any] | None = None) 
     if stale:
         kill_prefix = "sudo kill" if foreign else "kill"
         kill_command = f"{kill_prefix} {' '.join(str(proc['pid']) for proc in stale)}"
-    start_command = f"sudo appium driver run xcuitest tunnel-creation --udid {clean_udid}"
+    start_command = f"sudo {_appium_command_display()} driver run xcuitest tunnel-creation --udid {clean_udid}"
     verify_command = f"curl -s {verify_url}"
     steps.extend(
         [
@@ -2337,24 +2354,14 @@ class IOSDevice:
         except requests.RequestException:
             pass
 
-        try:
-            command = shlex.split(os.getenv("IOS_APPIUM_COMMAND", "appium"))
-        except ValueError as e:
+        command, command_error = _appium_command_base()
+        if command_error:
             return {
                 "ok": False,
                 "platform": "ios",
                 "issue": "start_appium",
                 "manual_action_required": True,
-                "message": f"IOS_APPIUM_COMMAND is not parseable: {e}",
-                "appium_url": self.appium_url,
-            }
-        if not command:
-            return {
-                "ok": False,
-                "platform": "ios",
-                "issue": "start_appium",
-                "manual_action_required": True,
-                "message": "IOS_APPIUM_COMMAND is empty.",
+                "message": command_error,
                 "appium_url": self.appium_url,
             }
         bind_host = "127.0.0.1" if host == "localhost" else host
@@ -2455,7 +2462,18 @@ class IOSDevice:
             }
 
         registry_port = _remote_xpc_registry_ports()[0]
-        command = ["appium", "driver", "run", "xcuitest", "tunnel-creation", "--udid", self.udid]
+        command, command_error = _appium_command_base()
+        if command_error:
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": "restart_remote_xpc_tunnel",
+                "manual_action_required": True,
+                "message": command_error,
+                "tunnel": tunnel_before,
+                "recovery": remote_xpc_manual_recovery(self.udid, tunnel_before),
+            }
+        command = [*command, "driver", "run", "xcuitest", "tunnel-creation", "--udid", self.udid]
         if registry_port != _REMOTE_XPC_REGISTRY_PORTS[0]:
             command.extend(["--tunnel-registry-port", str(registry_port)])
         log_path = os.getenv("IOS_REMOTE_XPC_TUNNEL_LOG", f"/tmp/gitd-xcuitest-tunnel-{self.udid}.log")

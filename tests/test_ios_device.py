@@ -23,6 +23,7 @@ from gitd.bots.common.ios import (
     ios_xml_to_elements,
     known_ios_udids,
     normalize_wda_xml,
+    remote_xpc_manual_recovery,
     remote_xpc_tunnel_status,
     visible_text_entries_from_xml,
 )
@@ -1048,6 +1049,40 @@ def test_restart_remote_xpc_tunnel_starts_new_process_after_stopping_owned_proce
     assert result["log_path"] == str(log_path)
 
 
+def test_restart_remote_xpc_tunnel_honors_appium_command_override(monkeypatch, tmp_path):
+    IOSDevice._sessions.clear()
+    popen_calls = []
+    log_path = tmp_path / "tunnel.log"
+
+    class FakePopen:
+        pid = 4321
+
+        def __init__(self, command, stdin=None, stdout=None, stderr=None, start_new_session=False):
+            popen_calls.append(command)
+
+    status_calls = []
+
+    def fake_tunnel_status(*args, **kwargs):
+        status_calls.append((args, kwargs))
+        if len(status_calls) == 1:
+            return {"required": True, "state": "missing", "ok": False, "checked_ports": [42314]}
+        return {"required": True, "state": "available", "ok": True}
+
+    monkeypatch.setattr("gitd.bots.common.ios.remote_xpc_tunnel_status", fake_tunnel_status)
+    monkeypatch.setattr("gitd.bots.common.ios._remote_xpc_tunnel_processes", lambda udid: [])
+    monkeypatch.setattr("gitd.bots.common.ios.subprocess.Popen", FakePopen)
+    monkeypatch.setenv("IOS_APPIUM_COMMAND", "npx appium")
+    monkeypatch.setenv("IOS_REMOTE_XPC_TUNNEL_LOG", str(log_path))
+
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    result = dev.restart_remote_xpc_tunnel()
+
+    assert result["ok"] is True
+    assert popen_calls == [
+        ["npx", "appium", "driver", "run", "xcuitest", "tunnel-creation", "--udid", "abc123"]
+    ]
+
+
 def test_restart_remote_xpc_tunnel_reports_not_ready_after_start(monkeypatch, tmp_path):
     IOSDevice._sessions.clear()
     log_path = tmp_path / "tunnel.log"
@@ -1108,6 +1143,16 @@ def test_restart_remote_xpc_tunnel_returns_manual_action_for_foreign_process(mon
         "sudo appium driver run xcuitest tunnel-creation --udid abc123",
         "curl -s http://127.0.0.1:42314/remotexpc/tunnels/abc123",
     ]
+
+
+def test_remote_xpc_manual_recovery_honors_appium_command_override(monkeypatch):
+    monkeypatch.setenv("IOS_APPIUM_COMMAND", "npx appium")
+    monkeypatch.setattr("gitd.bots.common.ios._remote_xpc_tunnel_processes", lambda udid: [])
+
+    recovery = remote_xpc_manual_recovery("abc123")
+
+    assert recovery["start_command"] == "sudo npx appium driver run xcuitest tunnel-creation --udid abc123"
+    assert recovery["commands"][0] == "sudo npx appium driver run xcuitest tunnel-creation --udid abc123"
 
 
 def test_ios_error_classifier_promotes_real_device_readiness_failures():
