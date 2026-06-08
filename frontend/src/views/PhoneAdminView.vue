@@ -753,7 +753,7 @@ const wirelessIp = ref('')
 const wirelessPort = ref('5555')
 const wirelessCode = ref('')
 const wirelessResult = ref('')
-const IOS_AUTO_FIXES = new Set(['reset_session', 'appium_session', 'wda_session', 'restart_remote_xpc_tunnel'])
+const IOS_AUTO_FIXES = new Set(['start_appium', 'reset_session', 'appium_session', 'wda_session', 'restart_remote_xpc_tunnel'])
 
 async function loadHealth(serial: string) {
   healthLoading.value[serial] = true
@@ -859,6 +859,7 @@ function iosRecoveryFixBusy(serial: string): boolean {
 
 function iosRecoveryActionLabel(serial: string): string {
   const action = iosRecoveryAction(serial)
+  if (action === 'start_appium') return 'Start Appium'
   if (action === 'restart_remote_xpc_tunnel') return 'Restart Tunnel'
   if (action === 'reset_session' || action === 'appium_session' || action === 'wda_session') return 'Reset WDA'
   return 'Apply Fix'
@@ -866,6 +867,7 @@ function iosRecoveryActionLabel(serial: string): string {
 
 function iosRecoveryActionTitle(serial: string): string {
   const action = iosRecoveryAction(serial)
+  if (action === 'start_appium') return 'Start local Appium when IOS_APPIUM_URL points to localhost'
   if (action === 'restart_remote_xpc_tunnel') return 'Restart the XCUITest RemoteXPC tunnel when the process is owned by this user'
   if (action) return `Apply iOS health fix: ${action}`
   return 'No automatic iOS health fix is available'

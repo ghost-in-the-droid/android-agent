@@ -2163,6 +2163,97 @@ class IOSDevice:
                 pass
         self._evict_session(sid)
 
+    def start_appium_server(self) -> dict[str, Any]:
+        parsed = urllib.parse.urlparse(self.appium_url)
+        scheme = parsed.scheme or "http"
+        host = parsed.hostname or "127.0.0.1"
+        port = parsed.port or (443 if scheme == "https" else 4723)
+        if scheme != "http" or host not in {"127.0.0.1", "localhost", "::1"}:
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": "start_appium",
+                "manual_action_required": True,
+                "message": "Configured Appium URL is not a local HTTP server Ghost can start safely.",
+                "appium_url": self.appium_url,
+                "recovery": {
+                    "code": "start_appium",
+                    "state": "appium_down",
+                    "summary": "Start Appium at the configured URL.",
+                    "steps": [
+                        f"Start Appium so {self.appium_url} responds to /status.",
+                        "Verify IOS_APPIUM_URL points to the running server.",
+                        f"Re-run /api/phone/health/{self.serial}.",
+                    ],
+                },
+            }
+        try:
+            resp = requests.request("GET", self._url("/status"), timeout=1)
+            if resp.status_code < 400:
+                return {
+                    "ok": True,
+                    "platform": "ios",
+                    "issue": "start_appium",
+                    "message": "Appium is already running.",
+                    "appium_url": self.appium_url,
+                    "status_code": resp.status_code,
+                }
+        except requests.RequestException:
+            pass
+
+        bind_host = "127.0.0.1" if host == "localhost" else host
+        command = ["appium", "--address", bind_host, "--port", str(port), "--log-level", "info"]
+        log_path = os.getenv("IOS_APPIUM_LOG", f"/tmp/gitd-appium-{port}.log")
+        try:
+            log_fh = open(log_path, "a", encoding="utf-8")
+            try:
+                proc = subprocess.Popen(
+                    command,
+                    stdin=subprocess.DEVNULL,
+                    stdout=log_fh,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+            finally:
+                log_fh.close()
+        except OSError as e:
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": "start_appium",
+                "manual_action_required": True,
+                "message": f"Could not start Appium: {e}",
+                "command": command,
+                "log_path": log_path,
+                "appium_url": self.appium_url,
+            }
+
+        status_code = 0
+        reachable = False
+        last_error = ""
+        for _ in range(20):
+            try:
+                resp = requests.request("GET", self._url("/status"), timeout=1)
+                status_code = resp.status_code
+                if resp.status_code < 400:
+                    reachable = True
+                    break
+            except requests.RequestException as e:
+                last_error = str(e)
+            time.sleep(0.25)
+        return {
+            "ok": reachable,
+            "platform": "ios",
+            "issue": "start_appium",
+            "message": "Appium started." if reachable else "Appium start command was launched but /status is not reachable yet.",
+            "pid": proc.pid,
+            "command": command,
+            "log_path": log_path,
+            "appium_url": self.appium_url,
+            "status_code": status_code,
+            "error": "" if reachable else last_error,
+        }
+
     def restart_remote_xpc_tunnel(self) -> dict[str, Any]:
         tunnel_before = remote_xpc_tunnel_status(
             self.udid,

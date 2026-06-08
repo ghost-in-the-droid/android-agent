@@ -154,8 +154,10 @@ curl "http://localhost:5055/api/phone/health/ios:<udid>" | python3 -m json.tool
 The Phone Admin dashboard reads the same health payload. For iOS devices it
 shows Appium/WDA health dots, recovery steps, and an action button when
 `recommended_fix` is one of `reset_session`, `appium_session`, `wda_session`,
-or `restart_remote_xpc_tunnel`. The button calls
+`start_appium`, or `restart_remote_xpc_tunnel`. The button calls
 `/api/phone/health/<device>/fix`; manual recovery states still show steps only.
+`start_appium` is automatic only for local HTTP Appium URLs such as
+`http://127.0.0.1:4723`; remote or HTTPS Appium URLs return manual steps.
 
 Chrome/news workflow smoke:
 
@@ -284,7 +286,9 @@ Android-only for now:
   `recovery.steps` list. The dashboard and `fix_device_health` can apply the
   supported automatic fixes; manual states should show the recovery steps.
 - `Could not create Appium iOS session`: confirm Appium is running and `IOS_APPIUM_URL` is correct.
-- `appium_down`: start Appium and verify `IOS_APPIUM_URL`.
+- `appium_down`: use `fix_device_health("ios:<udid>", "start_appium")` or the
+  dashboard action to start local Appium; for remote Appium hosts, start it
+  manually and verify `IOS_APPIUM_URL`.
 - `configured_unreachable`: check `ios:<udid>`, `IOS_DEVICE_UDID`, `IOS_DEVICES_JSON`, Appium URL, WDA URL, and ports.
 - `remote_xpc_tunnel_unavailable`: for physical iOS 18+ devices, stop stale
   XCUITest tunnel processes and start a fresh tunnel with
