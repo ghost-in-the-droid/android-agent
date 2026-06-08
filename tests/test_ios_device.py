@@ -1380,13 +1380,14 @@ def test_ios_open_url_falls_back_when_webdriver_url_is_unverified(monkeypatch):
     monkeypatch.setattr(
         dev,
         "_open_url_via_address_bar",
-        lambda url, delay=2.0: address_calls.append((url, delay)),
+        lambda url, delay=2.0: address_calls.append((url, delay)) or "address_bar_ocr",
     )
 
     status = dev.open_url("example.com", delay=0)
 
     assert status["ok"] is True
     assert status["method"] == "address_bar"
+    assert status["address_bar_source"] == "address_bar_ocr"
     assert status["errors"] == [
         {
             "method": "webdriver_url",
@@ -1617,6 +1618,34 @@ def test_ios_url_address_bar_fallback_clears_before_typing(monkeypatch):
     assert calls == [
         ("launch", "com.google.chrome.ios", 0.8),
         ("tap", 0.5),
+        ("clear",),
+        ("type", "https://example.com", 0.2),
+        ("enter", 0.1),
+    ]
+
+
+def test_ios_url_address_bar_fallback_uses_ocr_when_xml_has_no_field(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local", bundle_id="com.google.chrome.ios")
+    calls = []
+
+    monkeypatch.setattr(dev, "launch_app", lambda bundle_id, delay=2.0: calls.append(("launch", bundle_id, delay)) or bundle_id)
+    monkeypatch.setattr(dev, "_dismiss_browser_first_run_prompts", lambda: 0)
+    monkeypatch.setattr(dev, "dump_xml", lambda: "<hierarchy></hierarchy>")
+    monkeypatch.setattr(
+        "gitd.services.device_context.ocr_screen",
+        lambda device: [{"text": "Search or type web address", "conf": 0.91, "x": 24, "y": 700, "w": 320, "h": 44}],
+    )
+    monkeypatch.setattr(dev, "tap", lambda x, y, delay=0.6: calls.append(("tap", x, y, delay)))
+    monkeypatch.setattr(dev, "_clear_active_element", lambda: calls.append(("clear",)) or True)
+    monkeypatch.setattr(dev, "type_text", lambda text, delay=0.3: calls.append(("type", text, delay)))
+    monkeypatch.setattr(dev, "press_enter", lambda delay=0.5: calls.append(("enter", delay)))
+
+    method = dev._open_url_via_address_bar("https://example.com", delay=0.1)
+
+    assert method == "address_bar_ocr"
+    assert calls == [
+        ("launch", "com.google.chrome.ios", 0.8),
+        ("tap", 184, 722, 0.5),
         ("clear",),
         ("type", "https://example.com", 0.2),
         ("enter", 0.1),
