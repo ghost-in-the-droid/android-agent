@@ -20,6 +20,18 @@ def _mcp_tool_names() -> set[str]:
     return names
 
 
+def _mcp_public_docstrings() -> dict[str, str]:
+    tree = ast.parse(Path("gitd/mcp_server.py").read_text(encoding="utf-8"))
+    docs = {"__module__": ast.get_docstring(tree) or ""}
+    for node in tree.body:
+        if not isinstance(node, ast.FunctionDef):
+            continue
+        for dec in node.decorator_list:
+            if isinstance(dec, ast.Call) and isinstance(dec.func, ast.Attribute) and dec.func.attr == "tool":
+                docs[node.name] = ast.get_docstring(node) or ""
+    return docs
+
+
 def test_every_agent_and_mcp_tool_has_platform_classification():
     agent_names = {tool["name"] for tool in TOOLS}
     names = agent_names | _mcp_tool_names()
@@ -80,6 +92,22 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert tool_platform_info("explore_app").support == "cross_platform"
     assert tool_platform_info("create_skill").support == "cross_platform"
     assert tool_platform_info("read_news").support == "ios_supported"
+
+
+def test_mcp_public_docs_are_ios_safe_for_cross_platform_primitives():
+    docs = _mcp_public_docstrings()
+
+    assert "mobile automation" in docs["__module__"]
+    assert "Android automation" not in docs["__module__"]
+
+    assert "normalized Appium/WDA XML" in docs["get_screen_xml"]
+    assert "raw UI XML dump from the device (uiautomator)" not in docs["get_screen_xml"]
+
+    assert "WDA text entry" in docs["type_unicode"]
+    assert "ADBKeyboard broadcast" not in docs["type_unicode"]
+
+    assert "iOS supports WDA-backed HOME, ENTER/RETURN, and BACK/ESCAPE" in docs["press_key"]
+    assert "Full list" not in docs["press_key"]
 
 
 def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
