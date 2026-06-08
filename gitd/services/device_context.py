@@ -369,7 +369,7 @@ def screenshot_cropped(device: str, x1: int, y1: int, x2: int, y2: int, quality:
 
 
 def get_screen_xml(device: str, max_length: int = 50000) -> str:
-    """Raw UI XML dump from uiautomator. Use get_screen_tree() for LLM-friendly format."""
+    """Raw Android UIAutomator XML or normalized iOS WDA XML."""
     dev = get_device(device)
     xml = dev.dump_xml()
     return xml[:max_length] if xml else ""

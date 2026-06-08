@@ -8,10 +8,10 @@ Shared context extraction layer that powers MCP tools, REST API endpoints, and t
 
 | Tool | What it does | Speed |
 |------|-------------|-------|
-| `get_phone_state` | Current app, activity, keyboard, focused element | Fast (Portal HTTP) |
+| `get_phone_state` | Current app/activity on Android or active app/window on iOS | Fast |
 | `get_screen_tree` | LLM-readable indented UI hierarchy with element indices | Fast (XML parse) |
 | `get_interactive_elements` | Clickable/text elements as JSON with bounds + centers | Fast (XML parse) |
-| `get_screen_xml` | Raw uiautomator XML dump | Fast (ADB) |
+| `get_screen_xml` | Raw Android UIAutomator XML or normalized iOS WDA XML | Fast |
 | `classify_screen` | Detect screen type: home, search, dialog, error, loading | Fast (heuristic) |
 | `find_on_screen` | Find specific text → return location (XML first, OCR fallback) | Fast/Medium |
 
@@ -19,8 +19,8 @@ Shared context extraction layer that powers MCP tools, REST API endpoints, and t
 
 | Tool | What it does | Speed |
 |------|-------------|-------|
-| `screenshot` | ADB screencap → base64 JPEG (half-res) | Fast (~200ms) |
-| `screenshot_annotated` | Screenshot with Portal's numbered element overlay | Fast (~300ms) |
+| `screenshot` | Android screencap or iOS WDA screenshot as base64 JPEG | Fast |
+| `screenshot_annotated` | Screenshot annotated from normalized interactive elements | Fast |
 | `screenshot_cropped` | Cropped region of screen | Fast (~200ms) |
 
 ### OCR (for canvas/image content invisible to XML)
@@ -37,10 +37,10 @@ Shared context extraction layer that powers MCP tools, REST API endpoints, and t
 | `clipboard_get` | Read clipboard text |
 | `clipboard_set` | Set clipboard text |
 | `get_notifications` | List active notifications |
-| `open_notifications` | Pull down notification shade |
+| `open_notifications` | Open Android notification shade or iOS Notification Center |
 | `clear_notifications` | Dismiss all notifications |
-| `launch_intent` | Full Android intent API (action, data, extras) |
-| `toggle_overlay` | Toggle Portal numbered element overlay on/off |
+| `launch_intent` | Full Android intent API (Android-only: action, data, extras) |
+| `toggle_overlay` | Toggle Portal numbered element overlay on/off (Android-only) |
 
 ### Agent Convenience
 
@@ -61,7 +61,7 @@ Shared context extraction layer that powers MCP tools, REST API endpoints, and t
 | "Zoom into this area" | `screenshot_cropped` |
 | "Copy this text" | `clipboard_get` / `clipboard_set` |
 | "Check my messages" | `get_notifications` |
-| "Open a URL" | `launch_intent(action="VIEW", data="https://...")` |
+| "Open a URL" | `open_url("https://...")` |
 
 ## Architecture
 
@@ -91,4 +91,4 @@ MCP Server   FastAPI    Skill Creator
 
 ## File
 
-`gitd/services/device_context.py` — single file, all 19 functions.
+`gitd/services/device_context.py` - shared Android/iOS context helpers.
