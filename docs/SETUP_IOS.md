@@ -9,6 +9,7 @@ Android devices still use ADB. iOS devices are addressed with `ios:<udid>`.
 - A physical iPhone or an iOS simulator.
 - For a real iPhone: trust the Mac, enable Developer Mode, enable UI Automation if prompted, and sign WebDriverAgent with an Apple developer team.
 - Node.js and Appium 2.
+- `ffmpeg` if you want iOS test-runner screen recordings from the WDA MJPEG stream.
 
 ## Install Appium XCUITest
 
@@ -162,6 +163,7 @@ Supported on iOS:
 - Browser primitives: `open_url`, `web_search`, `browser_back`, `get_current_url`, `wait_for_text`, `extract_visible_text`, `extract_articles`
 - REST browser routes under `/api/phone/browser/*`
 - `/api/phone/stream?device=ios:<udid>` with WDA MJPEG mode when requested and screenshot polling fallback
+- Test-runner recordings through WDA MJPEG plus `ffmpeg`
 
 Android-only for now:
 

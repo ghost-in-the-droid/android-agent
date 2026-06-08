@@ -15,6 +15,8 @@ from pathlib import Path
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import FileResponse
 
+from gitd.bots.common.device import get_device, is_ios_ref
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["tests"])
@@ -43,8 +45,40 @@ def _device_label(serial: str) -> str:
     return serial[:5] if serial else ""
 
 
-def _sr_start(serial: str) -> tuple:
+def _safe_recording_name(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_") or "device"
+
+
+def _sr_start(serial: str, local_name: str | None = None) -> tuple:
     """Start screen recording on device."""
+    if is_ios_ref(serial):
+        if not local_name:
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            local_name = f"{_safe_recording_name(serial)}_{ts}.mp4"
+        local_path = _TR_RECORDINGS_DIR / local_name
+        mjpeg_url = get_device(serial).mjpeg_url
+        proc = subprocess.Popen(
+            [
+                "ffmpeg",
+                "-y",
+                "-loglevel",
+                "error",
+                "-f",
+                "mjpeg",
+                "-i",
+                mjpeg_url,
+                "-an",
+                "-c:v",
+                "libx264",
+                "-pix_fmt",
+                "yuv420p",
+                str(local_path),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return proc, str(local_path)
+
     subprocess.run(
         ["adb", "-s", serial, "shell", "input", "keyevent", "KEYCODE_WAKEUP"], timeout=5, capture_output=True
     )
@@ -62,11 +96,21 @@ def _sr_start(serial: str) -> tuple:
 
 def _sr_stop_and_pull(serial, sr_proc, device_path, local_name):
     """Stop screen recording and pull MP4 from device."""
-    sr_proc.send_signal(signal.SIGINT)
+    if is_ios_ref(serial):
+        sr_proc.terminate()
+    else:
+        sr_proc.send_signal(signal.SIGINT)
     try:
         sr_proc.wait(timeout=15)
     except subprocess.TimeoutExpired:
         sr_proc.kill()
+        try:
+            sr_proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+    if is_ios_ref(serial):
+        local_path = Path(device_path)
+        return local_path if local_path.exists() and local_path.stat().st_size > 0 else None
     time.sleep(2)
     local_path = _TR_RECORDINGS_DIR / local_name
     try:
@@ -121,7 +165,12 @@ def _tr_watcher():
             for dev, entry in list(_tr_runs.items()):
                 if entry["proc"].poll() is not None and entry.get("sr_proc") and not entry.get("sr_local_path"):
                     _tr_finalize(dev)
-                elif entry["proc"].poll() is None and entry.get("sr_proc") and wake_counter % 15 == 0:
+                elif (
+                    entry["proc"].poll() is None
+                    and entry.get("sr_proc")
+                    and wake_counter % 15 == 0
+                    and not is_ios_ref(dev)
+                ):
                     try:
                         subprocess.run(
                             ["adb", "-s", dev, "shell", "input", "keyevent", "KEYCODE_WAKEUP"],
@@ -172,14 +221,14 @@ def tr_start(data: dict = Body({})):
         node = f"tests/{file_}" + (f"::{test_}" if test_ else "")
         test_label = test_ or file_.replace(".py", "")
 
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        sr_local_name = f"{_safe_recording_name(device)}_{ts}_{_safe_recording_name(test_label)}.mp4"
+
         try:
-            sr_proc, sr_device_path = _sr_start(device)
+            sr_proc, sr_device_path = _sr_start(device, sr_local_name)
             time.sleep(0.5)
         except Exception:
             sr_proc, sr_device_path = None, None
-
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        sr_local_name = f"{device}_{ts}_{test_label}.mp4"
 
         cmd = ["python3", "-u", "-m", "pytest", "-v", "--tb=short", "-s"]
         if retry:
