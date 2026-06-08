@@ -562,6 +562,48 @@ def test_web_context_article_extraction_uses_headings_without_urls(monkeypatch):
     ]
 
 
+def test_web_context_article_extraction_prioritizes_content_links(monkeypatch):
+    snapshot = {
+        "url": "https://text.npr.org/",
+        "title": "NPR",
+        "bodyText": "Top Stories\nWorld leaders meet for climate talks today",
+        "entries": [
+            {
+                "text": "Sign up for NPR daily newsletter today",
+                "tag": "a",
+                "href": "https://text.npr.org/newsletter",
+                "bounds": {"x1": 10, "y1": 60, "x2": 350, "y2": 90},
+                "provenance": "web_context",
+            },
+            {
+                "text": "World leaders meet for climate talks today",
+                "tag": "a",
+                "href": "https://text.npr.org/2026/06/08/story/123",
+                "bounds": {"x1": 10, "y1": 180, "x2": 350, "y2": 220},
+                "provenance": "web_context",
+            },
+        ],
+    }
+
+    def fake_request(method, url, json=None, timeout=None):
+        if url.endswith("/session/session-1/contexts"):
+            return FakeResponse({"value": ["NATIVE_APP", "WEBVIEW_1"]})
+        if url.endswith("/session/session-1/context"):
+            return FakeResponse({"value": None})
+        if url.endswith("/session/session-1/execute/sync"):
+            return FakeResponse({"value": snapshot})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-1"
+
+    articles = dev.extract_articles(max_items=1)
+
+    assert articles[0]["title"] == "World leaders meet for climate talks today"
+    assert articles[0]["url"] == "https://text.npr.org/2026/06/08/story/123"
+
+
 def test_ios_wait_for_url_matches_trusted_browser_url(monkeypatch):
     dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
     urls = ["about:blank", "https://text.npr.org/?output=1"]

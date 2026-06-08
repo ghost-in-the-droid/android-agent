@@ -207,6 +207,35 @@ _BROWSER_CONTROL_TEXT = {
     "search or type web address",
 }
 
+_LOW_VALUE_ARTICLE_TERMS = {
+    "advertisement",
+    "cookie",
+    "donate",
+    "email",
+    "newsletter",
+    "notifications",
+    "privacy",
+    "profile",
+    "sign in",
+    "sign up",
+    "subscribe",
+    "terms",
+}
+
+_ARTICLE_URL_HINTS = (
+    "article",
+    "story",
+    "news",
+    "world",
+    "politics",
+    "business",
+    "economy",
+    "science",
+    "health",
+    "culture",
+    "sports",
+)
+
 _COMMON_IOS_APPS: tuple[tuple[str, str], ...] = (
     ("Chrome", "com.google.chrome.ios"),
     ("Safari", "com.apple.mobilesafari"),
@@ -1439,29 +1468,35 @@ class IOSDevice:
         entries = [entry for entry in web_entries if entry.get("url")]
         if not entries:
             entries = web_entries or self.native_text_entries(include_controls=False, max_entries=300)
-        titles: list[dict[str, Any]] = []
-        seen: set[str] = set()
+        candidates: dict[str, tuple[int, dict[str, Any]]] = {}
         for entry in entries:
             text = entry["text"].strip()
             if not _looks_like_article_title(text):
                 continue
-            key = re.sub(r"\W+", "", text.lower())
-            if key in seen:
-                continue
-            seen.add(key)
-            titles.append(
-                {
-                    "title": text,
-                    "url": entry.get("url", ""),
-                    "bounds": entry["bounds"],
-                    "center": entry["center"],
-                    "class": entry["class"],
-                    "provenance": entry.get("provenance", "native"),
-                }
-            )
-            if len(titles) >= max_items:
-                break
-        return titles
+            candidate = {
+                "title": text,
+                "url": entry.get("url", ""),
+                "bounds": entry["bounds"],
+                "center": entry["center"],
+                "class": entry["class"],
+                "provenance": entry.get("provenance", "native"),
+            }
+            score = _article_candidate_score({**entry, **candidate})
+            key = _article_candidate_key(candidate)
+            existing = candidates.get(key)
+            if not existing or score > existing[0]:
+                candidates[key] = (score, candidate)
+
+        ranked = sorted(
+            candidates.values(),
+            key=lambda item: (
+                -item[0],
+                item[1]["bounds"]["y1"],
+                item[1]["bounds"]["x1"],
+                item[1]["title"].lower(),
+            ),
+        )
+        return [candidate for _, candidate in ranked[:max_items]]
 
     def open_notifications(self, delay=1.0) -> bool:
         width, height = self.get_screen_size()
@@ -1805,6 +1840,68 @@ def _looks_like_article_title(text: str) -> bool:
         return False
     words = re.findall(r"[A-Za-z0-9]+", cleaned)
     return len(words) >= 4
+
+
+def _article_url_score(url: str) -> int:
+    if not url:
+        return 0
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except Exception:
+        return -10
+    if parsed.scheme and parsed.scheme not in {"http", "https"}:
+        return -20
+
+    path = (parsed.path or "/").lower()
+    query = (parsed.query or "").lower()
+    score = 20
+    if path in {"", "/"}:
+        score -= 18
+    if any(hint in path for hint in _ARTICLE_URL_HINTS):
+        score += 16
+    if re.search(r"/(?:20\d{2}|\d{4,}|[a-z]+-\d+)", path):
+        score += 12
+    if query:
+        score -= 4
+    if any(term.replace(" ", "-") in path for term in _LOW_VALUE_ARTICLE_TERMS):
+        score -= 30
+    return score
+
+
+def _article_candidate_score(entry: dict[str, Any]) -> int:
+    text = re.sub(r"\s+", " ", str(entry.get("text") or "")).strip()
+    lower = text.lower()
+    bounds = entry.get("bounds") if isinstance(entry.get("bounds"), dict) else {}
+    y1 = _intish(bounds.get("y1"))
+    tag = str(entry.get("class") or "").lower()
+    role = str(entry.get("role") or "").lower()
+    url = str(entry.get("url") or "")
+
+    words = re.findall(r"[A-Za-z0-9]+", text)
+    score = min(len(words), 12)
+    score += _article_url_score(url)
+    if entry.get("provenance") == "web_context":
+        score += 8
+    if tag in {"h1", "h2", "h3"} or role == "heading":
+        score += 12
+    if tag == "a" and url:
+        score += 8
+    if 35 <= y1 <= 1200:
+        score += max(0, 12 - y1 // 160)
+    if len(text) > 180:
+        score -= 10
+    if any(term in lower for term in _LOW_VALUE_ARTICLE_TERMS):
+        score -= 35
+    return score
+
+
+def _article_candidate_key(entry: dict[str, Any]) -> str:
+    url = str(entry.get("url") or "").strip()
+    if url:
+        parsed = urllib.parse.urlparse(url)
+        return f"url:{parsed.netloc.lower()}{parsed.path.rstrip('/').lower()}"
+    text = re.sub(r"\W+", "", str(entry.get("title") or entry.get("text") or "").lower())
+    return f"text:{text}"
 
 
 def visible_text_entries_from_xml(
