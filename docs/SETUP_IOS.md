@@ -258,10 +258,19 @@ curl -X POST http://localhost:5055/api/marketing-jobs/enqueue \
   -d '{"phone_serial":"ios:<udid>","action":"open_app_smoke"}'
 ```
 
+The same seam can enqueue the first release-quality browser workflow for iOS
+Chrome/news reading:
+
+```bash
+curl -X POST http://localhost:5055/api/marketing-jobs/enqueue \
+  -H 'Content-Type: application/json' \
+  -d '{"phone_serial":"ios:<udid>","action":"read_news","url":"https://text.npr.org/","bundle_id":"com.google.chrome.ios","max_headlines":5,"max_articles":3}'
+```
+
 TikTok upload, draft creation, and draft publishing are still Android-only.
-The iOS marketing path only verifies that the connected iPhone can launch
-TikTok, run a search smoke, or navigate to Profile and return visible-text
-evidence through the scheduler.
+The iOS marketing path only verifies that the connected iPhone can run the
+Chrome/news workflow, launch TikTok, run a search smoke, or navigate to Profile
+and return visible-text evidence through the scheduler.
 
 ## Supported First-Milestone Tools
 

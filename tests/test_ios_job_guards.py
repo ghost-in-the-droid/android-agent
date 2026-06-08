@@ -278,6 +278,91 @@ def test_marketing_job_enqueues_ios_open_app_smoke_without_params():
         db.close()
 
 
+def test_marketing_job_enqueues_ios_read_news_workflow():
+    client = TestClient(app)
+    db = SessionLocal()
+    job_id = None
+    try:
+        response = client.post(
+            "/api/marketing-jobs/enqueue",
+            json={
+                "phone_serial": "ios:abc123",
+                "action": "read_news",
+                "url": "https://text.npr.org/",
+                "bundle_id": "com.google.chrome.ios",
+                "max_headlines": 4,
+                "max_articles": 2,
+                "wait_s": 3,
+                "save_screenshots": True,
+                "account": "@ghost",
+            },
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["action"] == "read_news"
+        assert body["job_type"] == "skill_workflow"
+        assert body["skill"] == "safari"
+        assert body["workflow"] == "read_news"
+        assert body["params"] == {
+            "url": "https://text.npr.org/",
+            "max_headlines": 4,
+            "max_articles": 2,
+            "wait_s": 3.0,
+            "save_screenshots": True,
+            "bundle_id": "com.google.chrome.ios",
+        }
+        job_id = int(body["job_id"].removeprefix("ghost-job-"))
+
+        row = (
+            db.execute(text("SELECT * FROM job_queue WHERE id = :id"), {"id": job_id})
+            .mappings()
+            .one()
+        )
+        config = json.loads(row["config_json"])
+        assert row["phone_serial"] == "ios:abc123"
+        assert row["job_type"] == "skill_workflow"
+        assert row["trigger"] == "marketing_agent"
+        assert row["max_duration_s"] == 600
+        assert config == {
+            "skill": "safari",
+            "workflow": "read_news",
+            "params": {
+                "url": "https://text.npr.org/",
+                "max_headlines": 4,
+                "max_articles": 2,
+                "wait_s": 3.0,
+                "save_screenshots": True,
+                "bundle_id": "com.google.chrome.ios",
+            },
+            "source": "marketing_jobs",
+            "action": "read_news",
+        }
+    finally:
+        if job_id:
+            db.execute(text("DELETE FROM job_queue WHERE id = :id"), {"id": job_id})
+            db.commit()
+        db.close()
+
+
+def test_marketing_job_rejects_ios_read_news_action_on_android(tmp_path):
+    video = tmp_path / "clip.mp4"
+    video.write_bytes(b"fake")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/marketing-jobs/enqueue",
+        json={
+            "phone_serial": "emulator-5554",
+            "action": "read_news",
+            "video_path": str(video),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "iOS browser/news marketing actions require phone_serial like ios:<udid>"
+
+
 def test_scheduler_create_rejects_ios_android_only_job_before_enqueue():
     client = TestClient(app)
 

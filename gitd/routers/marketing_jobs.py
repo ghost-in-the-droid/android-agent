@@ -1,5 +1,5 @@
 """Marketing-jobs router — single seam for external marketing agents to
-queue a TikTok post via Ghost's scheduler/job_queue.
+queue safe mobile jobs via Ghost's scheduler/job_queue.
 
 Lives in the public gitd/ namespace so the external social-media-agent
 (at ~/Agent/social-media-agent/) can call into Ghost without depending
@@ -35,12 +35,18 @@ class EnqueueRequest(BaseModel):
     caption: str = ""
     hashtags: str = ""
     query: Optional[str] = Field(None, description="Search query for iOS TikTok search smoke jobs")
+    url: Optional[str] = Field(None, description="URL for iOS browser/news smoke jobs")
+    bundle_id: Optional[str] = Field(None, description="iOS browser bundle id override, e.g. com.google.chrome.ios")
     phone_serial: str = Field(..., description="Android ADB serial or ios:<udid> phone ref")
     tts_text: Optional[str] = None
     scheduled_at: Optional[str] = Field(None, description="ISO timestamp; informational only — runs ASAP")
     account: Optional[str] = Field(None, description="Expected active TikTok account on the phone")
     action: str = Field("draft", description="Forced to 'draft' regardless of input")
     max_lines: int = Field(80, ge=1, le=500, description="Visible text line cap for iOS profile smoke jobs")
+    max_headlines: int = Field(5, ge=1, le=20, description="Headline cap for iOS read_news jobs")
+    max_articles: int = Field(3, ge=0, le=10, description="Article cap for iOS read_news jobs")
+    wait_s: float = Field(2.0, ge=0, le=30, description="Readiness wait for iOS browser/news jobs")
+    save_screenshots: bool = Field(False, description="Save screenshots for iOS browser/news jobs")
 
 
 _IOS_TIKTOK_SMOKE_ACTIONS = {
@@ -60,6 +66,20 @@ _IOS_TIKTOK_SMOKE_ACTIONS = {
 
 def _ios_tiktok_smoke_workflow(action: str | None) -> str:
     return _IOS_TIKTOK_SMOKE_ACTIONS.get((action or "").strip().lower(), "")
+
+
+_IOS_BROWSER_WORKFLOWS = {
+    "ios_read_news": "read_news",
+    "read_news": "read_news",
+    "news": "read_news",
+    "news_smoke": "read_news",
+    "chrome_news": "read_news",
+    "browser_news": "read_news",
+}
+
+
+def _ios_browser_workflow(action: str | None) -> str:
+    return _IOS_BROWSER_WORKFLOWS.get((action or "").strip().lower(), "")
 
 
 def _unsupported_ios_post_detail() -> dict:
@@ -117,22 +137,75 @@ def _enqueue_ios_tiktok_smoke(req: EnqueueRequest, db: Session) -> dict:
     }
 
 
-@router.post("/enqueue", summary="Enqueue a TikTok post job (draft only)")
-def enqueue_marketing_job(req: EnqueueRequest, db: Session = Depends(get_db)):
-    """Queue a TikTok post job for the scheduler to pick up.
+def _ios_read_news_params(req: EnqueueRequest) -> dict:
+    params = {
+        "url": (req.url or req.query or "").strip() or "https://text.npr.org/",
+        "max_headlines": req.max_headlines,
+        "max_articles": req.max_articles,
+        "wait_s": req.wait_s,
+        "save_screenshots": req.save_screenshots,
+    }
+    if req.bundle_id:
+        params["bundle_id"] = req.bundle_id
+    return params
 
-    Wraps `_enqueue_job` with `job_type='post'`. Force-overrides action to
-    'draft' so external marketing agents cannot live-publish through this
-    seam. The existing `bots/tiktok/upload.py` worker picks it up next
-    scheduler tick.
+
+def _enqueue_ios_browser_workflow(req: EnqueueRequest, db: Session) -> dict:
+    workflow = _ios_browser_workflow(req.action)
+    params = _ios_read_news_params(req)
+    config = {
+        "skill": "safari",
+        "workflow": workflow,
+        "params": params,
+        "source": "marketing_jobs",
+        "action": workflow,
+    }
+
+    job_id = _enqueue_job(
+        db,
+        scheduled_job_id=None,
+        phone_serial=req.phone_serial,
+        job_type="skill_workflow",
+        priority=2,
+        config_json=config,
+        max_duration_s=600,
+        trigger="marketing_agent",
+        status="pending",
+    )
+
+    return {
+        "job_id": f"ghost-job-{job_id}",
+        "estimated_post_at": req.scheduled_at,
+        "action": workflow,
+        "phone_serial": req.phone_serial,
+        "job_type": "skill_workflow",
+        "skill": "safari",
+        "workflow": workflow,
+        "params": params,
+    }
+
+
+@router.post("/enqueue", summary="Enqueue a marketing mobile job")
+def enqueue_marketing_job(req: EnqueueRequest, db: Session = Depends(get_db)):
+    """Queue a marketing job for the scheduler to pick up.
+
+    Android refs use the legacy TikTok draft post path. iOS refs can enqueue
+    safe smoke/browser workflows while TikTok upload remains unported.
     """
     if not req.phone_serial:
         raise HTTPException(status_code=400, detail="phone_serial required")
     if is_ios_ref(req.phone_serial):
+        if _ios_browser_workflow(req.action):
+            return _enqueue_ios_browser_workflow(req, db)
         if _ios_tiktok_smoke_workflow(req.action):
             return _enqueue_ios_tiktok_smoke(req, db)
         raise HTTPException(status_code=400, detail=_unsupported_ios_post_detail())
 
+    if _ios_browser_workflow(req.action):
+        raise HTTPException(
+            status_code=400,
+            detail="iOS browser/news marketing actions require phone_serial like ios:<udid>",
+        )
     if _ios_tiktok_smoke_workflow(req.action):
         raise HTTPException(
             status_code=400,
