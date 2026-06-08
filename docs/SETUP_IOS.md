@@ -269,6 +269,12 @@ Android-only for now:
 - `Could not create Appium iOS session`: confirm Appium is running and `IOS_APPIUM_URL` is correct.
 - `appium_down`: start Appium and verify `IOS_APPIUM_URL`.
 - `configured_unreachable`: check `ios:<udid>`, `IOS_DEVICE_UDID`, `IOS_DEVICES_JSON`, Appium URL, WDA URL, and ports.
+- `remote_xpc_tunnel_unavailable`: for physical iOS 18+ devices, stop stale
+  XCUITest tunnel processes and start a fresh tunnel with
+  `sudo appium driver run xcuitest tunnel-creation --udid <udid>`. Verify the
+  registry entry at `http://127.0.0.1:42314/remotexpc/tunnels/<udid>` points
+  to the same tunnel address reported by
+  `xcrun devicectl device info details --device <udid>`.
 - `xcodebuild failed` or `wda_signing_failed`: fix WDA signing/provisioning in Xcode; set `IOS_XCODE_ORG_ID`, `IOS_XCODE_SIGNING_ID`, and `IOS_UPDATED_WDA_BUNDLE_ID`; use `IOS_SHOW_XCODE_LOG=true` for detailed xcodebuild output.
 - Session hangs on real device or `locked`: unlock the iPhone and accept trust/automation prompts.
 - Taps land in the wrong place: compare screenshot dimensions and WDA window rect in `get_phone_state`; Ghost scales WDA points to screenshot pixels and converts back for gestures.
