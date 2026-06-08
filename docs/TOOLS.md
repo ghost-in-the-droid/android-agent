@@ -164,6 +164,18 @@ web_search(device, "self-hosted langfuse", engine="ddg") # → Chrome / DuckDuck
 Both work through `gitd/services/browser.py` when the model is `claude-code`
 (MCP) or `on-device` Gemma.
 
+## Screen Recording
+
+| tool | purpose |
+|---|---|
+| `start_screen_recording(device, filename="")` | Start a device MP4 recording. Android uses `adb shell screenrecord`; iOS records WDA MJPEG through `ffmpeg`. |
+| `stop_screen_recording(device)` | Stop the active recording and return the saved MP4 URL/path. |
+| `screen_recording_status(device)` | Return active recording status for the device. |
+
+REST equivalents are `POST /api/phone/recording/start`,
+`POST /api/phone/recording/stop`, `GET /api/phone/recording/status/{device}`,
+`GET /api/phone/recordings`, and `GET /api/phone/recording/{filename}`.
+
 ## Skills
 
 Skill metadata is platform-aware. `skill.yaml` can declare:

@@ -41,6 +41,28 @@ TOOLS = [
         },
     },
     {
+        "name": "start_screen_recording",
+        "description": "Start recording the device screen. iOS uses WDA MJPEG through ffmpeg; Android uses adb screenrecord.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "filename": {"type": "string", "description": "Optional MP4 filename."},
+            },
+            "required": ["device"],
+        },
+    },
+    {
+        "name": "stop_screen_recording",
+        "description": "Stop a running device screen recording and return the saved MP4 path/URL.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "screen_recording_status",
+        "description": "Return active screen recording status for a device.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
         "name": "get_screen_tree",
         "description": 'Get LLM-readable indented UI hierarchy. Each node: [idx] Class "label" [clickable] [bounds]. Use this to understand screen layout before acting.',
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
@@ -544,6 +566,18 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return json.dumps(
                 {"image": r["image"][:100] + "...(truncated)", "width": r["width"], "height": r["height"]}
             )
+        elif name == "start_screen_recording":
+            from gitd.services.phone_recording import start_recording
+
+            return json.dumps(start_recording(device, filename=args.get("filename", "")), indent=2)
+        elif name == "stop_screen_recording":
+            from gitd.services.phone_recording import stop_recording
+
+            return json.dumps(stop_recording(device), indent=2)
+        elif name == "screen_recording_status":
+            from gitd.services.phone_recording import recording_status
+
+            return json.dumps(recording_status(device), indent=2)
         elif name == "get_screen_tree":
             return ctx.get_screen_tree(device)
         elif name == "get_elements":

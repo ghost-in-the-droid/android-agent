@@ -11,6 +11,7 @@ def test_tools_hub_exposes_platform_support(client):
     current_url = next(tool for tool in web["tools"] if tool["name"] == "get_current_url")
     read_news = next(tool for tool in web["tools"] if tool["name"] == "read_news")
     device_health = next(tool for tool in screen["tools"] if tool["name"] == "device_health")
+    start_recording = next(tool for tool in screen["tools"] if tool["name"] == "start_screen_recording")
     app_state = next(tool for tool in app_management["tools"] if tool["name"] == "app_state")
     paste_text = next(tool for tool in clipboard["tools"] if tool["name"] == "paste_text")
 
@@ -21,6 +22,8 @@ def test_tools_hub_exposes_platform_support(client):
     assert read_news["platform_support"]["support"] == "ios_supported"
     assert read_news["platform_support"]["ios"] is True
     assert device_health["platform_support"]["support"] == "cross_platform"
+    assert start_recording["platform_support"]["support"] == "cross_platform"
+    assert start_recording["platform_support"]["ios"] is True
     assert app_state["platform_support"]["support"] == "cross_platform"
     assert app_state["platform_support"]["ios"] is True
     assert paste_text["platform_support"]["support"] == "cross_platform"
@@ -39,6 +42,8 @@ def test_tools_platforms_endpoint(client):
     assert supports["clipboard_get"]["ios"] is True
     assert supports["app_state"]["support"] == "cross_platform"
     assert supports["app_state"]["ios"] is True
+    assert supports["start_screen_recording"]["support"] == "cross_platform"
+    assert supports["start_screen_recording"]["ios"] is True
     assert supports["extract_articles"]["support"] == "cross_platform"
     assert set(body["categories"]) == {"cross_platform", "android_only", "ios_supported", "ios_planned"}
 

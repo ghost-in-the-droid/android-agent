@@ -221,12 +221,14 @@ Supported on iOS:
 - Browser primitives: `open_url`, `web_search`, `browser_back`, `get_current_url`, `wait_for_text`, `extract_visible_text`, `extract_articles`
 - REST browser routes under `/api/phone/browser/*`
 - `/api/phone/stream?device=ios:<udid>` with WDA MJPEG mode when requested and screenshot polling fallback
+- `start_screen_recording`, `stop_screen_recording`, and
+  `/api/phone/recording/*` routes using WDA MJPEG plus `ffmpeg`
 - Portal/WebRTC signaling endpoints return a structured `stream_fallback`
   payload for iOS that points clients to `/api/phone/stream?mode=mjpeg`
 - Skill Creator can target `ios:<udid>` devices, uses iOS/Appium prompt
   guidance, and saves recorded skills with `platforms: ["ios"]`,
   `ios_bundle_id`, and `elements_ios.yaml`
-- Test-runner recordings through WDA MJPEG plus `ffmpeg`
+- Test-runner recordings through the same WDA MJPEG plus `ffmpeg` path
 
 Android-only for now:
 

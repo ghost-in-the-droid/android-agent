@@ -5,6 +5,7 @@ import subprocess
 import time as _time
 
 from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -615,6 +616,72 @@ def api_phone_classify(device: str):
     from gitd.services.device_context import classify_screen
 
     return classify_screen(device)
+
+
+@router.post("/recording/start", summary="Start Screen Recording")
+def api_phone_recording_start(data: dict = Body({})):
+    """Start cross-platform screen recording for Android or iOS."""
+    from gitd.services.phone_recording import start_recording
+
+    device = data.get("device", "")
+    if not device:
+        raise HTTPException(status_code=400, detail="device required")
+    result = start_recording(device, filename=data.get("filename", ""))
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
+
+
+@router.post("/recording/stop", summary="Stop Screen Recording")
+def api_phone_recording_stop(data: dict = Body({})):
+    """Stop a running screen recording and save the MP4."""
+    from gitd.services.phone_recording import stop_recording
+
+    device = data.get("device", "")
+    if not device:
+        raise HTTPException(status_code=400, detail="device required")
+    result = stop_recording(device)
+    if not result.get("ok"):
+        raise HTTPException(status_code=400, detail=result)
+    return result
+
+
+@router.get("/recording/status/{device}", summary="Screen Recording Status")
+def api_phone_recording_status(device: str):
+    """Return active screen recording status for a device."""
+    from gitd.services.phone_recording import recording_status
+
+    return recording_status(device)
+
+
+@router.get("/recordings", summary="List Screen Recordings")
+def api_phone_recordings():
+    """List saved phone screen recordings."""
+    from gitd.services.phone_recording import list_recordings
+
+    return {"recordings": list_recordings()}
+
+
+@router.get("/recording/{filename:path}", summary="Serve Screen Recording")
+def api_phone_recording_file(filename: str):
+    """Serve a saved phone screen recording MP4."""
+    from gitd.services.phone_recording import recording_file
+
+    try:
+        return FileResponse(str(recording_file(filename)), media_type="video/mp4")
+    except (FileNotFoundError, ValueError):
+        raise HTTPException(status_code=404, detail="recording not found")
+
+
+@router.delete("/recording/{filename:path}", summary="Delete Screen Recording")
+def api_phone_recording_delete(filename: str):
+    """Delete a saved phone screen recording."""
+    from gitd.services.phone_recording import delete_recording
+
+    try:
+        return delete_recording(filename)
+    except (FileNotFoundError, ValueError):
+        raise HTTPException(status_code=404, detail="recording not found")
 
 
 @router.post("/overlay/{device}", summary="Toggle Phone Overlay")
