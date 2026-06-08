@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from gitd.app import app
 from gitd.bots.common.ios import IOSDevice
 from gitd.services.agent_tools import execute_tool
-from gitd.services.browser import extract_articles, extract_visible_text, open_url, read_news
+from gitd.services.browser import extract_articles, extract_visible_text, open_url, read_news, wait_for_text
 
 
 class FakeNewsIOSDevice:
@@ -321,6 +321,65 @@ def test_ios_open_url_service_returns_navigation_evidence(monkeypatch):
         },
     }
     assert fake.bundle_id == "com.google.chrome.ios"
+
+
+def test_android_wait_for_text_retries_until_match(monkeypatch):
+    calls = []
+
+    def fake_find(device, text):
+        calls.append((device, text))
+        if len(calls) < 3:
+            return None
+        return {"text": "Loaded headline", "x": 20, "y": 40, "w": 100, "h": 20, "method": "xml"}
+
+    monkeypatch.setattr("gitd.services.device_context.find_on_screen", fake_find)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = wait_for_text("emulator-5554", "headline", timeout=1)
+
+    assert result["ok"] is True
+    assert result["platform"] == "android"
+    assert result["found"] is True
+    assert result["attempts"] == 3
+    assert result["match"]["text"] == "Loaded headline"
+    assert calls == [
+        ("emulator-5554", "headline"),
+        ("emulator-5554", "headline"),
+        ("emulator-5554", "headline"),
+    ]
+
+
+def test_android_wait_for_text_returns_structured_timeout(monkeypatch):
+    monkeypatch.setattr("gitd.services.device_context.find_on_screen", lambda device, text: None)
+
+    result = wait_for_text("emulator-5554", "missing text", timeout=0)
+
+    assert result == {
+        "ok": False,
+        "platform": "android",
+        "text": "missing text",
+        "found": False,
+        "match": None,
+        "attempts": 1,
+        "timeout": 0.0,
+    }
+
+
+def test_ios_wait_for_text_returns_structured_timeout(monkeypatch):
+    class TimeoutIOSDevice(FakeNewsIOSDevice):
+        def wait_for_text(self, text, timeout=12):
+            raise TimeoutError(f"Timed out waiting for {text}")
+
+    fake = TimeoutIOSDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+
+    result = wait_for_text("ios:abc123", "missing text", timeout=0)
+
+    assert result["ok"] is False
+    assert result["platform"] == "ios"
+    assert result["found"] is False
+    assert result["visible_text"].startswith("NPR text home")
+    assert "Timed out waiting" in result["error"]
 
 
 def test_read_news_rest_route_uses_browser_service(monkeypatch):
