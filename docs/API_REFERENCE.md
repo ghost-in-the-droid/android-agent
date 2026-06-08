@@ -18,8 +18,8 @@ The backend auto-generates interactive API documentation via FastAPI's OpenAPI i
 | **bot** | `/api/bot` | Post bot, crawl queue |
 | **bot-workers** | `/api/bot-workers` | Background bot worker management |
 | **scheduler** | `/api/schedules`, `/api/scheduler` | Job scheduling, queue management, history |
-| **phone** | `/api/phone` | ADB device control, tap, swipe, screenshots |
-| **streaming** | `/api/phone/stream` | MJPEG + WebRTC phone screen streaming |
+| **phone** | `/api/phone` | Android/iOS device control, tap, swipe, screenshots |
+| **streaming** | `/api/phone/stream` | Android Portal/WebRTC and iOS WDA MJPEG phone screen streaming |
 | **streaming-viewers** | `/api/phone/webrtc-*` | WebRTC viewer pages and signaling |
 | **skills** | `/api/skills` | Installed skill packages, run actions/workflows |
 | **creator** | `/api/creator` | LLM-assisted skill builder with device stream |
