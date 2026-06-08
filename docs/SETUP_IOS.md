@@ -41,6 +41,7 @@ export IOS_MJPEG_SCALING_FACTOR="60"
 export IOS_MJPEG_SERVER_SCREENSHOT_QUALITY="45"
 export IOS_MJPEG_FIX_ORIENTATION="false"
 export IOS_SCREENSHOT_QUALITY="2"
+export IOS_MJPEG_SCREENSHOT_URL="" # optional explicit WDA MJPEG URL override
 export IOS_KNOWN_APPS_JSON='{"Chrome":"com.google.chrome.ios","TikTok":"com.zhiliaoapp.musically"}'
 ```
 
@@ -235,7 +236,10 @@ Supported on iOS:
   `IOS_MJPEG_SCALING_FACTOR`, `IOS_MJPEG_SERVER_SCREENSHOT_QUALITY`,
   `IOS_MJPEG_FIX_ORIENTATION`, and per-device JSON equivalents.
   `/api/phone/health/<device>` and stream headers expose the effective WDA
-  MJPEG settings.
+  MJPEG settings. By default Ghost builds the MJPEG stream URL from the
+  `IOS_APPIUM_URL` host plus `IOS_MJPEG_SERVER_PORT`; set
+  `IOS_MJPEG_SCREENSHOT_URL` only when the stream is exposed through a custom
+  tunnel or proxy.
 - `start_screen_recording`, `stop_screen_recording`, and
   `/api/phone/recording/*` routes using WDA MJPEG plus `ffmpeg`
 - Portal/WebRTC signaling endpoints return a structured `stream_fallback`
