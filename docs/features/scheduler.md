@@ -19,6 +19,7 @@ Per-phone job queue with priority-based scheduling, preemption, timeout enforcem
 - Log file capture per job (`/tmp/sched_job_<id>.log`)
 - Job summary parsing from `[done]` markers in logs
 - Skill workflow result parsing from `Data: {...}` log payloads
+- Manual restarts preserve platform guards and scheduled job timeouts
 - Protection: never preempts post/publish_draft jobs (interrupting corrupts state)
 
 **Limitations:**

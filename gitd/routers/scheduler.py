@@ -142,6 +142,22 @@ def _raise_scheduler_platform_error(record: dict):
         raise HTTPException(status_code=400, detail=detail)
 
 
+def _restart_max_duration(row: dict, db: Session) -> int | None:
+    max_duration = row.get("max_duration_s")
+    if max_duration:
+        return int(max_duration)
+    scheduled_job_id = row.get("scheduled_job_id")
+    if not scheduled_job_id:
+        return None
+    existing = db.execute(
+        text("SELECT max_duration_s FROM scheduled_jobs WHERE id = :sid"),
+        {"sid": scheduled_job_id},
+    ).first()
+    if existing and existing[0]:
+        return int(existing[0])
+    return None
+
+
 # ── Schedules CRUD ──────────────────────────────────────────────────────────
 
 
@@ -393,9 +409,10 @@ def scheduler_run_restart(run_id: int, db: Session = Depends(get_db)):
         config_json=row.get("config_json"),
         priority=row.get("priority", 2),
         scheduled_job_id=row.get("scheduled_job_id"),
+        max_duration_s=_restart_max_duration(row, db),
         trigger="manual",
     )
-    return {"ok": True, "new_job_id": new_id}
+    return {"ok": True, "new_job_id": new_id, "platform": _phone_platform(row.get("phone_serial"))}
 
 
 # ── History & timeline ──────────────────────────────────────────────────────
