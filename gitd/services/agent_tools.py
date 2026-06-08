@@ -7,10 +7,10 @@ Tool schemas are in Anthropic's tool format and auto-converted for other provide
 import json
 import sys
 
-from gitd.services import device_context as ctx
 from gitd.bots.common.device import get_device, is_ios_ref
-from gitd.skills.platforms import skill_platform_error_text, skill_supports_device
+from gitd.services import device_context as ctx
 from gitd.services.tool_platforms import platform_error_text, supports_platform
+from gitd.skills.platforms import skill_platform_error_text, skill_supports_device
 
 # ── Tool registry ────────────────────────────────────────────────────────────
 
@@ -203,8 +203,8 @@ TOOLS = [
     {
         "name": "launch_app",
         "description": (
-            "Launch an app by package name. E.g. com.zhiliaoapp.musically (TikTok). "
-            "Use search_apps to find the package name. "
+            "Launch an app by Android package name or iOS bundle id. "
+            "Use search_apps to find the package or bundle id. "
             "Set fresh=true to force-stop first (cold start, clears state — use for benchmarks "
             "or when prior app state would interfere). Default is warm start (resumes prior state)."
         ),
@@ -221,8 +221,8 @@ TOOLS = [
     {
         "name": "open_camera",
         "description": (
-            "Open the camera in a specific mode using standard Android intents. "
-            "Works on any device — no need to know the camera package name. "
+            "Open the platform camera app in a specific mode. "
+            "On Android this uses launcher/UI automation; on iOS this uses the Camera bundle and WDA UI controls. "
             "Modes: 'photo' (default rear photo), 'video' (rear video), "
             "'selfie' (front photo), 'selfie_video' (front video). "
             "Set timer_s=3 or timer_s=10 to activate the self-timer."
@@ -284,7 +284,7 @@ TOOLS = [
     },
     {
         "name": "list_apps",
-        "description": "List installed apps with human-readable names and Android package names or iOS bundle ids. Returns [{name, package}]. Use search_apps for faster lookup.",
+        "description": "List installed apps with human-readable names and Android package names or iOS bundle ids. Returns [{name, package, bundle_id}]. Use search_apps for faster lookup.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
@@ -298,7 +298,7 @@ TOOLS = [
     },
     {
         "name": "list_packages",
-        "description": "List raw package names (no app names). Use list_apps or search_apps instead.",
+        "description": "List raw Android package names or iOS bundle ids. Use list_apps or search_apps instead.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
@@ -951,7 +951,8 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return json.dumps(ctx.app_state(device, args["package"]), indent=2)
         elif name == "web_search":
             if is_ios_ref(device):
-                from gitd.services.browser import dumps, web_search as _web_search
+                from gitd.services.browser import dumps
+                from gitd.services.browser import web_search as _web_search
 
                 return dumps(
                     _web_search(
@@ -965,23 +966,28 @@ def _execute_tool_inner(name: str, args: dict) -> str:
 
             return open_search(device, args["query"], engine=args.get("engine", "google"))
         elif name == "open_url":
-            from gitd.services.browser import dumps, open_url as _open_url
+            from gitd.services.browser import dumps
+            from gitd.services.browser import open_url as _open_url
 
             return dumps(_open_url(device, args["url"], bundle_id=args.get("bundle_id") or None))
         elif name == "browser_back":
-            from gitd.services.browser import dumps, browser_back as _browser_back
+            from gitd.services.browser import browser_back as _browser_back
+            from gitd.services.browser import dumps
 
             return dumps(_browser_back(device))
         elif name == "get_current_url":
-            from gitd.services.browser import dumps, get_current_url as _get_current_url
+            from gitd.services.browser import dumps
+            from gitd.services.browser import get_current_url as _get_current_url
 
             return dumps(_get_current_url(device))
         elif name == "wait_for_text":
-            from gitd.services.browser import dumps, wait_for_text as _wait_for_text
+            from gitd.services.browser import dumps
+            from gitd.services.browser import wait_for_text as _wait_for_text
 
             return dumps(_wait_for_text(device, args["text"], timeout=float(args.get("timeout", 12.0))))
         elif name == "extract_visible_text":
-            from gitd.services.browser import dumps, extract_visible_text as _extract_visible_text
+            from gitd.services.browser import dumps
+            from gitd.services.browser import extract_visible_text as _extract_visible_text
 
             return dumps(
                 _extract_visible_text(
@@ -991,11 +997,13 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 )
             )
         elif name == "extract_articles":
-            from gitd.services.browser import dumps, extract_articles as _extract_articles
+            from gitd.services.browser import dumps
+            from gitd.services.browser import extract_articles as _extract_articles
 
             return dumps(_extract_articles(device, max_items=int(args.get("max_items", 5))))
         elif name == "read_news":
-            from gitd.services.browser import dumps, read_news as _read_news
+            from gitd.services.browser import dumps
+            from gitd.services.browser import read_news as _read_news
 
             return dumps(
                 _read_news(

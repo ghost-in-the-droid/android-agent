@@ -24,13 +24,13 @@ from gitd.bots.common.device import (
     list_configured_ios_devices,
     list_connected_device_refs,
 )
+from gitd.services.tool_platforms import platform_error_text
 from gitd.skills.platforms import (
     normalize_platforms,
     skill_platform_error_text,
     skill_platform_summary,
     skill_supports_device,
 )
-from gitd.services.tool_platforms import platform_error_text
 
 mcp = FastMCP(
     "android-agent",
@@ -195,14 +195,14 @@ def type_unicode(device: str, text: str) -> str:
 
 @mcp.tool()
 def press_back(device: str) -> str:
-    """Press the Android Back button."""
+    """Press Back on Android or the best available iOS browser/navigation back action."""
     get_device(device).back()
     return "Pressed Back"
 
 
 @mcp.tool()
 def press_home(device: str) -> str:
-    """Press the Android Home button. Returns to home screen."""
+    """Press the platform Home button. Returns to the home screen."""
     if is_ios_ref(device):
         get_device(device).press_key("HOME")
     else:
@@ -251,12 +251,13 @@ def app_state(device: str, package: str) -> str:
 
 @mcp.tool()
 def open_camera(device: str, mode: str = "photo", timer_s: int = 0) -> str:
-    """Open the camera app in a specific mode using standard Android intents.
+    """Open the platform camera app in a specific mode.
 
-    Works across all Android devices without knowing the camera package name.
+    Android uses launcher/UI automation; iOS uses the Camera bundle and WDA UI
+    controls. No package or bundle id is required.
 
     Args:
-        device: ADB serial.
+        device: ADB serial or ios:<udid>.
         mode: One of:
             "photo"        — rear camera, photo mode (default)
             "video"        — rear camera, video/record mode
@@ -278,7 +279,7 @@ def speak_text(device: str, text: str, rate: float = 1.0) -> str:
     goes through the Ghost portal app running on the device.
 
     Args:
-        device: ADB serial.
+        device: ADB serial. This tool is Android-only.
         text:   Text to speak.
         rate:   Speech rate multiplier (0.5 = slow, 1.0 = normal, 1.5 = fast).
     """
@@ -467,8 +468,8 @@ def paste_text(device: str, text: str) -> str:
     if is_ios_ref(device):
         get_device(device).paste_text(text)
         return f"Inserted text on iOS: {text[:60]}{'...' if len(text) > 60 else ''}"
-    from gitd.services.device_context import clipboard_set as _set
     from gitd.bots.common.adb import Device
+    from gitd.services.device_context import clipboard_set as _set
     if not _set(device, text):
         return "Failed to set clipboard"
     Device(device).adb("shell", "input", "keyevent", "KEYCODE_PASTE")
@@ -507,12 +508,13 @@ def web_search(device: str, query: str, engine: str = "google") -> str:
     DuckDuckGo Browser → system default), so it works even if Chrome is missing.
 
     Args:
-        device: ADB serial.
+        device: ADB serial or ios:<udid>.
         query: Free-text search terms (don't pre-escape — handled here).
         engine: "google" (default), "ddg" / "duckduckgo", "bing", or "brave".
     """
     if is_ios_ref(device):
-        from gitd.services.browser import dumps, web_search as _web_search
+        from gitd.services.browser import dumps
+        from gitd.services.browser import web_search as _web_search
 
         return dumps(_web_search(device, query, engine=engine))
     from gitd.services.web_search import open_search
@@ -526,7 +528,8 @@ def open_url(device: str, url: str, bundle_id: str = "") -> str:
     On iOS this uses Appium/WDA and defaults to the configured browser bundle
     id, usually com.google.chrome.ios or com.apple.mobilesafari.
     """
-    from gitd.services.browser import dumps, open_url as _open_url
+    from gitd.services.browser import dumps
+    from gitd.services.browser import open_url as _open_url
 
     return dumps(_open_url(device, url, bundle_id=bundle_id or None))
 
@@ -534,7 +537,8 @@ def open_url(device: str, url: str, bundle_id: str = "") -> str:
 @mcp.tool()
 def browser_back(device: str) -> str:
     """Navigate back in the current browser/app context."""
-    from gitd.services.browser import dumps, browser_back as _browser_back
+    from gitd.services.browser import browser_back as _browser_back
+    from gitd.services.browser import dumps
 
     return dumps(_browser_back(device))
 
@@ -542,7 +546,8 @@ def browser_back(device: str) -> str:
 @mcp.tool()
 def get_current_url(device: str) -> str:
     """Get the current browser URL when the platform exposes it."""
-    from gitd.services.browser import dumps, get_current_url as _get_current_url
+    from gitd.services.browser import dumps
+    from gitd.services.browser import get_current_url as _get_current_url
 
     return dumps(_get_current_url(device))
 
@@ -550,7 +555,8 @@ def get_current_url(device: str) -> str:
 @mcp.tool()
 def wait_for_text(device: str, text: str, timeout: float = 12.0) -> str:
     """Wait until text appears on screen and return visible text context."""
-    from gitd.services.browser import dumps, wait_for_text as _wait_for_text
+    from gitd.services.browser import dumps
+    from gitd.services.browser import wait_for_text as _wait_for_text
 
     return dumps(_wait_for_text(device, text, timeout=timeout))
 
@@ -558,7 +564,8 @@ def wait_for_text(device: str, text: str, timeout: float = 12.0) -> str:
 @mcp.tool()
 def extract_visible_text(device: str, max_lines: int = 200, include_controls: bool = False) -> str:
     """Extract visible text from the current screen with browser chrome filtered by default."""
-    from gitd.services.browser import dumps, extract_visible_text as _extract_visible_text
+    from gitd.services.browser import dumps
+    from gitd.services.browser import extract_visible_text as _extract_visible_text
 
     return dumps(_extract_visible_text(device, max_lines=max_lines, include_controls=include_controls))
 
@@ -566,7 +573,8 @@ def extract_visible_text(device: str, max_lines: int = 200, include_controls: bo
 @mcp.tool()
 def extract_articles(device: str, max_items: int = 5) -> str:
     """Extract likely visible article/headline candidates from the current browser page."""
-    from gitd.services.browser import dumps, extract_articles as _extract_articles
+    from gitd.services.browser import dumps
+    from gitd.services.browser import extract_articles as _extract_articles
 
     return dumps(_extract_articles(device, max_items=max_items))
 
@@ -585,7 +593,8 @@ def read_news(
 
     This is the iOS Chrome/WebDriver smoke workflow exposed as a single tool.
     """
-    from gitd.services.browser import dumps, read_news as _read_news
+    from gitd.services.browser import dumps
+    from gitd.services.browser import read_news as _read_news
 
     return dumps(
         _read_news(
