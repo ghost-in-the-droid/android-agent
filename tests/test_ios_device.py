@@ -12,6 +12,7 @@ from gitd.bots.common.device import (
     platform_for_device,
 )
 from gitd.bots.common.ios import (
+    IOSBackendError,
     IOSDevice,
     _parse_devicectl_details,
     _parse_xctrace_devices,
@@ -1321,6 +1322,95 @@ def test_ios_open_url_returns_navigation_evidence_from_webdriver(monkeypatch):
     assert [call["method"] for call in calls] == ["POST", "GET"]
 
 
+def test_ios_open_url_falls_back_when_webdriver_url_is_unverified(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local", bundle_id="com.google.chrome.ios")
+    dev._session_id = "session-1"
+    requests_seen = []
+    address_calls = []
+    statuses = iter(
+        [
+            {"ok": False, "state": "timeout", "error": "not loaded"},
+            {
+                "ok": True,
+                "expected_url": "https://example.com/",
+                "url": "https://example.com/",
+                "state": "url_matched",
+            },
+        ]
+    )
+
+    monkeypatch.setattr(
+        dev,
+        "_request",
+        lambda method, path, payload=None, timeout=None: requests_seen.append((method, path, payload)),
+    )
+    monkeypatch.setattr(dev, "wait_for_url", lambda url, timeout=8.0, interval=0.5: next(statuses))
+    monkeypatch.setattr(dev, "_open_url_in_web_context", lambda url, delay=2.0: False)
+    monkeypatch.setattr(
+        dev,
+        "_open_url_via_address_bar",
+        lambda url, delay=2.0: address_calls.append((url, delay)),
+    )
+
+    status = dev.open_url("example.com", delay=0)
+
+    assert status["ok"] is True
+    assert status["method"] == "address_bar"
+    assert status["errors"] == [
+        {
+            "method": "webdriver_url",
+            "state": "timeout",
+            "error": "not loaded",
+        }
+    ]
+    assert requests_seen == [("POST", "/session/session-1/url", {"url": "https://example.com"})]
+    assert address_calls == [("https://example.com", 0)]
+
+
+def test_ios_open_url_falls_back_when_web_context_url_is_unverified(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local", bundle_id="com.google.chrome.ios")
+    dev._session_id = "session-1"
+    address_calls = []
+    statuses = iter(
+        [
+            {"ok": False, "state": "timeout", "error": "web context did not load"},
+            {
+                "ok": True,
+                "expected_url": "https://example.com/",
+                "url": "https://example.com/",
+                "state": "url_matched",
+            },
+        ]
+    )
+
+    monkeypatch.setattr(
+        dev,
+        "_request",
+        lambda method, path, payload=None, timeout=None: (_ for _ in ()).throw(IOSBackendError("webdriver failed")),
+    )
+    monkeypatch.setattr(dev, "wait_for_url", lambda url, timeout=8.0, interval=0.5: next(statuses))
+    monkeypatch.setattr(dev, "_open_url_in_web_context", lambda url, delay=2.0: True)
+    monkeypatch.setattr(
+        dev,
+        "_open_url_via_address_bar",
+        lambda url, delay=2.0: address_calls.append((url, delay)),
+    )
+
+    status = dev.open_url("https://example.com", delay=0)
+
+    assert status["ok"] is True
+    assert status["method"] == "address_bar"
+    assert status["errors"] == [
+        {"method": "webdriver_url", "error": "webdriver failed"},
+        {
+            "method": "web_context",
+            "state": "timeout",
+            "error": "web context did not load",
+        },
+    ]
+    assert address_calls == [("https://example.com", 0)]
+
+
 def test_take_screenshot_decodes_base64(monkeypatch):
     def fake_request(method, url, json=None, timeout=None):
         assert method == "GET"
@@ -1438,6 +1528,40 @@ def test_ios_clear_active_element_uses_webdriver_clear(monkeypatch):
     assert dev._clear_active_element() is True
     assert [call["method"] for call in calls] == ["GET", "POST"]
     assert calls[1]["json"] == {}
+
+
+def test_ios_dismiss_browser_first_run_prompts_taps_known_actions(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local", bundle_id="com.google.chrome.ios")
+    tapped = []
+    xmls = iter(
+        [
+            """
+            <hierarchy>
+              <node class="XCUIElementTypeButton" text="Accept &amp; Continue"
+                content-desc="Accept &amp; Continue" resource-id="Accept &amp; Continue"
+                bounds="[20,600][360,650]" clickable="true"/>
+            </hierarchy>
+            """,
+            """
+            <hierarchy>
+              <node class="XCUIElementTypeButton" text="No Thanks" content-desc="No Thanks"
+                resource-id="No Thanks" bounds="[20,600][360,650]" clickable="true"/>
+            </hierarchy>
+            """,
+            """
+            <hierarchy>
+              <node class="XCUIElementTypeTextField" text="Search or type web address" content-desc="Address"
+                resource-id="Address" bounds="[20,60][360,104]" clickable="true"/>
+            </hierarchy>
+            """,
+        ]
+    )
+
+    monkeypatch.setattr(dev, "dump_xml", lambda: next(xmls))
+    monkeypatch.setattr(dev, "tap_node", lambda node, delay=0.5: tapped.append((dev.node_text(node), delay)) or True)
+
+    assert dev._dismiss_browser_first_run_prompts() == 2
+    assert tapped == [("Accept & Continue", 0.6), ("No Thanks", 0.6)]
 
 
 def test_ios_url_address_bar_fallback_clears_before_typing(monkeypatch):
