@@ -73,6 +73,28 @@ const IOS_SCHEDULE_TEMPLATES: IosScheduleTemplate[] = [
     },
   },
   {
+    id: 'tiktok_search_smoke',
+    label: 'TikTok Search Smoke',
+    name: 'iOS TikTok Search Smoke',
+    max_duration_s: 300,
+    config: {
+      skill: 'tiktok_ios',
+      workflow: 'search_smoke',
+      params: { query: '#news' },
+    },
+  },
+  {
+    id: 'tiktok_open_app_smoke',
+    label: 'TikTok Open App Smoke',
+    name: 'iOS TikTok Open App Smoke',
+    max_duration_s: 300,
+    config: {
+      skill: 'tiktok_ios',
+      workflow: 'open_app_smoke',
+      params: {},
+    },
+  },
+  {
     id: 'chrome_browser_smoke',
     label: 'Chrome Browser Smoke',
     name: 'iOS Chrome Browser Smoke',
