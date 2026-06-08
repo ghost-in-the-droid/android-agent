@@ -882,6 +882,34 @@ function iosRecoverySteps(serial: string): string[] {
   return Array.isArray(steps) ? steps.slice(0, 3).map(step => String(step)) : []
 }
 
+function iosRecoveryCommands(serial: string): string[] {
+  const commands = iosRecovery(serial)?.commands
+  return Array.isArray(commands) ? commands.map(cmd => String(cmd)).filter(Boolean) : []
+}
+
+function iosHealthDetails(serial: string): { label: string; value: string; ok?: boolean }[] {
+  const h = healthData.value[serial]
+  if (!isIosHealthPayload(h)) return []
+  const wda = h?.wda || {}
+  const appium = h?.appium || {}
+  const rows = [
+    { label: 'Appium', value: appium.reachable ? 'reachable' : 'down', ok: appium.reachable === true },
+    { label: 'WDA', value: wda.ready ? 'ready' : String(appium.state || h?.connection?.status || 'not ready'), ok: wda.ready === true },
+    { label: 'Session', value: String(wda.session || appium.session_id || 'none'), ok: !!(wda.session || appium.session_id) },
+    { label: 'Stream', value: String(wda.mjpeg_url || 'WDA MJPEG'), ok: wda.ready === true },
+  ]
+  return rows.filter(row => row.value)
+}
+
+async function copyIosRecoveryCommand(serial: string, command: string) {
+  try {
+    await navigator.clipboard.writeText(command)
+    healthFixStatus.value[serial] = 'Copied recovery command'
+  } catch {
+    healthFixStatus.value[serial] = 'Copy failed'
+  }
+}
+
 async function fixIssue(serial: string, issue: string) {
   if (!serial || !issue) return
   healthFixStatus.value[serial] = `Applying ${issue}...`
@@ -1469,9 +1497,22 @@ onUnmounted(() => {
           </div>
           <div class="ios-recovery-summary">{{ iosRecoverySummary(selectedDevice) }}</div>
           <div v-if="healthFixStatus[selectedDevice]" class="ios-recovery-status">{{ healthFixStatus[selectedDevice] }}</div>
+          <div v-if="iosHealthDetails(selectedDevice).length" class="ios-health-details">
+            <span v-for="row in iosHealthDetails(selectedDevice)" :key="row.label"
+              class="ios-health-chip" :class="{ 'ios-health-chip--ok': row.ok }"
+              :title="`${row.label}: ${row.value}`">
+              {{ row.label }} {{ row.value }}
+            </span>
+          </div>
           <ol v-if="iosRecoverySteps(selectedDevice).length" class="ios-recovery-steps">
             <li v-for="(step, i) in iosRecoverySteps(selectedDevice)" :key="i">{{ step }}</li>
           </ol>
+          <div v-if="iosRecoveryCommands(selectedDevice).length" class="ios-recovery-commands">
+            <div v-for="command in iosRecoveryCommands(selectedDevice)" :key="command" class="ios-recovery-command">
+              <code>{{ command }}</code>
+              <button class="ios-copy-btn" @click="copyIosRecoveryCommand(selectedDevice, command)">Copy</button>
+            </div>
+          </div>
         </div>
         <div v-if="selectedIsIos" class="news-panel">
           <div class="news-panel-head">
@@ -2469,11 +2510,78 @@ onUnmounted(() => {
   line-height: 1.3;
 }
 
+.ios-health-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ios-health-chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 5px;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #020617;
+  color: #94a3b8;
+  font-size: 9px;
+}
+
+.ios-health-chip--ok {
+  border-color: #16653466;
+  color: #86efac;
+  background: #052e1622;
+}
+
 .ios-recovery-steps {
   margin: 5px 0 0;
   padding-left: 16px;
   color: var(--text-4);
   line-height: 1.35;
+}
+
+.ios-recovery-commands {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ios-recovery-command {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.ios-recovery-command code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 6px;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #020617;
+  color: #c4b5fd;
+  font-size: 9px;
+}
+
+.ios-copy-btn {
+  padding: 3px 6px;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #111827;
+  color: #93c5fd;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.ios-copy-btn:hover {
+  border-color: #60a5fa;
+  color: #bfdbfe;
 }
 
 .ios-recovery-compact {
