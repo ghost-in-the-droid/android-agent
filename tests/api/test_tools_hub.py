@@ -8,6 +8,7 @@ def test_tools_hub_exposes_platform_support(client):
     input_tools = next(category for category in categories if category["category"] == "Input")
     app_management = next(category for category in categories if category["category"] == "App Management")
     clipboard = next(category for category in categories if category["category"] == "Clipboard & Notifications")
+    skills = next(category for category in categories if category["category"] == "Skills")
     open_url = next(tool for tool in web["tools"] if tool["name"] == "open_url")
     current_url = next(tool for tool in web["tools"] if tool["name"] == "get_current_url")
     read_news = next(tool for tool in web["tools"] if tool["name"] == "read_news")
@@ -20,6 +21,8 @@ def test_tools_hub_exposes_platform_support(client):
     app_state = next(tool for tool in app_management["tools"] if tool["name"] == "app_state")
     explore_app = next(tool for tool in app_management["tools"] if tool["name"] == "explore_app")
     paste_text = next(tool for tool in clipboard["tools"] if tool["name"] == "paste_text")
+    run_workflow = next(tool for tool in skills["tools"] if tool["name"] == "run_workflow")
+    run_action = next(tool for tool in skills["tools"] if tool["name"] == "run_action")
 
     assert open_url["platform_support"]["support"] == "cross_platform"
     assert open_url["platform_support"]["ios"] is True
@@ -44,6 +47,10 @@ def test_tools_hub_exposes_platform_support(client):
     assert explore_app["platform_support"]["ios"] is True
     assert paste_text["platform_support"]["support"] == "cross_platform"
     assert paste_text["platform_support"]["ios"] is True
+    assert run_workflow["platform_support"]["support"] == "cross_platform"
+    assert run_workflow["platform_support"]["ios"] is True
+    assert run_action["platform_support"]["support"] == "cross_platform"
+    assert run_action["platform_support"]["ios"] is True
 
 
 def test_tools_platforms_endpoint(client):
