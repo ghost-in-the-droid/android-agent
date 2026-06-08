@@ -27,6 +27,23 @@ def _normalize_url(url: str) -> str:
     return cleaned
 
 
+def _urls_equivalent(left: str | None, right: str | None) -> bool:
+    if not left or not right:
+        return False
+    try:
+        left_parts = urllib.parse.urlparse(_normalize_url(left))
+        right_parts = urllib.parse.urlparse(_normalize_url(right))
+    except Exception:
+        return str(left).strip().rstrip("/") == str(right).strip().rstrip("/")
+    left_path = (left_parts.path or "/").rstrip("/") or "/"
+    right_path = (right_parts.path or "/").rstrip("/") or "/"
+    return (
+        left_parts.netloc.lower() == right_parts.netloc.lower()
+        and left_path == right_path
+        and left_parts.query == right_parts.query
+    )
+
+
 def _search_url(query: str, engine: str = "google") -> str:
     template = _ENGINE_URLS.get(engine.lower(), _ENGINE_URLS["google"])
     return template.format(query=urllib.parse.quote_plus(query))
@@ -797,6 +814,7 @@ def read_news(
             result["current_url"] = dev.get_current_url()
         except Exception as exc:
             result["errors"].append({"stage": "current_url", "error": str(exc)})
+        front_page_url = str(result.get("current_url") or normalized_url)
 
         headlines, headline_evidence = _extract_articles_with_retry(
             device,
@@ -842,8 +860,14 @@ def read_news(
                 if save_screenshots:
                     article_result["screenshot"] = _save_device_screenshot(dev, out_path / f"article_{index}.png")
                 try:
-                    article_result["current_url"] = dev.get_current_url()
+                    article_current_url = dev.get_current_url()
+                    article_result["current_url"] = article_current_url
+                    if _urls_equivalent(article_current_url, front_page_url):
+                        should_go_back = False
+                        raise RuntimeError("article navigation stayed on the front page")
                 except Exception as exc:
+                    if str(exc) == "article navigation stayed on the front page":
+                        raise
                     article_result["current_url_error"] = str(exc)
                 visible_text, text_evidence = _extract_visible_text_with_retry(
                     device,
