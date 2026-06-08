@@ -51,6 +51,9 @@ _ELEMENT_ID_KEYS = (
     "element-6066-11e4-a52e-4f735466cecf",
     "ELEMENT",
 )
+_IOS_DEVICE_NAME_RE = re.compile(r"\b(iPhone|iPad|iPod)\b", re.I)
+_IOS_HARDWARE_UDID_RE = re.compile(r"^(?:[A-F0-9]{40}|[A-F0-9]{8}-[A-F0-9]{16})$", re.I)
+_MAC_HOST_NAME_RE = re.compile(r"\b(Mac|MacBook|iMac|Mac mini|Mac Studio|Laptop|Desktop)\b", re.I)
 
 
 class IOSBackendError(RuntimeError):
@@ -558,7 +561,12 @@ def _xctrace_line_device(line: str, section: str) -> dict[str, str] | None:
     if not udid or "unavailable" in stripped.lower():
         return None
     name = stripped.split(" (", 1)[0].strip()
-    if not re.search(r"\b(iPhone|iPad|iPod)\b", name, re.I):
+    if section == "devices":
+        if _MAC_HOST_NAME_RE.search(name):
+            return None
+        if not (_IOS_DEVICE_NAME_RE.search(name) or _IOS_HARDWARE_UDID_RE.match(udid)):
+            return None
+    elif not _IOS_DEVICE_NAME_RE.search(name):
         return None
     version = groups[0].strip()
     return {
@@ -581,6 +589,9 @@ def _parse_xctrace_devices(output: str, *, include_simulators: bool = True) -> l
             continue
         if line == "== Simulators ==":
             section = "simulators"
+            continue
+        if line.startswith("=="):
+            section = ""
             continue
         if section == "simulators" and not include_simulators:
             continue

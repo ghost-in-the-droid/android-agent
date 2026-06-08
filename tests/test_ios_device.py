@@ -168,6 +168,7 @@ def test_parse_xctrace_devices_discovers_connected_ios_and_booted_simulators():
 == Devices ==
 Blah's MacBook Pro (15.5) (00006000-0000000000000000)
 Blah's iPhone (18.5) (00008110-0012345678901234)
+QA Phone (26.5) (00008110-0016443101D0401E)
 iPad QA (17.5) (00008101-0098765432109876)
 == Simulators ==
 iPhone 16 Pro (18.5) (11111111-2222-3333-4444-555555555555) (Booted)
@@ -180,6 +181,13 @@ iPad mini (18.5) (99999999-8888-7777-6666-555555555555) (Booted)
             "udid": "00008110-0012345678901234",
             "name": "Blah's iPhone",
             "platform_version": "18.5",
+            "source": "host",
+            "state": "connected",
+        },
+        {
+            "udid": "00008110-0016443101D0401E",
+            "name": "QA Phone",
+            "platform_version": "26.5",
             "source": "host",
             "state": "connected",
         },
@@ -208,7 +216,40 @@ iPad mini (18.5) (99999999-8888-7777-6666-555555555555) (Booted)
 
     assert [item["udid"] for item in _parse_xctrace_devices(output, include_simulators=False)] == [
         "00008110-0012345678901234",
+        "00008110-0016443101D0401E",
         "00008101-0098765432109876",
+    ]
+
+
+def test_parse_xctrace_devices_ignores_offline_devices():
+    output = """
+== Devices ==
+Blah's MacBook Pro (15.5) (00006000-0000000000000000)
+blah_mad (26.5) (00008110-0016443101D0401E)
+
+== Devices Offline ==
+iPhone von Tobias (18.5) (00008030-000134EA11C3402E)
+mad_pad (18.6.2) (00008112-000429D2362A201E)
+
+== Simulators ==
+iPhone 16 Pro (18.5) (11111111-2222-3333-4444-555555555555) (Booted)
+"""
+
+    assert _parse_xctrace_devices(output) == [
+        {
+            "udid": "00008110-0016443101D0401E",
+            "name": "blah_mad",
+            "platform_version": "26.5",
+            "source": "host",
+            "state": "connected",
+        },
+        {
+            "udid": "11111111-2222-3333-4444-555555555555",
+            "name": "iPhone 16 Pro",
+            "platform_version": "18.5",
+            "source": "simulator",
+            "state": "Booted",
+        },
     ]
 
 
