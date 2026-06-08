@@ -14,6 +14,7 @@ import io
 import json
 import re
 import subprocess
+import urllib.parse
 import urllib.request
 
 from gitd.bots.common.adb import Device
@@ -987,6 +988,13 @@ def ios_recovery_for_state(state: str) -> dict:
     return _ios_recovery_for_state(state)
 
 
+def _is_local_http_appium_url(appium_url: str) -> bool:
+    parsed = urllib.parse.urlparse(appium_url or "")
+    scheme = parsed.scheme or "http"
+    host = parsed.hostname or "127.0.0.1"
+    return scheme == "http" and host in {"127.0.0.1", "localhost", "::1"}
+
+
 def ios_device_health(device: str, ios_dev=None) -> dict:
     try:
         ios_dev = ios_dev or get_device(device)
@@ -1005,6 +1013,15 @@ def ios_device_health(device: str, ios_dev=None) -> dict:
                 recovery = remote_xpc_manual_recovery(status.get("udid") or device, checks.get("remote_xpc_tunnel") or {})
             except Exception:
                 recovery = _ios_recovery_for_state(state)
+        elif state == "appium_down":
+            appium_url = status.get("appium_url") or getattr(ios_dev, "appium_url", "")
+            auto_fixable = _is_local_http_appium_url(str(appium_url))
+            recovery = {
+                **recovery,
+                "auto_fixable": auto_fixable,
+                "manual_action_required": not auto_fixable,
+                "requires_sudo": False,
+            }
         recommended_fix = recovery.get("code", "")
         return {
             "serial": device,

@@ -1379,6 +1379,88 @@ def test_ios_device_health_includes_recovery_steps_for_remote_xpc_tunnel(monkeyp
     assert health["recovery"]["registry_port"] == 42314
 
 
+def test_ios_device_health_marks_local_appium_down_auto_fixable(monkeypatch):
+    class ProbeStatus:
+        def to_dict(self):
+            return {
+                "device": "ios:abc123",
+                "udid": "abc123",
+                "state": "appium_down",
+                "message": "Appium is unreachable",
+                "appium_url": "http://127.0.0.1:4723",
+                "session_id": "",
+                "checks": {"appium_status_code": None},
+            }
+
+    class FakeIOSDevice:
+        appium_url = "http://127.0.0.1:4723"
+
+        def probe(self, deep=True):
+            assert deep is True
+            return ProbeStatus()
+
+        @property
+        def mjpeg_url(self):
+            return "http://127.0.0.1:9100"
+
+        @property
+        def mjpeg_settings(self):
+            return {}
+
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
+
+    from gitd.services.device_context import device_health
+
+    health = device_health("ios:abc123")
+
+    assert health["connection"]["status"] == "appium_down"
+    assert health["recommended_fix"] == "start_appium"
+    assert health["recovery"]["auto_fixable"] is True
+    assert health["recovery"]["manual_action_required"] is False
+    assert health["recovery"]["requires_sudo"] is False
+
+
+def test_ios_device_health_marks_remote_appium_down_manual(monkeypatch):
+    class ProbeStatus:
+        def to_dict(self):
+            return {
+                "device": "ios:abc123",
+                "udid": "abc123",
+                "state": "appium_down",
+                "message": "Appium is unreachable",
+                "appium_url": "https://appium.example.test:4723",
+                "session_id": "",
+                "checks": {"appium_status_code": None},
+            }
+
+    class FakeIOSDevice:
+        appium_url = "https://appium.example.test:4723"
+
+        def probe(self, deep=True):
+            assert deep is True
+            return ProbeStatus()
+
+        @property
+        def mjpeg_url(self):
+            return "http://127.0.0.1:9100"
+
+        @property
+        def mjpeg_settings(self):
+            return {}
+
+    monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
+
+    from gitd.services.device_context import device_health
+
+    health = device_health("ios:abc123")
+
+    assert health["connection"]["status"] == "appium_down"
+    assert health["recommended_fix"] == "start_appium"
+    assert health["recovery"]["auto_fixable"] is False
+    assert health["recovery"]["manual_action_required"] is True
+    assert health["recovery"]["requires_sudo"] is False
+
+
 def test_ios_device_health_includes_recovery_steps_for_wda_signing_failure(monkeypatch):
     class ProbeStatus:
         def to_dict(self):
