@@ -784,6 +784,8 @@ def api_phone_health_fix(device: str, data: dict = Body({})):
         if issue in {"reset_session", "appium_session", "wda_session"}:
             get_device(device).reset_session()
             return {"ok": True, "platform": "ios", "message": "iOS Appium session reset"}
+        if issue == "restart_remote_xpc_tunnel":
+            return get_device(device).restart_remote_xpc_tunnel()
         if issue in _IOS_MANUAL_FIX_STATES:
             from gitd.services.device_context import ios_recovery_for_state
 
