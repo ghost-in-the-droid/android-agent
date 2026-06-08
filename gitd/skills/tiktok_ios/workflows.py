@@ -23,9 +23,10 @@ class SearchSmoke(Workflow):
     description = "Launch TikTok on iOS, open search, and submit a query"
     engine = EngineConfig(back_count=0, launch_settle=1.0, skip_popup_detect=True)
 
-    def __init__(self, device, elements=None, query: str = "#fyp", **kwargs):
+    def __init__(self, device, elements=None, query: str = "#fyp", max_lines: int = 80, **kwargs):
         super().__init__(device, elements)
         self.query = query
+        self.max_lines = max_lines
 
     def steps(self) -> list[Action]:
         return [
@@ -33,6 +34,7 @@ class SearchSmoke(Workflow):
             DismissPopup(self.device, self.elements),
             TapSearch(self.device, self.elements),
             TypeAndSearch(self.device, self.elements, query=self.query),
+            CaptureVisibleText(self.device, self.elements, max_lines=self.max_lines),
         ]
 
 
