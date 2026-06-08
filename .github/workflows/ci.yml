@@ -63,6 +63,7 @@ jobs:
           tests/test_tiktok_ios_skill.py
           tests/test_skill_platforms.py
           tests/test_ios_explorer_recorder.py
+          tests/test_ios_test_runner_recording.py
           tests/test_mcp_ios_skill_creation.py
           tests/test_tool_platforms.py
           tests/api/test_tools_hub.py

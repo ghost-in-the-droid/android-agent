@@ -7,6 +7,7 @@ import re
 import shutil
 import signal
 import subprocess
+import sys
 import threading
 import time
 from datetime import datetime
@@ -47,6 +48,14 @@ def _device_label(serial: str) -> str:
 
 def _safe_recording_name(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_") or "device"
+
+
+def _pytest_cmd(node: str, *, retry: bool = False) -> list[str]:
+    cmd = [sys.executable, "-u", "-m", "pytest", "-v", "--tb=short", "-s"]
+    if retry:
+        cmd += ["--reruns", "2", "--reruns-delay", "5"]
+    cmd.append(node)
+    return cmd
 
 
 def _sr_start(serial: str, local_name: str | None = None) -> tuple:
@@ -230,10 +239,7 @@ def tr_start(data: dict = Body({})):
         except Exception:
             sr_proc, sr_device_path = None, None
 
-        cmd = ["python3", "-u", "-m", "pytest", "-v", "--tb=short", "-s"]
-        if retry:
-            cmd += ["--reruns", "2", "--reruns-delay", "5"]
-        cmd.append(node)
+        cmd = _pytest_cmd(node, retry=retry)
         env = {**os.environ, "PYTHONUNBUFFERED": "1", "DEVICE": device}
         log_path = Path(f"/tmp/tiktok_tests_{device}.log")
         log_f = open(log_path, "w", buffering=1)
