@@ -6,7 +6,6 @@ import pytest
     [
         ("start_appium", "appium_down"),
         ("check_ios_device_config", "configured_unreachable"),
-        ("restart_remote_xpc_tunnel", "remote_xpc_tunnel_unavailable"),
         ("unlock_and_trust_device", "locked"),
         ("fix_wda_signing", "wda_signing_failed"),
     ],
@@ -39,3 +38,30 @@ def test_ios_health_fix_resets_appium_session(client, monkeypatch):
     assert response.status_code == 200
     assert response.json() == {"ok": True, "platform": "ios", "message": "iOS Appium session reset"}
     assert calls == ["reset"]
+
+
+def test_ios_health_fix_restarts_remote_xpc_tunnel(client, monkeypatch):
+    calls = []
+
+    class FakeIOSDevice:
+        def restart_remote_xpc_tunnel(self):
+            calls.append("restart")
+            return {
+                "ok": True,
+                "platform": "ios",
+                "issue": "restart_remote_xpc_tunnel",
+                "pid": 1234,
+            }
+
+    monkeypatch.setattr("gitd.routers.phone.get_device", lambda device: FakeIOSDevice())
+
+    response = client.post("/api/phone/health/ios:abc123/fix", json={"issue": "restart_remote_xpc_tunnel"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ok": True,
+        "platform": "ios",
+        "issue": "restart_remote_xpc_tunnel",
+        "pid": 1234,
+    }
+    assert calls == ["restart"]

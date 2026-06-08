@@ -13,6 +13,7 @@ import html
 import json
 import os
 import re
+import signal
 import subprocess
 import threading
 import time
@@ -533,6 +534,29 @@ def _remote_xpc_registry_ports() -> tuple[int, ...]:
             seen.add(port)
             ports.append(port)
     return tuple(ports) or _REMOTE_XPC_REGISTRY_PORTS
+
+
+def _remote_xpc_tunnel_processes(udid: str) -> list[dict[str, Any]]:
+    clean_udid = strip_ios_prefix(udid)
+    try:
+        output = subprocess.check_output(["ps", "-eo", "pid=,uid=,command="], text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    rows: list[dict[str, Any]] = []
+    for raw_line in output.splitlines():
+        parts = raw_line.strip().split(None, 2)
+        if len(parts) < 3:
+            continue
+        pid_raw, uid_raw, command = parts
+        if "tunnel-creation" not in command or clean_udid not in command:
+            continue
+        try:
+            pid = int(pid_raw)
+            uid = int(uid_raw)
+        except ValueError:
+            continue
+        rows.append({"pid": pid, "uid": uid, "command": command})
+    return rows
 
 
 def _parse_devicectl_details(output: str) -> dict[str, str]:
@@ -1978,6 +2002,98 @@ class IOSDevice:
             except Exception:
                 pass
         self._evict_session(sid)
+
+    def restart_remote_xpc_tunnel(self) -> dict[str, Any]:
+        tunnel_before = remote_xpc_tunnel_status(
+            self.udid,
+            platform_version=self.platform_version,
+            host=_host_device_config_for_udid(self.udid),
+        )
+        processes = _remote_xpc_tunnel_processes(self.udid)
+        current_uid = os.getuid()
+        foreign = [proc for proc in processes if proc["uid"] != current_uid]
+        if foreign:
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": "restart_remote_xpc_tunnel",
+                "manual_action_required": True,
+                "message": "Existing XCUITest tunnel process is owned by another user and cannot be restarted here.",
+                "processes": processes,
+                "tunnel": tunnel_before,
+                "recovery": {
+                    "code": "restart_remote_xpc_tunnel",
+                    "state": "remote_xpc_tunnel_unavailable",
+                    "summary": "Stop the stale XCUITest tunnel process with sudo, then start a fresh tunnel.",
+                    "steps": [
+                        f"Stop the stale process ids: {', '.join(str(proc['pid']) for proc in foreign)}",
+                        f"Run: sudo appium driver run xcuitest tunnel-creation --udid {self.udid}",
+                        f"Verify: http://127.0.0.1:{_remote_xpc_registry_ports()[0]}/remotexpc/tunnels/{self.udid}",
+                    ],
+                },
+            }
+
+        killed: list[dict[str, Any]] = []
+        kill_errors: list[dict[str, Any]] = []
+        for proc in processes:
+            try:
+                os.kill(proc["pid"], signal.SIGTERM)
+                killed.append(proc)
+            except OSError as e:
+                kill_errors.append({**proc, "error": str(e)})
+        if kill_errors:
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": "restart_remote_xpc_tunnel",
+                "manual_action_required": True,
+                "message": "Could not stop existing XCUITest tunnel process.",
+                "processes": processes,
+                "killed": killed,
+                "errors": kill_errors,
+                "tunnel": tunnel_before,
+            }
+
+        registry_port = _remote_xpc_registry_ports()[0]
+        command = ["appium", "driver", "run", "xcuitest", "tunnel-creation", "--udid", self.udid]
+        if registry_port != _REMOTE_XPC_REGISTRY_PORTS[0]:
+            command.extend(["--tunnel-registry-port", str(registry_port)])
+        log_path = os.getenv("IOS_REMOTE_XPC_TUNNEL_LOG", f"/tmp/gitd-xcuitest-tunnel-{self.udid}.log")
+        try:
+            log_fh = open(log_path, "a", encoding="utf-8")
+            try:
+                proc = subprocess.Popen(
+                    command,
+                    stdin=subprocess.DEVNULL,
+                    stdout=log_fh,
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True,
+                )
+            finally:
+                log_fh.close()
+        except OSError as e:
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": "restart_remote_xpc_tunnel",
+                "manual_action_required": True,
+                "message": f"Could not start XCUITest tunnel process: {e}",
+                "command": command,
+                "log_path": log_path,
+                "tunnel": tunnel_before,
+            }
+
+        return {
+            "ok": True,
+            "platform": "ios",
+            "issue": "restart_remote_xpc_tunnel",
+            "message": "XCUITest RemoteXPC tunnel restart started.",
+            "pid": proc.pid,
+            "command": command,
+            "log_path": log_path,
+            "killed": killed,
+            "tunnel_before": tunnel_before,
+        }
 
     # -- Android-compatible XML parsing helpers ---------------------------
 
