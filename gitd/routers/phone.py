@@ -20,6 +20,10 @@ def _ios_unsupported(feature: str) -> dict:
     return {"ok": False, "platform": "ios", "error": f"{feature} is Android-only and is not supported for iOS devices"}
 
 
+def _platform(device: str) -> str:
+    return "ios" if is_ios_ref(device) else "android"
+
+
 def _try_wifi_reconnect(db: Session):
     """Try reconnecting known WiFi devices that aren't currently connected (max once per 30s)."""
     global _last_wifi_reconnect
@@ -171,7 +175,7 @@ def phone_input(data: dict = Body({})):
                 dev.type_text(data["text"])
             else:
                 return {"ok": False, "error": "unknown action"}
-            return {"ok": True}
+            return {"ok": True, "device": device, "platform": "ios"}
         except Exception as e:
             return {"ok": False, "error": str(e)}
     cmd = ["adb"]
@@ -199,7 +203,7 @@ def phone_input(data: dict = Body({})):
         else:
             return {"ok": False, "error": "unknown action"}
         subprocess.check_output(cmd, timeout=6)
-        return {"ok": True}
+        return {"ok": True, "device": device, "platform": "android"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -243,7 +247,7 @@ def api_phone_tap(data: dict = Body({})):
             except Exception:
                 pass
         dev.tap(x, y)
-    return {"ok": True}
+    return {"ok": True, "device": device, "platform": _platform(device)}
 
 
 @router.post("/type", summary="Type Text On Phone")
@@ -256,7 +260,7 @@ def api_phone_type(data: dict = Body({})):
         dev.type_text(text_val)
     else:
         dev.adb("shell", "input", "text", text_val.replace(" ", "%s"))
-    return {"ok": True}
+    return {"ok": True, "device": device, "platform": _platform(device)}
 
 
 @router.get("/clipboard/{device}", summary="Get Device Clipboard")
@@ -309,9 +313,10 @@ def api_phone_paste_text(data: dict = Body({})):
 @router.post("/back", summary="Press Back Button")
 def api_phone_back(data: dict = Body({})):
     """Press the Android back button on a device."""
-    dev = get_device(data.get("device", ""))
+    device = data.get("device", "")
+    dev = get_device(device)
     dev.back(delay=0.3)
-    return {"ok": True}
+    return {"ok": True, "device": device, "platform": _platform(device)}
 
 
 @router.post("/key", summary="Send Keyevent To Phone")
@@ -329,7 +334,7 @@ def api_phone_key(data: dict = Body({})):
         dev.adb("shell", "input", "keyevent", key)
     else:
         dev.adb("shell", "input", "keyevent", key)
-    return {"ok": True}
+    return {"ok": True, "device": device, "platform": _platform(device)}
 
 
 @router.post("/launch", summary="Launch App On Phone")
@@ -342,7 +347,7 @@ def api_phone_launch(data: dict = Body({})):
         dev.launch_app(pkg)
     else:
         dev.adb("shell", "monkey", "-p", pkg, "-c", "android.intent.category.LAUNCHER", "1")
-    return {"ok": True}
+    return {"ok": True, "device": device, "platform": _platform(device)}
 
 
 @router.post("/browser/open-url", summary="Open URL In Browser")
@@ -459,14 +464,14 @@ def api_phone_force_stop(data: dict = Body({})):
         if not pkg:
             raise HTTPException(status_code=400, detail="package required")
         get_device(device).terminate_app(pkg)
-        return {"ok": True, "platform": "ios", "bundle_id": pkg}
+        return {"ok": True, "device": device, "platform": "ios", "bundle_id": pkg}
     from gitd.bots.common.adb import Device
 
     dev = Device(device)
     if not pkg:
         raise HTTPException(status_code=400, detail="package required")
     dev.adb("shell", "am", "force-stop", pkg)
-    return {"ok": True}
+    return {"ok": True, "device": device, "platform": "android", "package": pkg}
 
 
 @router.get("/app-state/{device}", summary="Get App State")
@@ -518,7 +523,7 @@ def api_phone_swipe(data: dict = Body({})):
         except Exception:
             pass
     dev.swipe(x1, y1, x2, y2)
-    return {"ok": True}
+    return {"ok": True, "device": device, "platform": _platform(device)}
 
 
 @router.get("/screenshot/{device}", summary="Take Phone Screenshot")
