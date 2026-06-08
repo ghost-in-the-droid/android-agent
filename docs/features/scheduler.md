@@ -11,6 +11,7 @@ Per-phone job queue with priority-based scheduling, preemption, timeout enforcem
 - Per-phone job queues (one active job per device at a time)
 - Priority-based preemption with 90-second grace period
 - 6 job types supported
+- Platform guards for `ios:<udid>` devices
 - Orphan detection and recovery (dead PIDs, server restart)
 - Timeout enforcement with SIGTERM → SIGKILL escalation
 - 24h timeline visualization in dashboard Scheduler tab
@@ -62,6 +63,35 @@ State machine per job:
 | `skill_workflow` | `skills/_run_skill.py` | 900s | Run a skill workflow |
 | `skill_action` | `skills/_run_skill.py` | 900s | Run a single skill action |
 | `app_explore` | `skills/auto_creator.py` | 900s | BFS app exploration |
+
+## iOS Scheduling
+
+iOS schedules use the same queue and schedule tables, but `ios:<udid>` devices are limited to supported skill workflows for now. Android TikTok jobs such as `post`, `publish_draft`, and `crawl` return `unsupported_platform` for iOS because the iOS upload/crawl flows are not ported yet.
+
+The dashboard schedule form detects iOS devices and pre-fills one of these valid `skill_workflow` configs:
+
+```json
+{
+  "skill": "tiktok_ios",
+  "workflow": "profile_smoke",
+  "params": {
+    "max_lines": 80
+  }
+}
+```
+
+```json
+{
+  "skill": "safari",
+  "workflow": "open_ghost_site",
+  "params": {
+    "url": "https://ghostinthedroid.com",
+    "bundle_id": "com.google.chrome.ios"
+  }
+}
+```
+
+Real iPhone execution still depends on Appium/WebDriverAgent being healthy for the target UDID.
 
 ## Files
 

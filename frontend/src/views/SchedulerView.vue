@@ -34,6 +34,57 @@ const sf = ref<any>({
   max_duration_s: 900, account: '', config_json: '{}',
 })
 
+type JobTypeOption = {
+  value: string
+  label: string
+  android: boolean
+  ios: boolean
+}
+
+type IosScheduleTemplate = {
+  id: string
+  label: string
+  name: string
+  max_duration_s: number
+  config: Record<string, any>
+}
+
+const DEFAULT_IOS_TEMPLATE_ID = 'tiktok_profile_smoke'
+
+const JOB_TYPE_OPTIONS: JobTypeOption[] = [
+  { value: 'post', label: 'Post', android: true, ios: false },
+  { value: 'publish_draft', label: 'Publish Draft', android: true, ios: false },
+  { value: 'skill_workflow', label: 'Skill', android: true, ios: true },
+]
+
+const IOS_SCHEDULE_TEMPLATES: IosScheduleTemplate[] = [
+  {
+    id: 'tiktok_profile_smoke',
+    label: 'TikTok Profile Smoke',
+    name: 'iOS TikTok Profile Smoke',
+    max_duration_s: 300,
+    config: {
+      skill: 'tiktok_ios',
+      workflow: 'profile_smoke',
+      params: { max_lines: 80 },
+    },
+  },
+  {
+    id: 'chrome_browser_smoke',
+    label: 'Chrome Browser Smoke',
+    name: 'iOS Chrome Browser Smoke',
+    max_duration_s: 300,
+    config: {
+      skill: 'safari',
+      workflow: 'open_ghost_site',
+      params: {
+        url: 'https://ghostinthedroid.com',
+        bundle_id: 'com.google.chrome.ios',
+      },
+    },
+  },
+]
+
 /* timeline canvas */
 const timelineCanvas = ref<HTMLCanvasElement | null>(null)
 let timelineHits: { x: number; y: number; w: number; h: number; data: any }[] = []
@@ -123,6 +174,21 @@ function phoneName(serial: string | null): string {
   return serial.slice(0, 5)
 }
 
+function isIosSerial(serial: string | null | undefined): boolean {
+  return !!serial && serial.startsWith('ios:')
+}
+
+function platformForSerial(serial: string | null | undefined, device?: any): 'ios' | 'android' {
+  const platform = String(device?.platform || device?.device_platform || '').toLowerCase()
+  if (platform === 'ios' || isIosSerial(serial)) return 'ios'
+  return 'android'
+}
+
+function deviceOptionLabel(ph: any): string {
+  const platform = ph.platform === 'ios' ? 'iOS' : 'Android'
+  return `${ph.label} (${platform})`
+}
+
 const phoneList = computed(() => {
   // Build phone list from devices + any serials found in data
   const serials = new Set<string>()
@@ -135,7 +201,33 @@ const phoneList = computed(() => {
   return Array.from(serials).map(s => ({
     serial: s,
     label: phoneName(s),
+    platform: platformForSerial(s, devices.value.find((d: any) => d.serial === s)),
   }))
+})
+
+const selectedScheduleDevice = computed(() =>
+  devices.value.find((p: any) => p.serial === sf.value.phone_serial)
+)
+
+const selectedScheduleIsIos = computed(() =>
+  platformForSerial(sf.value.phone_serial, selectedScheduleDevice.value) === 'ios'
+)
+
+const jobTypeOptions = computed(() =>
+  JOB_TYPE_OPTIONS.filter(option => selectedScheduleIsIos.value ? option.ios : option.android)
+)
+
+const schedulePlatformNotice = computed(() => {
+  if (!selectedScheduleIsIos.value) return ''
+  return 'iOS schedules currently run supported skill workflows. TikTok post and publish jobs stay Android-only until the iOS upload flow is ported.'
+})
+
+const currentIosTemplateId = computed(() => {
+  const cfg = parseConfig(sf.value.config_json)
+  const match = IOS_SCHEDULE_TEMPLATES.find(template =>
+    cfg.skill === template.config.skill && cfg.workflow === template.config.workflow
+  )
+  return match?.id || 'custom'
 })
 
 /* ── computed: filtered schedules ───────────────────────────────────────── */
@@ -184,6 +276,43 @@ function parseTimes(s: any): string {
 
 function parseConfig(json: string): any {
   try { return JSON.parse(json || '{}') } catch { return {} }
+}
+
+function stringifyConfig(config: Record<string, any>): string {
+  return JSON.stringify(config, null, 2)
+}
+
+function applyIosScheduleTemplate(templateId: string) {
+  if (templateId === 'custom') return
+  const template = IOS_SCHEDULE_TEMPLATES.find(t => t.id === templateId)
+  if (!template) return
+  const hadTemplateName = IOS_SCHEDULE_TEMPLATES.some(t => t.name === sf.value.name)
+  sf.value.job_type = 'skill_workflow'
+  if (!String(sf.value.name || '').trim() || hadTemplateName) {
+    sf.value.name = template.name
+  }
+  sf.value.max_duration_s = template.max_duration_s
+  sf.value.config_json = stringifyConfig(template.config)
+}
+
+function ensureIosScheduleDefaults() {
+  if (!selectedScheduleIsIos.value) return
+  const selectedTypeAllowed = jobTypeOptions.value.some(option => option.value === sf.value.job_type)
+  if (!selectedTypeAllowed) {
+    applyIosScheduleTemplate(DEFAULT_IOS_TEMPLATE_ID)
+    return
+  }
+  if (sf.value.job_type === 'skill_workflow') {
+    const cfg = parseConfig(sf.value.config_json)
+    if (!cfg.skill && !cfg.workflow) {
+      applyIosScheduleTemplate(DEFAULT_IOS_TEMPLATE_ID)
+    }
+  }
+}
+
+function onIosTemplateChange(event: Event) {
+  const target = event.target as HTMLSelectElement | null
+  applyIosScheduleTemplate(target?.value || '')
 }
 
 function configDetail(r: any): string {
@@ -302,6 +431,7 @@ function sfReset() {
 
 async function sfSave() {
   const f = sf.value
+  ensureIosScheduleDefaults()
   // Inject account into config if set
   if (f.account) {
     try {
@@ -562,6 +692,11 @@ watch([timeline, queue, devices], () => {
   nextTick(() => renderTimeline())
 })
 
+watch(
+  () => [sf.value.phone_serial, sf.value.job_type],
+  () => ensureIosScheduleDefaults()
+)
+
 onMounted(() => {
   load()
   pollTimer = window.setInterval(load, 3000)
@@ -705,7 +840,7 @@ onUnmounted(() => {
           </span>
           <select v-model="schedPhoneFilter" class="filter-select">
             <option value="">All Phones</option>
-            <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ ph.label }}</option>
+            <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ deviceOptionLabel(ph) }}</option>
           </select>
         </div>
 
@@ -759,18 +894,30 @@ onUnmounted(() => {
           <div class="form-field">
             <label class="form-label">Type</label>
             <select v-model="sf.job_type" class="form-input">
-              <option value="post">Post</option>
-              <option value="publish_draft">Publish Draft</option>
-              <option value="skill_workflow">Skill</option>
+              <option v-for="option in jobTypeOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
             </select>
           </div>
           <div class="form-field">
             <label class="form-label">Phone</label>
             <select v-model="sf.phone_serial" class="form-input">
               <option value="">None</option>
-              <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ ph.label }}</option>
+              <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ deviceOptionLabel(ph) }}</option>
             </select>
           </div>
+        </div>
+        <div v-if="schedulePlatformNotice" class="form-hint form-hint--ios">
+          {{ schedulePlatformNotice }}
+        </div>
+        <div v-if="selectedScheduleIsIos && sf.job_type === 'skill_workflow'" class="form-field">
+          <label class="form-label">iOS Skill Template</label>
+          <select :value="currentIosTemplateId" class="form-input" @change="onIosTemplateChange">
+            <option v-for="template in IOS_SCHEDULE_TEMPLATES" :key="template.id" :value="template.id">
+              {{ template.label }}
+            </option>
+            <option value="custom">Custom JSON</option>
+          </select>
         </div>
         <!-- Priority + Schedule -->
         <div class="form-row-2">
@@ -843,13 +990,15 @@ onUnmounted(() => {
         <div class="runs-filters">
           <select v-model="historyPhoneFilter" class="filter-select">
             <option value="">All Phones</option>
-            <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ ph.label }}</option>
+            <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ deviceOptionLabel(ph) }}</option>
           </select>
           <select v-model="historyTypeFilter" class="filter-select">
             <option value="">All Types</option>
             <option value="post">&#x1f4f9; post</option>
             <option value="publish_draft">&#x1f4e4; publish_draft</option>
             <option value="content_gen">&#x1f916; content_gen</option>
+            <option value="skill_workflow">skill_workflow</option>
+            <option value="app_explore">app_explore</option>
           </select>
         </div>
       </div>
@@ -1329,6 +1478,17 @@ onUnmounted(() => {
 
 .form-hint {
   color: var(--text-4);
+}
+
+.form-hint--ios {
+  margin: -2px 0 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: 4px;
 }
 
 .form-input {
