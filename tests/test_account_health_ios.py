@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from gitd.app import app
+from gitd.db import get_connection
 from gitd.services import account_health
 
 
@@ -51,19 +52,58 @@ def test_ios_account_health_reports_undetected_handle(monkeypatch):
     assert result["logged_in"] == []
 
 
-def test_ios_account_switch_and_sync_return_unsupported():
+def test_ios_account_switch_returns_unsupported():
     switch = account_health.switch_active_account("ios:abc123", "@ghost")
-    sync = account_health.sync_tiktok_accounts_table("ios:abc123")
 
     assert switch["ok"] is False
     assert switch["platform"] == "ios"
     assert switch["error"] == "unsupported_platform"
     assert switch["target"] == "ghost"
+
+
+def test_ios_account_sync_writes_detected_handles(tmp_path, monkeypatch):
+    db_path = tmp_path / "gitd.db"
+    account_health._cache.clear()
+    monkeypatch.setattr("gitd.db.DEFAULT_DB", db_path)
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice())
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
+
+    sync = account_health.sync_tiktok_accounts_table("ios:abc123")
+
+    assert sync["ok"] is True
+    assert sync["platform"] == "ios"
+    assert sync["added"] == ["ghost", "backup"]
+    assert sync["updated"] == []
+    assert sync["active"] == "ghost"
+    assert sync["error"] is None
+
+    conn = get_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT handle, phone_serial, is_active FROM tiktok_accounts ORDER BY handle"
+        ).fetchall()
+    finally:
+        conn.close()
+    assert [dict(row) for row in rows] == [
+        {"handle": "backup", "phone_serial": "ios:abc123", "is_active": 1},
+        {"handle": "ghost", "phone_serial": "ios:abc123", "is_active": 1},
+    ]
+
+
+def test_ios_account_sync_reports_detection_failure(tmp_path, monkeypatch):
+    account_health._cache.clear()
+    monkeypatch.setattr("gitd.db.DEFAULT_DB", tmp_path / "gitd.db")
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice("Profile\nNo videos yet"))
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
+
+    sync = account_health.sync_tiktok_accounts_table("ios:nohandle")
+
     assert sync["ok"] is False
     assert sync["platform"] == "ios"
-    assert sync["error"] == "unsupported_platform"
+    assert sync["error"] == "no visible TikTok account handle detected"
     assert sync["added"] == []
     assert sync["updated"] == []
+    assert sync["active"] is None
 
 
 def test_account_health_all_includes_ios_configured_refs(monkeypatch):
@@ -117,8 +157,9 @@ def test_expected_account_matches_allows_ios_when_undetectable(monkeypatch):
     }
 
 
-def test_scheduler_account_health_routes_return_ios_detection(monkeypatch):
+def test_scheduler_account_health_routes_return_ios_detection(tmp_path, monkeypatch):
     account_health._cache.clear()
+    monkeypatch.setattr("gitd.db.DEFAULT_DB", tmp_path / "gitd.db")
     monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice())
     monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
     client = TestClient(app)
@@ -135,5 +176,6 @@ def test_scheduler_account_health_routes_return_ios_detection(monkeypatch):
     assert switch.json()["error"] == "unsupported_platform"
     assert switch.json()["platform"] == "ios"
     assert sync.status_code == 200
-    assert sync.json()["error"] == "unsupported_platform"
+    assert sync.json()["ok"] is True
     assert sync.json()["platform"] == "ios"
+    assert sync.json()["added"] == ["ghost", "backup"]

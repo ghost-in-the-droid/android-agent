@@ -33,7 +33,13 @@ _HANDLE_RE = re.compile(r"(?<![\w.])@([A-Za-z0-9._]{2,30})")
 
 
 def _ios_unsupported_result(device: str, *, action: str = "account_health") -> dict:
-    message = "TikTok account health is Android-only until the iOS TikTok workflow is ported"
+    if action == "account_switch":
+        message = (
+            "TikTok account switching is not implemented on iOS yet; "
+            "iOS account health and sync use best-effort visible text detection."
+        )
+    else:
+        message = "This TikTok account operation is not implemented on iOS yet"
     result = {
         "ok": False,
         "device": device,
@@ -145,7 +151,7 @@ def device_account_health(device: str, fresh: bool = False) -> dict:
     """Probe a device for its TikTok account state.
 
     Args:
-        device: ADB serial.
+        device: ADB serial or ios:<udid> device ref.
         fresh: If True, bypass the 60s cache.
 
     Returns:
@@ -208,7 +214,7 @@ def switch_active_account(device: str, handle: str) -> dict:
     """Switch the TikTok active account on the device to `handle`.
 
     Args:
-        device: ADB serial.
+        device: ADB serial or ios:<udid> device ref.
         handle: Target username (with or without @).
 
     Returns:
@@ -253,35 +259,18 @@ def switch_active_account(device: str, handle: str) -> dict:
     }
 
 
-def sync_tiktok_accounts_table(device: str) -> dict:
-    """Refresh the tiktok_accounts DB table to match what's actually on the device.
-
-    For each logged-in handle on `device`:
-      - Upsert (handle, phone_serial, is_active=1)
-      - If the row already exists with a different phone_serial, update it
-        (an account is "where it was last seen logged in").
-
-    Returns:
-        {"ok": bool, "device": serial, "added": [...], "updated": [...], "active": "...", "error": str | None}
-    """
-    if is_ios_ref(device):
-        result = _ios_unsupported_result(device, action="account_sync")
-        result.update({"added": [], "updated": [], "active": None})
-        return result
-
-    health = device_account_health(device, fresh=True)
+def _sync_detected_accounts(device: str, health: dict) -> dict:
     if not health["ok"]:
         return {
             "ok": False,
             "device": device,
-            "platform": "android",
+            "platform": health.get("platform") or ("ios" if is_ios_ref(device) else "android"),
             "added": [],
             "updated": [],
             "active": None,
             "error": health["error"],
         }
 
-    import sqlite3
     from gitd.db import DEFAULT_DB, get_connection, create_tables
 
     conn = get_connection(DEFAULT_DB)
@@ -310,7 +299,7 @@ def sync_tiktok_accounts_table(device: str) -> dict:
     return {
         "ok": True,
         "device": device,
-        "platform": "android",
+        "platform": health.get("platform") or ("ios" if is_ios_ref(device) else "android"),
         "added": added,
         "updated": updated,
         "active": active_handle,
@@ -318,8 +307,30 @@ def sync_tiktok_accounts_table(device: str) -> dict:
     }
 
 
+def sync_tiktok_accounts_table(device: str) -> dict:
+    """Refresh the tiktok_accounts DB table to match what's actually on the device.
+
+    On iOS this uses best-effort visible text account detection; it can only
+    sync accounts that are visible to WDA/Appium at probe time.
+
+    For each logged-in handle on `device`:
+      - Upsert (handle, phone_serial, is_active=1)
+      - If the row already exists with a different phone_serial, update it
+        (an account is "where it was last seen logged in").
+
+    Returns:
+        {"ok": bool, "device": serial, "added": [...], "updated": [...], "active": "...", "error": str | None}
+    """
+    if is_ios_ref(device):
+        health = device_account_health(device, fresh=True)
+        return _sync_detected_accounts(device, health)
+
+    health = device_account_health(device, fresh=True)
+    return _sync_detected_accounts(device, health)
+
+
 def all_devices_health() -> list[dict]:
-    """Probe every connected device. iOS returns an explicit unsupported result."""
+    """Probe every connected Android device and configured iOS device ref."""
     from gitd.bots.common.adb import list_connected
     from gitd.bots.common.device import ios_refs_from_host
 
