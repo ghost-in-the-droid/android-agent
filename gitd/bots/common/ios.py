@@ -2050,9 +2050,10 @@ class IOSDevice:
 
     def extract_articles(self, max_items: int = 5) -> list[dict[str, Any]]:
         web_entries = self.web_text_entries(max_entries=300)
-        entries = [entry for entry in web_entries if entry.get("url")]
-        if not entries:
-            entries = web_entries or self.native_text_entries(include_controls=False, max_entries=300)
+        # WebView snapshots often contain a mix of linked promos/nav items and
+        # real headline headings. Score all visible WebView text first so an
+        # unlinked h2 can beat a newsletter/account link.
+        entries = web_entries or self.native_text_entries(include_controls=False, max_entries=300)
         candidates: dict[str, tuple[int, dict[str, Any]]] = {}
         for entry in entries:
             text = entry["text"].strip()
@@ -2067,6 +2068,8 @@ class IOSDevice:
                 "provenance": entry.get("provenance", "native"),
             }
             score = _article_candidate_score({**entry, **candidate})
+            if score < 0:
+                continue
             key = _article_candidate_key(candidate)
             existing = candidates.get(key)
             if not existing or score > existing[0]:
@@ -2831,7 +2834,8 @@ def _article_url_score(url: str) -> int:
     score = 20
     if path in {"", "/"}:
         score -= 18
-    if any(hint in path for hint in _ARTICLE_URL_HINTS):
+    path_segments = [segment for segment in re.split(r"[^a-z0-9]+", path) if segment]
+    if any(hint in path_segments for hint in _ARTICLE_URL_HINTS):
         score += 16
     if re.search(r"/(?:20\d{2}|\d{4,}|[a-z]+-\d+)", path):
         score += 12
