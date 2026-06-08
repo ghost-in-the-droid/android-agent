@@ -4,22 +4,51 @@ from gitd.app import app
 from gitd.services import account_health
 
 
-def test_ios_account_health_returns_unsupported_without_premium_probe(monkeypatch):
+class FakeIOSAccountDevice:
+    def __init__(self, text: str = "Profile\n@ghost\nFollowers\n@backup"):
+        self.text = text
+        self.launched = []
+
+    def launch_app(self, bundle_id):
+        self.launched.append(bundle_id)
+
+    def extract_visible_text(self, max_lines=120):
+        return self.text
+
+
+def test_ios_account_health_detects_visible_handle_without_premium_probe(monkeypatch):
     def fail_premium_probe():
         raise AssertionError("premium probe should not run for iOS account health")
 
+    account_health._cache.clear()
     monkeypatch.setattr(account_health, "_premium_available", fail_premium_probe)
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice())
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
 
     result = account_health.device_account_health("ios:abc123", fresh=True)
 
-    assert result["ok"] is False
+    assert result["ok"] is True
     assert result["device"] == "ios:abc123"
     assert result["platform"] == "ios"
-    assert result["error"] == "unsupported_platform"
-    assert result["active"] is None
-    assert result["logged_in"] == []
+    assert result["error"] is None
+    assert result["active"] == "ghost"
+    assert result["logged_in"] == ["ghost", "backup"]
     assert result["cached"] is False
-    assert "Android-only" in result["message"]
+    assert result["detection"]["method"] == "wda_visible_text"
+    assert result["detection"]["bundle_id"] == "com.zhiliaoapp.musically"
+
+
+def test_ios_account_health_reports_undetected_handle(monkeypatch):
+    account_health._cache.clear()
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice("Profile\nNo videos yet"))
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
+
+    result = account_health.device_account_health("ios:nohandle", fresh=True)
+
+    assert result["ok"] is False
+    assert result["platform"] == "ios"
+    assert result["error"] == "no visible TikTok account handle detected"
+    assert result["logged_in"] == []
 
 
 def test_ios_account_switch_and_sync_return_unsupported():
@@ -38,9 +67,12 @@ def test_ios_account_switch_and_sync_return_unsupported():
 
 
 def test_account_health_all_includes_ios_configured_refs(monkeypatch):
+    account_health._cache.clear()
     monkeypatch.setattr("gitd.bots.common.adb.list_connected", lambda: ["emulator-5554"])
     monkeypatch.setattr("gitd.bots.common.device.ios_refs_from_host", lambda: ["ios:abc123"])
     monkeypatch.setattr(account_health, "_premium_available", lambda: False)
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice())
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
 
     results = account_health.all_devices_health()
 
@@ -49,21 +81,46 @@ def test_account_health_all_includes_ios_configured_refs(monkeypatch):
     assert by_device["emulator-5554"]["platform"] == "android"
     assert by_device["emulator-5554"]["error"] == "premium not installed"
     assert by_device["ios:abc123"]["platform"] == "ios"
-    assert by_device["ios:abc123"]["error"] == "unsupported_platform"
+    assert by_device["ios:abc123"]["ok"] is True
+    assert by_device["ios:abc123"]["active"] == "ghost"
 
 
-def test_expected_account_matches_does_not_block_ios_jobs():
-    result = account_health.expected_account_matches("ios:abc123", "@ghost")
+def test_expected_account_matches_uses_ios_visible_handle(monkeypatch):
+    account_health._cache.clear()
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice("Profile\n@ghost"))
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
+
+    match = account_health.expected_account_matches("ios:abc123", "@ghost")
+    mismatch = account_health.expected_account_matches("ios:abc123", "@other")
+
+    assert match == {"ok": True, "reason": None, "active": "ghost", "expected": "ghost"}
+    assert mismatch == {
+        "ok": False,
+        "reason": "wrong active account: have @ghost, expected @other",
+        "active": "ghost",
+        "expected": "other",
+    }
+
+
+def test_expected_account_matches_allows_ios_when_undetectable(monkeypatch):
+    account_health._cache.clear()
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice("Profile\nNo videos yet"))
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
+
+    result = account_health.expected_account_matches("ios:nohandle", "@ghost")
 
     assert result == {
         "ok": True,
-        "reason": "undetectable: iOS TikTok account health is not implemented yet",
+        "reason": "undetectable: no visible TikTok account handle detected",
         "active": None,
         "expected": "ghost",
     }
 
 
-def test_scheduler_account_health_routes_return_ios_unsupported():
+def test_scheduler_account_health_routes_return_ios_detection(monkeypatch):
+    account_health._cache.clear()
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice())
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
     client = TestClient(app)
 
     health = client.get("/api/scheduler/account-health/ios:abc123")
@@ -71,8 +128,9 @@ def test_scheduler_account_health_routes_return_ios_unsupported():
     sync = client.post("/api/scheduler/account-sync/ios:abc123")
 
     assert health.status_code == 200
-    assert health.json()["error"] == "unsupported_platform"
+    assert health.json()["ok"] is True
     assert health.json()["platform"] == "ios"
+    assert health.json()["active"] == "ghost"
     assert switch.status_code == 200
     assert switch.json()["error"] == "unsupported_platform"
     assert switch.json()["platform"] == "ios"
