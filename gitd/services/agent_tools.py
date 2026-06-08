@@ -69,6 +69,24 @@ TOOLS = [
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
+        "name": "get_stream_info",
+        "description": (
+            "Return platform-aware stream metadata without opening the stream. "
+            "iOS reports WDA MJPEG URL/settings and unsupported Portal/WebRTC actions; "
+            "Android reports Portal/H264/screencap mode metadata."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "mode": {"type": "string", "description": "Requested mode, e.g. mjpeg, wda-mjpeg, portal, h264, screencap."},
+                "fps": {"type": "integer", "default": 5},
+                "quality": {"type": "integer", "default": 8},
+            },
+            "required": ["device"],
+        },
+    },
+    {
         "name": "get_screen_tree",
         "description": 'Get LLM-readable indented UI hierarchy. Each node: [idx] Class "label" [clickable] [bounds]. Use this to understand screen layout before acting.',
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
@@ -747,6 +765,18 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             from gitd.services.phone_recording import recording_status
 
             return json.dumps(recording_status(device), indent=2)
+        elif name == "get_stream_info":
+            from gitd.routers.streaming import phone_stream_info
+
+            return json.dumps(
+                phone_stream_info(
+                    device=device,
+                    fps=int(args.get("fps", 5)),
+                    quality=int(args.get("quality", 8)),
+                    mode=args.get("mode", "mjpeg"),
+                ),
+                indent=2,
+            )
         elif name == "get_screen_tree":
             return ctx.get_screen_tree(device)
         elif name == "get_screen_xml":

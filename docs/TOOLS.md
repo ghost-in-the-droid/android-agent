@@ -179,10 +179,12 @@ Both work through `gitd/services/browser.py` when the model is `claude-code`
 | `start_screen_recording(device, filename="")` | Start a device MP4 recording. Android uses `adb shell screenrecord`; iOS records WDA MJPEG through `ffmpeg`. |
 | `stop_screen_recording(device)` | Stop the active recording and return the saved MP4 URL/path. |
 | `screen_recording_status(device)` | Return active recording status for the device. |
+| `get_stream_info(device, mode="mjpeg", fps=5)` | Return effective stream metadata without opening the stream. iOS reports WDA MJPEG URL/settings, screenshot fallback, and unsupported Portal/WebRTC actions. |
 
 REST equivalents are `POST /api/phone/recording/start`,
 `POST /api/phone/recording/stop`, `GET /api/phone/recording/status/{device}`,
-`GET /api/phone/recordings`, and `GET /api/phone/recording/{filename}`.
+`GET /api/phone/recordings`, `GET /api/phone/recording/{filename}`, and
+`GET /api/phone/stream-info`.
 
 ## Skills
 
