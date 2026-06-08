@@ -375,6 +375,51 @@ def test_read_news_does_not_treat_failed_url_navigation_as_open_article(monkeypa
     assert result["errors"][-1]["stage"] == "success_criteria"
 
 
+def test_read_news_does_not_treat_non_navigating_tap_as_open_article(monkeypatch):
+    class NonNavigatingTapDevice(FakeNewsIOSDevice):
+        def __init__(self):
+            super().__init__()
+            self.taps = []
+
+        def extract_articles(self, max_items=5):
+            return [
+                {
+                    "title": "First major story from the test fixture",
+                    "url": "",
+                    "bounds": {"x1": 10, "y1": 20, "x2": 350, "y2": 60},
+                    "center": {"x": 180, "y": 40},
+                    "class": "h2",
+                    "provenance": "web_context",
+                }
+            ][:max_items]
+
+        def tap(self, x, y, delay=0.6):
+            self.taps.append((x, y))
+
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            return (
+                "NPR text home\n"
+                "First major story from the test fixture\n"
+                "This front page teaser is long enough that it would look like body text "
+                "if a non-navigating tap were incorrectly counted as an opened article."
+            )
+
+    fake = NonNavigatingTapDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=1, max_articles=1, wait_s=0)
+
+    assert result["ok"] is False
+    assert fake.taps == [(180, 40)]
+    assert fake.back_count == 0
+    assert result["articles"][0]["opened"] is False
+    assert result["articles"][0]["error"] == "article navigation stayed on the front page"
+    assert result["completion"]["articles_opened"] == 0
+    assert result["completion"]["articles_with_body"] == 0
+    assert result["errors"][-1]["stage"] == "success_criteria"
+
+
 def test_read_news_marks_article_body_extraction_failure_as_partial(monkeypatch):
     class TitleOnlyArticleDevice(FakeNewsIOSDevice):
         def extract_visible_text(self, max_lines=200, include_controls=False):
