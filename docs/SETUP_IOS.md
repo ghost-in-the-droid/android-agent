@@ -123,6 +123,15 @@ extract_articles("ios:<udid>", 5)
 get_screen_tree("ios:<udid>")
 ```
 
+For REST/dashboard readiness checks, the normal device list uses a lightweight
+Appium status probe. Use a deep probe when you need WDA session, screenshot, and
+source readiness:
+
+```bash
+curl "http://localhost:5055/api/phone/devices?probe=deep" | python3 -m json.tool
+curl "http://localhost:5055/api/phone/health/ios:<udid>" | python3 -m json.tool
+```
+
 Chrome/news workflow smoke:
 
 ```bash
