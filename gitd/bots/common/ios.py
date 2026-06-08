@@ -262,6 +262,16 @@ _BROWSER_FIRST_RUN_ACTIONS = {
     "use without an account",
 }
 
+
+def _looks_like_address_bar_text(value: str) -> bool:
+    label = re.sub(r"\s+", " ", str(value or "").strip().lower())
+    if not label:
+        return False
+    if "address" in label or "url" in label or "web address" in label:
+        return True
+    return "search" in label and ("type" in label or "enter" in label or "web" in label)
+
+
 _LOW_VALUE_ARTICLE_TERMS = {
     "advertisement",
     "cookie",
@@ -1625,9 +1635,11 @@ class IOSDevice:
                     "error": str(status.get("error") or "URL navigation was not verified"),
                 }
             )
-        self._open_url_via_address_bar(normalized_url, delay=delay)
+        address_method = self._open_url_via_address_bar(normalized_url, delay=delay)
         status = self.wait_for_url(normalized_url, timeout=delay)
         status["method"] = "address_bar"
+        if address_method:
+            status["address_bar_source"] = address_method
         status["errors"] = errors
         return status
 
@@ -1643,18 +1655,45 @@ class IOSDevice:
             self._return_to_native_context()
         return False
 
-    def _open_url_via_address_bar(self, url: str, delay=2.0) -> None:
+    def _open_url_via_address_bar(self, url: str, delay=2.0) -> str:
         self.launch_app(self.bundle_id, delay=0.8)
         self._dismiss_browser_first_run_prompts()
         xml = self.dump_xml()
         node = self._find_address_bar_node(xml)
-        if not node:
+        if node:
+            if not self.tap_node(node, delay=0.5):
+                raise IOSBackendError("Could not tap iOS browser address field")
+            method = "address_bar_xml"
+        elif self._tap_address_bar_from_ocr(delay=0.5):
+            method = "address_bar_ocr"
+        else:
             raise IOSBackendError("Could not find an iOS browser address field for URL fallback")
-        if not self.tap_node(node, delay=0.5):
-            raise IOSBackendError("Could not tap iOS browser address field")
         self._clear_active_element()
         self.type_text(url, delay=0.2)
         self.press_enter(delay=delay)
+        return method
+
+    def _tap_address_bar_from_ocr(self, delay=0.5) -> bool:
+        try:
+            from gitd.services.device_context import ocr_screen
+
+            entries = ocr_screen(self.serial)
+        except Exception:
+            return False
+        for entry in entries:
+            if not _looks_like_address_bar_text(str(entry.get("text") or "")):
+                continue
+            try:
+                conf = float(entry.get("conf") or 0)
+            except (TypeError, ValueError):
+                conf = 0
+            if conf and conf < 0.35:
+                continue
+            x = _intish(entry.get("x")) + max(1, _intish(entry.get("w"))) // 2
+            y = _intish(entry.get("y")) + max(1, _intish(entry.get("h"))) // 2
+            self.tap(x, y, delay=delay)
+            return True
+        return False
 
     def _dismiss_browser_first_run_prompts(self, max_rounds: int = 3) -> int:
         tapped = 0
@@ -1691,11 +1730,8 @@ class IOSDevice:
             rid = (self.node_rid(node) or "").lower()
             cls = _node_attr(node, "class").lower()
             combined = " ".join([text, desc, rid])
-            if cls in {"xcuielementtypetextfield", "xcuielementtypesearchfield"} and (
-                "address" in combined
-                or "search" in combined
-                or "url" in combined
-                or "web address" in combined
+            if cls in {"xcuielementtypetextfield", "xcuielementtypesearchfield"} and _looks_like_address_bar_text(
+                combined
             ):
                 return node
         return None
