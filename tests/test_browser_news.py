@@ -327,6 +327,54 @@ def test_read_news_falls_back_to_tapping_headline_when_url_navigation_fails(monk
     assert result["articles"][0]["body_snippet"] == "First article title\nFirst article body line."
 
 
+def test_read_news_does_not_treat_failed_url_navigation_as_open_article(monkeypatch):
+    class FailedUrlNoGeometryDevice(FakeNewsIOSDevice):
+        def extract_articles(self, max_items=5):
+            return [
+                {
+                    "title": "First major story from the test fixture",
+                    "url": "https://text.npr.org/article/1",
+                    "class": "a",
+                    "provenance": "web_context",
+                }
+            ][:max_items]
+
+        def open_url(self, url, delay=2.0):
+            self.opened_urls.append(url)
+            if url.endswith("/article/1"):
+                return {
+                    "ok": False,
+                    "expected_url": url,
+                    "url": "https://text.npr.org/",
+                    "state": "timeout",
+                    "error": "URL navigation was not verified",
+                }
+            self.current_url = url
+            return {"ok": True, "expected_url": url, "url": url, "state": "url_matched", "method": "fake"}
+
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            return (
+                "NPR text home\n"
+                "This front page teaser is long enough that it would look like body text "
+                "if the failed article navigation were incorrectly treated as opened."
+            )
+
+    fake = FailedUrlNoGeometryDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=1, max_articles=1, wait_s=0)
+
+    assert result["ok"] is False
+    assert fake.opened_urls == ["https://text.npr.org/", "https://text.npr.org/article/1"]
+    assert fake.back_count == 0
+    assert result["articles"][0]["opened"] is False
+    assert "article URL navigation failed" in result["articles"][0]["error"]
+    assert result["completion"]["articles_opened"] == 0
+    assert result["completion"]["articles_with_body"] == 0
+    assert result["errors"][-1]["stage"] == "success_criteria"
+
+
 def test_read_news_marks_article_body_extraction_failure_as_partial(monkeypatch):
     class TitleOnlyArticleDevice(FakeNewsIOSDevice):
         def extract_visible_text(self, max_lines=200, include_controls=False):
