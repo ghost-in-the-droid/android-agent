@@ -952,6 +952,10 @@ def _ios_recovery_for_state(state: str) -> dict:
     return recovery
 
 
+def ios_recovery_for_state(state: str) -> dict:
+    return _ios_recovery_for_state(state)
+
+
 def device_health(device: str) -> dict:
     """Comprehensive device health check. Returns status for every subsystem."""
     if is_ios_ref(device):

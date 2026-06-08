@@ -9,12 +9,19 @@ from fastapi.responses import FileResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from gitd.models.base import get_db
 from gitd.bots.common.device import get_device, is_ios_ref, list_configured_ios_devices
+from gitd.models.base import get_db
 
 router = APIRouter(prefix="/api/phone", tags=["phone"])
 
 _last_wifi_reconnect: float = 0
+
+_IOS_MANUAL_FIX_STATES = {
+    "start_appium": "appium_down",
+    "check_ios_device_config": "configured_unreachable",
+    "unlock_and_trust_device": "locked",
+    "fix_wda_signing": "wda_signing_failed",
+}
 
 
 def _ios_unsupported(feature: str) -> dict:
@@ -776,6 +783,18 @@ def api_phone_health_fix(device: str, data: dict = Body({})):
         if issue in {"reset_session", "appium_session", "wda_session"}:
             get_device(device).reset_session()
             return {"ok": True, "platform": "ios", "message": "iOS Appium session reset"}
+        if issue in _IOS_MANUAL_FIX_STATES:
+            from gitd.services.device_context import ios_recovery_for_state
+
+            recovery = ios_recovery_for_state(_IOS_MANUAL_FIX_STATES[issue])
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": issue,
+                "manual_action_required": True,
+                "message": recovery["summary"],
+                "recovery": recovery,
+            }
         return _ios_unsupported(f"health fix '{issue}'")
     from gitd.routers.streaming import portal_fix
 
