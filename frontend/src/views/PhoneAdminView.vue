@@ -59,10 +59,13 @@ interface RecordingResponse {
 type NewsResult = {
   ok?: boolean
   error?: string
+  current_url?: string
   headlines?: any[]
   articles?: any[]
   errors?: any[]
   extraction?: any
+  completion?: any
+  screenshots?: Record<string, string>
 }
 
 function isIosSerial(serial: string | null | undefined): boolean {
@@ -483,6 +486,8 @@ const newsBundleId = ref('com.google.chrome.ios')
 const newsMaxHeadlines = ref(5)
 const newsMaxArticles = ref(3)
 const newsWaitSeconds = ref(2)
+const newsSaveScreenshots = ref(true)
+const newsOutDir = ref('data/ios_chrome_news_smoke')
 const newsRunning = ref(false)
 const newsResult = ref<NewsResult | null>(null)
 const newsError = ref('')
@@ -491,6 +496,9 @@ const newsHeadlines = computed(() => Array.isArray(newsResult.value?.headlines) 
 const newsArticles = computed(() => Array.isArray(newsResult.value?.articles) ? newsResult.value!.articles! : [])
 const newsErrors = computed(() => Array.isArray(newsResult.value?.errors) ? newsResult.value!.errors! : [])
 const newsExtraction = computed(() => newsResult.value?.extraction || {})
+const newsScreenshotEntries = computed(() =>
+  Object.entries(newsResult.value?.screenshots || {}).filter(([, path]) => !!path)
+)
 
 function compactEvidence(evidence: any): string {
   if (!evidence) return ''
@@ -530,7 +538,8 @@ async function runNewsSmoke() {
         max_headlines: Math.max(1, Number(newsMaxHeadlines.value) || 5),
         max_articles: Math.max(0, Number(newsMaxArticles.value) || 0),
         wait_s: Math.max(0.5, Number(newsWaitSeconds.value) || 2),
-        save_screenshots: false,
+        save_screenshots: newsSaveScreenshots.value,
+        out_dir: newsOutDir.value || undefined,
       })
     })
     newsResult.value = result
@@ -1473,6 +1482,11 @@ onUnmounted(() => {
             <input v-model="newsBundleId" class="news-input" title="iOS bundle id" />
             <input v-model.number="newsMaxHeadlines" class="news-number" type="number" min="1" max="10" title="Headlines" />
             <input v-model.number="newsMaxArticles" class="news-number" type="number" min="0" max="5" title="Articles" />
+            <label class="news-toggle" title="Save front-page and article screenshots">
+              <input v-model="newsSaveScreenshots" type="checkbox" />
+              shots
+            </label>
+            <input v-if="newsSaveScreenshots" v-model="newsOutDir" class="news-input news-input--out" title="Screenshot output directory" />
           </div>
           <div v-if="newsRunning" class="news-status">Running read_news...</div>
           <div v-else-if="newsError" class="news-status news-status--error">{{ newsError }}</div>
@@ -1483,6 +1497,10 @@ onUnmounted(() => {
               </span>
               <span>{{ newsHeadlines.length }} headlines</span>
               <span>{{ newsArticles.length }} articles</span>
+              <span v-if="newsResult.completion">
+                {{ newsResult.completion.articles_with_body || 0 }}/{{ newsResult.completion.requested_articles || 0 }} bodies
+              </span>
+              <span v-if="newsResult.current_url" :title="newsResult.current_url">{{ newsResult.current_url }}</span>
             </div>
             <div class="news-evidence">
               <span :title="JSON.stringify(newsExtraction.headlines || {})">
@@ -1490,6 +1508,11 @@ onUnmounted(() => {
               </span>
               <span :title="JSON.stringify(newsExtraction.front_page_text || {})">
                 Text {{ compactEvidence(newsExtraction.front_page_text) }}
+              </span>
+            </div>
+            <div v-if="newsScreenshotEntries.length" class="news-artifacts">
+              <span v-for="([name, path]) in newsScreenshotEntries" :key="name" :title="path">
+                {{ name }} {{ path }}
               </span>
             </div>
             <div v-if="newsHeadlines.length" class="news-list">
@@ -2032,7 +2055,7 @@ onUnmounted(() => {
 
 .news-controls {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 42px 42px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 42px 42px 48px;
   gap: 4px;
 }
 
@@ -2045,6 +2068,31 @@ onUnmounted(() => {
   background: #070b10;
   color: var(--text-2);
   font-size: 9px;
+}
+
+.news-input--out {
+  grid-column: 1 / -1;
+}
+
+.news-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 4px 5px;
+  border-radius: 5px;
+  border: 1px solid #1e293b;
+  background: #070b10;
+  color: #94a3b8;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.news-toggle input {
+  width: 11px;
+  height: 11px;
+  accent-color: #6366f1;
 }
 
 .news-status {
@@ -2073,7 +2121,8 @@ onUnmounted(() => {
 }
 
 .news-summary,
-.news-evidence {
+.news-evidence,
+.news-artifacts {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2105,6 +2154,18 @@ onUnmounted(() => {
   border-radius: 4px;
   background: #070b10;
   color: #67e8f9;
+}
+
+.news-artifacts span {
+  max-width: 100%;
+  padding: 2px 5px;
+  border: 1px solid #1e293b;
+  border-radius: 4px;
+  background: #111827;
+  color: #a5b4fc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .news-list,
