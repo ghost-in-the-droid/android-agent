@@ -509,7 +509,9 @@ def get_notifications(device: str) -> str:
 def open_notifications(device: str) -> str:
     """Pull down the notification shade or iOS Notification Center."""
     from gitd.services.device_context import open_notifications as _open
-    return "Notification shade opened" if _open(device) else "Failed"
+    if not _open(device):
+        return "Failed"
+    return "Notification Center opened" if is_ios_ref(device) else "Notification shade opened"
 
 
 @mcp.tool()
