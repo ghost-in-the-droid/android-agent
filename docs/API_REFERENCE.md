@@ -70,6 +70,25 @@ curl -X POST http://localhost:5055/api/phone/app-state \
   -d '{"device": "ios:<udid>", "package": "com.google.chrome.ios"}'
 ```
 
+### Screen recording
+
+Start and stop a cross-platform MP4 recording. Android uses `adb screenrecord`;
+iOS captures the WDA MJPEG stream through `ffmpeg`.
+
+```bash
+curl -X POST http://localhost:5055/api/phone/recording/start \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>", "filename": "ios-smoke.mp4"}'
+
+curl "http://localhost:5055/api/phone/recording/status/ios:<udid>"
+
+curl -X POST http://localhost:5055/api/phone/recording/stop \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>"}'
+
+curl http://localhost:5055/api/phone/recordings
+```
+
 ### Clipboard and notifications
 
 These routes work for Android serials and `ios:<udid>` device refs:

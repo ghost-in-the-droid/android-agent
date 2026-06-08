@@ -326,6 +326,33 @@ def screenshot_cropped(device: str, x1: int, y1: int, x2: int, y2: int) -> str:
 
 
 @mcp.tool()
+def start_screen_recording(device: str, filename: str = "") -> str:
+    """Start recording the device screen.
+
+    iOS uses WDA MJPEG captured through ffmpeg. Android uses adb screenrecord.
+    """
+    from gitd.services.phone_recording import start_recording
+
+    return json.dumps(start_recording(device, filename=filename), indent=2)
+
+
+@mcp.tool()
+def stop_screen_recording(device: str) -> str:
+    """Stop a running device screen recording and save the MP4."""
+    from gitd.services.phone_recording import stop_recording
+
+    return json.dumps(stop_recording(device), indent=2)
+
+
+@mcp.tool()
+def screen_recording_status(device: str) -> str:
+    """Return active screen recording status for a device."""
+    from gitd.services.phone_recording import recording_status
+
+    return json.dumps(recording_status(device), indent=2)
+
+
+@mcp.tool()
 def ocr_screen(device: str) -> str:
     """OCR the entire device screen using RapidOCR. Returns all visible text with positions.
     Use this when UI elements are rendered as images/canvas (e.g., analytics dashboards,

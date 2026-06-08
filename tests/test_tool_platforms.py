@@ -30,6 +30,9 @@ def test_every_agent_and_mcp_tool_has_platform_classification():
 
 def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("screenshot", "ios") is True
+    assert supports_platform("start_screen_recording", "ios") is True
+    assert supports_platform("stop_screen_recording", "ios") is True
+    assert supports_platform("screen_recording_status", "ios") is True
     assert supports_platform("open_url", "ios") is True
     assert supports_platform("device_health", "ios") is True
     assert supports_platform("device_health", "android") is True
@@ -54,6 +57,7 @@ def test_platform_classifications_have_stable_ios_semantics():
 
     assert tool_platform_info("shell").support == "android_only"
     assert tool_platform_info("device_health").support == "cross_platform"
+    assert tool_platform_info("start_screen_recording").support == "cross_platform"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
     assert tool_platform_info("clipboard_set").support == "cross_platform"
     assert tool_platform_info("paste_text").support == "cross_platform"
@@ -107,6 +111,9 @@ def test_tools_for_device_filters_by_platform():
     android_names = {tool["name"] for tool in tools_for_device("emulator-5554")}
 
     assert "open_url" in ios_names
+    assert "start_screen_recording" in ios_names
+    assert "stop_screen_recording" in ios_names
+    assert "screen_recording_status" in ios_names
     assert "device_health" in ios_names
     assert "extract_articles" in ios_names
     assert "shell" not in ios_names
@@ -126,6 +133,7 @@ def test_tools_for_device_filters_by_platform():
     assert "read_news" in ios_names
 
     assert "shell" in android_names
+    assert "start_screen_recording" in android_names
     assert "device_health" in android_names
     assert "app_state" in android_names
     assert "get_current_url" not in android_names
