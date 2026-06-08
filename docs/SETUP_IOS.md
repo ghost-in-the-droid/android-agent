@@ -143,7 +143,7 @@ python scripts/ios_chrome_news_smoke.py \
   --out-dir data/ios_chrome_news_smoke
 ```
 
-The script saves screenshots plus `result.json` in the output directory. It is a product-path smoke: it uses launch/open URL, visible-text extraction, article candidate extraction, tap, and browser-back primitives.
+The script saves screenshots plus `result.json` in the output directory. It is a product-path smoke: it calls the same `read_news` service used by REST, MCP, and agent tools, including navigation readiness checks and WebView/native/OCR extraction fallback.
 
 The demo skill is still named `safari` for compatibility, but it now defaults to Chrome and can launch any configured iOS browser bundle id:
 
