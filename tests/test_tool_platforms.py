@@ -160,6 +160,41 @@ def test_agent_run_skill_uses_current_interpreter(monkeypatch):
     assert captured["kwargs"]["timeout"] == 120
 
 
+def test_agent_explore_app_uses_auto_creator_subprocess(monkeypatch):
+    captured = {}
+
+    class FakeRun:
+        returncode = 0
+        stdout = "explorer ok"
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        return FakeRun()
+
+    monkeypatch.setattr("subprocess.run", fake_run)
+
+    result = execute_tool(
+        "explore_app",
+        {
+            "device": "ios:abc123",
+            "package": "com.example.agentexplorepytest",
+            "max_depth": 1,
+            "max_states": 2,
+        },
+    )
+
+    assert result == "Exploration finished. Output:\nexplorer ok"
+    assert captured["cmd"][:2] == [sys.executable, "-u"]
+    assert "gitd/skills/auto_creator.py" in captured["cmd"][2]
+    assert captured["cmd"][captured["cmd"].index("--package") + 1] == "com.example.agentexplorepytest"
+    assert captured["cmd"][captured["cmd"].index("--device") + 1] == "ios:abc123"
+    assert captured["cmd"][captured["cmd"].index("--max-depth") + 1] == "1"
+    assert captured["cmd"][captured["cmd"].index("--max-states") + 1] == "2"
+    assert captured["kwargs"]["timeout"] == 300
+
+
 def test_tools_for_device_filters_by_platform():
     ios_names = {tool["name"] for tool in tools_for_device("ios:abc123")}
     android_names = {tool["name"] for tool in tools_for_device("emulator-5554")}
@@ -185,6 +220,7 @@ def test_tools_for_device_filters_by_platform():
     assert "open_notifications" in ios_names
     assert "clear_notifications" in ios_names
     assert "open_camera" in ios_names
+    assert "explore_app" in ios_names
     assert "read_news" in ios_names
 
     assert "shell" in android_names
@@ -192,6 +228,7 @@ def test_tools_for_device_filters_by_platform():
     assert "device_health" in android_names
     assert "fix_device_health" in android_names
     assert "app_state" in android_names
+    assert "explore_app" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names
 

@@ -14,6 +14,7 @@ def test_tools_hub_exposes_platform_support(client):
     fix_device_health = next(tool for tool in screen["tools"] if tool["name"] == "fix_device_health")
     start_recording = next(tool for tool in screen["tools"] if tool["name"] == "start_screen_recording")
     app_state = next(tool for tool in app_management["tools"] if tool["name"] == "app_state")
+    explore_app = next(tool for tool in app_management["tools"] if tool["name"] == "explore_app")
     paste_text = next(tool for tool in clipboard["tools"] if tool["name"] == "paste_text")
 
     assert open_url["platform_support"]["support"] == "cross_platform"
@@ -29,6 +30,8 @@ def test_tools_hub_exposes_platform_support(client):
     assert start_recording["platform_support"]["ios"] is True
     assert app_state["platform_support"]["support"] == "cross_platform"
     assert app_state["platform_support"]["ios"] is True
+    assert explore_app["platform_support"]["support"] == "cross_platform"
+    assert explore_app["platform_support"]["ios"] is True
     assert paste_text["platform_support"]["support"] == "cross_platform"
     assert paste_text["platform_support"]["ios"] is True
 

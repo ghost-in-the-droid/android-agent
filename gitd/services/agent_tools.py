@@ -302,6 +302,23 @@ TOOLS = [
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
+        "name": "explore_app",
+        "description": (
+            "Explore an app UI with the cross-platform BFS app explorer and return the discovered state graph. "
+            "Use an Android package name or iOS bundle id."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "package": {"type": "string", "description": "Android package name or iOS bundle id."},
+                "max_depth": {"type": "integer", "default": 2},
+                "max_states": {"type": "integer", "default": 10},
+            },
+            "required": ["device", "package"],
+        },
+    },
+    {
         "name": "web_search",
         "description": (
             "Open a web search in the best available browser. "
@@ -1025,6 +1042,40 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return json.dumps(ctx.list_apps(device, query=query), indent=2)
         elif name == "list_packages":
             return json.dumps(ctx.list_packages(device)[:50], indent=2)
+        elif name == "explore_app":
+            from pathlib import Path
+
+            package = args["package"]
+            script = Path(__file__).resolve().parents[1] / "skills" / "auto_creator.py"
+            project_dir = Path(__file__).resolve().parents[2]
+            max_depth = int(args.get("max_depth", 2))
+            max_states = int(args.get("max_states", 10))
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-u",
+                    str(script),
+                    "--package",
+                    package,
+                    "--device",
+                    device,
+                    "--max-depth",
+                    str(max_depth),
+                    "--max-states",
+                    str(max_states),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                cwd=str(project_dir),
+            )
+            graph_path = project_dir / "data" / "app_explorer" / package / "state_graph.json"
+            if graph_path.exists():
+                return graph_path.read_text()[:10000]
+            output = result.stdout[-1000:]
+            if result.returncode != 0 and result.stderr:
+                output += f"\nSTDERR:\n{result.stderr[-1000:]}"
+            return f"Exploration finished. Output:\n{output}"
         elif name == "shell":
             out = Device(device).adb("shell", *args["command"].split(), timeout=15)
             return out[:3000]
