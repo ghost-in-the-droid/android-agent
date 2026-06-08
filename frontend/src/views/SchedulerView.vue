@@ -350,6 +350,8 @@ const logPanelArticles = computed(() =>
   Array.isArray(logPanelReadNews.value?.articles) ? logPanelReadNews.value.articles.slice(0, 3) : []
 )
 
+const logPanelExtraction = computed(() => logPanelReadNews.value?.extraction || {})
+
 const logPanelResultJson = computed(() =>
   logPanelGenericResult.value ? JSON.stringify(logPanelGenericResult.value, null, 2) : ''
 )
@@ -364,6 +366,26 @@ function resultUrl(item: any): string {
 
 function resultSnippet(item: any): string {
   return String(item?.body_snippet || item?.text || '').trim()
+}
+
+function compactEvidence(evidence: any): string {
+  if (!evidence) return ''
+  const source = String(evidence.source || 'unknown')
+  const attempts = evidence.attempts !== undefined ? `${evidence.attempts}x` : ''
+  if (evidence.returned !== undefined) return `${source} ${evidence.returned}/${evidence.target} ${attempts}`.trim()
+  if (evidence.returned_lines !== undefined) {
+    return `${source} ${evidence.returned_lines}/${evidence.target_lines} lines ${attempts}`.trim()
+  }
+  return source
+}
+
+function articleEvidence(index: number): any {
+  const items = logPanelExtraction.value?.articles
+  return Array.isArray(items) ? items[index] || {} : {}
+}
+
+function evidenceTitle(evidence: any): string {
+  return evidence ? JSON.stringify(evidence) : ''
 }
 
 function stringifyConfig(config: Record<string, any>): string {
@@ -1182,6 +1204,14 @@ onUnmounted(() => {
           <span>{{ logPanelReadNews.articles?.length || 0 }} articles</span>
           <span v-if="logPanelReadNews.current_url">{{ logPanelReadNews.current_url }}</span>
         </div>
+        <div v-if="logPanelExtraction.headlines || logPanelExtraction.front_page_text" class="run-result-evidence">
+          <span v-if="logPanelExtraction.headlines" :title="evidenceTitle(logPanelExtraction.headlines)">
+            Headlines {{ compactEvidence(logPanelExtraction.headlines) }}
+          </span>
+          <span v-if="logPanelExtraction.front_page_text" :title="evidenceTitle(logPanelExtraction.front_page_text)">
+            Page text {{ compactEvidence(logPanelExtraction.front_page_text) }}
+          </span>
+        </div>
         <div class="run-result-grid">
           <div>
             <div class="run-result-subtitle">Headlines</div>
@@ -1195,6 +1225,14 @@ onUnmounted(() => {
             <div v-for="(article, i) in logPanelArticles" :key="`article-${i}`" class="run-result-article">
               <div class="run-result-article-title">{{ resultTitle(article) || resultTitle({ title: article.source_headline }) || 'Untitled article' }}</div>
               <div v-if="resultUrl(article)" class="run-result-url">{{ resultUrl(article) }}</div>
+              <div v-if="articleEvidence(i).text || articleEvidence(i).open_method" class="run-result-evidence run-result-evidence--article">
+                <span v-if="articleEvidence(i).open_method" :title="evidenceTitle(articleEvidence(i))">
+                  {{ articleEvidence(i).open_method }}
+                </span>
+                <span v-if="articleEvidence(i).text" :title="evidenceTitle(articleEvidence(i).text)">
+                  Text {{ compactEvidence(articleEvidence(i).text) }}
+                </span>
+              </div>
               <div v-if="resultSnippet(article)" class="run-result-snippet">{{ resultSnippet(article) }}</div>
             </div>
           </div>
@@ -1697,6 +1735,33 @@ onUnmounted(() => {
   border: 1px solid rgba(59, 130, 246, 0.22);
   border-radius: 4px;
   font-size: 10px;
+}
+
+.run-result-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: -4px 0 10px;
+}
+
+.run-result-evidence span {
+  padding: 2px 6px;
+  color: #67e8f9;
+  background: rgba(8, 47, 73, 0.5);
+  border: 1px solid rgba(14, 116, 144, 0.35);
+  border-radius: 4px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.run-result-evidence--article {
+  margin: 4px 0 0;
+}
+
+.run-result-evidence--article span {
+  color: #a5b4fc;
+  background: rgba(49, 46, 129, 0.35);
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 .run-result-grid {

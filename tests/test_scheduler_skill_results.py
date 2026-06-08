@@ -25,6 +25,40 @@ def _read_news_skill_data() -> dict:
                     "articles": [
                         {"page_title": "First useful headline", "body_snippet": "Article body"},
                     ],
+                    "extraction": {
+                        "headlines": {
+                            "requested": 2,
+                            "target": 2,
+                            "returned": 2,
+                            "ready": True,
+                            "attempts": 1,
+                            "source": "web_context",
+                        },
+                        "front_page_text": {
+                            "requested_lines": 120,
+                            "target_lines": 1,
+                            "returned_lines": 3,
+                            "ready": True,
+                            "attempts": 1,
+                            "source": "web_context",
+                        },
+                        "articles": [
+                            {
+                                "index": 1,
+                                "headline_provenance": "web_context",
+                                "headline_has_url": True,
+                                "open_method": "url",
+                                "text": {
+                                    "requested_lines": 160,
+                                    "target_lines": 2,
+                                    "returned_lines": 2,
+                                    "ready": True,
+                                    "attempts": 1,
+                                    "source": "web_context",
+                                },
+                            }
+                        ],
+                    },
                 },
                 "error": None,
                 "duration_ms": 123,
@@ -93,6 +127,9 @@ def test_scheduler_history_result_endpoint_returns_structured_skill_data(tmp_pat
         assert body["ok"] is True
         assert body["summary"] == "read_news: 2 headlines | 1 article | first: First useful headline"
         assert body["result"]["step_results"][0]["data"]["articles"][0]["body_snippet"] == "Article body"
+        evidence = body["result"]["step_results"][0]["data"]["extraction"]
+        assert evidence["headlines"]["source"] == "web_context"
+        assert evidence["articles"][0]["text"]["returned_lines"] == 2
     finally:
         if run_id is not None:
             db.execute(text("DELETE FROM job_runs WHERE id = :id"), {"id": run_id})
