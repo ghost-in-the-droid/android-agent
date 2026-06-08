@@ -31,6 +31,7 @@ def test_ios_stream_headers_expose_effective_wda_mjpeg_mode(monkeypatch):
     assert response.headers["x-phone-health-url"] == "/api/phone/health/ios:abc123"
     assert response.headers["x-phone-health-fix-url"] == "/api/phone/health/ios:abc123/fix"
     assert response.headers["x-phone-mjpeg-url"] == "http://127.0.0.1:9123"
+    assert "boundary=BoundaryString" in response.headers["content-type"]
     assert response.headers["x-phone-mjpeg-settings"] == (
         '{"mjpegScalingFactor": 60.0, "mjpegServerFramerate": 12, "mjpegServerScreenshotQuality": 45}'
     )
@@ -78,6 +79,7 @@ def test_ios_stream_headers_expose_screenshot_polling_fallback_mode(monkeypatch)
 
     assert response.headers["x-phone-platform"] == "ios"
     assert response.headers["x-phone-stream-mode"] == "screenshot-polling"
+    assert "boundary=frame" in response.headers["content-type"]
 
 
 def test_android_stream_info_exposes_portal_and_screencap_modes():
