@@ -42,6 +42,7 @@ def _ios_unsupported(feature: str) -> dict:
 def _ios_stream_fallback(device: str, feature: str) -> dict:
     health_endpoint = f"/api/phone/health/{device}"
     fix_endpoint = f"{health_endpoint}/fix"
+    stream_url = f"/api/phone/stream?{urllib.parse.urlencode({'device': device, 'fps': 10, 'mode': 'wda-mjpeg'})}"
     return {
         "ok": False,
         "platform": "ios",
@@ -49,9 +50,10 @@ def _ios_stream_fallback(device: str, feature: str) -> dict:
         "stream_fallback": {
             "endpoint": "/api/phone/stream",
             "device": device,
-            "recommended_mode": "mjpeg",
-            "fallback_mode": "screencap",
-            "url": f"/api/phone/stream?device={device}&mode=mjpeg",
+            "recommended_mode": "wda-mjpeg",
+            "fallback_mode": "screenshot-polling",
+            "stream_url": stream_url,
+            "url": stream_url,
         },
         "recovery": {
             "health_endpoint": health_endpoint,
