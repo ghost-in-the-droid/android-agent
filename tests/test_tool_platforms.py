@@ -75,8 +75,14 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("create_skill", "ios") is True
     assert supports_platform("read_news", "ios") is True
     assert supports_platform("read_news", "android") is False
+    assert supports_platform("launch_intent", "ios") is False
+    assert supports_platform("launch_intent", "android") is True
+    assert supports_platform("toggle_overlay", "ios") is False
+    assert supports_platform("toggle_overlay", "android") is True
 
     assert tool_platform_info("shell").support == "android_only"
+    assert tool_platform_info("launch_intent").support == "android_only"
+    assert tool_platform_info("toggle_overlay").support == "android_only"
     assert tool_platform_info("device_health").support == "cross_platform"
     assert tool_platform_info("fix_device_health").support == "cross_platform"
     assert tool_platform_info("get_screen_xml").support == "cross_platform"
@@ -151,6 +157,8 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     )
 
     shell = execute_tool("shell", {"device": "ios:abc123", "command": "ls"})
+    launch_intent = execute_tool("launch_intent", {"device": "ios:abc123", "action": "android.intent.action.VIEW"})
+    toggle_overlay = execute_tool("toggle_overlay", {"device": "ios:abc123", "visible": True})
     clipboard = execute_tool("clipboard_get", {"device": "ios:abc123"})
     notifications = json.loads(execute_tool("get_notifications", {"device": "ios:abc123"}))
     opened = execute_tool("open_notifications", {"device": "ios:abc123"})
@@ -166,6 +174,8 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     )
 
     assert shell.startswith("ERROR: shell is Android-only")
+    assert launch_intent.startswith("ERROR: launch_intent is Android-only")
+    assert toggle_overlay.startswith("ERROR: toggle_overlay is Android-only")
     assert clipboard == "ios clipboard"
     assert notifications == [{"title": "Slack", "text": "New message", "platform": "ios"}]
     assert opened == "Notification Center opened"
@@ -179,6 +189,49 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     assert unknown == "Unknown tool: does_not_exist"
     assert android_current_url == "ERROR: get_current_url is currently implemented only for iOS"
     assert android_news == "ERROR: read_news is currently implemented only for iOS"
+
+
+def test_android_only_agent_tools_dispatch_through_shared_helpers(monkeypatch):
+    calls = []
+
+    def fake_launch_intent(device, action="", data="", package="", component="", extras=None):
+        calls.append(("intent", device, action, data, package, component, extras))
+        return "intent launched"
+
+    def fake_toggle_overlay(device, visible=True):
+        calls.append(("overlay", device, visible))
+        return True
+
+    monkeypatch.setattr("gitd.services.device_context.launch_intent", fake_launch_intent)
+    monkeypatch.setattr("gitd.services.device_context.toggle_overlay", fake_toggle_overlay)
+
+    intent = execute_tool(
+        "launch_intent",
+        {
+            "device": "emulator-5554",
+            "action": "android.intent.action.VIEW",
+            "data": "https://example.com",
+            "package": "com.android.chrome",
+            "component": ".Main",
+            "extras": {"demo": "yes"},
+        },
+    )
+    overlay = execute_tool("toggle_overlay", {"device": "emulator-5554", "visible": False})
+
+    assert intent == "intent launched"
+    assert overlay == "Overlay disabled"
+    assert calls == [
+        (
+            "intent",
+            "emulator-5554",
+            "android.intent.action.VIEW",
+            "https://example.com",
+            "com.android.chrome",
+            ".Main",
+            {"demo": "yes"},
+        ),
+        ("overlay", "emulator-5554", False),
+    ]
 
 
 def test_mcp_open_notifications_uses_platform_terms(monkeypatch):
@@ -572,6 +625,7 @@ def test_platform_prompts_do_not_offer_android_only_tools_to_ios():
     assert "call search_apps/list_apps if you need to discover a bundle id" in ios_system
     assert "shell:" not in ios_system
     assert "launch_intent:" not in ios_system
+    assert "toggle_overlay:" not in ios_system
     assert "open_camera:" in ios_system
     assert "standard Android intents" not in ios_system
     assert "camera package name" not in ios_system

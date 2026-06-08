@@ -266,6 +266,22 @@ TOOLS = [
         },
     },
     {
+        "name": "launch_intent",
+        "description": "Launch a full Android intent with optional action, data URI, package/component, and extras. Android-only.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "action": {"type": "string"},
+                "data": {"type": "string"},
+                "package": {"type": "string"},
+                "component": {"type": "string"},
+                "extras": {"type": "object"},
+            },
+            "required": ["device"],
+        },
+    },
+    {
         "name": "open_camera",
         "description": (
             "Open the platform camera app in a specific mode. "
@@ -309,6 +325,15 @@ TOOLS = [
                 },
             },
             "required": ["device", "text"],
+        },
+    },
+    {
+        "name": "toggle_overlay",
+        "description": "Toggle Portal numbered element overlay on/off. Android-only.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"device": {"type": "string"}, "visible": {"type": "boolean", "default": True}},
+            "required": ["device"],
         },
     },
     {
@@ -1151,6 +1176,9 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             from gitd.services.device_context import speak_text as _speak
 
             return _speak(device, args["text"], float(args.get("rate", 1.0)))
+        elif name == "toggle_overlay":
+            ok = ctx.toggle_overlay(device, bool(args.get("visible", True)))
+            return f"Overlay {'enabled' if args.get('visible', True) else 'disabled'}" if ok else "Failed — Portal not available"
         elif name == "force_stop":
             if is_ios_ref(device):
                 get_device(device).terminate_app(args["package"])
@@ -1159,6 +1187,15 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return f"Stopped {args['package']}"
         elif name == "app_state":
             return json.dumps(ctx.app_state(device, args["package"]), indent=2)
+        elif name == "launch_intent":
+            return ctx.launch_intent(
+                device,
+                action=args.get("action", ""),
+                data=args.get("data", ""),
+                package=args.get("package", ""),
+                component=args.get("component", ""),
+                extras=args.get("extras") or None,
+            )
         elif name == "web_search":
             if is_ios_ref(device):
                 from gitd.services.browser import dumps
