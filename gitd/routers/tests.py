@@ -58,6 +58,13 @@ def _pytest_cmd(node: str, *, retry: bool = False) -> list[str]:
     return cmd
 
 
+def _pytest_env(device: str) -> dict[str, str]:
+    env = {**os.environ, "PYTHONUNBUFFERED": "1", "DEVICE": device}
+    if is_ios_ref(device):
+        env["IOS_DEVICE_UDID"] = device.removeprefix("ios:")
+    return env
+
+
 def _sr_start(serial: str, local_name: str | None = None) -> tuple:
     """Start screen recording on device."""
     if is_ios_ref(serial):
@@ -240,7 +247,7 @@ def tr_start(data: dict = Body({})):
             sr_proc, sr_device_path = None, None
 
         cmd = _pytest_cmd(node, retry=retry)
-        env = {**os.environ, "PYTHONUNBUFFERED": "1", "DEVICE": device}
+        env = _pytest_env(device)
         log_path = Path(f"/tmp/tiktok_tests_{device}.log")
         log_f = open(log_path, "w", buffering=1)
         proc = subprocess.Popen(

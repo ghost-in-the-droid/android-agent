@@ -81,3 +81,22 @@ def test_test_runner_uses_current_interpreter_for_pytest():
     assert cmd[3:7] == ["pytest", "-v", "--tb=short", "-s"]
     assert "--reruns" in cmd
     assert cmd[-1] == "tests/test_ios_device.py::test_factory_routes_ios_prefix"
+
+
+def test_test_runner_sets_ios_live_test_env(monkeypatch):
+    monkeypatch.delenv("IOS_DEVICE_UDID", raising=False)
+
+    env = test_runner._pytest_env("ios:abc123")
+
+    assert env["DEVICE"] == "ios:abc123"
+    assert env["IOS_DEVICE_UDID"] == "abc123"
+    assert env["PYTHONUNBUFFERED"] == "1"
+
+
+def test_test_runner_keeps_android_env_unchanged(monkeypatch):
+    monkeypatch.delenv("IOS_DEVICE_UDID", raising=False)
+
+    env = test_runner._pytest_env("emulator-5554")
+
+    assert env["DEVICE"] == "emulator-5554"
+    assert "IOS_DEVICE_UDID" not in env
