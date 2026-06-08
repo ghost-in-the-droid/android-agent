@@ -103,6 +103,10 @@ def test_list_configured_ios_devices_includes_config_and_probe_state(monkeypatch
     monkeypatch.setenv("IOS_BUNDLE_ID", "com.google.chrome.ios")
     monkeypatch.setenv("IOS_APPIUM_URL", "http://appium.local")
     monkeypatch.setenv("IOS_MJPEG_SERVER_PORT", "9107")
+    monkeypatch.setenv("IOS_MJPEG_SERVER_FRAMERATE", "12")
+    monkeypatch.setenv("IOS_MJPEG_SCALING_FACTOR", "60")
+    monkeypatch.setenv("IOS_MJPEG_SERVER_SCREENSHOT_QUALITY", "45")
+    monkeypatch.setenv("IOS_MJPEG_FIX_ORIENTATION", "false")
     monkeypatch.delenv("IOS_DEVICE_UDIDS", raising=False)
     monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
 
@@ -130,6 +134,12 @@ def test_list_configured_ios_devices_includes_config_and_probe_state(monkeypatch
             "browser_name": "",
             "wda_url": "",
             "mjpeg_server_port": 9107,
+            "mjpeg_settings": {
+                "mjpegServerFramerate": 12,
+                "mjpegScalingFactor": 60.0,
+                "mjpegServerScreenshotQuality": 45,
+                "mjpegFixOrientation": False,
+            },
             "details": {
                 "platform": "ios",
                 "device": "ios:abc123",
@@ -157,6 +167,11 @@ def test_per_device_ios_config_from_json(monkeypatch):
                         {"name": "NPR", "bundleId": "org.npr.NPR"},
                     ],
                     "mjpeg_server_port": 9101,
+                    "mjpeg_server_framerate": 15,
+                    "mjpeg_scaling_factor": 50,
+                    "mjpeg_server_screenshot_quality": 40,
+                    "mjpeg_fix_orientation": False,
+                    "screenshot_quality": 2,
                     "wda_launch_timeout": 180000,
                     "allow_provisioning_device_registration": True,
                 }
@@ -170,7 +185,18 @@ def test_per_device_ios_config_from_json(monkeypatch):
     assert cfg.bundle_id == "com.google.chrome.ios"
     assert cfg.known_apps == (("Chrome", "com.google.chrome.ios"), ("NPR", "org.npr.NPR"))
     assert cfg.mjpeg_server_port == 9101
+    assert cfg.mjpeg_settings() == {
+        "mjpegServerFramerate": 15,
+        "mjpegScalingFactor": 50.0,
+        "mjpegServerScreenshotQuality": 40,
+        "mjpegFixOrientation": False,
+    }
     assert cfg.capabilities()["appium:mjpegServerPort"] == 9101
+    assert cfg.capabilities()["appium:screenshotQuality"] == 2
+    assert cfg.capabilities()["appium:settings[mjpegServerFramerate]"] == 15
+    assert cfg.capabilities()["appium:settings[mjpegScalingFactor]"] == 50.0
+    assert cfg.capabilities()["appium:settings[mjpegServerScreenshotQuality]"] == 40
+    assert cfg.capabilities()["appium:settings[mjpegFixOrientation]"] is False
     assert cfg.capabilities()["appium:wdaLaunchTimeout"] == 180000
     assert cfg.capabilities()["appium:allowProvisioningDeviceRegistration"] is True
 
@@ -386,6 +412,10 @@ def test_ios_device_health_promotes_stable_wda_fields(monkeypatch):
         def mjpeg_url(self):
             return "http://appium.local/session/session-1/appium/device/screen_stream"
 
+        @property
+        def mjpeg_settings(self):
+            return {"mjpegServerFramerate": 12, "mjpegScalingFactor": 60.0}
+
     monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
 
     from gitd.services.device_context import device_health
@@ -401,6 +431,7 @@ def test_ios_device_health_promotes_stable_wda_fields(monkeypatch):
     assert health["wda"]["source_ok"] is True
     assert health["wda"]["active_app"]["bundleId"] == "com.google.chrome.ios"
     assert health["wda"]["mjpeg_url"].endswith("/screen_stream")
+    assert health["wda"]["mjpeg_settings"] == {"mjpegServerFramerate": 12, "mjpegScalingFactor": 60.0}
     assert health["recommended_fix"] == ""
     assert health["recovery"] == {"code": "", "summary": "iOS Appium/WDA session is usable.", "steps": []}
 
@@ -426,6 +457,10 @@ def test_ios_device_health_includes_recovery_steps_for_wda_signing_failure(monke
         @property
         def mjpeg_url(self):
             return "http://127.0.0.1:9100"
+
+        @property
+        def mjpeg_settings(self):
+            return {}
 
     monkeypatch.setattr("gitd.services.device_context.get_device", lambda device: FakeIOSDevice())
 

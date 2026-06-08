@@ -1,14 +1,31 @@
 from gitd.routers.streaming import _webrtc_signal_sync, phone_stream, webrtc_ws_poll, webrtc_ws_send
 
 
-def test_ios_stream_headers_expose_effective_wda_mjpeg_mode():
+class FakeIOSStreamDevice:
+    mjpeg_url = "http://127.0.0.1:9123"
+    mjpeg_settings = {
+        "mjpegServerFramerate": 12,
+        "mjpegScalingFactor": 60.0,
+        "mjpegServerScreenshotQuality": 45,
+    }
+
+
+def test_ios_stream_headers_expose_effective_wda_mjpeg_mode(monkeypatch):
+    monkeypatch.setattr("gitd.routers.streaming.get_device", lambda device: FakeIOSStreamDevice())
+
     response = phone_stream(device="ios:abc123", fps=99, mode="mjpeg")
 
     assert response.headers["x-phone-platform"] == "ios"
     assert response.headers["x-phone-stream-mode"] == "wda-mjpeg"
+    assert response.headers["x-phone-mjpeg-url"] == "http://127.0.0.1:9123"
+    assert response.headers["x-phone-mjpeg-settings"] == (
+        '{"mjpegScalingFactor": 60.0, "mjpegServerFramerate": 12, "mjpegServerScreenshotQuality": 45}'
+    )
 
 
-def test_ios_stream_headers_expose_screenshot_polling_fallback_mode():
+def test_ios_stream_headers_expose_screenshot_polling_fallback_mode(monkeypatch):
+    monkeypatch.setattr("gitd.routers.streaming.get_device", lambda device: FakeIOSStreamDevice())
+
     response = phone_stream(device="ios:abc123", fps=5, mode="screencap")
 
     assert response.headers["x-phone-platform"] == "ios"

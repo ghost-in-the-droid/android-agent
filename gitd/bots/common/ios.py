@@ -84,6 +84,11 @@ class IOSDeviceConfig:
     timeout: float = 120.0
     mjpeg_server_port: int = 9100
     mjpeg_screenshot_url: str = ""
+    mjpeg_server_framerate: int = 0
+    mjpeg_scaling_factor: float = 0.0
+    mjpeg_server_screenshot_quality: int = 0
+    mjpeg_fix_orientation: bool | None = None
+    screenshot_quality: int = 0
     xcode_org_id: str = ""
     xcode_signing_id: str = ""
     updated_wda_bundle_id: str = ""
@@ -112,6 +117,7 @@ class IOSDeviceConfig:
             "wda_startup_retries": "appium:wdaStartupRetries",
             "wda_startup_retry_interval": "appium:wdaStartupRetryInterval",
             "mjpeg_server_port": "appium:mjpegServerPort",
+            "screenshot_quality": "appium:screenshotQuality",
         }
         bool_caps = {
             "allow_provisioning_device_registration": "appium:allowProvisioningDeviceRegistration",
@@ -130,7 +136,21 @@ class IOSDeviceConfig:
             value = getattr(self, field_name)
             if value is not None:
                 caps[cap_name] = bool(value)
+        for setting_name, value in self.mjpeg_settings().items():
+            caps[f"appium:settings[{setting_name}]"] = value
         return caps
+
+    def mjpeg_settings(self) -> dict[str, Any]:
+        settings: dict[str, Any] = {}
+        if self.mjpeg_server_framerate:
+            settings["mjpegServerFramerate"] = int(self.mjpeg_server_framerate)
+        if self.mjpeg_scaling_factor:
+            settings["mjpegScalingFactor"] = float(self.mjpeg_scaling_factor)
+        if self.mjpeg_server_screenshot_quality:
+            settings["mjpegServerScreenshotQuality"] = int(self.mjpeg_server_screenshot_quality)
+        if self.mjpeg_fix_orientation is not None:
+            settings["mjpegFixOrientation"] = bool(self.mjpeg_fix_orientation)
+        return settings
 
 
 @dataclass
@@ -162,6 +182,11 @@ _CONFIG_ENV_FIELDS = {
     "IOS_APPIUM_TIMEOUT": "timeout",
     "IOS_MJPEG_SERVER_PORT": "mjpeg_server_port",
     "IOS_MJPEG_SCREENSHOT_URL": "mjpeg_screenshot_url",
+    "IOS_MJPEG_SERVER_FRAMERATE": "mjpeg_server_framerate",
+    "IOS_MJPEG_SCALING_FACTOR": "mjpeg_scaling_factor",
+    "IOS_MJPEG_SERVER_SCREENSHOT_QUALITY": "mjpeg_server_screenshot_quality",
+    "IOS_MJPEG_FIX_ORIENTATION": "mjpeg_fix_orientation",
+    "IOS_SCREENSHOT_QUALITY": "screenshot_quality",
     "IOS_XCODE_ORG_ID": "xcode_org_id",
     "IOS_XCODE_SIGNING_ID": "xcode_signing_id",
     "IOS_UPDATED_WDA_BUNDLE_ID": "updated_wda_bundle_id",
@@ -183,12 +208,16 @@ _INT_CONFIG_FIELDS = {
     "wda_connection_timeout",
     "wda_startup_retries",
     "wda_startup_retry_interval",
+    "mjpeg_server_framerate",
+    "mjpeg_server_screenshot_quality",
+    "screenshot_quality",
 }
-_FLOAT_CONFIG_FIELDS = {"timeout"}
+_FLOAT_CONFIG_FIELDS = {"timeout", "mjpeg_scaling_factor"}
 _BOOL_CONFIG_FIELDS = {
     "allow_provisioning_device_registration",
     "show_xcode_log",
     "use_prebuilt_wda",
+    "mjpeg_fix_orientation",
 }
 
 _BROWSER_CONTROL_TEXT = {
@@ -681,6 +710,11 @@ class IOSDevice:
         self.timeout = float(timeout if timeout is not None else self.config.timeout)
         self.mjpeg_server_port = self.config.mjpeg_server_port
         self.mjpeg_screenshot_url = self.config.mjpeg_screenshot_url
+        self.mjpeg_server_framerate = self.config.mjpeg_server_framerate
+        self.mjpeg_scaling_factor = self.config.mjpeg_scaling_factor
+        self.mjpeg_server_screenshot_quality = self.config.mjpeg_server_screenshot_quality
+        self.mjpeg_fix_orientation = self.config.mjpeg_fix_orientation
+        self.screenshot_quality = self.config.screenshot_quality
         self.appium_capabilities = self.config.capabilities()
         self._session_id: str | None = None
         self._scale: tuple[float, float] | None = None
@@ -902,6 +936,10 @@ class IOSDevice:
         if self.mjpeg_screenshot_url:
             return self.mjpeg_screenshot_url
         return f"http://127.0.0.1:{self.mjpeg_server_port}"
+
+    @property
+    def mjpeg_settings(self) -> dict[str, Any]:
+        return self.config.mjpeg_settings()
 
     # -- Device operations -------------------------------------------------
 

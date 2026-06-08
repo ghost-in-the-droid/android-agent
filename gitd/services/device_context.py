@@ -982,6 +982,7 @@ def device_health(device: str) -> dict:
                     "screenshot_ok": bool(screenshot_bytes),
                     "source_ok": bool(source_bytes),
                     "mjpeg_url": ios_dev.mjpeg_url,
+                    "mjpeg_settings": ios_dev.mjpeg_settings,
                     "checks": status.get("checks") or {},
                 },
                 "recommended_fix": recommended_fix,
