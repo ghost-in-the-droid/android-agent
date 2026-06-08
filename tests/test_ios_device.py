@@ -1616,6 +1616,44 @@ def test_web_context_entries_prefer_dom_text_and_article_urls(monkeypatch):
     assert context_names[-1] == "NATIVE_APP"
 
 
+def test_web_context_body_text_fallback_preserves_article_text(monkeypatch):
+    snapshot = {
+        "url": "https://text.npr.org/article/123",
+        "title": "NPR",
+        "bodyText": (
+            "World leaders meet for climate talks today. "
+            "The article body is exposed through document.body even when no DOM entries are returned."
+        ),
+        "viewport": {"width": 393, "height": 852},
+        "entries": [],
+    }
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+
+    monkeypatch.setattr(dev, "web_text_snapshot", lambda max_entries=300: snapshot)
+
+    def fail_native_text_entries(**kwargs):
+        raise AssertionError("WebView bodyText should be used before native XML fallback")
+
+    monkeypatch.setattr(dev, "native_text_entries", fail_native_text_entries)
+
+    entries = dev.visible_text_entries(max_entries=5)
+
+    assert entries == [
+        {
+            "text": snapshot["bodyText"],
+            "bounds": {"x1": 0, "y1": 0, "x2": 393, "y2": 852},
+            "center": {"x": 196, "y": 426},
+            "class": "body",
+            "resource_id": "",
+            "content_desc": "",
+            "provenance": "web_context_body",
+            "url": "https://text.npr.org/article/123",
+            "role": "document",
+        }
+    ]
+    assert dev.extract_visible_text(max_lines=1) == snapshot["bodyText"]
+
+
 def test_web_context_article_extraction_uses_headings_without_urls(monkeypatch):
     snapshot = {
         "url": "https://news.example/",

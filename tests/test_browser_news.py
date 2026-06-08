@@ -398,6 +398,28 @@ def test_ios_extract_visible_text_falls_back_to_ocr(monkeypatch):
     assert result["lines"] == ["OCR headline line", "OCR body line"]
 
 
+def test_ios_extract_visible_text_reports_web_context_body_source(monkeypatch):
+    class BodyTextOnlyDevice(FakeNewsIOSDevice):
+        def visible_text_entries(self, include_controls=False, max_entries=300):
+            assert include_controls is False
+            return [
+                {
+                    "text": "Article body exposed by WebView document.body",
+                    "provenance": "web_context_body",
+                }
+            ]
+
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            raise AssertionError("visible_text_entries should provide source-aware text first")
+
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: BodyTextOnlyDevice())
+
+    result = extract_visible_text("ios:abc123", max_lines=5)
+
+    assert result["source"] == "web_context_body"
+    assert result["lines"] == ["Article body exposed by WebView document.body"]
+
+
 def test_ios_extract_articles_falls_back_to_ocr(monkeypatch):
     class EmptyArticleDevice(FakeNewsIOSDevice):
         def extract_articles(self, max_items=5):
