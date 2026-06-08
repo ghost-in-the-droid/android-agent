@@ -211,10 +211,23 @@ def phone_input(data: dict = Body({})):
 @router.get("/elements/{device}", summary="Get Phone UI Elements")
 def api_phone_elements(device: str):
     """Get interactive UI elements from device screen."""
+    from gitd.bots.common.adb import Device
     from gitd.services.device_context import get_interactive_elements
 
     elements = get_interactive_elements(device)
-    return {"elements": elements, "count": len(elements)}
+    screen_size = {}
+    try:
+        if is_ios_ref(device):
+            width, height = get_device(device).get_screen_size()
+        else:
+            out = Device(device).adb("shell", "wm", "size", timeout=3)
+            m = re.search(r"(\d+)x(\d+)", out)
+            width, height = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+        if width and height:
+            screen_size = {"width": width, "height": height}
+    except Exception:
+        screen_size = {}
+    return {"elements": elements, "count": len(elements), "platform": _platform(device), "screen_size": screen_size}
 
 
 @router.post("/tap", summary="Tap On Phone Screen")

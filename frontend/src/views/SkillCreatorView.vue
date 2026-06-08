@@ -27,6 +27,7 @@ const showContextModal = ref(false)
 const overlayCanvas = ref<HTMLCanvasElement | null>(null)
 const streamImageEl = ref<HTMLImageElement | null>(null)
 const streamFrame = ref({ width: 0, height: 0 })
+const elementFrame = ref({ width: 0, height: 0 })
 let streamTimer: number | null = null
 
 const BACKENDS = [
@@ -137,6 +138,11 @@ async function refreshElements() {
   try {
     const resp = await api(`/api/phone/elements/${selectedDevice.value}`)
     elements.value = resp.elements || resp || []
+    const size = resp.screen_size || {}
+    elementFrame.value = {
+      width: Number(size.width || 0),
+      height: Number(size.height || 0),
+    }
   } catch {}
 }
 
@@ -340,8 +346,8 @@ function drawOverlay() {
   const streamW = image?.naturalWidth || streamFrame.value.width || 540
   const streamH = image?.naturalHeight || streamFrame.value.height || 1200
   const coordinateScale = selectedIsIos.value && streamMode.value === 'mjpeg' ? 1 : 2
-  const frameW = streamW * coordinateScale
-  const frameH = streamH * coordinateScale
+  const frameW = elementFrame.value.width || streamW * coordinateScale
+  const frameH = elementFrame.value.height || streamH * coordinateScale
   let offsetX = 0
   let offsetY = 0
   let displayW = canvas.width
@@ -371,12 +377,13 @@ function drawOverlay() {
   })
 }
 
-watch([overlayOn, elements, streamFrame], () => { nextTick(drawOverlay) })
+watch([overlayOn, elements, streamFrame, elementFrame], () => { nextTick(drawOverlay) })
 watch(selectedDevice, async (newDevice, oldDevice) => {
   if (newDevice === oldDevice) return
   const wasStreaming = streaming.value
   stopStream()
   elements.value = []
+  elementFrame.value = { width: 0, height: 0 }
   if (newDevice && overlayOn.value) await refreshElements()
   if (wasStreaming && newDevice) startStream()
 })
