@@ -2282,12 +2282,13 @@ class IOSDevice:
         return False
 
     def close(self):
-        if not self._session_id:
+        sid = self._session_id or IOSDevice._sessions.get(self._config)
+        if not sid:
             return
         try:
-            self._request("DELETE", f"/session/{self._session_id}", {})
+            self._request("DELETE", f"/session/{sid}", {}, retry_stale_session=False)
         finally:
-            self._evict_session()
+            self._evict_session(sid)
 
     def reset_session(self):
         sid = self._session_id or IOSDevice._sessions.get(self._config)
