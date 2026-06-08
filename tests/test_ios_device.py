@@ -490,6 +490,54 @@ def test_ios_paste_text_sets_clipboard_and_inserts_text(monkeypatch):
     assert calls == [("clipboard", "hello iOS"), ("type", "hello iOS", 0.3)]
 
 
+def test_ios_clear_active_element_uses_webdriver_clear(monkeypatch):
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append({"method": method, "url": url, "json": json})
+        if method == "GET" and url.endswith("/session/session-1/element/active"):
+            return FakeResponse({"value": {"element-6066-11e4-a52e-4f735466cecf": "element-1"}})
+        if method == "POST" and url.endswith("/session/session-1/element/element-1/clear"):
+            return FakeResponse({"value": None})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    dev._session_id = "session-1"
+
+    assert dev._clear_active_element() is True
+    assert [call["method"] for call in calls] == ["GET", "POST"]
+    assert calls[1]["json"] == {}
+
+
+def test_ios_url_address_bar_fallback_clears_before_typing(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local", bundle_id="com.google.chrome.ios")
+    calls = []
+    xml = """
+    <hierarchy>
+      <node class="XCUIElementTypeTextField" text="Search or type web address" content-desc="Address"
+        resource-id="Address" bounds="[20,60][360,104]" clickable="true"/>
+    </hierarchy>
+    """
+
+    monkeypatch.setattr(dev, "launch_app", lambda bundle_id, delay=2.0: calls.append(("launch", bundle_id, delay)) or bundle_id)
+    monkeypatch.setattr(dev, "dump_xml", lambda: xml)
+    monkeypatch.setattr(dev, "tap_node", lambda node, delay=0.5: calls.append(("tap", delay)) or True)
+    monkeypatch.setattr(dev, "_clear_active_element", lambda: calls.append(("clear",)) or True)
+    monkeypatch.setattr(dev, "type_text", lambda text, delay=0.3: calls.append(("type", text, delay)))
+    monkeypatch.setattr(dev, "press_enter", lambda delay=0.5: calls.append(("enter", delay)))
+
+    dev._open_url_via_address_bar("https://example.com", delay=0.1)
+
+    assert calls == [
+        ("launch", "com.google.chrome.ios", 0.8),
+        ("tap", 0.5),
+        ("clear",),
+        ("type", "https://example.com", 0.2),
+        ("enter", 0.1),
+    ]
+
+
 def test_ios_open_notifications_swipes_from_status_bar(monkeypatch):
     dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
     calls = []
