@@ -143,7 +143,7 @@ python scripts/ios_chrome_news_smoke.py \
   --out-dir data/ios_chrome_news_smoke
 ```
 
-The script runs `/api/phone/health`-equivalent Appium/WDA preflight first and saves `health.json` plus `result.json` in the output directory. If WDA is locked, unsigned, or unreachable, `result.json` contains the health recovery payload instead of failing later in the workflow. Use `--skip-health` only when you intentionally want to jump straight to the browser workflow. It is a product-path smoke: it calls the same `read_news` service used by REST, MCP, and agent tools, including navigation readiness checks and WebView/native/OCR extraction fallback.
+The script runs `/api/phone/health`-equivalent Appium/WDA preflight first and saves `health.json` plus `result.json` in the output directory. If WDA is locked, unsigned, or unreachable, `result.json` contains the health recovery payload instead of failing later in the workflow. Use `--skip-health` only when you intentionally want to jump straight to the browser workflow. It is a product-path smoke: it calls the same `read_news` service used by REST, MCP, and agent tools, including navigation readiness checks and WebView/native/OCR extraction fallback. Inspect `result.json.extraction` after live runs to see which source produced headlines/article text and whether readiness waits hit their target counts before the deadline.
 
 To run the same Chrome/news acceptance path through pytest on a real device:
 

@@ -89,6 +89,16 @@ def test_read_news_opens_headlines_and_extracts_article_snippets(monkeypatch, tm
     assert fake.opened_urls == ["https://text.npr.org", "https://text.npr.org/article/1", "https://text.npr.org/article/2"]
     assert fake.back_count == 2
     assert result["navigation"]["state"] == "url_matched"
+    assert result["extraction"]["headlines"] == {
+        "requested": 2,
+        "target": 2,
+        "returned": 2,
+        "ready": True,
+        "attempts": 1,
+        "source": "web_context",
+    }
+    assert result["extraction"]["front_page_text"]["ready"] is True
+    assert result["extraction"]["front_page_text"]["source"] == "native_or_web"
     assert [item["title"] for item in result["headlines"]] == [
         "First major story from the test fixture",
         "Second major story from the test fixture",
@@ -96,6 +106,9 @@ def test_read_news_opens_headlines_and_extracts_article_snippets(monkeypatch, tm
     assert result["articles"][0]["navigation"]["url"] == "https://text.npr.org/article/1"
     assert result["articles"][0]["page_title"] == "First article title"
     assert result["articles"][0]["body_snippet"] == "First article title\nFirst article body line."
+    assert result["articles"][0]["headline_provenance"] == "web_context"
+    assert result["extraction"]["articles"][0]["open_method"] == "url"
+    assert result["extraction"]["articles"][0]["text"]["returned_lines"] == 3
     assert result["articles"][1]["opened"] is True
     assert (tmp_path / "front_page.png").read_bytes() == b"fake-png"
     assert (tmp_path / "article_1.png").read_bytes() == b"fake-png"
@@ -130,6 +143,8 @@ def test_read_news_retries_until_headlines_and_article_text_are_ready(monkeypatc
     assert result["ok"] is True
     assert fake.article_extraction_calls == 2
     assert fake.text_calls["https://text.npr.org/article/1"] == 2
+    assert result["extraction"]["headlines"]["attempts"] == 2
+    assert result["extraction"]["articles"][0]["text"]["attempts"] == 2
     assert result["articles"][0]["body_snippet"] == "First article title\nFirst article body line."
 
 
@@ -270,8 +285,10 @@ def test_read_news_can_complete_with_ocr_only_extraction(monkeypatch):
 
     assert result["ok"] is True
     assert result["headlines"][0]["provenance"] == "ocr"
+    assert result["extraction"]["headlines"]["source"] == "ocr"
     assert fake.taps == [(160, 132)]
     assert result["articles"][0]["open_method"] == "center"
+    assert result["extraction"]["articles"][0]["text"]["source"] == "ocr"
     assert result["articles"][0]["body_snippet"] == (
         "World leaders meet for climate talks today\nThe first paragraph appears in OCR."
     )

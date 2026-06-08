@@ -134,6 +134,13 @@ Open a search results page in whatever browser is on the device. Faster than
 | `extract_articles(device, max_items=5)` | Return likely headlines/articles. iOS returns URLs when WebView extraction exposes anchors and OCR coordinates when only pixels are available. |
 | `read_news(device, url="https://text.npr.org/", max_headlines=5, max_articles=3)` | iOS Chrome/WebDriver workflow that opens a news page, waits for headline/body extraction readiness, uses OCR fallback when needed, opens the first articles, and returns title/body snippets plus navigation evidence. |
 
+`read_news` also returns an `extraction` object with headline readiness,
+front-page text readiness, and per-article source evidence. The `source` fields
+identify whether useful content came from WebView JavaScript, native
+accessibility XML, mixed sources, or OCR, and `attempts`/line counts show
+whether the workflow returned because content was ready or because the wait
+deadline expired.
+
 #### How fallback works
 
 Android implementation in `gitd/services/web_search.py:open_search`:

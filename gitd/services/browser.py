@@ -144,6 +144,34 @@ def _content_line_count(text: str) -> int:
     return len([line for line in text.splitlines() if line.strip()])
 
 
+def _article_source(articles: list[dict[str, Any]]) -> str:
+    sources = sorted(
+        {str(article.get("provenance") or "").strip() for article in articles if article.get("provenance")}
+    )
+    if not sources:
+        return ""
+    return sources[0] if len(sources) == 1 else "mixed:" + ",".join(sources)
+
+
+def _entry_source(entries: list[dict[str, Any]]) -> str:
+    sources = sorted({str(entry.get("provenance") or "").strip() for entry in entries if entry.get("provenance")})
+    if not sources:
+        return "native_or_web"
+    return sources[0] if len(sources) == 1 else "mixed:" + ",".join(sources)
+
+
+def _device_visible_text(dev, *, max_lines: int) -> tuple[str, str]:
+    if hasattr(dev, "visible_text_entries"):
+        try:
+            entries = dev.visible_text_entries(max_entries=max_lines)
+            if entries:
+                return "\n".join(str(entry.get("text") or "") for entry in entries[:max_lines]), _entry_source(entries)
+        except Exception:
+            pass
+    text = dev.extract_visible_text(max_lines=max_lines)
+    return text, "native_or_web"
+
+
 def _looks_like_article_title(text: str) -> bool:
     cleaned = re.sub(r"\s+", " ", text or "").strip()
     if len(cleaned) < 18:
@@ -246,30 +274,63 @@ def _extract_articles_with_retry(
     min_items: int | None = None,
     timeout: float,
     interval: float = 0.5,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     requested = int(min_items if min_items is not None else max_items)
     target_items = min(max(0, int(max_items)), max(0, requested))
     if target_items <= 0:
-        return []
+        return [], {
+            "requested": max_items,
+            "target": target_items,
+            "returned": 0,
+            "ready": True,
+            "attempts": 0,
+            "source": "",
+        }
     deadline = _retry_deadline(timeout)
     best: list[dict[str, Any]] = []
+    best_source = ""
+    attempts = 0
     while True:
+        attempts += 1
         try:
             articles = dev.extract_articles(max_items=max_items)
             if len(articles or []) > len(best):
                 best = articles or []
+                best_source = _article_source(best) or "native_or_web"
             if len(articles or []) >= target_items:
-                return articles
+                return articles, {
+                    "requested": max_items,
+                    "target": target_items,
+                    "returned": len(articles or []),
+                    "ready": True,
+                    "attempts": attempts,
+                    "source": _article_source(articles or []) or "native_or_web",
+                }
         except Exception:
             pass
         if is_ios_ref(device):
             ocr_articles = _ocr_articles(device, max_items=max_items)
             if len(ocr_articles or []) > len(best):
                 best = ocr_articles or []
+                best_source = "ocr"
             if len(ocr_articles or []) >= target_items:
-                return ocr_articles
+                return ocr_articles, {
+                    "requested": max_items,
+                    "target": target_items,
+                    "returned": len(ocr_articles or []),
+                    "ready": True,
+                    "attempts": attempts,
+                    "source": "ocr",
+                }
         if time.time() >= deadline:
-            return best
+            return best, {
+                "requested": max_items,
+                "target": target_items,
+                "returned": len(best),
+                "ready": len(best) >= target_items,
+                "attempts": attempts,
+                "source": best_source,
+            }
         time.sleep(interval)
 
 
@@ -281,27 +342,53 @@ def _extract_visible_text_with_retry(
     min_lines: int = 1,
     timeout: float,
     interval: float = 0.5,
-) -> str:
+) -> tuple[str, dict[str, Any]]:
     target_lines = max(1, int(min_lines))
     deadline = _retry_deadline(timeout)
     best = ""
+    best_source = ""
+    attempts = 0
     while True:
+        attempts += 1
         try:
-            text = dev.extract_visible_text(max_lines=max_lines)
+            text, source = _device_visible_text(dev, max_lines=max_lines)
             if _content_line_count(text) > _content_line_count(best):
                 best = text
+                best_source = source
             if _content_line_count(text) >= target_lines:
-                return text
+                return text, {
+                    "requested_lines": max_lines,
+                    "target_lines": target_lines,
+                    "returned_lines": _content_line_count(text),
+                    "ready": True,
+                    "attempts": attempts,
+                    "source": source,
+                }
         except Exception:
             pass
         if is_ios_ref(device):
             ocr_text = _ocr_visible_text(device, max_lines=max_lines)
             if _content_line_count(ocr_text) > _content_line_count(best):
                 best = ocr_text
+                best_source = "ocr"
             if _content_line_count(ocr_text) >= target_lines:
-                return ocr_text
+                return ocr_text, {
+                    "requested_lines": max_lines,
+                    "target_lines": target_lines,
+                    "returned_lines": _content_line_count(ocr_text),
+                    "ready": True,
+                    "attempts": attempts,
+                    "source": "ocr",
+                }
         if time.time() >= deadline:
-            return best
+            return best, {
+                "requested_lines": max_lines,
+                "target_lines": target_lines,
+                "returned_lines": _content_line_count(best),
+                "ready": _content_line_count(best) >= target_lines,
+                "attempts": attempts,
+                "source": best_source,
+            }
         time.sleep(interval)
 
 
@@ -368,6 +455,11 @@ def read_news(
         "headlines": [],
         "articles": [],
         "screenshots": {},
+        "extraction": {
+            "headlines": {},
+            "front_page_text": {},
+            "articles": [],
+        },
         "errors": [],
     }
 
@@ -393,7 +485,7 @@ def read_news(
         except Exception as exc:
             result["errors"].append({"stage": "current_url", "error": str(exc)})
 
-        headlines = _extract_articles_with_retry(
+        headlines, headline_evidence = _extract_articles_with_retry(
             device,
             dev,
             max_items=max_headlines,
@@ -401,18 +493,33 @@ def read_news(
             timeout=wait_s,
         )
         result["headlines"] = headlines[:max_headlines]
-        front_page_text = _extract_visible_text_with_retry(device, dev, max_lines=120, min_lines=1, timeout=wait_s)
+        result["extraction"]["headlines"] = headline_evidence
+        front_page_text, front_page_evidence = _extract_visible_text_with_retry(
+            device,
+            dev,
+            max_lines=120,
+            min_lines=1,
+            timeout=wait_s,
+        )
         result["front_page_text"] = _snippet(front_page_text, max_chars=2400)
+        result["extraction"]["front_page_text"] = front_page_evidence
 
         for index, headline in enumerate(headlines[:max_articles], start=1):
             article_result: dict[str, Any] = {
                 "index": index,
                 "source_headline": headline.get("title", ""),
+                "headline_provenance": headline.get("provenance", ""),
                 "opened": False,
+            }
+            article_evidence: dict[str, Any] = {
+                "index": index,
+                "headline_provenance": headline.get("provenance", ""),
+                "headline_has_url": bool(headline.get("url")),
             }
             try:
                 open_method, navigation = _open_article_candidate(dev, headline, delay=max(1.0, wait_s))
                 article_result["open_method"] = open_method
+                article_evidence["open_method"] = open_method
                 if navigation:
                     article_result["navigation"] = navigation
                 elif wait_s:
@@ -423,22 +530,25 @@ def read_news(
                     article_result["current_url"] = dev.get_current_url()
                 except Exception as exc:
                     article_result["current_url_error"] = str(exc)
-                visible_text = _extract_visible_text_with_retry(
+                visible_text, text_evidence = _extract_visible_text_with_retry(
                     device,
                     dev,
                     max_lines=160,
                     min_lines=2,
                     timeout=wait_s,
                 )
+                article_evidence["text"] = text_evidence
                 lines = [line.strip() for line in visible_text.splitlines() if line.strip()]
                 article_result["page_title"] = lines[0] if lines else ""
                 article_result["body_snippet"] = _snippet(visible_text, max_chars=2400)
                 article_result["opened"] = True
             except Exception as exc:
                 article_result["error"] = str(exc)
+                article_evidence["error"] = str(exc)
                 result["errors"].append({"article": headline.get("title", ""), "error": str(exc)})
             finally:
                 result["articles"].append(article_result)
+                result["extraction"]["articles"].append(article_evidence)
                 try:
                     dev.browser_back(delay=1.0)
                 except Exception as exc:
