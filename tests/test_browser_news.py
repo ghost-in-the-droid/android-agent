@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from gitd.app import app
 from gitd.bots.common.ios import IOSDevice
 from gitd.services.agent_tools import execute_tool
-from gitd.services.browser import open_url, read_news
+from gitd.services.browser import extract_articles, extract_visible_text, open_url, read_news
 
 
 class FakeNewsIOSDevice:
@@ -58,6 +58,9 @@ class FakeNewsIOSDevice:
 
     def take_screenshot(self):
         return b"fake-png"
+
+    def tap(self, x, y, delay=0.6):
+        self.current_url = "ocr_article"
 
     def browser_back(self, delay=1.0):
         self.back_count += 1
@@ -126,6 +129,99 @@ def test_read_news_retries_until_headlines_and_article_text_are_ready(monkeypatc
     assert fake.article_extraction_calls == 2
     assert fake.text_calls["https://text.npr.org/article/1"] == 2
     assert result["articles"][0]["body_snippet"] == "First article title\nFirst article body line."
+
+
+def test_ios_extract_visible_text_falls_back_to_ocr(monkeypatch):
+    class EmptyTextDevice(FakeNewsIOSDevice):
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            return ""
+
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: EmptyTextDevice())
+    monkeypatch.setattr(
+        "gitd.services.device_context.ocr_screen",
+        lambda device: [
+            {"text": "OCR headline line", "conf": 0.91, "x": 10, "y": 40, "w": 200, "h": 24},
+            {"text": "OCR body line", "conf": 0.87, "x": 10, "y": 80, "w": 180, "h": 24},
+        ],
+    )
+
+    result = extract_visible_text("ios:abc123", max_lines=5)
+
+    assert result["source"] == "ocr"
+    assert result["lines"] == ["OCR headline line", "OCR body line"]
+
+
+def test_ios_extract_articles_falls_back_to_ocr(monkeypatch):
+    class EmptyArticleDevice(FakeNewsIOSDevice):
+        def extract_articles(self, max_items=5):
+            return []
+
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: EmptyArticleDevice())
+    monkeypatch.setattr(
+        "gitd.services.device_context.ocr_screen",
+        lambda device: [
+            {"text": "World leaders meet for climate talks today", "conf": 0.91, "x": 10, "y": 40, "w": 300, "h": 24},
+            {"text": "Menu", "conf": 0.94, "x": 10, "y": 10, "w": 80, "h": 20},
+        ],
+    )
+
+    result = extract_articles("ios:abc123", max_items=3)
+
+    assert result["source"] == "ocr"
+    assert result["articles"] == [
+        {
+            "title": "World leaders meet for climate talks today",
+            "url": "",
+            "bounds": {"x1": 10, "y1": 40, "x2": 310, "y2": 64},
+            "center": {"x": 160, "y": 52},
+            "class": "ocr",
+            "provenance": "ocr",
+            "confidence": 0.91,
+        }
+    ]
+
+
+def test_read_news_can_complete_with_ocr_only_extraction(monkeypatch):
+    class OcrOnlyDevice(FakeNewsIOSDevice):
+        def __init__(self):
+            super().__init__()
+            self.taps = []
+
+        def extract_articles(self, max_items=5):
+            return []
+
+        def extract_visible_text(self, max_lines=200, include_controls=False):
+            return ""
+
+        def tap(self, x, y, delay=0.6):
+            self.taps.append((x, y))
+            self.current_url = "ocr_article"
+
+    fake = OcrOnlyDevice()
+
+    def fake_ocr(device):
+        if fake.current_url == "ocr_article":
+            return [
+                {"text": "World leaders meet for climate talks today", "conf": 0.91, "x": 10, "y": 40, "w": 300, "h": 24},
+                {"text": "The first paragraph appears in OCR.", "conf": 0.86, "x": 10, "y": 80, "w": 330, "h": 24},
+            ]
+        return [
+            {"text": "World leaders meet for climate talks today", "conf": 0.91, "x": 10, "y": 120, "w": 300, "h": 24}
+        ]
+
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.device_context.ocr_screen", fake_ocr)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=1, max_articles=1, wait_s=0)
+
+    assert result["ok"] is True
+    assert result["headlines"][0]["provenance"] == "ocr"
+    assert fake.taps == [(160, 132)]
+    assert result["articles"][0]["open_method"] == "center"
+    assert result["articles"][0]["body_snippet"] == (
+        "World leaders meet for climate talks today\nThe first paragraph appears in OCR."
+    )
 
 
 def test_read_news_android_returns_explicit_unsupported():
