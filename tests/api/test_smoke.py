@@ -74,6 +74,24 @@ class TestPhone:
         assert r.status_code == 200
         assert "devices" in r.json()
 
+    def test_devices_deep_probe_query_reaches_ios_listing(self, client, monkeypatch):
+        calls = []
+
+        monkeypatch.setattr("gitd.routers.phone._try_wifi_reconnect", lambda db: None)
+        monkeypatch.setattr("gitd.routers.phone.subprocess.check_output", lambda *args, **kwargs: b"List of devices attached\n")
+
+        def fake_ios_devices(deep_probe=False):
+            calls.append(deep_probe)
+            return [{"serial": "ios:abc123", "model": "iPhone", "connection": "appium-wda", "platform": "ios"}]
+
+        monkeypatch.setattr("gitd.routers.phone.list_configured_ios_devices", fake_ios_devices)
+
+        r = client.get("/api/phone/devices?probe=deep")
+
+        assert r.status_code == 200
+        assert calls == [True]
+        assert r.json()["devices"][0]["serial"] == "ios:abc123"
+
 
 class TestSkills:
     def test_list(self, client):

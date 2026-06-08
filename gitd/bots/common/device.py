@@ -6,7 +6,14 @@ handled by the Appium/WebDriverAgent iOS backend.
 from __future__ import annotations
 
 from gitd.bots.common.adb import Device, list_connected
-from gitd.bots.common.ios import IOSDevice, IOS_PREFIX, configured_ios_udids, is_ios_ref, probe_ios_device
+from gitd.bots.common.ios import (
+    IOSDevice,
+    IOS_PREFIX,
+    configured_ios_udids,
+    ios_config_for_udid,
+    is_ios_ref,
+    probe_ios_device,
+)
 
 
 def platform_for_device(device: str | None) -> str:
@@ -31,6 +38,7 @@ def ios_refs_from_env() -> list[str]:
 def list_configured_ios_devices(*, deep_probe: bool = False) -> list[dict]:
     devices: list[dict] = []
     for ref in ios_refs_from_env():
+        cfg = ios_config_for_udid(ref)
         try:
             status = probe_ios_device(ref, deep=deep_probe).to_dict()
         except Exception as e:
@@ -44,12 +52,18 @@ def list_configured_ios_devices(*, deep_probe: bool = False) -> list[dict]:
         devices.append(
             {
                 "serial": ref,
-                "model": "iOS device",
+                "model": cfg.device_name or "iOS device",
                 "connection": "appium-wda",
                 "platform": "ios",
                 "status": status.get("state", "session_error"),
                 "status_message": status.get("message", ""),
-                "appium_url": status.get("appium_url", ""),
+                "appium_url": status.get("appium_url", cfg.appium_url),
+                "device_name": cfg.device_name,
+                "platform_version": cfg.platform_version,
+                "bundle_id": cfg.bundle_id,
+                "browser_name": cfg.browser_name,
+                "wda_url": cfg.wda_url,
+                "mjpeg_server_port": cfg.mjpeg_server_port,
                 "details": status,
             }
         )

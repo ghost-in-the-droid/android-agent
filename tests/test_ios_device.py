@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from gitd.bots.common.device import get_device, ios_refs_from_env, platform_for_device
+from gitd.bots.common.device import get_device, ios_refs_from_env, list_configured_ios_devices, platform_for_device
 from gitd.bots.common.ios import (
     IOSDevice,
     configured_ios_udids,
@@ -80,6 +80,65 @@ def test_factory_routes_ios_prefix(monkeypatch):
     dev = get_device("ios:abc123")
     assert isinstance(dev, IOSDevice)
     assert dev.udid == "abc123"
+
+
+def test_list_configured_ios_devices_includes_config_and_probe_state(monkeypatch):
+    calls = []
+
+    class ProbeStatus:
+        def to_dict(self):
+            return {
+                "platform": "ios",
+                "device": "ios:abc123",
+                "udid": "abc123",
+                "state": "available",
+                "message": "Appium is reachable",
+                "appium_url": "http://appium.local",
+            }
+
+    monkeypatch.setenv("IOS_DEVICE_UDID", "abc123")
+    monkeypatch.setenv("IOS_DEVICE_NAME", "Blah's iPhone")
+    monkeypatch.setenv("IOS_PLATFORM_VERSION", "17.5")
+    monkeypatch.setenv("IOS_BUNDLE_ID", "com.google.chrome.ios")
+    monkeypatch.setenv("IOS_APPIUM_URL", "http://appium.local")
+    monkeypatch.setenv("IOS_MJPEG_SERVER_PORT", "9107")
+    monkeypatch.delenv("IOS_DEVICE_UDIDS", raising=False)
+    monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+
+    def fake_probe(device, deep=True):
+        calls.append((device, deep))
+        return ProbeStatus()
+
+    monkeypatch.setattr("gitd.bots.common.device.probe_ios_device", fake_probe)
+
+    devices = list_configured_ios_devices(deep_probe=True)
+
+    assert calls == [("ios:abc123", True)]
+    assert devices == [
+        {
+            "serial": "ios:abc123",
+            "model": "Blah's iPhone",
+            "connection": "appium-wda",
+            "platform": "ios",
+            "status": "available",
+            "status_message": "Appium is reachable",
+            "appium_url": "http://appium.local",
+            "device_name": "Blah's iPhone",
+            "platform_version": "17.5",
+            "bundle_id": "com.google.chrome.ios",
+            "browser_name": "",
+            "wda_url": "",
+            "mjpeg_server_port": 9107,
+            "details": {
+                "platform": "ios",
+                "device": "ios:abc123",
+                "udid": "abc123",
+                "state": "available",
+                "message": "Appium is reachable",
+                "appium_url": "http://appium.local",
+            },
+        }
+    ]
 
 
 def test_per_device_ios_config_from_json(monkeypatch):

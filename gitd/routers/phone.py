@@ -47,11 +47,12 @@ def _try_wifi_reconnect(db: Session):
 
 
 @router.get("/devices", summary="List Connected Phone Devices")
-def phone_devices(db: Session = Depends(get_db)):
+def phone_devices(probe: str = "", db: Session = Depends(get_db)):
     """List ADB-connected devices with model info and nicknames."""
     try:
         devices = []
         adb_error = ""
+        deep_ios_probe = probe.lower() in {"1", "true", "deep", "full", "wda"}
         # Try reconnecting known WiFi devices that aren't currently connected
         _try_wifi_reconnect(db)
 
@@ -114,7 +115,7 @@ def phone_devices(db: Session = Depends(get_db)):
         usb_models = {d["model"] for d in devices if d["connection"] == "usb"}
         devices = [d for d in devices if d["connection"] == "usb" or d["model"] not in usb_models]
 
-        for ios_device in list_configured_ios_devices(deep_probe=False):
+        for ios_device in list_configured_ios_devices(deep_probe=deep_ios_probe):
             if not any(d["serial"] == ios_device["serial"] for d in devices):
                 devices.append(ios_device)
 
