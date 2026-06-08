@@ -770,6 +770,34 @@ def test_stale_appium_session_is_evicted_and_recreated(monkeypatch):
     ]
 
 
+def test_close_deletes_cached_session_even_without_instance_session(monkeypatch):
+    IOSDevice._sessions.clear()
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append({"method": method, "url": url, "json": json, "timeout": timeout})
+        if method == "DELETE" and url.endswith("/session/session-cached"):
+            return FakeResponse({"value": None})
+        raise AssertionError(f"unexpected request: {method} {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local", bundle_id="com.google.chrome.ios", timeout=1)
+    IOSDevice._sessions[dev._config] = "session-cached"
+
+    dev.close()
+
+    assert calls == [
+        {
+            "method": "DELETE",
+            "url": "http://appium.local/session/session-cached",
+            "json": {},
+            "timeout": 1,
+        }
+    ]
+    assert dev._session_id is None
+    assert IOSDevice._sessions.get(dev._config) is None
+
+
 def test_session_creation_includes_real_device_signing_capabilities(monkeypatch):
     IOSDevice._sessions.clear()
     calls = []
