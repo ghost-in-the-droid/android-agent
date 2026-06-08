@@ -1,3 +1,5 @@
+import json
+
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 
@@ -33,6 +35,54 @@ def test_marketing_job_rejects_ios_device_before_enqueue(tmp_path):
     detail = response.json()["detail"]
     assert detail["error"] == "unsupported_platform"
     assert detail["platform"] == "ios"
+
+
+def test_marketing_job_enqueues_ios_profile_smoke_without_video():
+    client = TestClient(app)
+    db = SessionLocal()
+    job_id = None
+    try:
+        response = client.post(
+            "/api/marketing-jobs/enqueue",
+            json={
+                "phone_serial": "ios:abc123",
+                "action": "profile_smoke",
+                "account": "@ghost",
+                "max_lines": 12,
+            },
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["action"] == "profile_smoke"
+        assert body["job_type"] == "skill_workflow"
+        assert body["skill"] == "tiktok_ios"
+        assert body["workflow"] == "profile_smoke"
+        job_id = int(body["job_id"].removeprefix("ghost-job-"))
+
+        row = (
+            db.execute(text("SELECT * FROM job_queue WHERE id = :id"), {"id": job_id})
+            .mappings()
+            .one()
+        )
+        config = json.loads(row["config_json"])
+        assert row["phone_serial"] == "ios:abc123"
+        assert row["job_type"] == "skill_workflow"
+        assert row["trigger"] == "marketing_agent"
+        assert row["max_duration_s"] == 300
+        assert config == {
+            "skill": "tiktok_ios",
+            "workflow": "profile_smoke",
+            "params": {"max_lines": 12},
+            "source": "marketing_jobs",
+            "action": "profile_smoke",
+            "account": "@ghost",
+        }
+    finally:
+        if job_id:
+            db.execute(text("DELETE FROM job_queue WHERE id = :id"), {"id": job_id})
+            db.commit()
+        db.close()
 
 
 def test_scheduler_create_rejects_ios_android_only_job_before_enqueue():
