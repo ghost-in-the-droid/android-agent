@@ -981,6 +981,17 @@ class IOSDevice:
             self._request("POST", self._session_path(f"/element/{elem_id}/value"), payload)
         time.sleep(delay)
 
+    def _clear_active_element(self) -> bool:
+        try:
+            active = self._request("GET", self._session_path("/element/active"))
+            elem_id = _element_id(active)
+            if not elem_id:
+                return False
+            self._request("POST", self._session_path(f"/element/{elem_id}/clear"), {})
+            return True
+        except IOSBackendError:
+            return False
+
     def back(self, delay=1.0):
         try:
             self._request("POST", self._session_path("/back"), {})
@@ -1231,10 +1242,7 @@ class IOSDevice:
             raise IOSBackendError("Could not find an iOS browser address field for URL fallback")
         if not self.tap_node(node, delay=0.5):
             raise IOSBackendError("Could not tap iOS browser address field")
-        try:
-            self.press_key("COMMAND+A", delay=0.1)
-        except IOSBackendError:
-            pass
+        self._clear_active_element()
         self.type_text(url, delay=0.2)
         self.press_enter(delay=delay)
 
