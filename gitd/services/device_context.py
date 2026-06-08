@@ -907,6 +907,15 @@ _IOS_HEALTH_RECOVERY: dict[str, dict] = {
             "Use a shallow device list first, then a deep probe after config is corrected.",
         ],
     },
+    "remote_xpc_tunnel_unavailable": {
+        "code": "restart_remote_xpc_tunnel",
+        "summary": "The iPhone is paired, but Appium cannot reach the XCUITest RemoteXPC tunnel.",
+        "steps": [
+            "Stop any stale root-owned XCUITest tunnel process for the device.",
+            "Start a fresh tunnel with: sudo appium driver run xcuitest tunnel-creation --udid <udid>",
+            "Verify the tunnel registry returns a current entry at /remotexpc/tunnels/<udid>, then rerun the health probe.",
+        ],
+    },
     "locked": {
         "code": "unlock_and_trust_device",
         "summary": "The iPhone is locked, not trusted, or Developer Mode/UI Automation is blocked.",
@@ -973,7 +982,8 @@ def ios_device_health(device: str, ios_dev=None) -> dict:
             "appium": {
                 "url": status.get("appium_url", ""),
                 "session_id": status.get("session_id", ""),
-                "reachable": state not in {"appium_down", "configured_unreachable"},
+                "reachable": state
+                not in {"appium_down", "configured_unreachable", "remote_xpc_tunnel_unavailable"},
                 "state": state,
                 "message": status.get("message", ""),
             },
