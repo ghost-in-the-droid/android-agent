@@ -135,6 +135,8 @@ From MCP, use:
 ```text
 list_devices()
 launch_app("ios:<udid>", "com.google.chrome.ios")
+device_health("ios:<udid>")
+fix_device_health("ios:<udid>", "reset_session")
 open_url("ios:<udid>", "https://text.npr.org/", "com.google.chrome.ios")
 extract_articles("ios:<udid>", 5)
 get_screen_tree("ios:<udid>")
@@ -148,6 +150,12 @@ source readiness:
 curl "http://localhost:5055/api/phone/devices?probe=deep" | python3 -m json.tool
 curl "http://localhost:5055/api/phone/health/ios:<udid>" | python3 -m json.tool
 ```
+
+The Phone Admin dashboard reads the same health payload. For iOS devices it
+shows Appium/WDA health dots, recovery steps, and an action button when
+`recommended_fix` is one of `reset_session`, `appium_session`, `wda_session`,
+or `restart_remote_xpc_tunnel`. The button calls
+`/api/phone/health/<device>/fix`; manual recovery states still show steps only.
 
 Chrome/news workflow smoke:
 
@@ -265,7 +273,8 @@ Android-only for now:
 ## Troubleshooting
 
 - Health responses include `connection.status`, `recommended_fix`, and a
-  `recovery.steps` list. Use those fields for dashboard/agent recovery copy.
+  `recovery.steps` list. The dashboard and `fix_device_health` can apply the
+  supported automatic fixes; manual states should show the recovery steps.
 - `Could not create Appium iOS session`: confirm Appium is running and `IOS_APPIUM_URL` is correct.
 - `appium_down`: start Appium and verify `IOS_APPIUM_URL`.
 - `configured_unreachable`: check `ios:<udid>`, `IOS_DEVICE_UDID`, `IOS_DEVICES_JSON`, Appium URL, WDA URL, and ports.
