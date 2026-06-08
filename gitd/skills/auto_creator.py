@@ -13,7 +13,6 @@ import argparse
 import hashlib
 import json
 import logging
-import os
 import subprocess
 import sys
 import time
@@ -188,7 +187,13 @@ class AppExplorer:
     def _write_progress(self, current_depth: int = 0):
         """Write progress.json for the dashboard to poll."""
         total_transitions = sum(len(s.transitions) for s in self.states.values())
+        current_activity = next(reversed(self.states.values())).activity if self.states else ""
         progress = {
+            "device": getattr(self.dev, "serial", ""),
+            "package": self.package,
+            "platform": self.platform,
+            "output_dir": str(self.output_dir),
+            "current_activity": current_activity,
             "states_found": len(self.states),
             "max_states": self.max_states,
             "transitions": total_transitions,
@@ -401,7 +406,7 @@ class AppExplorer:
                     time.sleep(self.settle_time)
                     retry = self._capture_state(depth)
                     if retry and retry.state_id != state_id:
-                        log.warning(f"  Still lost after double-back. Stopping this state.")
+                        log.warning("  Still lost after double-back. Stopping this state.")
                         break
 
                 if len(self.states) >= self.max_states:
@@ -413,6 +418,10 @@ class AppExplorer:
             "package": self.package,
             "device": self.dev.serial,
             "platform": self.platform,
+            "state_identity": {
+                "android": ["xml_structure_hash"],
+                "ios": ["bundle_id", "activity", "xml_structure_hash", "screenshot_hash"],
+            },
             "max_depth": self.max_depth,
             "total_states": len(self.states),
             "total_transitions": sum(len(s.transitions) for s in self.states.values()),
@@ -464,7 +473,7 @@ def main():
     )
 
     graph = explorer.explore()
-    print(f"\nExploration complete:")
+    print("\nExploration complete:")
     print(f"  States: {graph.get('total_states', 0)}")
     print(f"  Transitions: {graph.get('total_transitions', 0)}")
     print(f"  Output: {output_dir}/state_graph.json")

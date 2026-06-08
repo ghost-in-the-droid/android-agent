@@ -72,6 +72,7 @@ def test_ios_app_explorer_uses_bundle_id_and_wda_screenshot(tmp_path):
     assert dev.launched == ["com.google.chrome.ios"]
     assert graph["platform"] == "ios"
     assert graph["package"] == "com.google.chrome.ios"
+    assert graph["state_identity"]["ios"] == ["bundle_id", "activity", "xml_structure_hash", "screenshot_hash"]
     assert graph["total_states"] == 1
 
     state = next(iter(graph["states"].values()))
@@ -80,6 +81,28 @@ def test_ios_app_explorer_uses_bundle_id_and_wda_screenshot(tmp_path):
     assert (tmp_path / "state_graph.json").exists()
     assert (tmp_path / "screenshots" / f"{state['state_id']}.png").read_bytes() == PNG_BYTES
     assert json.loads((tmp_path / "state_graph.json").read_text())["platform"] == "ios"
+
+
+def test_ios_app_explorer_progress_includes_dashboard_metadata(tmp_path):
+    dev = FakeIOSDevice()
+    explorer = AppExplorer(
+        dev=dev,
+        package="com.google.chrome.ios",
+        output_dir=str(tmp_path),
+        max_depth=1,
+        max_states=3,
+        settle_time=0,
+    )
+    explorer._write_progress(current_depth=0)
+
+    progress = json.loads((tmp_path / "progress.json").read_text())
+
+    assert progress["device"] == "ios:abc123"
+    assert progress["package"] == "com.google.chrome.ios"
+    assert progress["platform"] == "ios"
+    assert progress["output_dir"] == str(tmp_path)
+    assert progress["current_activity"] == ""
+    assert progress["max_states"] == 3
 
 
 def test_ios_state_hash_uses_bundle_activity_tree_and_screenshot():
