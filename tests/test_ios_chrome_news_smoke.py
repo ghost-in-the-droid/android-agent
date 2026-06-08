@@ -15,7 +15,7 @@ def test_ios_chrome_news_smoke_stops_on_failed_health_preflight(monkeypatch, tmp
         "argv",
         ["ios_chrome_news_smoke.py", "--device", "abc123", "--out-dir", str(tmp_path)],
     )
-    monkeypatch.setattr(smoke, "device_health", lambda device: health)
+    monkeypatch.setattr(smoke, "_preflight_health", lambda device, bundle_id: health)
     monkeypatch.setattr(
         smoke,
         "read_news",
@@ -32,6 +32,30 @@ def test_ios_chrome_news_smoke_stops_on_failed_health_preflight(monkeypatch, tmp
     assert saved_health == health
 
 
+def test_ios_chrome_news_smoke_preflight_uses_requested_browser_bundle(monkeypatch):
+    calls = []
+
+    class FakeIOSDevice:
+        def __init__(self, device, bundle_id=None):
+            calls.append(("device", device, bundle_id))
+            self.mjpeg_url = "http://127.0.0.1:9100"
+            self.mjpeg_settings = {}
+
+    def fake_ios_device_health(device, ios_dev):
+        calls.append(("health", device, ios_dev))
+        return {"platform": "ios", "connection": {"status": "available"}}
+
+    monkeypatch.setattr(smoke, "IOSDevice", FakeIOSDevice)
+    monkeypatch.setattr(smoke, "ios_device_health", fake_ios_device_health)
+
+    health = smoke._preflight_health("ios:abc123", "com.google.chrome.ios")
+
+    assert health["connection"]["status"] == "available"
+    assert calls[0] == ("device", "ios:abc123", "com.google.chrome.ios")
+    assert calls[1][0:2] == ("health", "ios:abc123")
+    assert isinstance(calls[1][2], FakeIOSDevice)
+
+
 def test_ios_chrome_news_smoke_can_skip_health_preflight(monkeypatch, tmp_path):
     calls = []
     monkeypatch.setattr(
@@ -39,7 +63,7 @@ def test_ios_chrome_news_smoke_can_skip_health_preflight(monkeypatch, tmp_path):
         "argv",
         ["ios_chrome_news_smoke.py", "--device", "ios:abc123", "--out-dir", str(tmp_path), "--skip-health"],
     )
-    monkeypatch.setattr(smoke, "device_health", lambda device: calls.append(("health", device)))
+    monkeypatch.setattr(smoke, "_preflight_health", lambda device, bundle_id: calls.append(("health", device, bundle_id)))
     monkeypatch.setattr(
         smoke,
         "read_news",
