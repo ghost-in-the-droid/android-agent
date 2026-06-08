@@ -1,4 +1,14 @@
-from gitd.routers.streaming import _webrtc_signal_sync, phone_stream, phone_stream_info, webrtc_ws_poll, webrtc_ws_send
+import asyncio
+
+from gitd.routers.streaming import (
+    _webrtc_signal_sync,
+    phone_stream,
+    phone_stream_info,
+    webrtc_poll_signals,
+    webrtc_signals_stream,
+    webrtc_ws_poll,
+    webrtc_ws_send,
+)
 
 
 class FakeIOSStreamDevice:
@@ -117,6 +127,25 @@ def test_ios_webrtc_signal_returns_wda_stream_fallback():
     assert response["recovery"]["fix_endpoint"] == "/api/phone/health/ios:abc123/fix"
     assert response["recovery"]["fix_tool"] == "fix_device_health"
     assert "restart_remote_xpc_tunnel" in response["recovery"]["common_fixes"]
+
+
+def test_ios_webrtc_poll_signals_returns_wda_stream_fallback():
+    response = webrtc_poll_signals("ios:abc123")
+
+    assert response["ok"] is False
+    assert response["platform"] == "ios"
+    assert "WebRTC signal polling" in response["error"]
+    assert response["stream_fallback"]["recommended_mode"] == "mjpeg"
+    assert response["recovery"]["health_endpoint"] == "/api/phone/health/ios:abc123"
+
+
+def test_ios_webrtc_signals_stream_returns_wda_stream_fallback():
+    response = asyncio.run(webrtc_signals_stream("ios:abc123"))
+
+    assert response["ok"] is False
+    assert response["platform"] == "ios"
+    assert "WebRTC signal stream" in response["error"]
+    assert response["stream_fallback"]["fallback_mode"] == "screencap"
 
 
 def test_ios_webrtc_ws_send_returns_wda_stream_fallback():
