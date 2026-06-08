@@ -492,6 +492,7 @@ def test_platform_prompts_do_not_offer_android_only_tools_to_ios():
     assert "open_url" in ios_system
     assert "extract_articles" in ios_system
     assert "read_news" in ios_system
+    assert "call search_apps/list_apps if you need to discover a bundle id" in ios_system
     assert "shell:" not in ios_system
     assert "launch_intent:" not in ios_system
     assert "open_camera:" in ios_system
@@ -511,6 +512,7 @@ def test_platform_prompts_do_not_offer_android_only_tools_to_ios():
 
 def test_platform_context_for_ios_and_android():
     assert "iOS via Appium/WebDriverAgent" in platform_context("ios:abc123")
+    assert "discover a bundle id" in platform_context("ios:abc123")
     assert "Android via ADB/Portal" in platform_context("emulator-5554")
 
 

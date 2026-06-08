@@ -127,9 +127,10 @@ def platform_context(device: str) -> str:
     if is_ios_ref(device):
         return (
             "Target platform: iOS via Appium/WebDriverAgent. Device refs look like ios:<udid>. "
-            "Use iOS bundle ids with launch_app, browser tools such as open_url/extract_visible_text/"
-            "extract_articles/read_news for web tasks, and avoid Android-only concepts such as ADB shell, "
-            "Android intents, Portal overlay, Play Store, and package-manager commands."
+            "Use iOS bundle ids with launch_app; call search_apps/list_apps if you need to discover a bundle id. "
+            "Use browser tools such as open_url/extract_visible_text/extract_articles/read_news for web tasks, "
+            "and avoid Android-only concepts such as ADB shell, Android intents, Portal overlay, Play Store, "
+            "and Android package-manager commands."
         )
     return (
         "Target platform: Android via ADB/Portal. Device refs are Android serials. "
