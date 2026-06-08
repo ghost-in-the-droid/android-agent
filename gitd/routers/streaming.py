@@ -147,6 +147,10 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
         stream_url = ios_dev.mjpeg_url
         stream_settings = getattr(ios_dev, "mjpeg_settings", {}) or {}
 
+        ios_stream_mode = "wda-mjpeg" if mode in {"mjpeg", "wda", "wda-mjpeg"} else "screenshot-polling"
+        boundary = "BoundaryString" if ios_stream_mode == "wda-mjpeg" else "frame"
+        boundary_bytes = boundary.encode("ascii")
+
         def gen_ios_mjpeg():
             try:
                 with urllib.request.urlopen(stream_url, timeout=10) as resp:
@@ -165,15 +169,13 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
                 try:
                     result = screenshot(device, half_res=True, quality=45)
                     frame = base64.b64decode(result["image"])
-                    yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+                    yield (b"--" + boundary_bytes + b"\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
                 except Exception:
                     time.sleep(0.5)
                     continue
                 time.sleep(frame_delay)
 
-        ios_stream_mode = "wda-mjpeg" if mode in {"mjpeg", "wda", "wda-mjpeg"} else "screenshot-polling"
         gen = gen_ios_mjpeg if ios_stream_mode == "wda-mjpeg" else gen_ios_screencap
-        boundary = "BoundaryString" if ios_stream_mode == "wda-mjpeg" else "frame"
         return StreamingResponse(
             gen(),
             media_type=f"multipart/x-mixed-replace; boundary={boundary}",

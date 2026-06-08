@@ -1,4 +1,5 @@
 import asyncio
+import base64
 
 from gitd.routers.streaming import (
     _webrtc_signal_sync,
@@ -35,6 +36,24 @@ def test_ios_stream_headers_expose_effective_wda_mjpeg_mode(monkeypatch):
     assert response.headers["x-phone-mjpeg-settings"] == (
         '{"mjpegScalingFactor": 60.0, "mjpegServerFramerate": 12, "mjpegServerScreenshotQuality": 45}'
     )
+
+
+def test_ios_wda_stream_fallback_frames_use_declared_boundary(monkeypatch):
+    monkeypatch.setattr("gitd.routers.streaming.get_device", lambda device: FakeIOSStreamDevice())
+    monkeypatch.setattr(
+        "gitd.routers.streaming.urllib.request.urlopen",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("mjpeg down")),
+    )
+    monkeypatch.setattr(
+        "gitd.services.device_context.screenshot",
+        lambda *_args, **_kwargs: {"image": base64.b64encode(b"jpeg").decode("ascii")},
+    )
+
+    response = phone_stream(device="ios:abc123", fps=5, mode="mjpeg")
+    chunk = asyncio.run(anext(response.body_iterator))
+
+    assert "boundary=BoundaryString" in response.headers["content-type"]
+    assert chunk.startswith(b"--BoundaryString\r\nContent-Type: image/jpeg\r\n\r\njpeg\r\n")
 
 
 def test_ios_stream_info_exposes_wda_mjpeg_and_recovery_metadata(monkeypatch):
