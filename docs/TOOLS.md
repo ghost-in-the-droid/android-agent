@@ -218,6 +218,7 @@ Share text:    action=android.intent.action.SEND extras='{"android.intent.extra.
 | `screenshot(device)` | Full PNG. Use when OCR / visual reasoning is needed. |
 | `get_screen_tree(device)` | XML accessibility tree, indexed for `tap_element`. Cheaper than screenshots. |
 | `get_phone_state(device)` | Foreground app, activity, keyboard state. The lightest "where am I?" probe. |
+| `device_health(device)` | Comprehensive diagnostics. Android reports Portal/device subsystems; iOS reports Appium/WDA status, recommended fix, and recovery steps. |
 | `find_on_screen(device, text)` | Locate visible text via XML first, OCR fallback. |
 
 ## Notifications
