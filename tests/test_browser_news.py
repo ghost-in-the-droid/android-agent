@@ -364,6 +364,29 @@ def test_ios_get_current_url_returns_structured_error(monkeypatch):
     }
 
 
+def test_ios_get_current_url_returns_url_when_exposed(monkeypatch):
+    fake = FakeNewsIOSDevice()
+    fake.current_url = "https://text.npr.org/"
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+
+    result = get_current_url("ios:abc123")
+
+    assert result == {"ok": True, "platform": "ios", "url": "https://text.npr.org/"}
+
+
+def test_ios_get_current_url_reports_empty_context_as_unavailable(monkeypatch):
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: FakeNewsIOSDevice())
+
+    result = get_current_url("ios:abc123")
+
+    assert result == {
+        "ok": False,
+        "platform": "ios",
+        "url": "",
+        "error": "Current URL is not exposed by the active iOS browser context",
+    }
+
+
 def test_android_wait_for_text_retries_until_match(monkeypatch):
     calls = []
 

@@ -84,9 +84,17 @@ def get_current_url(device: str) -> dict[str, Any]:
     dev = get_device(device)
     if is_ios_ref(device) and hasattr(dev, "get_current_url"):
         try:
-            return {"ok": True, "platform": "ios", "url": dev.get_current_url()}
+            current_url = dev.get_current_url() or ""
         except Exception as exc:
             return {"ok": False, "platform": "ios", "url": "", "error": str(exc)}
+        if current_url:
+            return {"ok": True, "platform": "ios", "url": current_url}
+        return {
+            "ok": False,
+            "platform": "ios",
+            "url": "",
+            "error": "Current URL is not exposed by the active iOS browser context",
+        }
     return {"ok": False, "platform": "android", "error": "Current URL is not implemented for Android yet"}
 
 
