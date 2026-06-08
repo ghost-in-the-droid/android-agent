@@ -172,7 +172,9 @@ def list_tool_platforms():
 @router.post("/test", summary="Test a Tool")
 def test_tool(data: dict = Body({})):
     """Execute a tool with given args and return the result."""
+    from gitd.bots.common.device import is_ios_ref
     from gitd.services.agent_tools import execute_tool
+    from gitd.services.tool_platforms import platform_error, supports_platform
 
     tool_name = data.get("name", "")
     tool_args = data.get("args", {})
@@ -181,6 +183,12 @@ def test_tool(data: dict = Body({})):
 
     t0 = time.time()
     try:
+        device = str(tool_args.get("device") or "")
+        if device:
+            platform = "ios" if is_ios_ref(device) else "android"
+            if not supports_platform(tool_name, platform):
+                duration_ms = (time.time() - t0) * 1000
+                return {**platform_error(tool_name, platform), "duration_ms": round(duration_ms, 1)}
         result = execute_tool(tool_name, tool_args)
         duration_ms = (time.time() - t0) * 1000
         return {"ok": True, "result": result[:5000], "duration_ms": round(duration_ms, 1)}
