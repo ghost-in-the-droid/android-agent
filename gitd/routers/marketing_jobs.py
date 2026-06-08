@@ -21,8 +21,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from gitd.models.base import get_db
 from gitd.bots.common.device import is_ios_ref
+from gitd.models.base import get_db
 from gitd.services._job_helpers import _enqueue_job
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,7 @@ class EnqueueRequest(BaseModel):
     video_path: Optional[str] = Field(None, description="Absolute path to the video file on this machine")
     caption: str = ""
     hashtags: str = ""
+    query: Optional[str] = Field(None, description="Search query for iOS TikTok search smoke jobs")
     phone_serial: str = Field(..., description="Android ADB serial or ios:<udid> phone ref")
     tts_text: Optional[str] = None
     scheduled_at: Optional[str] = Field(None, description="ISO timestamp; informational only — runs ASAP")
@@ -42,11 +43,23 @@ class EnqueueRequest(BaseModel):
     max_lines: int = Field(80, ge=1, le=500, description="Visible text line cap for iOS profile smoke jobs")
 
 
-_IOS_PROFILE_SMOKE_ACTIONS = {"ios_profile_smoke", "profile_smoke", "verify_profile", "smoke"}
+_IOS_TIKTOK_SMOKE_ACTIONS = {
+    "ios_profile_smoke": "profile_smoke",
+    "profile_smoke": "profile_smoke",
+    "verify_profile": "profile_smoke",
+    "smoke": "profile_smoke",
+    "ios_open_app_smoke": "open_app_smoke",
+    "open_app_smoke": "open_app_smoke",
+    "open_app": "open_app_smoke",
+    "launch_smoke": "open_app_smoke",
+    "ios_search_smoke": "search_smoke",
+    "search_smoke": "search_smoke",
+    "search": "search_smoke",
+}
 
 
-def _is_ios_profile_smoke_action(action: str | None) -> bool:
-    return (action or "").strip().lower() in _IOS_PROFILE_SMOKE_ACTIONS
+def _ios_tiktok_smoke_workflow(action: str | None) -> str:
+    return _IOS_TIKTOK_SMOKE_ACTIONS.get((action or "").strip().lower(), "")
 
 
 def _unsupported_ios_post_detail() -> dict:
@@ -58,13 +71,24 @@ def _unsupported_ios_post_detail() -> dict:
     }
 
 
-def _enqueue_ios_profile_smoke(req: EnqueueRequest, db: Session) -> dict:
+def _ios_tiktok_smoke_params(req: EnqueueRequest, workflow: str) -> dict:
+    if workflow == "profile_smoke":
+        return {"max_lines": req.max_lines}
+    if workflow == "search_smoke":
+        query = (req.query or req.hashtags or "").strip() or "#fyp"
+        return {"query": query}
+    return {}
+
+
+def _enqueue_ios_tiktok_smoke(req: EnqueueRequest, db: Session) -> dict:
+    workflow = _ios_tiktok_smoke_workflow(req.action)
+    params = _ios_tiktok_smoke_params(req, workflow)
     config = {
         "skill": "tiktok_ios",
-        "workflow": "profile_smoke",
-        "params": {"max_lines": req.max_lines},
+        "workflow": workflow,
+        "params": params,
         "source": "marketing_jobs",
-        "action": "profile_smoke",
+        "action": workflow,
     }
     if req.account:
         config["account"] = req.account
@@ -84,11 +108,12 @@ def _enqueue_ios_profile_smoke(req: EnqueueRequest, db: Session) -> dict:
     return {
         "job_id": f"ghost-job-{job_id}",
         "estimated_post_at": req.scheduled_at,
-        "action": "profile_smoke",
+        "action": workflow,
         "phone_serial": req.phone_serial,
         "job_type": "skill_workflow",
         "skill": "tiktok_ios",
-        "workflow": "profile_smoke",
+        "workflow": workflow,
+        "params": params,
     }
 
 
@@ -104,12 +129,15 @@ def enqueue_marketing_job(req: EnqueueRequest, db: Session = Depends(get_db)):
     if not req.phone_serial:
         raise HTTPException(status_code=400, detail="phone_serial required")
     if is_ios_ref(req.phone_serial):
-        if _is_ios_profile_smoke_action(req.action):
-            return _enqueue_ios_profile_smoke(req, db)
+        if _ios_tiktok_smoke_workflow(req.action):
+            return _enqueue_ios_tiktok_smoke(req, db)
         raise HTTPException(status_code=400, detail=_unsupported_ios_post_detail())
 
-    if _is_ios_profile_smoke_action(req.action):
-        raise HTTPException(status_code=400, detail="profile_smoke marketing action requires phone_serial like ios:<udid>")
+    if _ios_tiktok_smoke_workflow(req.action):
+        raise HTTPException(
+            status_code=400,
+            detail="iOS TikTok smoke marketing actions require phone_serial like ios:<udid>",
+        )
     if not req.video_path:
         raise HTTPException(status_code=400, detail="video_path required")
     if not os.path.isabs(req.video_path):

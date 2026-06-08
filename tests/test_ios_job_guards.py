@@ -87,6 +87,94 @@ def test_marketing_job_enqueues_ios_profile_smoke_without_video():
         db.close()
 
 
+def test_marketing_job_enqueues_ios_search_smoke_with_query():
+    client = TestClient(app)
+    db = SessionLocal()
+    job_id = None
+    try:
+        response = client.post(
+            "/api/marketing-jobs/enqueue",
+            json={
+                "phone_serial": "ios:abc123",
+                "action": "search_smoke",
+                "query": "#news",
+                "account": "@ghost",
+            },
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["action"] == "search_smoke"
+        assert body["job_type"] == "skill_workflow"
+        assert body["skill"] == "tiktok_ios"
+        assert body["workflow"] == "search_smoke"
+        assert body["params"] == {"query": "#news"}
+        job_id = int(body["job_id"].removeprefix("ghost-job-"))
+
+        row = (
+            db.execute(text("SELECT * FROM job_queue WHERE id = :id"), {"id": job_id})
+            .mappings()
+            .one()
+        )
+        config = json.loads(row["config_json"])
+        assert row["phone_serial"] == "ios:abc123"
+        assert row["job_type"] == "skill_workflow"
+        assert row["trigger"] == "marketing_agent"
+        assert row["max_duration_s"] == 300
+        assert config == {
+            "skill": "tiktok_ios",
+            "workflow": "search_smoke",
+            "params": {"query": "#news"},
+            "source": "marketing_jobs",
+            "action": "search_smoke",
+            "account": "@ghost",
+        }
+    finally:
+        if job_id:
+            db.execute(text("DELETE FROM job_queue WHERE id = :id"), {"id": job_id})
+            db.commit()
+        db.close()
+
+
+def test_marketing_job_enqueues_ios_open_app_smoke_without_params():
+    client = TestClient(app)
+    db = SessionLocal()
+    job_id = None
+    try:
+        response = client.post(
+            "/api/marketing-jobs/enqueue",
+            json={
+                "phone_serial": "ios:abc123",
+                "action": "open_app_smoke",
+            },
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["action"] == "open_app_smoke"
+        assert body["workflow"] == "open_app_smoke"
+        assert body["params"] == {}
+        job_id = int(body["job_id"].removeprefix("ghost-job-"))
+
+        row = (
+            db.execute(text("SELECT * FROM job_queue WHERE id = :id"), {"id": job_id})
+            .mappings()
+            .one()
+        )
+        assert json.loads(row["config_json"]) == {
+            "skill": "tiktok_ios",
+            "workflow": "open_app_smoke",
+            "params": {},
+            "source": "marketing_jobs",
+            "action": "open_app_smoke",
+        }
+    finally:
+        if job_id:
+            db.execute(text("DELETE FROM job_queue WHERE id = :id"), {"id": job_id})
+            db.commit()
+        db.close()
+
+
 def test_scheduler_create_rejects_ios_android_only_job_before_enqueue():
     client = TestClient(app)
 
