@@ -35,5 +35,6 @@ default_params:
   workflows:
     search_smoke:
       query: "#fyp"
+      max_lines: 80
     profile_smoke:
       max_lines: 80
