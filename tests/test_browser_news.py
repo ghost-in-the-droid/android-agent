@@ -192,6 +192,31 @@ def test_read_news_waits_for_requested_headline_count(monkeypatch):
     ]
 
 
+def test_read_news_requires_requested_headline_count_for_success(monkeypatch):
+    class SparseHeadlineDevice(FakeNewsIOSDevice):
+        def extract_articles(self, max_items=5):
+            return super().extract_articles(max_items=max_items)[:1]
+
+    fake = SparseHeadlineDevice()
+    monkeypatch.setattr("gitd.services.browser.get_device", lambda device: fake)
+    monkeypatch.setattr("gitd.services.browser.time.sleep", lambda *_args, **_kwargs: None)
+
+    result = read_news("ios:abc123", "https://text.npr.org/", max_headlines=2, max_articles=0, wait_s=0)
+
+    assert result["ok"] is False
+    assert result["completion"] == {
+        "requested_headlines": 2,
+        "headlines_found": 1,
+        "headline_target_met": False,
+        "requested_articles": 0,
+        "articles_opened": 0,
+        "articles_with_body": 0,
+        "article_target_met": True,
+        "workflow_complete": False,
+    }
+    assert result["errors"][-1]["stage"] == "success_criteria"
+
+
 def test_read_news_waits_for_article_body_beyond_title(monkeypatch):
     class TitleOnlyArticleDevice(FakeNewsIOSDevice):
         def __init__(self):

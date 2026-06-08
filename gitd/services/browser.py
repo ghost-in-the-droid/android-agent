@@ -232,8 +232,6 @@ def _article_has_body(article: dict[str, Any]) -> bool:
     title_like: set[str] = set()
     if article.get("source_headline"):
         title_like.add(re.sub(r"\s+", " ", str(article.get("source_headline") or "")).strip().lower())
-    if len(lines) > 1 and article.get("page_title"):
-        title_like.add(re.sub(r"\s+", " ", str(article.get("page_title") or "")).strip().lower())
     only_line = lines[0]
     if only_line.lower() in title_like:
         return False
@@ -744,7 +742,11 @@ def read_news(
             "articles_with_body": len(articles_with_body),
             "article_target_met": requested_articles == 0 or len(articles_with_body) >= requested_articles,
         }
-        completion["workflow_complete"] = bool(result["headlines"]) and bool(completion["article_target_met"])
+        completion["workflow_complete"] = (
+            bool(result["headlines"])
+            and bool(completion["headline_target_met"])
+            and bool(completion["article_target_met"])
+        )
         result["completion"] = completion
         result["ok"] = bool(completion["workflow_complete"])
         if not result["ok"]:
