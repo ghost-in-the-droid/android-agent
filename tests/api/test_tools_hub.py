@@ -4,13 +4,19 @@ def test_tools_hub_exposes_platform_support(client):
 
     categories = response.json()
     web = next(category for category in categories if category["category"] == "Web")
+    screen = next(category for category in categories if category["category"] == "Screen Reading")
     open_url = next(tool for tool in web["tools"] if tool["name"] == "open_url")
     current_url = next(tool for tool in web["tools"] if tool["name"] == "get_current_url")
+    read_news = next(tool for tool in web["tools"] if tool["name"] == "read_news")
+    device_health = next(tool for tool in screen["tools"] if tool["name"] == "device_health")
 
     assert open_url["platform_support"]["support"] == "cross_platform"
     assert open_url["platform_support"]["ios"] is True
     assert current_url["platform_support"]["support"] == "ios_supported"
     assert current_url["platform_support"]["android"] is False
+    assert read_news["platform_support"]["support"] == "ios_supported"
+    assert read_news["platform_support"]["ios"] is True
+    assert device_health["platform_support"]["support"] == "cross_platform"
 
 
 def test_tools_platforms_endpoint(client):
