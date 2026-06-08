@@ -2,7 +2,6 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { api } from '@/composables/useApi'
 import { renderMermaid } from '@/composables/useMermaid'
-import PhoneStreamWidget from '@/components/PhoneStreamWidget.vue'
 
 const devices = ref<any[]>([])
 const selectedDevice = ref('')
@@ -17,6 +16,7 @@ const input = ref('')
 const sending = ref(false)
 const streaming = ref(false)
 const streamImg = ref('')
+const mjpegUrl = ref('')
 const overlayOn = ref(false)
 const elements = ref<any[]>([])
 const actionHistory = ref<any[]>([])
@@ -25,6 +25,8 @@ const recording = ref(false)
 const recordedActions = ref<any[]>([])
 const showContextModal = ref(false)
 const overlayCanvas = ref<HTMLCanvasElement | null>(null)
+const streamImageEl = ref<HTMLImageElement | null>(null)
+const streamFrame = ref({ width: 0, height: 0 })
 let streamTimer: number | null = null
 
 const BACKENDS = [
@@ -76,25 +78,58 @@ function availableModels() {
   return MODELS[backend.value] || []
 }
 
+const streamMode = computed(() => selectedIsIos.value ? 'mjpeg' : 'screenshot')
+const streamSource = computed(() => streamMode.value === 'mjpeg' ? mjpegUrl.value : streamImg.value)
+const streamPlaceholder = computed(() => selectedIsIos.value ? 'Start WDA stream' : 'Select a device and press Stream')
+
 function toggleStream() {
   if (streaming.value) {
-    streaming.value = false
-    if (streamTimer) { clearInterval(streamTimer); streamTimer = null }
+    stopStream()
   } else {
-    streaming.value = true
-    pollFrame()
-    streamTimer = window.setInterval(pollFrame, 200)
+    startStream()
   }
 }
 
+function startStream() {
+  if (!selectedDevice.value || streaming.value) return
+  streaming.value = true
+  streamImg.value = ''
+  mjpegUrl.value = ''
+  if (streamMode.value === 'mjpeg') {
+    mjpegUrl.value = `/api/phone/stream?device=${encodeURIComponent(selectedDevice.value)}&fps=5&mode=wda-mjpeg`
+    return
+  }
+  pollFrame()
+  streamTimer = window.setInterval(pollFrame, 200)
+}
+
+function stopStream() {
+  streaming.value = false
+  if (streamTimer) { clearInterval(streamTimer); streamTimer = null }
+  streamImg.value = ''
+  mjpegUrl.value = ''
+  streamFrame.value = { width: 0, height: 0 }
+}
+
 async function pollFrame() {
-  if (!selectedDevice.value) return
+  if (!selectedDevice.value || streamMode.value !== 'screenshot') return
   try {
     const resp = await api(`/api/phone/screenshot/${selectedDevice.value}`)
     if (resp.ok && resp.image) {
       streamImg.value = `data:image/jpeg;base64,${resp.image}`
+      streamFrame.value = { width: Number(resp.width || 0), height: Number(resp.height || 0) }
     }
   } catch {}
+}
+
+function updateStreamFrame() {
+  const img = streamImageEl.value
+  if (!img) return
+  streamFrame.value = {
+    width: img.naturalWidth || streamFrame.value.width,
+    height: img.naturalHeight || streamFrame.value.height,
+  }
+  nextTick(drawOverlay)
 }
 
 async function refreshElements() {
@@ -165,7 +200,10 @@ async function executeActions(actions: any[]) {
     } else if (step.action === 'back') {
       await api('/api/phone/back', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value }) })
     } else if (step.action === 'launch') {
-      await api('/api/phone/launch', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, package: step.package }) })
+      await api('/api/phone/launch', {
+        method: 'POST',
+        body: JSON.stringify({ device: selectedDevice.value, package: step.package || step.bundle_id })
+      })
     } else if (step.action === 'swipe') {
       await api('/api/phone/swipe', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, ...step }) })
     } else if (step.action === 'wait') {
@@ -194,8 +232,8 @@ function handleStreamClick(e: MouseEvent) {
   if (!selectedDevice.value) return
   const el = e.target as HTMLImageElement
   const rect = el.getBoundingClientRect()
-  const streamW = el.naturalWidth || 540
-  const streamH = el.naturalHeight || 1200
+  const streamW = el.naturalWidth || streamFrame.value.width || 540
+  const streamH = el.naturalHeight || streamFrame.value.height || 1200
   const x = Math.round((e.clientX - rect.left) / rect.width * streamW)
   const y = Math.round((e.clientY - rect.top) / rect.height * streamH)
   api('/api/phone/tap', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, x, y, stream_w: streamW, stream_h: streamH }) })
@@ -290,17 +328,38 @@ async function saveRecordedSkill() {
 function drawOverlay() {
   const canvas = overlayCanvas.value
   if (!canvas) return
+  const cssWidth = Math.max(1, Math.round(canvas.clientWidth || canvas.getBoundingClientRect().width || 360))
+  const cssHeight = Math.max(1, Math.round(canvas.clientHeight || canvas.getBoundingClientRect().height || 800))
+  if (canvas.width !== cssWidth) canvas.width = cssWidth
+  if (canvas.height !== cssHeight) canvas.height = cssHeight
   const ctx = canvas.getContext('2d')
   if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   if (!overlayOn.value || !elements.value.length) return
-  // Scale from device coords (1080x2400) to canvas size
-  const scaleX = canvas.width / 1080
-  const scaleY = canvas.height / 2400
+  const image = streamImageEl.value
+  const streamW = image?.naturalWidth || streamFrame.value.width || 540
+  const streamH = image?.naturalHeight || streamFrame.value.height || 1200
+  const coordinateScale = selectedIsIos.value && streamMode.value === 'mjpeg' ? 1 : 2
+  const frameW = streamW * coordinateScale
+  const frameH = streamH * coordinateScale
+  let offsetX = 0
+  let offsetY = 0
+  let displayW = canvas.width
+  let displayH = canvas.height
+  if (image) {
+    const canvasRect = canvas.getBoundingClientRect()
+    const imageRect = image.getBoundingClientRect()
+    offsetX = imageRect.left - canvasRect.left
+    offsetY = imageRect.top - canvasRect.top
+    displayW = imageRect.width || displayW
+    displayH = imageRect.height || displayH
+  }
+  const scaleX = displayW / frameW
+  const scaleY = displayH / frameH
   elements.value.forEach((el, i) => {
     if (!el.bounds) return
-    const x = el.bounds.x1 * scaleX
-    const y = el.bounds.y1 * scaleY
+    const x = offsetX + el.bounds.x1 * scaleX
+    const y = offsetY + el.bounds.y1 * scaleY
     const w = (el.bounds.x2 - el.bounds.x1) * scaleX
     const h = (el.bounds.y2 - el.bounds.y1) * scaleY
     ctx.strokeStyle = '#6366f1'
@@ -312,7 +371,15 @@ function drawOverlay() {
   })
 }
 
-watch([overlayOn, elements], () => { nextTick(drawOverlay) })
+watch([overlayOn, elements, streamFrame], () => { nextTick(drawOverlay) })
+watch(selectedDevice, async (newDevice, oldDevice) => {
+  if (newDevice === oldDevice) return
+  const wasStreaming = streaming.value
+  stopStream()
+  elements.value = []
+  if (newDevice && overlayOn.value) await refreshElements()
+  if (wasStreaming && newDevice) startStream()
+})
 watch(messages, () => {
   nextTick(() => {
     const el = document.getElementById('creator-messages')
@@ -328,7 +395,7 @@ onMounted(async () => {
     setTimeout(async () => { await loadDevices() }, 3000)
   }
 })
-onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
+onUnmounted(() => { stopStream() })
 </script>
 
 <template>
@@ -430,11 +497,11 @@ onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
 
       <!-- Stream area -->
       <div class="sc-stream-area">
-        <img v-if="streamImg" :src="streamImg" class="sc-stream-img"
-          @click="handleStreamClick" />
+        <img v-if="streaming && streamSource" ref="streamImageEl" :src="streamSource" class="sc-stream-img"
+          draggable="false" @click="handleStreamClick" @load="updateStreamFrame" @dragstart.prevent />
         <canvas ref="overlayCanvas" width="360" height="800" class="sc-overlay-canvas"></canvas>
-        <div v-if="!streamImg" class="sc-stream-empty">
-          Select a device and press Stream
+        <div v-if="!streamSource" class="sc-stream-empty">
+          {{ streamPlaceholder }}
         </div>
       </div>
 
@@ -466,9 +533,9 @@ onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
           <div class="sc-modal-meta">Backend: {{ backend }} / {{ model }}</div>
           <div class="sc-modal-meta">Elements: {{ elements.length }}</div>
         </div>
-        <div v-if="streamImg" class="sc-modal-section">
+        <div v-if="streamSource" class="sc-modal-section">
           <div class="sc-modal-section-title">Current Screen</div>
-          <img :src="streamImg" class="sc-modal-screenshot" />
+          <img :src="streamSource" class="sc-modal-screenshot" />
         </div>
         <div v-if="elements.length" class="sc-modal-section">
           <div class="sc-modal-section-title">Elements ({{ elements.length }})</div>
