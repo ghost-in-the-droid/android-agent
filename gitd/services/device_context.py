@@ -20,6 +20,15 @@ from gitd.bots.common.adb import Device
 from gitd.bots.common.device import get_device, is_ios_ref
 from gitd.bots.common.ios import remote_xpc_manual_recovery
 
+
+def _platform(device: str) -> str:
+    return "ios" if is_ios_ref(device) else "android"
+
+
+def _device_payload(device: str, payload: dict) -> dict:
+    return {"device": device, "platform": _platform(device), **payload}
+
+
 # ── Phone state ──────────────────────────────────────────────────────────────
 
 
@@ -245,7 +254,7 @@ def _raw_screenshot_bytes(device: str) -> bytes:
 
 
 def screenshot(device: str, half_res: bool = True, quality: int = 50) -> dict:
-    """Take screenshot via ADB screencap. Returns {image: base64, width, height}."""
+    """Take screenshot from the platform backend. Returns {image, width, height, device, platform}."""
     from PIL import Image
 
     raw = _raw_screenshot_bytes(device)
@@ -254,17 +263,20 @@ def screenshot(device: str, half_res: bool = True, quality: int = 50) -> dict:
         img = img.resize((img.width // 2, img.height // 2), Image.NEAREST)
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=quality)
-    return {
-        "image": base64.b64encode(buf.getvalue()).decode(),
-        "width": img.width,
-        "height": img.height,
-    }
+    return _device_payload(
+        device,
+        {
+            "image": base64.b64encode(buf.getvalue()).decode(),
+            "width": img.width,
+            "height": img.height,
+        },
+    )
 
 
 def screenshot_annotated(device: str) -> dict:
     """Screenshot with our own numbered element overlay drawn server-side.
     Each interactive element gets a colored badge with its index number.
-    Returns {image: base64, width, height}."""
+    Returns {image, width, height, device, platform}."""
     from PIL import Image, ImageDraw, ImageFont
 
     # Take screenshot
@@ -323,16 +335,19 @@ def screenshot_annotated(device: str) -> dict:
     # Encode
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=70)
-    return {
-        "image": base64.b64encode(buf.getvalue()).decode(),
-        "width": img.width,
-        "height": img.height,
-    }
+    return _device_payload(
+        device,
+        {
+            "image": base64.b64encode(buf.getvalue()).decode(),
+            "width": img.width,
+            "height": img.height,
+        },
+    )
 
 
 def screenshot_cropped(device: str, x1: int, y1: int, x2: int, y2: int, quality: int = 70) -> dict:
     """Screenshot a specific region of the screen.
-    Coordinates are in device pixels. Returns {image: base64, width, height}."""
+    Coordinates are in device pixels. Returns {image, width, height, device, platform}."""
     from PIL import Image
 
     raw = _raw_screenshot_bytes(device)
@@ -340,11 +355,14 @@ def screenshot_cropped(device: str, x1: int, y1: int, x2: int, y2: int, quality:
     cropped = img.crop((x1, y1, x2, y2))
     buf = io.BytesIO()
     cropped.save(buf, format="JPEG", quality=quality)
-    return {
-        "image": base64.b64encode(buf.getvalue()).decode(),
-        "width": cropped.width,
-        "height": cropped.height,
-    }
+    return _device_payload(
+        device,
+        {
+            "image": base64.b64encode(buf.getvalue()).decode(),
+            "width": cropped.width,
+            "height": cropped.height,
+        },
+    )
 
 
 # ── XML / Element tree ───────────────────────────────────────────────────────
@@ -653,14 +671,17 @@ def classify_screen(device: str) -> dict:
     elif any(w in xml for w in ["RecyclerView", "ViewPager", "feed"]):
         screen_type = "feed"
 
-    return {
-        "app": app,
-        "package": pkg,
-        "screen_type": screen_type,
-        "has_keyboard": has_keyboard,
-        "activity": state.get("activityName", ""),
-        "details": details,
-    }
+    return _device_payload(
+        device,
+        {
+            "app": app,
+            "package": pkg,
+            "screen_type": screen_type,
+            "has_keyboard": has_keyboard,
+            "activity": state.get("activityName", ""),
+            "details": details,
+        },
+    )
 
 
 # ── Clipboard ────────────────────────────────────────────────────────────────
@@ -1323,16 +1344,19 @@ def fingerprint_screen(device: str) -> dict:
     pkg = state.get("packageName", "")
     activity = state.get("activityName", "")
 
-    return {
-        "package": pkg,
-        "activity": activity,
-        "screen_type": classify_screen(device).get("screen_type", "unknown"),
-        "is_launcher": "launcher" in activity.lower() if activity else False,
-        "has_keyboard": state.get("keyboardVisible", False),
-        "interactive_count": len(elements),
-        "element_signatures": [f"{e.get('class', '')}.{e.get('resource_id', '')}" for e in elements[:20]],
-        "hash": _fingerprint_hash(pkg, activity, elements),
-    }
+    return _device_payload(
+        device,
+        {
+            "package": pkg,
+            "activity": activity,
+            "screen_type": classify_screen(device).get("screen_type", "unknown"),
+            "is_launcher": "launcher" in activity.lower() if activity else False,
+            "has_keyboard": state.get("keyboardVisible", False),
+            "interactive_count": len(elements),
+            "element_signatures": [f"{e.get('class', '')}.{e.get('resource_id', '')}" for e in elements[:20]],
+            "hash": _fingerprint_hash(pkg, activity, elements),
+        },
+    )
 
 
 def _fingerprint_hash(pkg: str, activity: str, elements: list[dict]) -> str:
@@ -1352,4 +1376,4 @@ def validate_fingerprint(device: str, expected: dict) -> dict:
     for key in ("package", "activity", "screen_type", "is_launcher"):
         if key in expected and current.get(key) != expected[key]:
             mismatches.append({"field": key, "expected": expected[key], "actual": current.get(key)})
-    return {"valid": len(mismatches) == 0, "mismatches": mismatches, "current": current}
+    return _device_payload(device, {"valid": len(mismatches) == 0, "mismatches": mismatches, "current": current})
