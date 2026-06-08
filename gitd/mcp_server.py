@@ -197,6 +197,14 @@ def launch_app(device: str, package: str, fresh: bool = False) -> str:
 
 
 @mcp.tool()
+def app_state(device: str, package: str) -> str:
+    """Check whether an Android package or iOS bundle id is installed, running, or foreground."""
+    from gitd.services.device_context import app_state as _app_state
+
+    return json.dumps(_app_state(device, package), indent=2)
+
+
+@mcp.tool()
 def open_camera(device: str, mode: str = "photo", timer_s: int = 0) -> str:
     """Open the camera app in a specific mode using standard Android intents.
 

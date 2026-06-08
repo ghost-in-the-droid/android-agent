@@ -5,10 +5,14 @@ def test_tools_hub_exposes_platform_support(client):
     categories = response.json()
     web = next(category for category in categories if category["category"] == "Web")
     screen = next(category for category in categories if category["category"] == "Screen Reading")
+    app_management = next(category for category in categories if category["category"] == "App Management")
+    clipboard = next(category for category in categories if category["category"] == "Clipboard & Notifications")
     open_url = next(tool for tool in web["tools"] if tool["name"] == "open_url")
     current_url = next(tool for tool in web["tools"] if tool["name"] == "get_current_url")
     read_news = next(tool for tool in web["tools"] if tool["name"] == "read_news")
     device_health = next(tool for tool in screen["tools"] if tool["name"] == "device_health")
+    app_state = next(tool for tool in app_management["tools"] if tool["name"] == "app_state")
+    paste_text = next(tool for tool in clipboard["tools"] if tool["name"] == "paste_text")
 
     assert open_url["platform_support"]["support"] == "cross_platform"
     assert open_url["platform_support"]["ios"] is True
@@ -17,6 +21,10 @@ def test_tools_hub_exposes_platform_support(client):
     assert read_news["platform_support"]["support"] == "ios_supported"
     assert read_news["platform_support"]["ios"] is True
     assert device_health["platform_support"]["support"] == "cross_platform"
+    assert app_state["platform_support"]["support"] == "cross_platform"
+    assert app_state["platform_support"]["ios"] is True
+    assert paste_text["platform_support"]["support"] == "cross_platform"
+    assert paste_text["platform_support"]["ios"] is True
 
 
 def test_tools_platforms_endpoint(client):
@@ -29,6 +37,8 @@ def test_tools_platforms_endpoint(client):
     assert supports["shell"]["support"] == "android_only"
     assert supports["clipboard_get"]["support"] == "cross_platform"
     assert supports["clipboard_get"]["ios"] is True
+    assert supports["app_state"]["support"] == "cross_platform"
+    assert supports["app_state"]["ios"] is True
     assert supports["extract_articles"]["support"] == "cross_platform"
     assert set(body["categories"]) == {"cross_platform", "android_only", "ios_supported", "ios_planned"}
 

@@ -55,6 +55,19 @@ For configured iOS devices, request a deep WebDriverAgent readiness probe:
 curl "http://localhost:5055/api/phone/devices?probe=deep"
 ```
 
+### App lifecycle
+
+Check whether an Android package or iOS bundle id is installed, running, or
+foreground:
+
+```bash
+curl "http://localhost:5055/api/phone/app-state/ios:<udid>?package=com.google.chrome.ios"
+
+curl -X POST http://localhost:5055/api/phone/app-state \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>", "package": "com.google.chrome.ios"}'
+```
+
 ### Clipboard and notifications
 
 These routes work for Android serials and `ios:<udid>` device refs:

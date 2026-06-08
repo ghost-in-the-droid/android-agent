@@ -462,6 +462,28 @@ def api_phone_force_stop(data: dict = Body({})):
     return {"ok": True}
 
 
+@router.get("/app-state/{device}", summary="Get App State")
+def api_phone_app_state_get(device: str, package: str = ""):
+    """Check whether an Android package or iOS bundle id is installed/running/foreground."""
+    from gitd.services.device_context import app_state
+
+    if not package:
+        raise HTTPException(status_code=400, detail="package required")
+    return app_state(device, package)
+
+
+@router.post("/app-state", summary="Get App State")
+def api_phone_app_state_post(data: dict = Body({})):
+    """Check whether an Android package or iOS bundle id is installed/running/foreground."""
+    from gitd.services.device_context import app_state
+
+    device = data.get("device", "")
+    package = data.get("package", "")
+    if not device or not package:
+        raise HTTPException(status_code=400, detail="device and package required")
+    return app_state(device, package)
+
+
 @router.post("/swipe", summary="Swipe On Phone Screen")
 def api_phone_swipe(data: dict = Body({})):
     """Perform a swipe gesture on a device with coordinate scaling."""

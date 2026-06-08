@@ -59,6 +59,7 @@ _CROSS_PLATFORM = {
     "press_key": "Shared key facade with per-platform key support.",
     "launch_app": "Launches Android packages or iOS bundle ids.",
     "force_stop": "Force-stops Android packages or terminates iOS bundle ids.",
+    "app_state": "Checks installed/running/foreground state for Android packages or iOS bundle ids.",
     "open_camera": "Android camera launcher or best-effort iOS Camera app launch/mode selection.",
     "long_press": "Routes to ADB/Portal or WDA pointer actions.",
     "web_search": "Android VIEW intent or iOS Appium browser navigation.",
