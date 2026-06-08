@@ -49,6 +49,12 @@ curl http://localhost:5055/api/health
 curl http://localhost:5055/api/phone/devices
 ```
 
+For configured iOS devices, request a deep WebDriverAgent readiness probe:
+
+```bash
+curl "http://localhost:5055/api/phone/devices?probe=deep"
+```
+
 ### List installed skills
 
 ```bash
