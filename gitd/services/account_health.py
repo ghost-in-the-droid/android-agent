@@ -222,8 +222,33 @@ def switch_active_account(device: str, handle: str) -> dict:
     """
     handle = handle.lstrip("@").strip()
     if is_ios_ref(device):
+        target = _normalize_handle(handle)
+        health = device_account_health(device, fresh=True)
+        active = _normalize_handle(health.get("active") or "")
+        if health.get("ok") and active == target:
+            return {
+                "ok": True,
+                "device": device,
+                "platform": "ios",
+                "active": active,
+                "target": target,
+                "logged_in": health.get("logged_in", []),
+                "error": None,
+                "switched": False,
+                "message": "target TikTok account is already active on iOS",
+                "detection": health.get("detection"),
+            }
         result = _ios_unsupported_result(device, action="account_switch")
-        result.update({"active": None, "target": handle})
+        result.update(
+            {
+                "active": active or health.get("active"),
+                "target": target,
+                "logged_in": health.get("logged_in", []),
+                "health_ok": bool(health.get("ok")),
+                "health_error": health.get("error"),
+                "detection": health.get("detection"),
+            }
+        )
         return result
     if not _premium_available():
         return {"ok": False, "device": device, "platform": "android", "active": None, "error": "premium not installed"}

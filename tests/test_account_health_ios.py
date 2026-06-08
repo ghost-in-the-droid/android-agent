@@ -52,13 +52,55 @@ def test_ios_account_health_reports_undetected_handle(monkeypatch):
     assert result["logged_in"] == []
 
 
-def test_ios_account_switch_returns_unsupported():
+def test_ios_account_switch_succeeds_when_target_already_active(monkeypatch):
+    account_health._cache.clear()
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice())
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
+
     switch = account_health.switch_active_account("ios:abc123", "@ghost")
+
+    assert switch["ok"] is True
+    assert switch["platform"] == "ios"
+    assert switch["error"] is None
+    assert switch["active"] == "ghost"
+    assert switch["target"] == "ghost"
+    assert switch["logged_in"] == ["ghost", "backup"]
+    assert switch["switched"] is False
+    assert switch["message"] == "target TikTok account is already active on iOS"
+
+
+def test_ios_account_switch_returns_context_when_switch_needed(monkeypatch):
+    account_health._cache.clear()
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice())
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
+
+    switch = account_health.switch_active_account("ios:abc123", "@backup")
 
     assert switch["ok"] is False
     assert switch["platform"] == "ios"
     assert switch["error"] == "unsupported_platform"
+    assert switch["active"] == "ghost"
+    assert switch["target"] == "backup"
+    assert switch["logged_in"] == ["ghost", "backup"]
+    assert switch["health_ok"] is True
+    assert switch["health_error"] is None
+
+
+def test_ios_account_switch_returns_health_error_when_undetectable(monkeypatch):
+    account_health._cache.clear()
+    monkeypatch.setattr(account_health, "get_device", lambda device: FakeIOSAccountDevice("Profile\nNo videos yet"))
+    monkeypatch.setattr(account_health.time, "sleep", lambda *_args, **_kwargs: None)
+
+    switch = account_health.switch_active_account("ios:nohandle", "@ghost")
+
+    assert switch["ok"] is False
+    assert switch["platform"] == "ios"
+    assert switch["error"] == "unsupported_platform"
+    assert switch["active"] is None
     assert switch["target"] == "ghost"
+    assert switch["logged_in"] == []
+    assert switch["health_ok"] is False
+    assert switch["health_error"] == "no visible TikTok account handle detected"
 
 
 def test_ios_account_sync_writes_detected_handles(tmp_path, monkeypatch):
@@ -173,8 +215,10 @@ def test_scheduler_account_health_routes_return_ios_detection(tmp_path, monkeypa
     assert health.json()["platform"] == "ios"
     assert health.json()["active"] == "ghost"
     assert switch.status_code == 200
-    assert switch.json()["error"] == "unsupported_platform"
+    assert switch.json()["ok"] is True
+    assert switch.json()["error"] is None
     assert switch.json()["platform"] == "ios"
+    assert switch.json()["active"] == "ghost"
     assert sync.status_code == 200
     assert sync.json()["ok"] is True
     assert sync.json()["platform"] == "ios"
