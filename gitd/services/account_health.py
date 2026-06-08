@@ -19,12 +19,30 @@ import logging
 import time
 from typing import Optional
 
+from gitd.bots.common.device import is_ios_ref
+
 logger = logging.getLogger(__name__)
 
 # Cache results briefly to avoid hammering the phone with full account-switcher
 # navigations on every job preflight (each call takes 8-15s).
 _CACHE_TTL_S = 60
 _cache: dict[str, tuple[float, dict]] = {}
+
+
+def _ios_unsupported_result(device: str, *, action: str = "account_health") -> dict:
+    message = "TikTok account health is Android-only until the iOS TikTok workflow is ported"
+    result = {
+        "ok": False,
+        "device": device,
+        "platform": "ios",
+        "error": "unsupported_platform",
+        "message": message,
+        "action": action,
+        "checked_at": _now_iso(),
+    }
+    if action == "account_health":
+        result.update({"active": None, "logged_in": [], "cached": False})
+    return result
 
 
 def _premium_available() -> bool:
@@ -54,6 +72,9 @@ def device_account_health(device: str, fresh: bool = False) -> dict:
             "checked_at": iso_ts,
         }
     """
+    if is_ios_ref(device):
+        return _ios_unsupported_result(device)
+
     if not fresh:
         cached = _cache.get(device)
         if cached and time.time() - cached[0] < _CACHE_TTL_S:
@@ -61,6 +82,7 @@ def device_account_health(device: str, fresh: bool = False) -> dict:
 
     result = {
         "device": device,
+        "platform": "android",
         "ok": False,
         "active": None,
         "logged_in": [],
@@ -100,8 +122,12 @@ def switch_active_account(device: str, handle: str) -> dict:
         {"ok": bool, "device": serial, "active": handle | None, "error": str | None}
     """
     handle = handle.lstrip("@").strip()
+    if is_ios_ref(device):
+        result = _ios_unsupported_result(device, action="account_switch")
+        result.update({"active": None, "target": handle})
+        return result
     if not _premium_available():
-        return {"ok": False, "device": device, "active": None, "error": "premium not installed"}
+        return {"ok": False, "device": device, "platform": "android", "active": None, "error": "premium not installed"}
 
     # First check if already active — save 10+ seconds
     health = device_account_health(device, fresh=True)
@@ -145,9 +171,22 @@ def sync_tiktok_accounts_table(device: str) -> dict:
     Returns:
         {"ok": bool, "device": serial, "added": [...], "updated": [...], "active": "...", "error": str | None}
     """
+    if is_ios_ref(device):
+        result = _ios_unsupported_result(device, action="account_sync")
+        result.update({"added": [], "updated": [], "active": None})
+        return result
+
     health = device_account_health(device, fresh=True)
     if not health["ok"]:
-        return {"ok": False, "device": device, "added": [], "updated": [], "active": None, "error": health["error"]}
+        return {
+            "ok": False,
+            "device": device,
+            "platform": "android",
+            "added": [],
+            "updated": [],
+            "active": None,
+            "error": health["error"],
+        }
 
     import sqlite3
     from gitd.db import DEFAULT_DB, get_connection, create_tables
@@ -178,6 +217,7 @@ def sync_tiktok_accounts_table(device: str) -> dict:
     return {
         "ok": True,
         "device": device,
+        "platform": "android",
         "added": added,
         "updated": updated,
         "active": active_handle,
@@ -186,9 +226,17 @@ def sync_tiktok_accounts_table(device: str) -> dict:
 
 
 def all_devices_health() -> list[dict]:
-    """Probe every connected ADB device. Returns list of health dicts."""
+    """Probe every connected device. iOS returns an explicit unsupported result."""
     from gitd.bots.common.adb import list_connected
-    return [device_account_health(serial) for serial in list_connected()]
+    from gitd.bots.common.device import ios_refs_from_host
+
+    devices: list[str] = []
+    seen: set[str] = set()
+    for serial in [*list_connected(), *ios_refs_from_host()]:
+        if serial and serial not in seen:
+            seen.add(serial)
+            devices.append(serial)
+    return [device_account_health(serial) for serial in devices]
 
 
 def expected_account_matches(device: str, expected: Optional[str]) -> dict:
@@ -216,6 +264,14 @@ def expected_account_matches(device: str, expected: Optional[str]) -> dict:
         return {"ok": True, "reason": None, "active": None, "expected": expected}
 
     expected_clean = expected.lstrip("@").strip()
+    if is_ios_ref(device):
+        return {
+            "ok": True,
+            "reason": "undetectable: iOS TikTok account health is not implemented yet",
+            "active": None,
+            "expected": expected_clean,
+        }
+
     health = device_account_health(device)
 
     if not health["ok"]:
