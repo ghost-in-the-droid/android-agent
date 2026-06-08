@@ -41,7 +41,17 @@ def _get_all_tools() -> list[dict]:
             "extract_articles",
             "read_news",
         ],
-        "Input": ["tap", "tap_element", "swipe", "type_text", "press_key", "long_press"],
+        "Input": [
+            "tap",
+            "tap_element",
+            "swipe",
+            "type_text",
+            "type_unicode",
+            "press_back",
+            "press_home",
+            "press_key",
+            "long_press",
+        ],
         "App Management": ["launch_app", "force_stop", "app_state", "list_packages", "explore_app", "launch_intent"],
         "Shell": ["shell"],
         "Clipboard & Notifications": [

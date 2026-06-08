@@ -69,6 +69,11 @@ TOOLS = [
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
+        "name": "get_screen_xml",
+        "description": "Get the raw normalized UI XML dump. Prefer get_screen_tree unless exact attributes are needed.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
         "name": "get_elements",
         "description": "Get interactive UI elements as JSON with idx, text, bounds, center. Use idx with tap_element.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
@@ -175,6 +180,25 @@ TOOLS = [
             "properties": {"device": {"type": "string"}, "text": {"type": "string"}},
             "required": ["device", "text"],
         },
+    },
+    {
+        "name": "type_unicode",
+        "description": "Type unicode text into the focused field. Use for emoji, CJK, accented characters, and other non-ASCII input.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"device": {"type": "string"}, "text": {"type": "string"}},
+            "required": ["device", "text"],
+        },
+    },
+    {
+        "name": "press_back",
+        "description": "Press the platform Back/navigation-back control.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "press_home",
+        "description": "Press the platform Home button.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
         "name": "press_key",
@@ -522,6 +546,9 @@ _UI_ACTION_TOOLS = {
     "tap_element",
     "swipe",
     "type_text",
+    "type_unicode",
+    "press_back",
+    "press_home",
     "press_key",
     "long_press",
     "launch_app",
@@ -617,6 +644,8 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return json.dumps(recording_status(device), indent=2)
         elif name == "get_screen_tree":
             return ctx.get_screen_tree(device)
+        elif name == "get_screen_xml":
+            return ctx.get_screen_xml(device)
         elif name == "get_elements":
             return json.dumps(ctx.get_interactive_elements(device), indent=2)
         elif name == "get_phone_state":
@@ -655,6 +684,21 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             else:
                 Device(device).adb("shell", "input", "text", args["text"].replace(" ", "%s"))
             return f"Typed: {args['text']}"
+        elif name == "type_unicode":
+            if is_ios_ref(device):
+                get_device(device).type_text(args["text"])
+            else:
+                Device(device).type_unicode(args["text"])
+            return f"Typed (unicode): {args['text']}"
+        elif name == "press_back":
+            get_device(device).back()
+            return "Pressed Back"
+        elif name == "press_home":
+            if is_ios_ref(device):
+                get_device(device).press_key("HOME")
+            else:
+                Device(device).adb("shell", "input", "keyevent", "KEYCODE_HOME")
+            return "Pressed Home"
         elif name == "press_key":
             key = args["key"]
             if is_ios_ref(device):
