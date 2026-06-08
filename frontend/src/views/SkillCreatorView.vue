@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { api } from '@/composables/useApi'
 import { renderMermaid } from '@/composables/useMermaid'
 import PhoneStreamWidget from '@/components/PhoneStreamWidget.vue'
 
 const devices = ref<any[]>([])
 const selectedDevice = ref('')
+const selectedIsIos = computed(() => selectedDevice.value.startsWith('ios:'))
+const selectedPlatform = computed(() => selectedIsIos.value ? 'ios' : 'android')
+const targetIdLabel = computed(() => selectedIsIos.value ? 'iOS bundle id' : 'Android package')
+const targetIdPlaceholder = computed(() => selectedIsIos.value ? 'com.google.chrome.ios' : 'com.zhiliaoapp.musically')
 const backend = ref(localStorage.getItem('creator_backend') || 'claude-code')
 const model = ref(localStorage.getItem('creator_model') || 'anthropic/claude-sonnet-4')
 const messages = ref<{role: string; content: string; actions?: any[]}[]>([])
@@ -189,9 +193,11 @@ function handleStreamClick(e: MouseEvent) {
   if (!selectedDevice.value) return
   const el = e.target as HTMLImageElement
   const rect = el.getBoundingClientRect()
-  const x = Math.round((e.clientX - rect.left) / rect.width * 1080)
-  const y = Math.round((e.clientY - rect.top) / rect.height * 2400)
-  api('/api/phone/tap', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, x, y }) })
+  const streamW = el.naturalWidth || 540
+  const streamH = el.naturalHeight || 1200
+  const x = Math.round((e.clientX - rect.left) / rect.width * streamW)
+  const y = Math.round((e.clientY - rect.top) / rect.height * streamH)
+  api('/api/phone/tap', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, x, y, stream_w: streamW, stream_h: streamH }) })
   const step = { action: 'tap', x, y }
   actionHistory.value.push(step)
   if (recording.value) recordedActions.value.push(step)
@@ -209,11 +215,44 @@ function toggleRecord() {
 }
 
 const saveSkillName = ref('')
+const saveSkillTarget = ref('')
 const saveSkillModal = ref(false)
+
+const hardwareKeys = computed(() => {
+  if (selectedIsIos.value) {
+    return [
+      { label: 'Back', key: 'BACK', title: 'Back' },
+      { label: 'Home', key: 'HOME', title: 'Home' },
+      { label: 'Enter', key: 'ENTER', title: 'Enter' },
+    ]
+  }
+  return [
+    { label: '\u25C0', key: 4, title: 'Back' },
+    { label: '\u2302', key: 3, title: 'Home' },
+    { label: '\u25A6', key: 187, title: 'Recents' },
+    { label: '\u23FB', key: 26, title: 'Power' },
+    { label: 'Vol+', key: 24, title: 'Vol+' },
+    { label: 'Vol-', key: 25, title: 'Vol-' },
+  ]
+})
+
+function deviceLabel(d: any): string {
+  const platform = d.platform === 'ios' || String(d.serial || '').startsWith('ios:') ? 'iOS' : 'Android'
+  return `${d.nickname || d.model || d.serial} (${platform})`
+}
+
+function defaultSkillTarget(): string {
+  const launchStep = [...recordedActions.value].reverse().find(step => step.action === 'launch' && (step.package || step.bundle_id))
+  if (launchStep) return launchStep.package || launchStep.bundle_id || ''
+  const dev = devices.value.find(d => d.serial === selectedDevice.value)
+  if (selectedIsIos.value) return dev?.bundle_id || dev?.ios_bundle_id || ''
+  return dev?.package || dev?.app_package || ''
+}
 
 function openSaveSkill() {
   if (!recordedActions.value.length) return
   saveSkillName.value = ''
+  saveSkillTarget.value = defaultSkillTarget()
   saveSkillModal.value = true
 }
 
@@ -221,11 +260,25 @@ async function saveRecordedSkill() {
   const name = saveSkillName.value.trim().toLowerCase().replace(/\s+/g, '_')
   if (!name || !recordedActions.value.length) return
   try {
+    const platform = selectedPlatform.value
+    const target = saveSkillTarget.value.trim()
+    const payload: any = {
+      name,
+      steps: recordedActions.value,
+      platforms: [platform],
+      app_package: platform === 'android' ? target : '',
+      android_package: platform === 'android' ? target : '',
+      ios_bundle_id: platform === 'ios' ? target : '',
+    }
+    if (elements.value.length) {
+      if (platform === 'ios') payload.elements_ios = elements.value
+      else payload.elements_android = elements.value
+    }
     const res = await api('/api/skills/create-from-recording', {
       method: 'POST',
-      body: JSON.stringify({ name, steps: recordedActions.value, app_package: '' })
+      body: JSON.stringify(payload)
     })
-    messages.value.push({ role: 'system', content: `Skill "${name}" saved with ${recordedActions.value.length} steps.` })
+    messages.value.push({ role: 'system', content: `Skill "${name}" saved for ${platform} with ${recordedActions.value.length} steps.` })
     saveSkillModal.value = false
     recordedActions.value = []
   } catch (e: any) {
@@ -344,7 +397,7 @@ onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
         <span class="sc-status-dot" :style="{ background: streaming ? '#22c55e' : '#475569' }"></span>
         <select v-model="selectedDevice" class="sc-select sc-select--device">
           <option value="">{{ devices.length ? 'Select device' : 'No devices — click ↻' }}</option>
-          <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ d.nickname || d.model || d.serial }}</option>
+          <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ deviceLabel(d) }}</option>
         </select>
         <button class="sc-pill-btn" @click="loadDevices" title="Refresh devices" style="padding: 4px 8px; font-size: 11px">↻</button>
         <div class="sc-device-actions">
@@ -369,12 +422,9 @@ onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
 
       <!-- Hardware keys -->
       <div class="sc-hw-keys">
-        <button class="sc-hw-btn" @click="sendKey(4)" title="Back">&#x25C0;</button>
-        <button class="sc-hw-btn" @click="sendKey(3)" title="Home">&#x2302;</button>
-        <button class="sc-hw-btn" @click="sendKey(187)" title="Recents">&#x25A6;</button>
-        <button class="sc-hw-btn" @click="sendKey(26)" title="Power">&#x23FB;</button>
-        <button class="sc-hw-btn" @click="sendKey(24)" title="Vol+">&#x1F50A;</button>
-        <button class="sc-hw-btn" @click="sendKey(25)" title="Vol-">&#x1F509;</button>
+        <button v-for="key in hardwareKeys" :key="String(key.key)" class="sc-hw-btn" @click="sendKey(key.key)" :title="key.title">
+          {{ key.label }}
+        </button>
       </div>
 
       <!-- Stream area -->
@@ -457,6 +507,15 @@ onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
             <input v-model="saveSkillName" placeholder="my_automation"
               style="width: 100%; padding: 8px 12px; font-size: 13px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1); outline: none"
               @keyup.enter="saveRecordedSkill" />
+          </div>
+          <div style="margin-top: 12px">
+            <label style="font-size: 11px; color: var(--text-3); display: block; margin-bottom: 4px">{{ targetIdLabel }}</label>
+            <input v-model="saveSkillTarget" :placeholder="targetIdPlaceholder"
+              style="width: 100%; padding: 8px 12px; font-size: 13px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1); outline: none"
+              @keyup.enter="saveRecordedSkill" />
+            <div style="margin-top: 4px; font-size: 10px; color: var(--text-4)">
+              Saving as {{ selectedIsIos ? 'iOS' : 'Android' }} skill.
+            </div>
           </div>
           <div style="margin-top: 8px; max-height: 200px; overflow-y: auto; font-size: 10px; font-family: monospace; color: var(--text-4)">
             <div v-for="(a, i) in recordedActions" :key="i">

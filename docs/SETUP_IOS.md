@@ -212,6 +212,9 @@ Supported on iOS:
 - `/api/phone/stream?device=ios:<udid>` with WDA MJPEG mode when requested and screenshot polling fallback
 - Portal/WebRTC signaling endpoints return a structured `stream_fallback`
   payload for iOS that points clients to `/api/phone/stream?mode=mjpeg`
+- Skill Creator can target `ios:<udid>` devices, uses iOS/Appium prompt
+  guidance, and saves recorded skills with `platforms: ["ios"]`,
+  `ios_bundle_id`, and `elements_ios.yaml`
 - Test-runner recordings through WDA MJPEG plus `ffmpeg`
 
 Android-only for now:
