@@ -53,6 +53,10 @@ let timer: number | null = null
 const isIos = computed(() => props.serial?.startsWith('ios:') || false)
 const platformLabel = computed(() => isIos.value ? 'iOS' : 'Android')
 const streamMode = computed(() => isIos.value ? 'mjpeg' : props.mode)
+const streamModeLabel = computed(() => {
+  if (isIos.value && streamMode.value === 'mjpeg') return 'WDA MJPEG'
+  return streamMode.value === 'mjpeg' ? 'MJPEG' : 'Screenshot'
+})
 const keyButtons = computed(() => {
   if (isIos.value) {
     return [
@@ -125,16 +129,18 @@ async function toggleOverlayFn() {
 function handleClick(e: MouseEvent) {
   const el = e.target as HTMLImageElement
   const rect = el.getBoundingClientRect()
-  // Scale from display coords to device coords (assume 1080x2400 or use naturalWidth)
+  // Screenshot polling is half-res; iOS WDA MJPEG already reports its own frame size.
   const sw = el.naturalWidth || 540
   const sh = el.naturalHeight || 1170
-  const x = Math.round((e.clientX - rect.left) / rect.width * sw * 2)
-  const y = Math.round((e.clientY - rect.top) / rect.height * sh * 2)
-  emit('tap', x, y, sw * 2, sh * 2)
-  // Also send tap directly
+  const scale = isIos.value && streamMode.value === 'mjpeg' ? 1 : 2
+  const streamW = sw * scale
+  const streamH = sh * scale
+  const x = Math.round((e.clientX - rect.left) / rect.width * streamW)
+  const y = Math.round((e.clientY - rect.top) / rect.height * streamH)
+  emit('tap', x, y, streamW, streamH)
   api('/api/phone/tap', {
     method: 'POST',
-    body: JSON.stringify({ device: props.serial, x, y, stream_w: sw * 2, stream_h: sh * 2 })
+    body: JSON.stringify({ device: props.serial, x, y, stream_w: streamW, stream_h: streamH })
   })
 }
 
@@ -160,6 +166,7 @@ defineExpose({ startStream, stopStream, streaming })
       <span class="psw-status-dot" :style="{ background: streaming ? '#22c55e' : '#475569' }" :title="streaming ? 'Streaming' : 'Idle'"></span>
       <span class="psw-label">{{ label || serial?.slice(0, 10) || 'No device' }}</span>
       <span class="psw-platform">{{ platformLabel }}</span>
+      <span class="psw-stream-mode">{{ streamModeLabel }}</span>
       <div class="psw-keys" v-if="showKeys">
         <button v-for="key in keyButtons" :key="String(key.value)" class="psw-key"
           @click="sendKey(key.value)" :title="key.title">{{ key.label }}</button>
@@ -179,7 +186,7 @@ defineExpose({ startStream, stopStream, streaming })
       <img v-else-if="streaming && streamMode === 'mjpeg' && mjpegUrl" :src="mjpegUrl" class="psw-img"
         draggable="false" @click="handleClick" @dragstart.prevent />
       <div v-else class="psw-placeholder">
-        <slot name="placeholder">Click Stream to watch</slot>
+        <slot name="placeholder">{{ isIos ? 'Start WDA stream' : 'Click Stream to watch' }}</slot>
       </div>
     </div>
     <!-- Optional slot for extra content below stream (progress, logs, etc.) -->
@@ -225,6 +232,15 @@ defineExpose({ startStream, stopStream, streaming })
   border-radius: 4px;
   background: #1f2937;
   color: #cbd5e1;
+}
+.psw-stream-mode {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #0f172a;
+  color: #38bdf8;
 }
 .psw-keys {
   display: flex;
@@ -277,6 +293,7 @@ defineExpose({ startStream, stopStream, streaming })
 .psw--compact .psw-header { padding: 4px 8px; }
 .psw--compact .psw-label { font-size: 9px; }
 .psw--compact .psw-platform { font-size: 8px; padding: 1px 4px; }
+.psw--compact .psw-stream-mode { font-size: 8px; padding: 1px 4px; }
 .psw--compact .psw-key { padding: 1px 4px; font-size: 9px; }
 .psw--compact .psw-stream-btn { font-size: 8px; padding: 1px 6px; }
 </style>
