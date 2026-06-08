@@ -4,17 +4,24 @@ import os
 
 import pytest
 
-from gitd.bots.common.device import get_device, ios_refs_from_env, list_configured_ios_devices, platform_for_device
+from gitd.bots.common.device import (
+    get_device,
+    ios_refs_from_env,
+    ios_refs_from_host,
+    list_configured_ios_devices,
+    platform_for_device,
+)
 from gitd.bots.common.ios import (
     IOSDevice,
+    _parse_xctrace_devices,
     classify_ios_error,
     configured_ios_udids,
     ios_config_for_udid,
     ios_xml_to_elements,
+    known_ios_udids,
     normalize_wda_xml,
     visible_text_entries_from_xml,
 )
-
 
 RAW_WDA_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <AppiumAUT>
@@ -74,6 +81,7 @@ def test_ios_xml_to_elements_matches_android_element_shape():
 def test_factory_routes_ios_prefix(monkeypatch):
     monkeypatch.setenv("IOS_DEVICE_UDID", "abc123")
     monkeypatch.delenv("IOS_DEVICE_UDIDS", raising=False)
+    monkeypatch.setattr("gitd.bots.common.device.discover_host_ios_devices", lambda include_simulators=True: [])
 
     assert platform_for_device("ios:abc123") == "ios"
     assert platform_for_device("emulator-5554") == "android"
@@ -109,6 +117,7 @@ def test_list_configured_ios_devices_includes_config_and_probe_state(monkeypatch
     monkeypatch.setenv("IOS_MJPEG_FIX_ORIENTATION", "false")
     monkeypatch.delenv("IOS_DEVICE_UDIDS", raising=False)
     monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+    monkeypatch.setattr("gitd.bots.common.device.discover_host_ios_devices", lambda include_simulators=True: [])
 
     def fake_probe(device, deep=True):
         calls.append((device, deep))
@@ -125,6 +134,8 @@ def test_list_configured_ios_devices_includes_config_and_probe_state(monkeypatch
             "model": "Blah's iPhone",
             "connection": "appium-wda",
             "platform": "ios",
+            "source": "configured",
+            "host_state": "",
             "status": "available",
             "status_message": "Appium is reachable",
             "appium_url": "http://appium.local",
@@ -150,6 +161,119 @@ def test_list_configured_ios_devices_includes_config_and_probe_state(monkeypatch
             },
         }
     ]
+
+
+def test_parse_xctrace_devices_discovers_connected_ios_and_booted_simulators():
+    output = """
+== Devices ==
+Blah's MacBook Pro (15.5) (00006000-0000000000000000)
+Blah's iPhone (18.5) (00008110-0012345678901234)
+iPad QA (17.5) (00008101-0098765432109876)
+== Simulators ==
+iPhone 16 Pro (18.5) (11111111-2222-3333-4444-555555555555) (Booted)
+iPhone 15 (17.5) (aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee) (Shutdown)
+iPad mini (18.5) (99999999-8888-7777-6666-555555555555) (Booted)
+"""
+
+    assert _parse_xctrace_devices(output) == [
+        {
+            "udid": "00008110-0012345678901234",
+            "name": "Blah's iPhone",
+            "platform_version": "18.5",
+            "source": "host",
+            "state": "connected",
+        },
+        {
+            "udid": "00008101-0098765432109876",
+            "name": "iPad QA",
+            "platform_version": "17.5",
+            "source": "host",
+            "state": "connected",
+        },
+        {
+            "udid": "11111111-2222-3333-4444-555555555555",
+            "name": "iPhone 16 Pro",
+            "platform_version": "18.5",
+            "source": "simulator",
+            "state": "Booted",
+        },
+        {
+            "udid": "99999999-8888-7777-6666-555555555555",
+            "name": "iPad mini",
+            "platform_version": "18.5",
+            "source": "simulator",
+            "state": "Booted",
+        },
+    ]
+
+    assert [item["udid"] for item in _parse_xctrace_devices(output, include_simulators=False)] == [
+        "00008110-0012345678901234",
+        "00008101-0098765432109876",
+    ]
+
+
+def test_known_ios_udids_merges_config_and_host_discovery(monkeypatch):
+    monkeypatch.setenv("IOS_DEVICE_UDID", "abc123")
+    monkeypatch.setenv("IOS_DEVICE_UDIDS", "ios:abc123,def456")
+    monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.discover_host_ios_devices",
+        lambda include_simulators=True: [{"udid": "def456"}, {"udid": "sim789"}],
+    )
+    monkeypatch.setattr(
+        "gitd.bots.common.device.discover_host_ios_devices",
+        lambda include_simulators=True: [{"udid": "def456"}, {"udid": "sim789"}],
+    )
+
+    assert known_ios_udids() == ["abc123", "def456", "sim789"]
+    assert ios_refs_from_host() == ["ios:abc123", "ios:def456", "ios:sim789"]
+
+
+def test_list_configured_ios_devices_includes_host_discovered_devices(monkeypatch):
+    calls = []
+    monkeypatch.delenv("IOS_DEVICE_UDID", raising=False)
+    monkeypatch.delenv("IOS_DEVICE_UDIDS", raising=False)
+    monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+    monkeypatch.setattr(
+        "gitd.bots.common.device.discover_host_ios_devices",
+        lambda include_simulators=True: [
+            {
+                "udid": "00008110-0012345678901234",
+                "name": "Blah's iPhone",
+                "platform_version": "18.5",
+                "source": "host",
+                "state": "connected",
+            }
+        ],
+    )
+
+    def fake_probe(device, deep=True):
+        calls.append((device, deep))
+
+        class ProbeStatus:
+            def to_dict(self):
+                return {
+                    "platform": "ios",
+                    "device": device,
+                    "udid": "00008110-0012345678901234",
+                    "state": "appium_down",
+                    "message": "Appium is unreachable",
+                    "appium_url": "http://127.0.0.1:4723",
+                }
+
+        return ProbeStatus()
+
+    monkeypatch.setattr("gitd.bots.common.device.probe_ios_device", fake_probe)
+
+    devices = list_configured_ios_devices(deep_probe=False)
+
+    assert calls == [("ios:00008110-0012345678901234", False)]
+    assert devices[0]["serial"] == "ios:00008110-0012345678901234"
+    assert devices[0]["model"] == "Blah's iPhone"
+    assert devices[0]["source"] == "host"
+    assert devices[0]["host_state"] == "connected"
+    assert devices[0]["platform_version"] == "18.5"
+    assert devices[0]["status"] == "appium_down"
 
 
 def test_per_device_ios_config_from_json(monkeypatch):

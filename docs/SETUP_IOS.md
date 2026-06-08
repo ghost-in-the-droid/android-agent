@@ -47,6 +47,10 @@ export IOS_KNOWN_APPS_JSON='{"Chrome":"com.google.chrome.ios","TikTok":"com.zhil
 
 `IOS_WDA_URL` lets Ghost/Appium attach to an already-running WebDriverAgent in a later setup. The default path lets Appium create and manage the WDA session.
 `IOS_KNOWN_APPS_JSON` augments iOS app discovery. iOS does not expose Android-style full package enumeration, so Ghost combines configured bundle IDs and common bundle IDs, then verifies them through Appium when WDA is available.
+On macOS hosts with Xcode tools, Ghost also discovers connected iPhones and
+booted iOS simulators from `xcrun xctrace list devices`. Explicit env/JSON
+config is still the place to set Appium URLs, WDA URLs, ports, and signing
+capabilities; host discovery only supplies device refs and labels.
 
 For multiple iPhones, use `IOS_DEVICE_UDIDS` plus a JSON config blob or file:
 
@@ -103,6 +107,8 @@ xcrun simctl list devices booted
 ```
 
 `idb` can still be useful for simulator inspection and accessibility experiments, but Ghost's first iOS backend is Appium/WDA so the same route works for real iPhones.
+The smoke scripts can also use the first discovered iOS device automatically
+when `IOS_DEVICE_UDID` and `--device` are omitted.
 
 ## Smoke Test
 

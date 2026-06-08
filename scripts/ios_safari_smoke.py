@@ -16,12 +16,19 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from gitd.bots.common.ios import IOSDevice, IOS_PREFIX
+from gitd.bots.common.ios import IOS_PREFIX, IOSDevice, known_ios_udids
 from gitd.services.device_context import get_screen_tree
 
 
 def _device_ref(value: str) -> str:
     return value if value.startswith(IOS_PREFIX) else f"{IOS_PREFIX}{value}"
+
+
+def _default_device(value: str) -> str:
+    if value:
+        return value
+    known = known_ios_udids()
+    return known[0] if known else ""
 
 
 def main() -> int:
@@ -43,6 +50,7 @@ def main() -> int:
     parser.add_argument("--close", action="store_true", help="Delete the Appium session before exiting")
     args = parser.parse_args()
 
+    args.device = _default_device(args.device)
     if not args.device:
         print("IOS_DEVICE_UDID or --device is required", file=sys.stderr)
         return 2
