@@ -785,6 +785,55 @@ def test_probe_classifies_unreachable_appium(monkeypatch):
     assert "unreachable" in status.message.lower()
 
 
+def test_probe_reports_configured_unreachable_when_local_udid_not_visible(monkeypatch):
+    IOSDevice._sessions.clear()
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append(url)
+        if url.endswith("/status"):
+            return FakeResponse({"value": {"ready": True}})
+        raise AssertionError(f"unexpected request: {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    monkeypatch.setattr("gitd.bots.common.ios.discover_host_ios_devices", lambda include_simulators=True: [])
+
+    status = IOSDevice("ios:00008110-0016443101D0401E", timeout=1).probe(deep=False)
+
+    assert status.state == "configured_unreachable"
+    assert "not visible" in status.message
+    assert status.checks["appium_status_code"] == 200
+    assert status.checks["host_device"] == {"visible": False, "source": "xcrun xctrace list devices"}
+    assert all(not url.endswith("/session") for url in calls)
+
+
+def test_probe_allows_remote_appium_when_udid_not_visible_locally(monkeypatch):
+    IOSDevice._sessions.clear()
+    calls = []
+
+    def fake_request(method, url, json=None, timeout=None):
+        calls.append(url)
+        if url.endswith("/status"):
+            return FakeResponse({"value": {"ready": True}})
+        raise AssertionError(f"unexpected request: {url}")
+
+    monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
+    monkeypatch.setattr("gitd.bots.common.ios.discover_host_ios_devices", lambda include_simulators=True: [])
+    monkeypatch.setattr(
+        "gitd.bots.common.ios.remote_xpc_tunnel_status",
+        lambda *args, **kwargs: {"required": False, "state": "not_required", "ok": True},
+    )
+
+    status = IOSDevice(
+        "ios:00008110-0016443101D0401E",
+        appium_url="http://appium.example.test:4723",
+        timeout=1,
+    ).probe(deep=False)
+
+    assert status.state == "available"
+    assert status.checks == {"appium_status_code": 200}
+
+
 def test_probe_fails_fast_when_required_remote_xpc_tunnel_is_stale(monkeypatch):
     IOSDevice._sessions.clear()
     calls = []
