@@ -1776,6 +1776,58 @@ def test_web_context_entries_prefer_dom_text_and_article_urls(monkeypatch):
     assert context_names[-1] == "NATIVE_APP"
 
 
+def test_native_article_extraction_filters_browser_toolbar_controls(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+    monkeypatch.setattr(dev, "web_text_entries", lambda max_entries=300: [])
+    monkeypatch.setattr(
+        dev,
+        "native_text_entries",
+        lambda include_controls=False, max_entries=300: [
+            {
+                "text": "Search your screen with Google Lens",
+                "bounds": {"x1": 30, "y1": 153, "x2": 162, "y2": 261},
+                "center": {"x": 96, "y": 207},
+                "class": "XCUIElementTypeButton",
+                "provenance": "native",
+            },
+            {
+                "text": "text.npr.org Secure",
+                "bounds": {"x1": 30, "y1": 153, "x2": 1140, "y2": 261},
+                "center": {"x": 585, "y": 207},
+                "class": "XCUIElementTypeButton",
+                "provenance": "native",
+            },
+            {
+                "text": "NPR : National Public Radio",
+                "bounds": {"x1": 60, "y1": 498, "x2": 963, "y2": 585},
+                "center": {"x": 511, "y": 541},
+                "class": "XCUIElementTypeStaticText",
+                "provenance": "native",
+            },
+            {
+                "text": "Monday, June 8, 2026",
+                "bounds": {"x1": 60, "y1": 711, "x2": 546, "y2": 774},
+                "center": {"x": 303, "y": 742},
+                "class": "XCUIElementTypeStaticText",
+                "provenance": "native",
+            },
+            {
+                "text": "Israel and Iran exchange missile fire threatening Middle East truce",
+                "bounds": {"x1": 60, "y1": 834, "x2": 1092, "y2": 963},
+                "center": {"x": 576, "y": 898},
+                "class": "XCUIElementTypeLink",
+                "provenance": "native",
+            },
+        ],
+    )
+
+    articles = dev.extract_articles(max_items=3)
+
+    assert [article["title"] for article in articles] == [
+        "Israel and Iran exchange missile fire threatening Middle East truce"
+    ]
+
+
 def test_web_context_body_text_fallback_preserves_article_text(monkeypatch):
     snapshot = {
         "url": "https://text.npr.org/article/123",
@@ -2044,6 +2096,23 @@ def test_ios_wait_for_url_falls_back_to_page_text_when_url_is_hidden(monkeypatch
         "url": "",
         "state": "page_text_available",
         "verified_url": False,
+    }
+
+
+def test_ios_wait_for_url_matches_native_toolbar_url_when_webview_url_is_hidden(monkeypatch):
+    dev = IOSDevice("ios:abc123", appium_url="http://appium.local")
+
+    monkeypatch.setattr(dev, "_current_url_from_webdriver", lambda: "")
+    monkeypatch.setattr(dev, "web_text_snapshot", lambda max_entries=12: {})
+    monkeypatch.setattr(dev, "_current_url_from_native_text", lambda: "text.npr.org")
+
+    status = dev.wait_for_url("https://text.npr.org/", timeout=0, interval=0.01)
+
+    assert status == {
+        "ok": True,
+        "expected_url": "https://text.npr.org/",
+        "url": "text.npr.org",
+        "state": "url_matched_native",
     }
 
 

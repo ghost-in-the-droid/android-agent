@@ -385,6 +385,25 @@ def _article_text_has_body(text: str, *, source_headline: str = "") -> bool:
     return len(combined) >= 35 and len(re.findall(r"[A-Za-z0-9]+", combined)) >= 6
 
 
+def _article_text_confirms_open_page(text: str, *, source_headline: str = "") -> bool:
+    if not _article_text_has_body(text, source_headline=source_headline):
+        return False
+    lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines() if line.strip()]
+    lower_lines = [line.lower() for line in lines]
+    normalized_headline = re.sub(r"\s+", " ", source_headline or "").strip().lower()
+    if normalized_headline and normalized_headline not in lower_lines:
+        return False
+    if any(line.startswith("by ") for line in lower_lines):
+        return True
+    date_pattern = (
+        r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|"
+        r"monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b"
+    )
+    if any(re.search(date_pattern, line) and re.search(r"\b20\d{2}\b", line) for line in lower_lines):
+        return True
+    return len(lines) >= 6 and any(len(re.findall(r"[A-Za-z0-9]+", line)) >= 12 for line in lines)
+
+
 def _article_source(articles: list[dict[str, Any]]) -> str:
     sources = sorted(
         {str(article.get("provenance") or "").strip() for article in articles if article.get("provenance")}
@@ -743,6 +762,28 @@ def _open_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5)
         raise
 
 
+def _return_to_front_page_after_article(dev, front_page_url: str, source_headline: str, *, delay: float) -> dict[str, Any]:
+    result: dict[str, Any] = {"method": "back", "reopened_front_page": False}
+    try:
+        dev.browser_back(delay=1.0)
+    except Exception as exc:
+        result["back_error"] = str(exc)
+
+    try:
+        visible_text = dev.extract_visible_text(max_lines=80)
+    except Exception as exc:
+        result["verification_error"] = str(exc)
+        visible_text = ""
+
+    if visible_text and _article_text_confirms_open_page(visible_text, source_headline=source_headline):
+        navigation = dev.open_url(front_page_url, delay=max(1.0, delay))
+        result["method"] = "open_url"
+        result["reopened_front_page"] = True
+        if isinstance(navigation, dict):
+            result["navigation"] = navigation
+    return result
+
+
 def read_news(
     device: str,
     url: str = "https://text.npr.org/",
@@ -859,16 +900,14 @@ def read_news(
                     time.sleep(wait_s)
                 if save_screenshots:
                     article_result["screenshot"] = _save_device_screenshot(dev, out_path / f"article_{index}.png")
+                article_current_url = ""
+                same_url_as_front_page = False
                 try:
                     article_current_url = dev.get_current_url()
                     article_result["current_url"] = article_current_url
-                    if _urls_equivalent(article_current_url, front_page_url):
-                        should_go_back = False
-                        raise RuntimeError("article navigation stayed on the front page")
                 except Exception as exc:
-                    if str(exc) == "article navigation stayed on the front page":
-                        raise
                     article_result["current_url_error"] = str(exc)
+                same_url_as_front_page = bool(article_current_url) and _urls_equivalent(article_current_url, front_page_url)
                 visible_text, text_evidence = _extract_visible_text_with_retry(
                     device,
                     dev,
@@ -884,6 +923,14 @@ def read_news(
                     visible_text,
                     source_headline=str(headline.get("title", "") or ""),
                 )
+                if same_url_as_front_page and not _article_text_confirms_open_page(
+                    visible_text,
+                    source_headline=str(headline.get("title", "") or ""),
+                ):
+                    should_go_back = False
+                    raise RuntimeError("article navigation stayed on the front page")
+                if same_url_as_front_page:
+                    article_result["url_verification"] = "same_host_article_text"
                 article_evidence["text"] = text_evidence
                 lines = [line.strip() for line in visible_text.splitlines() if line.strip()]
                 article_result["page_title"] = lines[0] if lines else ""
@@ -898,7 +945,12 @@ def read_news(
                 result["extraction"]["articles"].append(article_evidence)
                 if should_go_back:
                     try:
-                        dev.browser_back(delay=1.0)
+                        article_evidence["return"] = _return_to_front_page_after_article(
+                            dev,
+                            normalized_url,
+                            str(headline.get("title") or ""),
+                            delay=wait_s,
+                        )
                     except Exception as exc:
                         result["errors"].append({"article": headline.get("title", ""), "back_error": str(exc)})
 
