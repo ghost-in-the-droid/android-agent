@@ -31,6 +31,7 @@ export IOS_APPIUM_URL="http://127.0.0.1:4723"
 Optional:
 
 ```bash
+export IOS_APPIUM_COMMAND="appium" # or "npx appium", "/opt/homebrew/bin/appium", etc.
 export IOS_DEVICE_NAME="My iPhone"
 export IOS_PLATFORM_VERSION="18.5"
 export IOS_BUNDLE_ID="com.google.chrome.ios" # or another installed iOS app bundle id
@@ -157,7 +158,10 @@ shows Appium/WDA health dots, recovery steps, and an action button when
 `start_appium`, or `restart_remote_xpc_tunnel`. The button calls
 `/api/phone/health/<device>/fix`; manual recovery states still show steps only.
 `start_appium` is automatic only for local HTTP Appium URLs such as
-`http://127.0.0.1:4723`; remote or HTTPS Appium URLs return manual steps.
+`http://127.0.0.1:4723`; remote or HTTPS Appium URLs return manual steps. If
+`appium` is not directly on `PATH`, set `IOS_APPIUM_COMMAND` to the executable
+command Ghost should launch, for example `npx appium` or
+`/opt/homebrew/bin/appium`.
 
 Chrome/news workflow smoke:
 
