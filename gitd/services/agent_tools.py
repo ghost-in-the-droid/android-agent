@@ -56,6 +56,11 @@ TOOLS = [
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
+        "name": "device_health",
+        "description": "Run a comprehensive device health check. On iOS, includes Appium/WDA status and recovery steps.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
         "name": "classify_screen",
         "description": "Classify screen type: home, search, profile, dialog, error, loading.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
@@ -536,6 +541,8 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return json.dumps(ctx.get_interactive_elements(device), indent=2)
         elif name == "get_phone_state":
             return json.dumps(ctx.get_phone_state(device), indent=2)
+        elif name == "device_health":
+            return json.dumps(ctx.device_health(device), indent=2)
         elif name == "classify_screen":
             return json.dumps(ctx.classify_screen(device), indent=2)
         elif name == "find_on_screen":

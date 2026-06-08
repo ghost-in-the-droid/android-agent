@@ -266,6 +266,14 @@ def get_phone_state(device: str) -> str:
     return json.dumps(_get_state(device), indent=2)
 
 
+@mcp.tool()
+def device_health(device: str) -> str:
+    """Run a comprehensive device health check.
+    iOS includes Appium/WDA status, active session details, and recovery steps."""
+    from gitd.services.device_context import device_health as _device_health
+    return json.dumps(_device_health(device), indent=2)
+
+
 # ── Tier 1.5: Context Extraction ────────────────────────────────────────
 
 

@@ -31,6 +31,8 @@ def test_every_agent_and_mcp_tool_has_platform_classification():
 def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("screenshot", "ios") is True
     assert supports_platform("open_url", "ios") is True
+    assert supports_platform("device_health", "ios") is True
+    assert supports_platform("device_health", "android") is True
     assert supports_platform("get_current_url", "ios") is True
     assert supports_platform("get_current_url", "android") is False
     assert supports_platform("shell", "ios") is False
@@ -50,6 +52,7 @@ def test_platform_classifications_have_stable_ios_semantics():
     assert supports_platform("read_news", "android") is False
 
     assert tool_platform_info("shell").support == "android_only"
+    assert tool_platform_info("device_health").support == "cross_platform"
     assert tool_platform_info("clipboard_get").support == "cross_platform"
     assert tool_platform_info("clipboard_set").support == "cross_platform"
     assert tool_platform_info("paste_text").support == "cross_platform"
@@ -69,12 +72,22 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     )
     monkeypatch.setattr("gitd.services.device_context.open_notifications", lambda device: True)
     monkeypatch.setattr("gitd.services.device_context.clear_notifications", lambda device: True)
+    monkeypatch.setattr(
+        "gitd.services.device_context.device_health",
+        lambda device: {
+            "serial": device,
+            "platform": "ios",
+            "connection": {"type": "appium-wda", "status": "wda_signing_failed"},
+            "recommended_fix": "fix_wda_signing",
+        },
+    )
 
     shell = execute_tool("shell", {"device": "ios:abc123", "command": "ls"})
     clipboard = execute_tool("clipboard_get", {"device": "ios:abc123"})
     notifications = json.loads(execute_tool("get_notifications", {"device": "ios:abc123"}))
     opened = execute_tool("open_notifications", {"device": "ios:abc123"})
     cleared = execute_tool("clear_notifications", {"device": "ios:abc123"})
+    health = json.loads(execute_tool("device_health", {"device": "ios:abc123"}))
     unknown = execute_tool("does_not_exist", {"device": "ios:abc123"})
 
     assert shell.startswith("ERROR: shell is Android-only")
@@ -82,6 +95,8 @@ def test_execute_tool_uses_platform_registry_for_ios_errors(monkeypatch):
     assert notifications == [{"title": "Slack", "text": "New message", "platform": "ios"}]
     assert opened == "Notification shade opened"
     assert cleared == "Notifications cleared"
+    assert health["connection"]["status"] == "wda_signing_failed"
+    assert health["recommended_fix"] == "fix_wda_signing"
     assert unknown == "Unknown tool: does_not_exist"
 
 
@@ -90,6 +105,7 @@ def test_tools_for_device_filters_by_platform():
     android_names = {tool["name"] for tool in tools_for_device("emulator-5554")}
 
     assert "open_url" in ios_names
+    assert "device_health" in ios_names
     assert "extract_articles" in ios_names
     assert "shell" not in ios_names
     assert "launch_intent" not in ios_names
@@ -107,6 +123,7 @@ def test_tools_for_device_filters_by_platform():
     assert "read_news" in ios_names
 
     assert "shell" in android_names
+    assert "device_health" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names
 
@@ -221,9 +238,11 @@ def test_openai_tool_schema_is_filtered_by_device():
     android_names = {tool["function"]["name"] for tool in openai_tools_for_device("emulator-5554")}
 
     assert "open_url" in ios_names
+    assert "device_health" in ios_names
     assert "shell" not in ios_names
     assert "get_current_url" in ios_names
     assert "read_news" in ios_names
     assert "shell" in android_names
+    assert "device_health" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names
