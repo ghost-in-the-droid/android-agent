@@ -19,7 +19,12 @@ from mcp.server.fastmcp import FastMCP
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gitd.bots.common.adb import Device
-from gitd.bots.common.device import get_device, is_ios_ref, list_connected_device_refs
+from gitd.bots.common.device import (
+    get_device,
+    is_ios_ref,
+    list_configured_ios_devices,
+    list_connected_device_refs,
+)
 from gitd.skills.platforms import (
     normalize_platforms,
     skill_platform_error_text,
@@ -51,6 +56,42 @@ def _load_skill_metadata(skill: str) -> dict:
     return yaml.safe_load(meta_path.read_text()) or {}
 
 
+def _ios_device_details_by_serial() -> dict[str, dict]:
+    try:
+        return {item["serial"]: item for item in list_configured_ios_devices(deep_probe=False)}
+    except Exception:
+        return {}
+
+
+def _format_ios_device(serial: str, details: dict | None) -> str:
+    if not details:
+        return f"{serial} (iOS via Appium/WDA)"
+
+    label = details.get("model") or details.get("device_name") or "iOS device"
+    parts = [label, "iOS"]
+
+    status = details.get("status")
+    if status:
+        parts.append(f"status={status}")
+
+    source = details.get("source")
+    host_state = details.get("host_state")
+    if source and host_state:
+        parts.append(f"host={source}/{host_state}")
+    elif source:
+        parts.append(f"source={source}")
+
+    appium_url = details.get("appium_url")
+    if appium_url:
+        parts.append(f"appium={appium_url}")
+
+    message = details.get("status_message")
+    if message:
+        parts.append(f"hint={message}")
+
+    return f"{serial} ({'; '.join(parts)})"
+
+
 # ── Tier 1: Raw Android Control ──────────────────────────────────────────
 
 
@@ -64,10 +105,12 @@ def list_devices() -> str:
             "No devices connected. Check ADB authorization, connect an iPhone visible to xcrun/xctrace, "
             "or set IOS_DEVICE_UDID for iOS."
         )
+    ios_details = _ios_device_details_by_serial()
     result = []
     for serial in devices:
         if is_ios_ref(serial):
-            model = "iOS via Appium/WDA"
+            result.append(_format_ios_device(serial, ios_details.get(serial)))
+            continue
         else:
             try:
                 model = Device(serial).adb("shell", "getprop", "ro.product.model", timeout=3).strip()
