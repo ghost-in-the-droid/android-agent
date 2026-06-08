@@ -80,13 +80,56 @@ def get_current_url(device: str) -> dict[str, Any]:
 def wait_for_text(device: str, text: str, timeout: float = 12.0) -> dict[str, Any]:
     dev = get_device(device)
     if is_ios_ref(device) and hasattr(dev, "wait_for_text"):
-        visible = dev.wait_for_text(text, timeout=timeout)
-        return {"ok": True, "platform": "ios", "text": text, "visible_text": visible}
+        try:
+            visible = dev.wait_for_text(text, timeout=timeout)
+            return {"ok": True, "platform": "ios", "text": text, "found": True, "visible_text": visible}
+        except Exception as exc:
+            visible = ""
+            try:
+                visible = dev.extract_visible_text(max_lines=120)
+            except Exception:
+                pass
+            return {
+                "ok": False,
+                "platform": "ios",
+                "text": text,
+                "found": False,
+                "timeout": timeout,
+                "visible_text": visible,
+                "error": str(exc),
+            }
 
     from gitd.services.device_context import find_on_screen
 
-    found = find_on_screen(device, text)
-    return {"ok": bool(found), "platform": "android", "text": text, "match": found}
+    timeout = max(0.0, float(timeout))
+    interval = 0.5
+    deadline = _retry_deadline(timeout)
+    attempts = 0
+    while True:
+        attempts += 1
+        found = find_on_screen(device, text)
+        if found:
+            return {
+                "ok": True,
+                "platform": "android",
+                "text": text,
+                "found": True,
+                "match": found,
+                "attempts": attempts,
+                "timeout": timeout,
+            }
+        remaining = deadline - time.time()
+        if remaining <= 0:
+            return {
+                "ok": False,
+                "platform": "android",
+                "text": text,
+                "found": False,
+                "match": None,
+                "attempts": attempts,
+                "timeout": timeout,
+            }
+        time.sleep(min(interval, remaining))
 
 
 def extract_visible_text(device: str, max_lines: int = 200, include_controls: bool = False) -> dict[str, Any]:
