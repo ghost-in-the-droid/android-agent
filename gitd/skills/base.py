@@ -279,6 +279,19 @@ class Workflow:
                 time.sleep(0.5)
         return dismissed
 
+    def _step_results_data(self, steps: list[Action]) -> list[dict[str, Any]]:
+        """Return compact, serializable action results for scheduler/API evidence."""
+        out: list[dict[str, Any]] = []
+        for action, result in zip(steps, self.results, strict=False):
+            out.append({
+                'name': action.name,
+                'success': result.success,
+                'data': result.data,
+                'error': result.error,
+                'duration_ms': result.duration_ms,
+            })
+        return out
+
     def run(self) -> ActionResult:
         """Execute the full lifecycle: startup → [step → popup detect] → done."""
         t0 = time.time()
@@ -292,7 +305,8 @@ class Workflow:
             self._dismiss_popups()
 
         # Execute steps with popup detection between each
-        for action in self.steps():
+        steps = self.steps()
+        for action in steps:
             log.info(f'[{self.name}] Running: {action.name}')
             result = action.run()
             self.results.append(result)
@@ -302,7 +316,8 @@ class Workflow:
                     success=False,
                     error=f'Workflow {self.name} failed at step {action.name}: {result.error}',
                     data={'completed_steps': len(self.results) - 1,
-                          'failed_step': action.name},
+                          'failed_step': action.name,
+                          'step_results': self._step_results_data(steps)},
                     duration_ms=(time.time() - t0) * 1000,
                 )
             # Popup detection after each step
@@ -312,7 +327,8 @@ class Workflow:
 
         return ActionResult(
             success=True,
-            data={'completed_steps': len(self.results)},
+            data={'completed_steps': len(self.results),
+                  'step_results': self._step_results_data(steps)},
             duration_ms=(time.time() - t0) * 1000,
         )
 

@@ -112,6 +112,43 @@ class NavigateToProfile(Action):
         return ActionResult(success=True)
 
 
+class CaptureVisibleText(Action):
+    name = "capture_visible_text"
+    description = "Capture visible TikTok iOS text for workflow evidence"
+
+    def __init__(self, device, elements=None, max_lines: int = 80, **kwargs):
+        super().__init__(device, elements)
+        self.max_lines = max(1, int(max_lines))
+
+    def execute(self) -> ActionResult:
+        if not _is_ios_device(self.device):
+            return ActionResult(success=False, error="capture_visible_text requires an iOS device ref")
+        if hasattr(self.device, "extract_visible_text"):
+            text = self.device.extract_visible_text(max_lines=self.max_lines)
+        else:
+            xml = self.device.dump_xml()
+            lines: list[str] = []
+            seen: set[str] = set()
+            for node in self.device.nodes(xml):
+                label = _node_label(self.device, node)
+                if not label or label in seen:
+                    continue
+                seen.add(label)
+                lines.append(label)
+                if len(lines) >= self.max_lines:
+                    break
+            text = "\n".join(lines)
+        lines = [line.strip() for line in text.splitlines() if line.strip()][: self.max_lines]
+        return ActionResult(
+            success=True,
+            data={
+                "text": "\n".join(lines),
+                "lines": lines,
+                "line_count": len(lines),
+            },
+        )
+
+
 class VerifyVisibleText(Action):
     name = "verify_visible_text"
     description = "Verify expected text appears in TikTok iOS XML"

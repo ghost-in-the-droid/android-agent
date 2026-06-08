@@ -3,6 +3,7 @@ import re
 
 from gitd.skills.tiktok_ios import load
 from gitd.skills.tiktok_ios.actions import (
+    CaptureVisibleText,
     DismissPopup,
     NavigateToProfile,
     OpenApp,
@@ -11,7 +12,7 @@ from gitd.skills.tiktok_ios.actions import (
     VerifyVisibleText,
 )
 from gitd.skills.tiktok_ios.actions.core import TIKTOK_IOS_BUNDLE_ID
-from gitd.skills.tiktok_ios.workflows import OpenAppSmoke, SearchSmoke
+from gitd.skills.tiktok_ios.workflows import OpenAppSmoke, ProfileSmoke, SearchSmoke
 
 
 TIKTOK_XML = """<hierarchy>
@@ -79,9 +80,10 @@ def test_tiktok_ios_skill_loads_actions_workflows_and_elements():
         "tap_search",
         "type_and_search",
         "navigate_to_profile",
+        "capture_visible_text",
         "verify_visible_text",
     }
-    assert set(skill.list_workflows()) == {"open_app_smoke", "search_smoke"}
+    assert set(skill.list_workflows()) == {"open_app_smoke", "search_smoke", "profile_smoke"}
     assert "search_tab" in skill._elements_for_device(device)
 
 
@@ -96,6 +98,13 @@ def test_tiktok_ios_actions_use_normalized_ios_tree(monkeypatch):
     assert TapSearch(device).run().success is True
     assert TypeAndSearch(device, query="#cats").run().data == {"query": "#cats"}
     assert NavigateToProfile(device).run().success is True
+    captured = CaptureVisibleText(device, max_lines=3).run()
+    assert captured.success is True
+    assert captured.data["lines"] == [
+        "TikTok TikTok TikTok",
+        "Close Close Close",
+        "Search Search Search",
+    ]
     assert VerifyVisibleText(device, expected="TikTok").run().success is True
 
     assert device.tapped[:4] == ["Close", "Search", "Search", "Profile"]
@@ -121,6 +130,7 @@ def test_tiktok_ios_smoke_workflows_are_registered_with_safe_steps(monkeypatch):
 
     open_wf = OpenAppSmoke(device)
     search_wf = SearchSmoke(device, query="#news")
+    profile_wf = ProfileSmoke(device, max_lines=2)
 
     assert [step.name for step in open_wf.steps()] == ["open_app", "dismiss_popup"]
     assert [step.name for step in search_wf.steps()] == [
@@ -129,6 +139,22 @@ def test_tiktok_ios_smoke_workflows_are_registered_with_safe_steps(monkeypatch):
         "tap_search",
         "type_and_search",
     ]
+    assert [step.name for step in profile_wf.steps()] == [
+        "open_app",
+        "dismiss_popup",
+        "navigate_to_profile",
+        "capture_visible_text",
+    ]
     assert search_wf.steps()[-1].query == "#news"
+    assert profile_wf.steps()[-1].max_lines == 2
 
-    assert load().get_workflow("search_smoke", device, query="#news").run().success is True
+    search_result = load().get_workflow("search_smoke", device, query="#news").run()
+    assert search_result.success is True
+    assert search_result.data["completed_steps"] == 4
+    assert search_result.data["step_results"][-1]["data"] == {"query": "#news"}
+
+    profile_result = load().get_workflow("profile_smoke", device, max_lines=2).run()
+    assert profile_result.success is True
+    assert profile_result.data["completed_steps"] == 4
+    assert profile_result.data["step_results"][-1]["name"] == "capture_visible_text"
+    assert profile_result.data["step_results"][-1]["data"]["line_count"] == 2

@@ -155,6 +155,18 @@ python -m gitd.skills._run_skill \
   --workflow open_ghost_site
 ```
 
+The first TikTok iOS skill is intentionally smoke-level. It can launch TikTok,
+run a search, or navigate to Profile and return visible-text evidence through
+the scheduler-safe `profile_smoke` workflow:
+
+```bash
+python -m gitd.skills._run_skill \
+  --device "ios:<udid>" \
+  --skill tiktok_ios \
+  --workflow profile_smoke \
+  --params '{"max_lines": 40}'
+```
+
 ## Supported First-Milestone Tools
 
 Supported on iOS:
