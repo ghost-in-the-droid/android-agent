@@ -16,6 +16,7 @@ from gitd.services.job_engine import (
     _job_platform_preflight,
     _skill_config_preflight,
 )
+from gitd.services.scheduler_service import _enqueue_due_schedule
 
 
 def test_tiktok_scheduler_jobs_are_guarded_on_ios():
@@ -531,6 +532,62 @@ def test_scheduler_run_now_rejects_legacy_ios_android_only_schedule():
         if sid:
             db.execute(text("DELETE FROM scheduled_jobs WHERE id = :sid"), {"sid": sid})
             db.execute(text("DELETE FROM job_queue WHERE scheduled_job_id = :sid"), {"sid": sid})
+            db.commit()
+        db.close()
+
+
+def test_scheduler_tick_records_legacy_ios_android_only_schedule_without_queueing():
+    db = SessionLocal()
+    sid = None
+    run_id = None
+    try:
+        sid = create_scheduled_job(
+            db,
+            name="legacy ios post daemon",
+            job_type="post",
+            phone_serial="ios:abc123",
+            schedule_type="interval",
+            interval_minutes=60,
+            config_json={"action": "draft"},
+            is_enabled=1,
+        )
+        sched = (
+            db.execute(text("SELECT * FROM scheduled_jobs WHERE id = :sid"), {"sid": sid})
+            .mappings()
+            .one()
+        )
+
+        result = _enqueue_due_schedule(db, dict(sched), datetime.now())
+
+        assert result["ok"] is False
+        assert result["error"] == "post jobs are Android-only until the iOS TikTok workflow is ported"
+        run_id = result["run_id"]
+
+        queued = db.execute(
+            text("SELECT COUNT(*) FROM job_queue WHERE scheduled_job_id = :sid"),
+            {"sid": sid},
+        ).scalar()
+        assert queued == 0
+
+        run = (
+            db.execute(text("SELECT * FROM job_runs WHERE id = :id"), {"id": run_id})
+            .mappings()
+            .one()
+        )
+        assert run["scheduled_job_id"] == sid
+        assert run["phone_serial"] == "ios:abc123"
+        assert run["job_type"] == "post"
+        assert run["status"] == "failed"
+        assert run["trigger"] == "scheduled"
+        assert run["duration_s"] == 0
+        assert run["error_msg"] == (
+            "preflight: post jobs are Android-only until the iOS TikTok workflow is ported"
+        )
+    finally:
+        if sid:
+            db.execute(text("DELETE FROM job_queue WHERE scheduled_job_id = :sid"), {"sid": sid})
+            db.execute(text("DELETE FROM job_runs WHERE scheduled_job_id = :sid"), {"sid": sid})
+            db.execute(text("DELETE FROM scheduled_jobs WHERE id = :sid"), {"sid": sid})
             db.commit()
         db.close()
 
