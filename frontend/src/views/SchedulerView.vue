@@ -214,10 +214,34 @@ function isIosSerial(serial: string | null | undefined): boolean {
   return !!serial && serial.startsWith('ios:')
 }
 
-function platformForSerial(serial: string | null | undefined, device?: any): 'ios' | 'android' {
-  const platform = String(device?.platform || device?.device_platform || '').toLowerCase()
-  if (platform === 'ios' || isIosSerial(serial)) return 'ios'
+function platformValue(value: any): 'ios' | 'android' | '' {
+  const platform = String(value || '').toLowerCase()
+  return platform === 'ios' || platform === 'android' ? platform : ''
+}
+
+function platformForSerial(serial: string | null | undefined, ...sources: any[]): 'ios' | 'android' {
+  for (const source of sources) {
+    const platform = platformValue(source?.platform || source?.device_platform)
+    if (platform) return platform
+  }
+  if (isIosSerial(serial)) return 'ios'
   return 'android'
+}
+
+function schedulerPlatformSource(serial: string): any | null {
+  const collections = [
+    schedules.value,
+    history.value,
+    queue.value,
+    timeline.value.past || [],
+    timeline.value.future || [],
+    timeline.value.content_plan || [],
+  ]
+  for (const collection of collections) {
+    const match = collection.find((item: any) => item.phone_serial === serial && platformValue(item.platform))
+    if (match) return match
+  }
+  return status.value[serial] || null
 }
 
 function deviceOptionLabel(ph: any): string {
@@ -237,7 +261,7 @@ const phoneList = computed(() => {
   return Array.from(serials).map(s => ({
     serial: s,
     label: phoneName(s),
-    platform: platformForSerial(s, devices.value.find((d: any) => d.serial === s)),
+    platform: platformForSerial(s, devices.value.find((d: any) => d.serial === s), schedulerPlatformSource(s)),
   }))
 })
 
