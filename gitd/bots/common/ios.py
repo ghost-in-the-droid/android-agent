@@ -1864,12 +1864,20 @@ def visible_text_entries_from_xml(
 def classify_ios_error(exc: Exception) -> tuple[str, str]:
     message = str(exc)
     lower = message.lower()
+    if (
+        "unlock" in lower
+        or "locked" in lower
+        or "passcode" in lower
+        or "not trusted" in lower
+        or "trust this computer" in lower
+        or "developer mode" in lower
+        or "ui automation" in lower
+    ):
+        return "locked", f"Device is locked, not trusted, or blocked by iOS automation permissions: {message}"
     if "connection refused" in lower or "failed to establish" in lower or "timed out" in lower:
         return "appium_down", f"Appium is unreachable: {message}"
     if "code sign" in lower or "signing" in lower or "provision" in lower or "xcodebuild" in lower:
         return "wda_signing_failed", f"WebDriverAgent signing/provisioning failed: {message}"
-    if "locked" in lower or "passcode" in lower or "not trusted" in lower or "trust" in lower:
-        return "locked", f"Device is locked or not trusted: {message}"
     if "invalid session" in lower or "session not found" in lower or "no such driver" in lower:
         return "session_error", f"Appium session is invalid: {message}"
     if "could not create appium ios session" in lower:

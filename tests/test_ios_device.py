@@ -7,6 +7,7 @@ import pytest
 from gitd.bots.common.device import get_device, ios_refs_from_env, list_configured_ios_devices, platform_for_device
 from gitd.bots.common.ios import (
     IOSDevice,
+    classify_ios_error,
     configured_ios_udids,
     ios_config_for_udid,
     ios_xml_to_elements,
@@ -336,6 +337,29 @@ def test_probe_classifies_unreachable_appium(monkeypatch):
 
     assert status.state == "appium_down"
     assert "unreachable" in status.message.lower()
+
+
+def test_ios_error_classifier_promotes_real_device_readiness_failures():
+    cases = [
+        "Unlock blah_mad to Continue",
+        "Device is passcode locked",
+        "The device has not trusted this computer",
+        "Developer Mode must be enabled before running WebDriverAgent",
+        "UI Automation is not enabled for this device",
+        "Timed out waiting for the user to unlock the device",
+    ]
+
+    for message in cases:
+        state, details = classify_ios_error(RuntimeError(message))
+        assert state == "locked"
+        assert "blocked by iOS automation permissions" in details
+
+
+def test_ios_error_classifier_keeps_wda_signing_failures_actionable():
+    state, details = classify_ios_error(RuntimeError("xcodebuild failed with code 65: provisioning profile missing"))
+
+    assert state == "wda_signing_failed"
+    assert "WebDriverAgent signing" in details
 
 
 def test_ios_device_health_promotes_stable_wda_fields(monkeypatch):
