@@ -204,9 +204,11 @@ reject unsupported device refs before starting the skill runner.
 ### `list_skills(device=None, supported_only=false)`
 
 Returns installed skills with `platforms`, `supports_android`, `supports_ios`,
-Android package, iOS bundle id, actions, and workflows. Supplying `device`
-adds `supported_on_device`; `supported_only=true` filters incompatible skills
-for the target device.
+Android package, iOS bundle id, actions, workflows, `default_params`, and
+`platform_limitations`. Supplying `device` adds `supported_on_device`;
+`supported_only=true` filters incompatible skills for the target device. Agents
+should inspect `platform_limitations` before choosing iOS smoke workflows such
+as `tiktok_ios`.
 
 ### `run_skill(device, skill, workflow, params={})` / `run_workflow(...)`
 

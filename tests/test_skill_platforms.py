@@ -72,6 +72,8 @@ def test_rest_skills_include_device_support_flags_and_guard_runs():
     assert by_dir["_base"]["supported_on_device"] is True
     assert by_dir["tiktok"]["supported_on_device"] is False
     assert by_dir["safari"]["supported_on_device"] is True
+    assert "Upload/posting is not implemented yet" in by_dir["tiktok_ios"]["platform_limitations"]["ios"][0]
+    assert by_dir["tiktok_ios"]["default_params"]["workflows"]["search_smoke"]["query"] == "#fyp"
 
     tiktok_run = client.post(
         "/api/skills/tiktok/run",
@@ -90,15 +92,30 @@ def test_rest_skills_include_device_support_flags_and_guard_runs():
 
 def test_agent_skill_tools_filter_and_guard_by_device():
     payload = json.loads(execute_tool("list_skills", {"device": "ios:abc123", "supported_only": True}))
-    names = {item["name"] for item in payload}
+    by_name = {item["name"]: item for item in payload}
+    names = set(by_name)
 
     assert "base" in names
     assert "safari" in names
     assert "tiktok_ios" in names
     assert "tiktok" not in names
+    assert "Upload/posting is not implemented yet" in by_name["tiktok_ios"]["platform_limitations"]["ios"][0]
+    assert by_name["tiktok_ios"]["default_params"]["workflows"]["search_smoke"]["max_lines"] == 80
 
     result = execute_tool("run_skill", {"device": "ios:abc123", "skill": "tiktok", "workflow": "upload_video"})
     assert result.startswith("ERROR: Skill 'tiktok' does not support ios")
+
+
+def test_mcp_skill_listing_filters_and_exposes_ios_context():
+    from gitd import mcp_server
+
+    payload = json.loads(mcp_server.list_skills("ios:abc123", supported_only=True))
+    by_name = {item["name"]: item for item in payload}
+
+    assert "tiktok" not in by_name
+    assert by_name["tiktok_ios"]["supported_on_device"] is True
+    assert "Upload/posting is not implemented yet" in by_name["tiktok_ios"]["platform_limitations"]["ios"][0]
+    assert by_name["tiktok_ios"]["default_params"]["workflows"]["search_smoke"]["query"] == "#fyp"
 
 
 def test_skill_runner_rejects_unsupported_platform_before_device_access():

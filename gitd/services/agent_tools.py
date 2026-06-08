@@ -1294,12 +1294,15 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 s = _load_skill(sname)
                 entry = {
                     "name": info["name"],
+                    "description": info.get("description", ""),
                     "app_package": info.get("app_package", ""),
                     "android_package": info.get("android_package", ""),
                     "ios_bundle_id": info.get("ios_bundle_id", ""),
                     "platforms": info.get("platforms", []),
                     "supports_android": info.get("supports_android", False),
                     "supports_ios": info.get("supports_ios", False),
+                    "platform_limitations": info.get("platform_limitations", {}),
+                    "default_params": info.get("default_params", {}),
                 }
                 if supported is not None:
                     entry["supported_on_device"] = supported
