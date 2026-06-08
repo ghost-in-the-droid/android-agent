@@ -2144,22 +2144,42 @@ class IOSDevice:
 
     def get_phone_state(self) -> dict:
         rect = self._window_rect()
+        width, height = self.get_screen_size()
+        target_bundle = self.bundle_id
         state = {
             "platform": "ios",
             "device": self.serial,
             "udid": self.udid,
             "appiumUrl": self.appium_url,
             "sessionId": self._session_id or IOSDevice._sessions.get(self._config),
-            "bundleId": self.bundle_id,
-            "screenSize": {"width": self.get_screen_size()[0], "height": self.get_screen_size()[1]},
+            "bundleId": target_bundle,
+            "bundle_id": target_bundle,
+            "packageName": target_bundle,
+            "activityName": target_bundle,
+            "currentApp": _guess_ios_app_name(target_bundle),
+            "keyboardVisible": False,
+            "focusedElement": {},
+            "screenSize": {"width": width, "height": height},
             "windowRect": rect,
         }
         try:
             active = self._execute_mobile("mobile: activeAppInfo", {})
             if isinstance(active, dict):
+                active_bundle = str(active.get("bundleId") or active.get("bundle_id") or target_bundle)
                 state["activeApp"] = active
-                state["packageName"] = active.get("bundleId", "")
-                state["currentApp"] = active.get("name", active.get("bundleId", ""))
+                state["bundleId"] = active_bundle
+                state["bundle_id"] = active_bundle
+                state["packageName"] = active_bundle
+                state["activityName"] = active_bundle
+                state["currentApp"] = active.get("name", active_bundle)
+        except Exception:
+            pass
+        try:
+            xml = self.dump_xml()
+            state["keyboardVisible"] = ios_keyboard_visible_from_xml(xml)
+            focused = ios_focused_element_from_xml(xml, keyboard_visible=state["keyboardVisible"])
+            if focused:
+                state["focusedElement"] = focused
         except Exception:
             pass
         return state
@@ -2663,6 +2683,60 @@ def _element_id(value: Any) -> str:
 def _node_attr(node: str, attr: str) -> str:
     m = re.search(rf'\b{re.escape(attr)}="([^"]*)"', node)
     return html.unescape(m.group(1).strip()) if m else ""
+
+
+_IOS_INPUT_CLASSES = {
+    "xcuielementtypesearchfield",
+    "xcuielementtypesecuretextfield",
+    "xcuielementtypetextfield",
+    "xcuielementtypetextview",
+}
+
+
+def _node_visible(node: str) -> bool:
+    return _node_attr(node, "visible").lower() != "false"
+
+
+def ios_keyboard_visible_from_xml(xml: str) -> bool:
+    for node in re.findall(r"<node[^>]+/?>", xml or ""):
+        if not _node_visible(node):
+            continue
+        cls = _node_attr(node, "class").lower()
+        if cls in {"xcuielementtypekeyboard", "xcuielementtypekey"} or "keyboard" in cls:
+            return True
+    return False
+
+
+def _ios_element_payload(node: str) -> dict[str, Any]:
+    bounds = IOSDevice.node_bounds_static(node)
+    payload: dict[str, Any] = {
+        "text": _node_attr(node, "text"),
+        "content_desc": _node_attr(node, "content-desc"),
+        "resource_id": _node_attr(node, "resource-id"),
+        "class": _node_attr(node, "class"),
+        "bounds": {},
+        "center": {},
+    }
+    if bounds:
+        x1, y1, x2, y2 = bounds
+        payload["bounds"] = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
+        payload["center"] = {"x": (x1 + x2) // 2, "y": (y1 + y2) // 2}
+    return payload
+
+
+def ios_focused_element_from_xml(xml: str, *, keyboard_visible: bool = False) -> dict[str, Any]:
+    input_nodes: list[str] = []
+    for node in re.findall(r"<node[^>]+/?>", xml or ""):
+        if not _node_visible(node):
+            continue
+        cls = _node_attr(node, "class").lower()
+        if _node_attr(node, "focused").lower() == "true":
+            return _ios_element_payload(node)
+        if cls in _IOS_INPUT_CLASSES:
+            input_nodes.append(node)
+    if keyboard_visible and input_nodes:
+        return _ios_element_payload(input_nodes[0])
+    return {}
 
 
 def _normalize_url(url: str) -> str:
