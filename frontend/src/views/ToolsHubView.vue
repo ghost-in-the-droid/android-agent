@@ -1,19 +1,27 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { api } from '@/composables/useApi'
 
-interface ToolParam { name: string; type: string; required: boolean; default?: any }
+interface ToolParam { name: string; type: string; required: boolean; default?: any; description?: string; items?: any }
 interface ToolPlatformSupport { support: string; android: boolean; ios: boolean; notes?: string }
 interface Tool { name: string; description: string; params: ToolParam[]; category: string; platform_support?: ToolPlatformSupport }
 interface ToolGroup { category: string; tools: Tool[] }
+interface ToolDevice {
+  serial: string
+  nickname?: string
+  model?: string
+  platform?: string
+  status?: string
+  status_message?: string
+}
 
 const groups = ref<ToolGroup[]>([])
-const devices = ref<{serial: string; nickname?: string}[]>([])
+const devices = ref<ToolDevice[]>([])
 const loading = ref(false)
 const search = ref('')
 const selectedTool = ref<Tool | null>(null)
 const testDevice = ref('')
-const testArgs = ref<Record<string, string>>({})
+const testArgs = ref<Record<string, any>>({})
 const testResult = ref('')
 const testRunning = ref(false)
 const testDuration = ref(0)
@@ -21,7 +29,7 @@ const testDuration = ref(0)
 const CATEGORY_EMOJI: Record<string, string> = {
   'Screen Reading': '👁', 'Input': '👆', 'App Management': '🚀',
   'Shell': '💻', 'Clipboard & Notifications': '📋', 'Skills': '🧩',
-  'Device': '📱', 'System': '⚙️',
+  'Web': '🌐', 'Marketing': '📣', 'Device': '📱', 'System': '⚙️',
 }
 
 const filteredGroups = computed(() => {
@@ -52,9 +60,17 @@ function isIosSerial(serial: string): boolean {
   return serial.startsWith('ios:')
 }
 
-function deviceLabel(device: { serial: string; nickname?: string }): string {
-  const platform = isIosSerial(device.serial) ? 'iOS' : 'Android'
-  return `${device.nickname || device.serial} (${platform})`
+function devicePlatform(device: ToolDevice): 'ios' | 'android' {
+  const platform = String(device.platform || '').toLowerCase()
+  if (platform === 'ios') return 'ios'
+  return isIosSerial(device.serial) ? 'ios' : 'android'
+}
+
+function deviceLabel(device: ToolDevice): string {
+  const platform = devicePlatform(device) === 'ios' ? 'iOS' : 'Android'
+  const label = device.nickname || device.model || device.serial
+  const status = device.status && device.status !== 'available' ? ` · ${device.status}` : ''
+  return `${label} (${platform}${status})`
 }
 
 function toolSupportsPlatform(tool: Tool, platform: 'android' | 'ios'): boolean {
@@ -76,6 +92,42 @@ function supportBadgeClass(tool: Tool, platform: 'android' | 'ios'): string {
   return toolSupportsPlatform(tool, platform) ? 'tool-platform-badge--on' : 'tool-platform-badge--off'
 }
 
+function defaultParamValue(param: ToolParam): any {
+  if (param.name === 'device') return testDevice.value
+  if (param.default !== undefined) {
+    if (param.type === 'object' || param.type === 'array') {
+      return JSON.stringify(param.default, null, 2)
+    }
+    return String(param.default)
+  }
+  if (param.type === 'object') return '{}'
+  if (param.type === 'array') return '[]'
+  if (param.type === 'boolean') return 'false'
+  return ''
+}
+
+function parseParamValue(param: ToolParam, value: any): any {
+  if (param.type === 'integer') return Number.parseInt(String(value || '0'), 10) || 0
+  if (param.type === 'number') return Number(value) || 0
+  if (param.type === 'boolean') return value === true || String(value).toLowerCase() === 'true'
+  if (param.type === 'object' || param.type === 'array') {
+    if (typeof value !== 'string') return value
+    const raw = value.trim()
+    if (!raw) return param.type === 'array' ? [] : {}
+    try {
+      const parsed = JSON.parse(raw)
+      if (param.type === 'array' && !Array.isArray(parsed)) throw new Error('expected array')
+      if (param.type === 'object' && (Array.isArray(parsed) || parsed === null || typeof parsed !== 'object')) {
+        throw new Error('expected object')
+      }
+      return parsed
+    } catch (error: any) {
+      throw new Error(`${param.name} must be valid JSON ${param.type}: ${error?.message || error}`)
+    }
+  }
+  return value
+}
+
 async function load() {
   loading.value = true
   try {
@@ -92,7 +144,7 @@ function selectTool(tool: Tool) {
   testResult.value = ''
   testArgs.value = {}
   for (const p of tool.params) {
-    testArgs.value[p.name] = p.name === 'device' ? testDevice.value : (p.default != null ? String(p.default) : '')
+    testArgs.value[p.name] = defaultParamValue(p)
   }
 }
 
@@ -107,13 +159,16 @@ async function runTest() {
   testResult.value = ''
   // Update device arg
   if ('device' in testArgs.value) testArgs.value.device = testDevice.value
-  // Parse numeric args
   const args: Record<string, any> = {}
-  for (const [k, v] of Object.entries(testArgs.value)) {
-    const param = selectedTool.value.params.find(p => p.name === k)
-    if (param?.type === 'integer' || param?.type === 'number') args[k] = Number(v) || 0
-    else if (param?.type === 'boolean') args[k] = v === 'true'
-    else args[k] = v
+  try {
+    for (const [k, v] of Object.entries(testArgs.value)) {
+      const param = selectedTool.value.params.find(p => p.name === k)
+      args[k] = param ? parseParamValue(param, v) : v
+    }
+  } catch (error: any) {
+    testRunning.value = false
+    testResult.value = `ERROR: ${error?.message || error}`
+    return
   }
   try {
     const res = await api('/api/tools/test', {
@@ -127,6 +182,12 @@ async function runTest() {
   }
   testRunning.value = false
 }
+
+watch(testDevice, (serial) => {
+  if (selectedTool.value?.params.some(p => p.name === 'device')) {
+    testArgs.value.device = serial
+  }
+})
 
 onMounted(load)
 </script>
@@ -212,6 +273,14 @@ onMounted(load)
             <input v-else-if="p.name === 'device'"
               v-model="testDevice"
               style="width: 100%; padding: 6px 10px; font-size: 11px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1); outline: none; font-family: monospace" />
+            <textarea v-else-if="p.type === 'object' || p.type === 'array'" v-model="testArgs[p.name]"
+              :placeholder="p.type === 'array' ? '[]' : '{}'"
+              class="tool-param-textarea"
+              rows="5" />
+            <select v-else-if="p.type === 'boolean'" v-model="testArgs[p.name]" class="tool-param-select">
+              <option value="false">false</option>
+              <option value="true">true</option>
+            </select>
             <input v-else v-model="testArgs[p.name]"
               :placeholder="p.default != null ? String(p.default) : ''"
               style="width: 100%; padding: 6px 10px; font-size: 11px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1); outline: none; font-family: monospace" />
@@ -309,6 +378,25 @@ onMounted(load)
   border: 1px solid rgba(248, 113, 113, 0.28);
   border-radius: 6px;
   font-size: 11px;
+  line-height: 1.45;
+}
+
+.tool-param-textarea,
+.tool-param-select {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 11px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-1);
+  outline: none;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.tool-param-textarea {
+  resize: vertical;
+  min-height: 70px;
   line-height: 1.45;
 }
 </style>
