@@ -541,6 +541,16 @@ def test_ios_config_infers_host_name_and_platform_version(monkeypatch):
     assert cfg.platform_version == "26.5"
 
 
+def test_ios_config_defaults_to_chrome_browser(monkeypatch):
+    monkeypatch.delenv("IOS_BUNDLE_ID", raising=False)
+    monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
+    monkeypatch.delenv("IOS_CONFIG_FILE", raising=False)
+
+    cfg = ios_config_for_udid("ios:abc123")
+
+    assert cfg.bundle_id == "com.google.chrome.ios"
+
+
 def test_ios_mjpeg_url_uses_appium_host_and_explicit_override():
     remote = IOSDevice("ios:abc123", appium_url="https://appium.example.test:4723")
     remote.mjpeg_server_port = 9123
@@ -624,7 +634,7 @@ def test_list_apps_verifies_known_ios_bundles_with_appium(monkeypatch):
             "package": "com.google.chrome.ios",
             "bundle_id": "com.google.chrome.ios",
             "platform": "ios",
-            "source": "skill",
+            "source": "default",
             "verified": True,
             "installed": True,
             "app_state": 4,

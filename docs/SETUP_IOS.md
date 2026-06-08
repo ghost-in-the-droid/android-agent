@@ -47,6 +47,7 @@ export IOS_KNOWN_APPS_JSON='{"Chrome":"com.google.chrome.ios","TikTok":"com.zhil
 ```
 
 `IOS_WDA_URL` lets Ghost/Appium attach to an already-running WebDriverAgent in a later setup. The default path lets Appium create and manage the WDA session.
+If `IOS_BUNDLE_ID` is omitted, Ghost targets Chrome (`com.google.chrome.ios`) because the first release-quality iOS workflow is Chrome/news automation. Set it to `com.apple.mobilesafari` or another installed browser when needed.
 `IOS_KNOWN_APPS_JSON` augments iOS app discovery. iOS does not expose Android-style full package enumeration, so Ghost combines configured bundle IDs and common bundle IDs, then verifies them through Appium when WDA is available.
 On macOS hosts with Xcode tools, Ghost also discovers connected iPhones and
 booted iOS simulators from `xcrun xctrace list devices`. Explicit env/JSON

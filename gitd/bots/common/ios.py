@@ -101,7 +101,7 @@ class IOSSessionConfig:
 class IOSDeviceConfig:
     udid: str
     appium_url: str = "http://127.0.0.1:4723"
-    bundle_id: str = "com.apple.mobilesafari"
+    bundle_id: str = "com.google.chrome.ios"
     browser_name: str = ""
     device_name: str = "iPhone"
     platform_version: str = ""
