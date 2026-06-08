@@ -164,8 +164,7 @@ def wait_for_text(device: str, text: str, timeout: float = 12.0) -> dict[str, An
 def extract_visible_text(device: str, max_lines: int = 200, include_controls: bool = False) -> dict[str, Any]:
     dev = get_device(device)
     if is_ios_ref(device) and hasattr(dev, "extract_visible_text"):
-        text = dev.extract_visible_text(include_controls=include_controls, max_lines=max_lines)
-        source = "native_or_web"
+        text, source = _device_visible_text(dev, max_lines=max_lines, include_controls=include_controls)
         if not text.strip() and not include_controls:
             text = _ocr_visible_text(device, max_lines=max_lines)
             source = "ocr" if text.strip() else source
@@ -287,10 +286,10 @@ def _entry_source(entries: list[dict[str, Any]]) -> str:
     return sources[0] if len(sources) == 1 else "mixed:" + ",".join(sources)
 
 
-def _device_visible_text(dev, *, max_lines: int) -> tuple[str, str]:
+def _device_visible_text(dev, *, max_lines: int, include_controls: bool = False) -> tuple[str, str]:
     if hasattr(dev, "visible_text_entries"):
         try:
-            entries = dev.visible_text_entries(max_entries=max_lines)
+            entries = dev.visible_text_entries(include_controls=include_controls, max_entries=max_lines)
             if entries:
                 return "\n".join(str(entry.get("text") or "") for entry in entries[:max_lines]), _entry_source(entries)
         except Exception:

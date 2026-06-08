@@ -1993,35 +1993,7 @@ class IOSDevice:
 
     def web_text_entries(self, max_entries: int = 300) -> list[dict[str, Any]]:
         snapshot = self.web_text_snapshot(max_entries=max_entries)
-        entries = snapshot.get("entries") if isinstance(snapshot, dict) else None
-        if not isinstance(entries, list):
-            return []
-        out: list[dict[str, Any]] = []
-        for entry in entries:
-            if not isinstance(entry, dict):
-                continue
-            text = str(entry.get("text") or "").strip()
-            if not text:
-                continue
-            bounds = entry.get("bounds") if isinstance(entry.get("bounds"), dict) else {}
-            x1 = _intish(bounds.get("x1"))
-            y1 = _intish(bounds.get("y1"))
-            x2 = _intish(bounds.get("x2"))
-            y2 = _intish(bounds.get("y2"))
-            out.append(
-                {
-                    "text": text,
-                    "bounds": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
-                    "center": {"x": (x1 + x2) // 2, "y": (y1 + y2) // 2},
-                    "class": entry.get("tag", ""),
-                    "resource_id": "",
-                    "content_desc": "",
-                    "provenance": "web_context",
-                    "url": str(entry.get("href") or ""),
-                    "role": str(entry.get("role") or ""),
-                }
-            )
-        return out
+        return web_text_entries_from_snapshot(snapshot, max_entries=max_entries)
 
     def native_text_entries(self, *, include_controls: bool = False, max_entries: int = 300) -> list[dict[str, Any]]:
         return visible_text_entries_from_xml(
@@ -2048,11 +2020,19 @@ class IOSDevice:
         raise TimeoutError(f"Timed out ({timeout}s) waiting for visible text: {text!r}")
 
     def visible_text_entries(self, *, include_controls: bool = False, max_entries: int = 300) -> list[dict[str, Any]]:
-        web_entries = self.web_text_entries(max_entries=max_entries)
+        snapshot = self.web_text_snapshot(max_entries=max_entries)
+        web_entries = web_text_entries_from_snapshot(snapshot, max_entries=max_entries)
         if web_entries:
             if include_controls:
                 return web_entries[:max_entries]
             return [e for e in web_entries if not _looks_like_browser_control(e["text"])][:max_entries]
+        body_entries = web_body_text_entries_from_snapshot(
+            snapshot,
+            include_controls=include_controls,
+            max_entries=max_entries,
+        )
+        if body_entries:
+            return body_entries
         return self.native_text_entries(include_controls=include_controls, max_entries=max_entries)
 
     def extract_visible_text(self, *, include_controls: bool = False, max_lines: int = 200) -> str:
@@ -2813,6 +2793,77 @@ def _article_candidate_key(entry: dict[str, Any]) -> str:
         return f"url:{parsed.netloc.lower()}{parsed.path.rstrip('/').lower()}"
     text = re.sub(r"\W+", "", str(entry.get("title") or entry.get("text") or "").lower())
     return f"text:{text}"
+
+
+def web_text_entries_from_snapshot(snapshot: dict[str, Any], *, max_entries: int = 300) -> list[dict[str, Any]]:
+    limit = max(0, int(max_entries))
+    if limit <= 0:
+        return []
+    entries = snapshot.get("entries") if isinstance(snapshot, dict) else None
+    if not isinstance(entries, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        text = str(entry.get("text") or "").strip()
+        if not text:
+            continue
+        bounds = entry.get("bounds") if isinstance(entry.get("bounds"), dict) else {}
+        x1 = _intish(bounds.get("x1"))
+        y1 = _intish(bounds.get("y1"))
+        x2 = _intish(bounds.get("x2"))
+        y2 = _intish(bounds.get("y2"))
+        out.append(
+            {
+                "text": text,
+                "bounds": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+                "center": {"x": (x1 + x2) // 2, "y": (y1 + y2) // 2},
+                "class": entry.get("tag", ""),
+                "resource_id": "",
+                "content_desc": "",
+                "provenance": "web_context",
+                "url": str(entry.get("href") or ""),
+                "role": str(entry.get("role") or ""),
+            }
+        )
+        if len(out) >= limit:
+            break
+    return out
+
+
+def web_body_text_entries_from_snapshot(
+    snapshot: dict[str, Any],
+    *,
+    include_controls: bool = False,
+    max_entries: int = 300,
+) -> list[dict[str, Any]]:
+    limit = max(0, int(max_entries))
+    if limit <= 0:
+        return []
+    if not isinstance(snapshot, dict):
+        return []
+    body_text = re.sub(r"\s+", " ", str(snapshot.get("bodyText") or "")).strip()
+    if not body_text:
+        return []
+    if not include_controls and _looks_like_browser_control(body_text):
+        return []
+    viewport = snapshot.get("viewport") if isinstance(snapshot.get("viewport"), dict) else {}
+    width = max(1, _intish(viewport.get("width")))
+    height = max(1, _intish(viewport.get("height")))
+    return [
+        {
+            "text": body_text,
+            "bounds": {"x1": 0, "y1": 0, "x2": width, "y2": height},
+            "center": {"x": width // 2, "y": height // 2},
+            "class": "body",
+            "resource_id": "",
+            "content_desc": "",
+            "provenance": "web_context_body",
+            "url": str(snapshot.get("url") or ""),
+            "role": "document",
+        }
+    ][:limit]
 
 
 def visible_text_entries_from_xml(
