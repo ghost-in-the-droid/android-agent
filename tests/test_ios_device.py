@@ -1256,6 +1256,20 @@ def test_ios_error_classifier_keeps_wda_signing_failures_actionable():
     assert "WebDriverAgent signing" in details
 
 
+def test_ios_error_classifier_treats_wda_developer_certificate_trust_as_signing():
+    message = (
+        "WebDriverAgentRunner-Runner encountered an error: The application could not be launched because "
+        "the Developer App Certificate is not trusted. Unable to launch com.ghostinthedroid.wda83.xctrunner "
+        "because it has an invalid code signature, inadequate entitlements or its profile has not been "
+        "explicitly trusted by the user."
+    )
+
+    state, details = classify_ios_error(RuntimeError(message))
+
+    assert state == "wda_signing_failed"
+    assert "WebDriverAgent signing" in details
+
+
 def test_ios_error_classifier_promotes_remote_xpc_tunnel_failures():
     state, details = classify_ios_error(
         RuntimeError("Could not create Appium iOS session (500): Could not find the expected device 'abc123'")

@@ -953,6 +953,7 @@ _IOS_HEALTH_RECOVERY: dict[str, dict] = {
         "summary": "WebDriverAgent could not be built, signed, installed, or launched by Xcode/Appium.",
         "steps": [
             "Set IOS_XCODE_ORG_ID, IOS_XCODE_SIGNING_ID, and IOS_UPDATED_WDA_BUNDLE_ID for the device/team.",
+            "If the device reports the Developer App certificate is not trusted, open iOS Settings > General > VPN & Device Management and trust the developer certificate.",
             "Unlock the device and manually run a WDA build once if Xcode needs account/device registration.",
             "Set IOS_SHOW_XCODE_LOG=true for detailed xcodebuild output, then retry with /api/phone/health/ios:<udid>.",
         ],

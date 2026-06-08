@@ -3011,6 +3011,22 @@ def classify_ios_error(exc: Exception) -> tuple[str, str]:
     message = str(exc)
     lower = message.lower()
     if (
+        "developer app certificate" in lower
+        or "webdriveragentrunner" in lower
+        or "xctrunner" in lower
+        or "invalid code signature" in lower
+        or "development team" in lower
+    ) and (
+        "not trusted" in lower
+        or "code sign" in lower
+        or "code signature" in lower
+        or "signing" in lower
+        or "provision" in lower
+        or "xcodebuild" in lower
+        or "development team" in lower
+    ):
+        return "wda_signing_failed", f"WebDriverAgent signing/provisioning failed: {message}"
+    if (
         "unlock" in lower
         or "locked" in lower
         or "passcode" in lower
