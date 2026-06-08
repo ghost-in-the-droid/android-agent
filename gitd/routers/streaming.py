@@ -66,12 +66,14 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
     fps = max(1, min(fps, 60))
     quality = max(1, min(quality, 31))
     if is_ios_ref(device):
+        ios_dev = get_device(device)
         frame_delay = max(0.05, 1.0 / min(fps, 10))
+        stream_url = ios_dev.mjpeg_url
+        stream_settings = getattr(ios_dev, "mjpeg_settings", {}) or {}
 
         def gen_ios_mjpeg():
-            url = get_device(device).mjpeg_url
             try:
-                with urllib.request.urlopen(url, timeout=10) as resp:
+                with urllib.request.urlopen(stream_url, timeout=10) as resp:
                     while True:
                         chunk = resp.read(16384)
                         if not chunk:
@@ -103,6 +105,8 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
                 "X-Accel-Buffering": "no",
                 "X-Phone-Platform": "ios",
                 "X-Phone-Stream-Mode": ios_stream_mode,
+                "X-Phone-MJPEG-URL": stream_url,
+                "X-Phone-MJPEG-Settings": json.dumps(stream_settings, sort_keys=True),
             },
         )
 

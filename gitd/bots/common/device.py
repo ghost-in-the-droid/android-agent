@@ -64,6 +64,7 @@ def list_configured_ios_devices(*, deep_probe: bool = False) -> list[dict]:
                 "browser_name": cfg.browser_name,
                 "wda_url": cfg.wda_url,
                 "mjpeg_server_port": cfg.mjpeg_server_port,
+                "mjpeg_settings": cfg.mjpeg_settings(),
                 "details": status,
             }
         )

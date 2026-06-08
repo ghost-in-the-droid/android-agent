@@ -36,6 +36,11 @@ export IOS_PLATFORM_VERSION="18.5"
 export IOS_BUNDLE_ID="com.google.chrome.ios" # or another installed iOS app bundle id
 export IOS_WDA_URL="http://127.0.0.1:8100"
 export IOS_MJPEG_SERVER_PORT="9100"
+export IOS_MJPEG_SERVER_FRAMERATE="12"
+export IOS_MJPEG_SCALING_FACTOR="60"
+export IOS_MJPEG_SERVER_SCREENSHOT_QUALITY="45"
+export IOS_MJPEG_FIX_ORIENTATION="false"
+export IOS_SCREENSHOT_QUALITY="2"
 export IOS_KNOWN_APPS_JSON='{"Chrome":"com.google.chrome.ios","TikTok":"com.zhiliaoapp.musically"}'
 ```
 
@@ -55,6 +60,11 @@ export IOS_DEVICES_JSON='{
       {"name": "NPR", "bundle_id": "org.npr.NPR"}
     ],
     "mjpeg_server_port": 9100,
+    "mjpeg_server_framerate": 12,
+    "mjpeg_scaling_factor": 60,
+    "mjpeg_server_screenshot_quality": 45,
+    "mjpeg_fix_orientation": false,
+    "screenshot_quality": 2,
     "wda_launch_timeout": 180000
   },
   "00008101-0098765432109876": {
@@ -221,6 +231,11 @@ Supported on iOS:
 - Browser primitives: `open_url`, `web_search`, `browser_back`, `get_current_url`, `wait_for_text`, `extract_visible_text`, `extract_articles`
 - REST browser routes under `/api/phone/browser/*`
 - `/api/phone/stream?device=ios:<udid>` with WDA MJPEG mode when requested and screenshot polling fallback
+- iOS MJPEG tuning through `IOS_MJPEG_SERVER_FRAMERATE`,
+  `IOS_MJPEG_SCALING_FACTOR`, `IOS_MJPEG_SERVER_SCREENSHOT_QUALITY`,
+  `IOS_MJPEG_FIX_ORIENTATION`, and per-device JSON equivalents.
+  `/api/phone/health/<device>` and stream headers expose the effective WDA
+  MJPEG settings.
 - `start_screen_recording`, `stop_screen_recording`, and
   `/api/phone/recording/*` routes using WDA MJPEG plus `ffmpeg`
 - Portal/WebRTC signaling endpoints return a structured `stream_fallback`
