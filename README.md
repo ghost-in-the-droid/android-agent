@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Summon a ghost into your Android.</strong><br/>
+  <strong>Summon a ghost into your phone.</strong><br/>
   It sees the screen. It taps the buttons. It never sleeps.
 </p>
 
@@ -23,21 +23,24 @@
 
 ## What It Does
 
-Open-source Python framework for controlling real Android phones via ADB. No app installed. No footprint. Pure automation.
+Open-source Python framework for controlling Android and iOS devices from one agent harness. Android runs through ADB. iOS runs through Appium XCUITest and WebDriverAgent, with real iPhones as the target path and simulators for development and CI.
 
 Define **skills** for any app, run them from the dashboard or API, scale across a phone farm.
 
 **The ghost taps what you'd tap**
-- 50+ ADB methods — tap, swipe, type, clipboard, stealth variants
-- Live phone screen streaming (MJPEG and WebRTC)
+- Android control through ADB — tap, swipe, type, clipboard, shell, intents, and stealth variants
+- iOS control through WebDriverAgent — screenshot, accessibility tree, tap, swipe, type, app launch, clipboard, browser actions
+- Live phone screen streaming: Android MJPEG/WebRTC, iOS WDA MJPEG with screenshot fallback
 - Interactive touch-to-tap on the streamed screen
 - Multi-device phone farm with per-device job queues
 
 **Forge reusable skills for any app**
 - YAML-based UI element definitions per app
+- Platform-specific selectors with `elements.yaml` for Android and `elements_ios.yaml` for iOS
 - Python action classes with precondition checks
 - Multi-step workflows that chain actions together
 - Built-in skills for TikTok and Play Store
+- iOS browser/news demo skill and smoke-level TikTok iOS workflows
 - **Skill Hub** — browse, search, and install skills from the community registry
 - Install from CLI: `android-agent skill install tiktok`
 
@@ -49,15 +52,28 @@ Define **skills** for any app, run them from the dashboard or API, scale across 
 **Scale the haunting**
 - Multi-device phone farm with per-device job queues
 - Bot runner: queue, schedule, and monitor automation jobs
-- Per-device integration tests with ADB screen recording
+- Per-device integration tests with Android screen recording or iOS WDA MJPEG recording
+
+### Platform Support
+
+| Surface | Android | iOS |
+|---------|---------|-----|
+| Device ref | ADB serial, e.g. `emulator-5554` | `ios:<udid>` |
+| Backend | ADB + optional Portal companion app | Appium XCUITest + WebDriverAgent |
+| Real device support | Yes | Yes, with Mac/Xcode/WDA signing |
+| Simulator/emulator support | Android emulator tooling | Booted iOS simulators via Appium/WDA |
+| Live stream | Portal WebRTC, MJPEG, screencap | WDA MJPEG, screenshot polling fallback |
+| Screen tree | Android UIAutomator XML | Normalized XCTest accessibility tree |
+| Skills | `elements.yaml`, Android packages | `elements_ios.yaml`, iOS bundle IDs |
+| Android-only today | ADB shell, intents, wireless ADB, Play Store helpers, Portal overlay | Unsupported with stable platform errors |
 
 ---
 
 ## Requirements
 
 - **Python 3.10+**
-- **Android phone** with USB debugging enabled (Settings > Developer Options > USB Debugging)
-- **ADB** installed and on PATH (`adb devices` should list your phone)
+- **Android**: Android phone with USB debugging enabled and **ADB** on PATH (`adb devices` should list your phone)
+- **iOS**: macOS with Xcode, Appium 2 + XCUITest driver, and a trusted iPhone or booted simulator
 - **Node.js 18+** (for the frontend dev server)
 
 ---
@@ -67,7 +83,7 @@ Define **skills** for any app, run them from the dashboard or API, scale across 
 ```bash
 # 1. Clone the repo
 git clone https://github.com/ghost-in-the-droid/android-agent.git
-cd ghost-in-the-droid
+cd android-agent
 
 # 2. Install Python dependencies
 pip install -e ".[all]"
@@ -87,6 +103,39 @@ npx vite --host 0.0.0.0 --port 6175
 # Dashboard at http://localhost:6175
 ```
 
+### iOS Quick Start
+
+iOS support requires a Mac because Appium uses Xcode's XCUITest/WebDriverAgent stack. Real iPhones also require trust, Developer Mode, UI Automation permission when prompted, and WDA signing with an Apple development team.
+
+```bash
+# 1. Install and run Appium XCUITest
+npm install -g appium
+appium driver install xcuitest
+appium --base-path /
+
+# 2. Find your iPhone or booted simulator UDID
+xcrun xctrace list devices
+xcrun simctl list devices booted
+
+# 3. Configure the backend for iOS
+export IOS_DEVICE_UDID="<udid>"
+export IOS_APPIUM_URL="http://127.0.0.1:4723"
+export IOS_BUNDLE_ID="com.google.chrome.ios"       # or com.apple.mobilesafari
+export IOS_MJPEG_SERVER_PORT="9100"                # use unique ports per iOS device
+
+# 4. Run a product-path smoke workflow
+uv run python scripts/ios_chrome_news_smoke.py \
+  --device "ios:<udid>" \
+  --bundle-id "$IOS_BUNDLE_ID" \
+  --url https://text.npr.org/ \
+  --max-headlines 5 \
+  --max-articles 3 \
+  --fix-health \
+  --out-dir data/ios_chrome_news_smoke
+```
+
+For full real-device signing, simulator, WDA MJPEG, health recovery, scheduler, and MCP setup details, see [`docs/SETUP_IOS.md`](docs/SETUP_IOS.md).
+
 ### Environment Variables
 
 Copy `.env.example` to `.env` (if provided) or create a `.env` file in the project root. The server reads configuration via Pydantic Settings. Optional variables include:
@@ -97,6 +146,11 @@ Copy `.env.example` to `.env` (if provided) or create a `.env` file in the proje
 | `ANTHROPIC_API_KEY` | Alternative LLM provider |
 | `OPENROUTER_API_KEY` | OpenRouter LLM provider |
 | `DEFAULT_DEVICE` | ADB serial (auto-detected if empty) |
+| `IOS_DEVICE_UDID` | iPhone or simulator UDID; devices are addressed as `ios:<udid>` |
+| `IOS_APPIUM_URL` | Appium server URL, default `http://127.0.0.1:4723` |
+| `IOS_BUNDLE_ID` | Default iOS app/browser bundle, e.g. `com.google.chrome.ios` or `com.apple.mobilesafari` |
+| `IOS_DEVICES_JSON` | Per-device iOS config for multiple phones/simulators, WDA ports, bundle IDs, and MJPEG ports |
+| `IOS_MJPEG_SERVER_PORT` | WDA MJPEG stream port; use one unique port per iOS device |
 
 **No API keys needed for local models:** Select Ollama in the Phone Agent tab — runs entirely on your machine with [Ollama](https://ollama.com). Install, pull a model, go:
 
@@ -124,9 +178,12 @@ android-agent/
       _base/                    #   Base classes (Skill, Action, Workflow)
       tiktok/                   #   TikTok skill (elements, actions, workflows)
       play_store/               #   Play Store skill (install, update, search)
+      safari/                   #   iOS browser/news demo skill
+      tiktok_ios/               #   iOS TikTok smoke workflows
     bots/
       common/
         adb.py                  #   Device class: tap, swipe, dump XML, wait_for
+        ios.py                  #   IOSDevice class: Appium/WDA session, UI tree, gestures
     mcp_server.py               # MCP server — expose tools for any LLM agent
     alembic/                    # Database migrations
   frontend/                     # Vue 3 + Vite + TypeScript + Tailwind CSS
@@ -145,7 +202,7 @@ android-agent/
 1. **Backend** (`run.py`) starts a FastAPI server on port 5055 with routers covering device control, skills, bots, scheduling, and streaming.
 2. **Frontend** (`frontend/`) is a Vue 3 SPA that talks to the backend via `/api/*`. Vite proxies API calls to the backend during development.
 3. **Skills** define how to interact with a specific app. Each skill has a `elements.yaml` (UI elements), Python actions (atomic operations), and workflows (multi-step sequences).
-4. **Bots** are long-running subprocess scripts that use the `Device` class from `bots/common/adb.py` to control the phone. The backend spawns and manages them.
+4. **Device backends** route by device ref. Bare serials use `bots/common/adb.py`; `ios:<udid>` refs use `bots/common/ios.py` and Appium/WDA.
 5. **Database** is SQLite with SQLAlchemy 2.0 ORM and Alembic migrations.
 
 ---
@@ -177,9 +234,9 @@ API domains: phone, streaming, skills, creator, explorer, agent-chat, bot, sched
 
 ---
 
-## MCP Server — Give Any AI Agent an Android Body
+## MCP Server — Give Any AI Agent a Mobile Body
 
-The project ships an [MCP](https://modelcontextprotocol.io) server with 35 tools for Android control. Any MCP-compatible AI client (Claude Code, Claude Desktop, Cursor, VS Code Copilot, Windsurf) can use them.
+The project ships an [MCP](https://modelcontextprotocol.io) server with mobile control tools. Any MCP-compatible AI client (Claude Code, Claude Desktop, Cursor, VS Code Copilot, Windsurf) can use them. Android serials receive the Android implementation; `ios:<udid>` refs route to the iOS backend where supported and return stable unsupported-platform errors for Android-only tools.
 
 ### Install
 
@@ -234,7 +291,7 @@ codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
 }
 ```
 
-**For contributors** who clone the repo: the `.mcp.json` is already there — 35 tools available on first `claude` launch.
+**For contributors** who clone the repo: the `.mcp.json` is already there — mobile tools are available on first `claude` launch.
 
 ### Available tools
 
@@ -246,6 +303,9 @@ codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
 | Context | `get_phone_state`, `classify_screen`, `find_on_screen`, `ocr_screen`, `ocr_region` |
 | Device | `list_devices`, `clipboard_get`, `clipboard_set`, `get_notifications`, `open_notifications`, `toggle_overlay` |
 | Skills | `list_skills`, `run_workflow`, `run_action`, `create_skill`, `explore_app` |
+| Browser/iOS | `open_url`, `browser_back`, `get_current_url`, `wait_for_text`, `extract_visible_text`, `extract_articles`, `read_news` |
+
+`toggle_overlay`, `launch_intent`, Android shell helpers, wireless ADB, Play Store helpers, and Portal-specific actions remain Android-only.
 
 ---
 
@@ -291,8 +351,9 @@ Two ways to forge a skill:
 3. CI validates, maintainer reviews, gets "Official" badge
 
 Each skill needs:
-- `skill.yaml` — metadata (name, version, app package, actions, workflows)
-- `elements.yaml` — UI element resource IDs and descriptions
+- `skill.yaml` — metadata (name, version, app package or iOS bundle ID, supported platforms, actions, workflows)
+- `elements.yaml` — Android UI element resource IDs and descriptions
+- `elements_ios.yaml` — optional iOS selectors for XCTest accessibility trees
 - `actions/` — Python classes extending `Action` with `precondition()` and `execute()`
 - `workflows/` — Python classes extending `Workflow` with `steps()`
 
@@ -311,8 +372,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 | Database | SQLite (WAL mode) |
 | Frontend | Vue 3 (Composition API), TypeScript, Vite, Tailwind CSS 4 |
 | Charts | Chart.js 4, Plotly.js |
-| Device Control | ADB (Android Debug Bridge) |
-| Streaming | MJPEG, WebRTC (via Ghost Portal companion app) |
+| Device Control | ADB for Android; Appium XCUITest/WebDriverAgent for iOS |
+| Streaming | Android MJPEG/WebRTC via Portal; iOS WDA MJPEG plus screenshot fallback |
 | LLM | OpenAI, Anthropic (optional) |
 | Linting | Ruff |
 | Testing | pytest, Playwright (optional) |
@@ -321,7 +382,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 
 ## Running Tests
 
-Tests are integration tests that require a connected Android phone:
+Most tests are unit/API tests and run without a live device. Live Android and iOS integration tests require the relevant device stack.
 
 ```bash
 # Run all tests on a specific device
@@ -332,6 +393,16 @@ DEVICE=<serial> python3 -m pytest tests/test_00_baseline.py -v
 ```
 
 Get your device serial from `adb devices`.
+
+For iOS live smoke tests:
+
+```bash
+IOS_LIVE_NEWS_TEST=1 \
+IOS_DEVICE_UDID="<udid>" \
+IOS_APPIUM_URL="http://127.0.0.1:4723" \
+IOS_BUNDLE_ID="com.google.chrome.ios" \
+uv run --extra test python -m pytest tests/test_browser_news.py::test_live_ios_chrome_news_workflow
+```
 
 ---
 
