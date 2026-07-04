@@ -1,8 +1,9 @@
 """Tests for the LangChain / LlamaIndex framework adapters.
 
 The framework-agnostic core (build_ghost_tools) is tested with a mocked
-execute_tool — no device, no frameworks. The LangChain adapter is tested for
-real (langchain_core is a test dep); the LlamaIndex adapter is importorskip'd.
+execute_tool — no device, no frameworks. Both the LangChain and LlamaIndex
+adapters are tested for real (langchain-core and llama-index-core are test deps),
+so the "both frameworks are first-class" claim in the docs is CI-verified.
 """
 
 import pytest
@@ -69,11 +70,10 @@ def test_pydantic_args_model_respects_required_and_optional():
         model(x=1)  # y required
 
 
-# ── LangChain adapter (verified for real) ────────────────────────────────────
+# ── LangChain adapter (langchain-core is a test dep — runs, never skips) ──────
 
 
 def test_langchain_tools_dispatch(mock_execute):
-    pytest.importorskip("langchain_core")
     from integrations.langchain import ghost_langchain_tools
 
     tools = ghost_langchain_tools("emulator-5554")
@@ -88,17 +88,27 @@ def test_langchain_tools_dispatch(mock_execute):
     assert mock_execute[-1] == ("tap", {"x": 540, "y": 300, "device": "emulator-5554"})
 
 
-# ── LlamaIndex adapter (skipped unless llama_index installed) ─────────────────
+# ── LlamaIndex adapter (llama-index-core is a test dep — runs, never skips) ────
 
 
 def test_llamaindex_tools_dispatch(mock_execute):
-    pytest.importorskip("llama_index.core")
+    from llama_index.core.tools import FunctionTool
+
     from integrations.llamaindex import ghost_llamaindex_tools
 
     tools = ghost_llamaindex_tools("emulator-5554")
+    assert all(isinstance(t, FunctionTool) for t in tools)
     names = {t.metadata.name for t in tools}
     assert "tap" in names
+    assert DANGEROUS_TOOLS.isdisjoint(names)  # shell/run_skill excluded, like LangChain
+
     tap = next(t for t in tools if t.metadata.name == "tap")
+    # the LLM-facing tool spec must expose x/y and NOT the bound device
+    schema = tap.metadata.fn_schema.model_json_schema()
+    assert set(schema.get("properties", {})) == {"x", "y"}
+    assert "function" in tap.metadata.to_openai_tool()
+
+    # an agent runtime calls the tool like this
     result = tap.call(x=540, y=300)
     assert "tap-ok" in str(result)
-    assert mock_execute[-1][1]["device"] == "emulator-5554"
+    assert mock_execute[-1] == ("tap", {"x": 540, "y": 300, "device": "emulator-5554"})
