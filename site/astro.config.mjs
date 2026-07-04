@@ -117,6 +117,8 @@ document.addEventListener('DOMContentLoaded', function() {
 						{ label: '🛠️ Skill Creator', slug: 'features/skill-creator' },
 						{ label: '⛏️ App Explorer', slug: 'features/app-explorer' },
 						{ label: '🔌 MCP Server', slug: 'features/mcp-server' },
+						{ label: '🔗 MCP Clients', slug: 'features/mcp-clients' },
+						{ label: '⚖️ How Ghost Compares', slug: 'features/how-ghost-compares' },
 						{ label: '📋 Dashboard', slug: 'features/dashboard' },
 						{ label: '⏰ Scheduler', slug: 'features/scheduler' },
 						{ label: '🎥 WebRTC Streaming', slug: 'features/webrtc' },
