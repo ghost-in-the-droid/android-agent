@@ -1019,6 +1019,26 @@ def _parse_tool_calls(text: str) -> list[dict]:
     return calls
 
 
+def normalize_tool_call(call: dict) -> tuple[str, dict]:
+    """Split a parsed tool call into ``(tool_name, args)``.
+
+    Two shapes are seen in the wild and every provider must accept both:
+      - ``{"tool": "X", "args": {...}}``          (gemma-4-e2b, llama, canonical)
+      - ``{"tool": "X", "package": "...", ...}``   (ghost-gemma trained, qwen — flat)
+
+    Prefer the nested ``args`` dict; otherwise treat the rest of the dict
+    (every key except ``tool``) as kwargs. Returns a fresh dict the caller
+    can mutate (e.g. ``setdefault("device", ...)``) without touching ``call``.
+    """
+    tool_name = call.get("tool", "")
+    raw_args = call.get("args")
+    if isinstance(raw_args, dict):
+        args = dict(raw_args)
+    else:
+        args = {k: v for k, v in call.items() if k != "tool"}
+    return tool_name, args
+
+
 def _chat_ollama(session: ChatSession, user_message: str):
     """Use local Ollama model with multi-turn tool execution loop."""
     import requests
@@ -1112,16 +1132,7 @@ def _chat_ollama(session: ChatSession, user_message: str):
 
         tool_results = []
         for call in tool_calls:
-            tool_name = call.get("tool", "")
-            # Two shapes seen in the wild:
-            #   {"tool": "X", "args": {...}}            (gemma-4-e2b, llama)
-            #   {"tool": "X", "package": "...", ...}    (ghost-gemma, qwen)
-            # Accept both: prefer nested args, else take the rest of the dict as kwargs.
-            raw_args = call.get("args")
-            if isinstance(raw_args, dict):
-                tool_args = dict(raw_args)
-            else:
-                tool_args = {k: v for k, v in call.items() if k != "tool"}
+            tool_name, tool_args = normalize_tool_call(call)
             tool_args.setdefault("device", session.device)
 
             session.messages.append(ChatMessage(role="tool_call", tool_name=tool_name, tool_args=tool_args, content=""))
