@@ -45,6 +45,8 @@ Issues = "https://github.com/ghost-in-the-droid/android-agent/issues"
 llm = ["anthropic>=0.30"]
 analytics = ["google-analytics-data>=0.18"]
 ocr = ["rapidocr-onnxruntime>=1.3"]
+langchain = ["langchain-core>=0.3"]
+llamaindex = ["llama-index-core>=0.11"]
 test = ["playwright>=1.40", "pytest>=7.0"]
 all = ["ghost-in-the-droid[llm,analytics,ocr,test]"]
 
@@ -53,7 +55,7 @@ android-agent = "gitd.cli:main"
 android-agent-mcp = "gitd.mcp_server:main"
 
 [tool.setuptools.packages.find]
-include = ["gitd*"]
+include = ["gitd*", "integrations*"]
 
 [tool.ruff]
 target-version = "py310"
