@@ -79,3 +79,26 @@ def test_cmd_up_honors_host_port_overrides(monkeypatch):
     rc = cli.cmd_up(types.SimpleNamespace(host="1.2.3.4", port=9999))
     assert rc == 0
     assert captured == {"host": "1.2.3.4", "port": 9999}
+
+
+def test_cmd_up_defaults_to_localhost(monkeypatch):
+    """No --host → bind localhost only; the phone-controlling server must not be
+    exposed to the LAN by default."""
+    import uvicorn
+
+    captured = {}
+    monkeypatch.setattr(uvicorn, "run", lambda app, host, port: captured.update(host=host, port=port))
+
+    cli.cmd_up(types.SimpleNamespace(host=None, port=None))
+    assert captured["host"] == "127.0.0.1"
+
+
+def test_cmd_up_lan_exposure_is_opt_in(monkeypatch):
+    """--host 0.0.0.0 is honored (explicit LAN opt-in)."""
+    import uvicorn
+
+    captured = {}
+    monkeypatch.setattr(uvicorn, "run", lambda app, host, port: captured.update(host=host, port=port))
+
+    cli.cmd_up(types.SimpleNamespace(host="0.0.0.0", port=None))
+    assert captured["host"] == "0.0.0.0"

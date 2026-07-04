@@ -531,10 +531,16 @@ def cmd_up(args):
         print("  Run `android-agent doctor` to check your install.")
         return 1
 
-    host = args.host or settings.host
+    # Default to localhost — this server shells into a physical phone, so it
+    # must NOT be exposed to the whole LAN on first run. Opt into LAN access
+    # explicitly with `--host 0.0.0.0`. (settings.host stays 0.0.0.0 for the
+    # container/run.py path, which is deliberately behind other controls.)
+    host = args.host or "127.0.0.1"
     port = args.port or settings.port
     shown_host = "localhost" if host in ("0.0.0.0", "127.0.0.1") else host
     print(f"Ghost in the Droid → http://{shown_host}:{port}  (dashboard + API)")
+    if host == "0.0.0.0":
+        print("⚠  Bound to 0.0.0.0 — reachable by anyone on your network. This server controls your phone.")
     print("Press Ctrl+C to stop.")
     uvicorn.run(app, host=host, port=port)
     return 0
@@ -709,7 +715,7 @@ def main():
 
     # ── up subcommand — boot the server + dashboard ──
     up_p = sub.add_parser("up", help="Start the Ghost server + dashboard")
-    up_p.add_argument("--host", default=None, help="Bind host (default from settings)")
+    up_p.add_argument("--host", default=None, help="Bind host (default 127.0.0.1; use 0.0.0.0 to expose on your LAN)")
     up_p.add_argument("--port", type=int, default=None, help="Bind port (default from settings)")
 
     # ── doctor subcommand — environment preflight ──
