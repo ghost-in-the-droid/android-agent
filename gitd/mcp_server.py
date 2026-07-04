@@ -685,7 +685,9 @@ def run_flow(device: str, steps: str) -> str:
     names execute_tool exposes (tap, tap_element, type_text, launch_app, etc.).
     Steps run in order and stop at the first error. Returns a JSON object with
     per-step results and a SINGLE final screenshot (not one per step) — far
-    fewer tokens/round-trips than calling each tool separately.
+    fewer tokens/round-trips than calling each tool separately. Steps do NOT
+    auto-settle between UI actions; if a step needs the screen to update before
+    the next one reads it, insert an explicit {"tool":"wait","args":{...}} step.
 
     Example:
       run_flow("SERIAL", '[{"tool":"launch_app","args":{"package":"com.android.settings"}},

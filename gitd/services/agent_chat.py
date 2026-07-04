@@ -164,8 +164,13 @@ def stop_agent(session_id: str):
     log.info("Stopped agent for session %s", session_id)
 
 
-def create_session(device: str, provider: str = "claude-code", model: str = "", system_prompt: str = "") -> ChatSession:
+def create_session(device: str, provider: str = "", model: str = "", system_prompt: str = "") -> ChatSession:
     sid = str(uuid.uuid4())[:8]
+    if not provider:
+        # Honor the configured default (set by `android-agent login`).
+        from gitd.config import settings
+
+        provider = settings.default_provider or "claude-code"
     default_model = PROVIDERS.get(provider, {}).get("models", ["sonnet"])[0] if not model else model
     session = ChatSession(id=sid, device=device, provider=provider, model=default_model or "sonnet")
     _sessions[sid] = session

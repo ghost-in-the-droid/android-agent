@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     # ── Devices ──────────────────────────────────────────────────────────────
     default_device: str = ""  # ADB serial of primary phone (auto-detected if empty)
 
+    # ── LLM ──────────────────────────────────────────────────────────────────
+    # Provider used when a session is created without an explicit one. Defaults
+    # to claude-code (Claude subscription, no API key) — `android-agent login`
+    # records this in .env.
+    default_provider: str = "claude-code"
+
     # ── API keys (optional, loaded from env) ─────────────────────────────────
     openai_api_key: str = ""
     anthropic_api_key: str = ""

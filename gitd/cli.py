@@ -649,6 +649,20 @@ def collect_doctor_checks() -> list[dict]:
         }
     )
 
+    # Claude subscription sign-in (the no-API-key path). Only surfaced when the
+    # claude CLI is present but not signed in — otherwise the LLM-backend check
+    # above already covers it.
+    if claude_cli:
+        signed_in = _claude_auth_state() == "logged_in"
+        checks.append(
+            {
+                "name": "Claude subscription",
+                "status": "ok" if signed_in else "warn",
+                "detail": "signed in (no API key needed)" if signed_in else "claude CLI present, not signed in",
+                "hint": "" if signed_in else "Run `android-agent login` to use your Claude Max/Pro subscription.",
+            }
+        )
+
     return checks
 
 
@@ -673,6 +687,89 @@ def cmd_doctor(args):
     else:
         print("All checks passed. Run `android-agent up` to start.")
     return 0
+
+
+# ── login (Claude subscription, no API key) ──────────────────────────────────
+
+
+def _claude_auth_state() -> str:
+    """Offline check of Claude subscription sign-in.
+
+    Returns 'not_installed' | 'logged_out' | 'logged_in'. This NEVER reads the
+    token value — only that the claude CLI's own OAuth credential is present.
+    Ghost does not store or manage the token; the claude CLI owns it (and its
+    refresh). No network call, so it's cheap enough for `doctor`.
+    """
+    import json
+
+    if shutil.which("claude") is None:
+        return "not_installed"
+    creds = Path.home() / ".claude" / ".credentials.json"
+    try:
+        if creds.exists() and json.loads(creds.read_text()).get("claudeAiOauth"):
+            return "logged_in"
+    except Exception:
+        pass
+    return "logged_out"
+
+
+def _record_default_provider(provider: str) -> None:
+    """Best-effort upsert of DEFAULT_PROVIDER in ./.env (records the preference;
+    auth is the real work, so failures here are non-fatal)."""
+    env_path = Path.cwd() / ".env"
+    key = "DEFAULT_PROVIDER"
+    try:
+        lines, found = [], False
+        if env_path.exists():
+            for line in env_path.read_text().splitlines():
+                if line.strip().startswith(f"{key}="):
+                    lines.append(f"{key}={provider}")
+                    found = True
+                else:
+                    lines.append(line)
+        if not found:
+            lines.append(f"{key}={provider}")
+        env_path.write_text("\n".join(lines) + "\n")
+    except Exception:
+        pass
+
+
+def cmd_login(args):
+    """Sign in Ghost's LLM backend via your Claude Max/Pro subscription — no API key.
+
+    Ghost's `claude-code` provider runs through the `claude` CLI, which signs in
+    with your Claude subscription via Anthropic's own OAuth flow. This command
+    delegates to `claude auth login` and confirms the result — Ghost never
+    handles or stores the token; the claude CLI owns it, refresh included.
+    """
+    state = _claude_auth_state()
+    if state == "not_installed":
+        print("✗ The `claude` CLI (Claude Code) is not installed.")
+        print("  Ghost uses your Claude Max/Pro subscription through it — no API key needed.")
+        print("  Install: https://docs.claude.com/claude-code, then re-run `android-agent login`.")
+        return 1
+
+    if state == "logged_out" or getattr(args, "relogin", False):
+        print("Opening Anthropic sign-in via the claude CLI…")
+        try:
+            rc = subprocess.run(["claude", "auth", "login"]).returncode
+        except Exception as e:
+            print(f"✗ Could not launch `claude auth login`: {e}")
+            return 1
+        if rc != 0:
+            print("✗ Sign-in didn't complete. Re-run `android-agent login` after finishing in the browser.")
+            return 1
+        state = _claude_auth_state()
+
+    if state == "logged_in":
+        _record_default_provider("claude-code")
+        print("✓ Signed in to your Claude subscription.")
+        print("  No API key needed — Ghost will use the `claude-code` provider by default.")
+        print("  Start it: android-agent up")
+        return 0
+
+    print("! Could not confirm sign-in. Check `claude auth status`.")
+    return 1
 
 
 def main():
@@ -721,11 +818,18 @@ def main():
     # ── doctor subcommand — environment preflight ──
     sub.add_parser("doctor", help="Check your environment (adb, ports, deps, LLM keys)")
 
+    # ── login subcommand — Claude subscription sign-in (no API key) ──
+    login_p = sub.add_parser("login", help="Sign in via your Claude subscription (no API key needed)")
+    login_p.add_argument("--relogin", action="store_true", help="Force re-authentication even if already signed in")
+
     args = parser.parse_args()
 
     if args.command is None:
         parser.print_help()
         return 0
+
+    if args.command == "login":
+        return cmd_login(args)
 
     if args.command == "up":
         return cmd_up(args)
