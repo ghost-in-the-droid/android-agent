@@ -85,4 +85,9 @@ class TestSkills:
 class TestCreator:
     def test_ollama_models(self, client):
         r = client.get("/api/creator/ollama-models")
-        assert r.status_code in (200, 500)
+        # The endpoint catches a missing Ollama and returns 200 with an empty
+        # list, so it should ALWAYS be 200 with a well-formed shape — asserting
+        # "200 or 500" passed even when the endpoint was broken.
+        assert r.status_code == 200
+        body = r.json()
+        assert isinstance(body.get("models"), list)
