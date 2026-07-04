@@ -9,7 +9,10 @@ so the "both frameworks are first-class" claim in the docs is CI-verified.
 import pytest
 
 import gitd.services.agent_tools as agent_tools
-from integrations._core import DANGEROUS_TOOLS, build_ghost_tools, pydantic_args_model
+from gitd.services.agent_tools import SAFE_DEVICE_TOOLS
+from integrations._core import build_ghost_tools, pydantic_args_model
+
+_DANGEROUS = {"shell", "run_skill"}
 
 
 @pytest.fixture
@@ -48,13 +51,28 @@ def test_bound_device_overrides_any_passed_device(mock_execute):
     assert mock_execute[-1][1]["device"] == "real-serial"
 
 
-def test_dangerous_tools_excluded_by_default(mock_execute):
+def test_default_exposes_only_the_allow_list(mock_execute):
+    """Fail-closed: by default, ONLY vetted allow-list tools are exposed —
+    not merely 'everything except a dangerous deny-list'."""
     names = {t.name for t in build_ghost_tools("d")}
-    assert DANGEROUS_TOOLS.isdisjoint(names)
+    assert names <= SAFE_DEVICE_TOOLS  # subset — nothing off the allow-list leaks
+    assert _DANGEROUS.isdisjoint(names)
     assert "tap" in names and "launch_app" in names
 
 
-def test_dangerous_tools_opt_in(mock_execute):
+def test_new_tool_is_not_auto_exposed(mock_execute, monkeypatch):
+    """A tool added to the dispatch later must NOT appear until it's vetted onto
+    the allow-list — this is what a deny-list would have failed open on."""
+    monkeypatch.setattr(
+        agent_tools,
+        "TOOLS",
+        agent_tools.TOOLS + [{"name": "some_new_risky_tool", "description": "x", "input_schema": {}}],
+    )
+    names = {t.name for t in build_ghost_tools("d")}
+    assert "some_new_risky_tool" not in names
+
+
+def test_include_dangerous_exposes_everything(mock_execute):
     names = {t.name for t in build_ghost_tools("d", include_dangerous=True)}
     assert "shell" in names and "run_skill" in names
 
@@ -79,7 +97,7 @@ def test_langchain_tools_dispatch(mock_execute):
     tools = ghost_langchain_tools("emulator-5554")
     names = {t.name for t in tools}
     assert "tap" in names
-    assert DANGEROUS_TOOLS.isdisjoint(names)
+    assert _DANGEROUS.isdisjoint(names)
 
     tap = next(t for t in tools if t.name == "tap")
     # a LangChain agent calls .invoke with the structured args
@@ -100,7 +118,7 @@ def test_llamaindex_tools_dispatch(mock_execute):
     assert all(isinstance(t, FunctionTool) for t in tools)
     names = {t.metadata.name for t in tools}
     assert "tap" in names
-    assert DANGEROUS_TOOLS.isdisjoint(names)  # shell/run_skill excluded, like LangChain
+    assert _DANGEROUS.isdisjoint(names)  # shell/run_skill excluded, like LangChain
 
     tap = next(t for t in tools if t.metadata.name == "tap")
     # the LLM-facing tool spec must expose x/y and NOT the bound device

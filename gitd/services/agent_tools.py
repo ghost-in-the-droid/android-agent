@@ -344,6 +344,48 @@ TOOLS = [
 ]
 
 
+# Vetted allow-list of tools that are safe to expose in untrusted / third-party
+# contexts — the run_flow batch primitive and the LangChain/LlamaIndex adapters
+# both gate on this. It is an EXPLICIT allow-list (not "all TOOLS minus a
+# dangerous set") so it fails CLOSED: a tool added to the dispatch later is NOT
+# auto-exposed until it's deliberately vetted and added here. It is exactly the
+# 32 execute_tool branches minus the two exec vectors `shell` and `run_skill`.
+SAFE_DEVICE_TOOLS = frozenset(
+    {
+        "screenshot",
+        "screenshot_annotated",
+        "screenshot_cropped",
+        "get_screen_tree",
+        "get_elements",
+        "get_phone_state",
+        "classify_screen",
+        "find_on_screen",
+        "ocr_screen",
+        "ocr_region",
+        "get_notifications",
+        "tap",
+        "tap_element",
+        "swipe",
+        "type_text",
+        "press_key",
+        "long_press",
+        "paste_text",
+        "clipboard_get",
+        "clipboard_set",
+        "launch_app",
+        "force_stop",
+        "open_camera",
+        "speak_text",
+        "wait",
+        "list_apps",
+        "search_apps",
+        "list_packages",
+        "list_skills",
+        "web_search",
+    }
+)
+
+
 # ── Tool execution ───────────────────────────────────────────────────────────
 
 _UI_ACTION_TOOLS = {"tap", "tap_element", "swipe", "type_text", "press_key", "long_press", "launch_app"}

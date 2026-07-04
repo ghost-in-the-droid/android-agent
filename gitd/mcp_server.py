@@ -19,6 +19,7 @@ from mcp.server.fastmcp import FastMCP
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gitd.bots.common.adb import Device, list_connected
+from gitd.services.agent_tools import SAFE_DEVICE_TOOLS
 
 mcp = FastMCP(
     "android-agent",
@@ -572,47 +573,11 @@ MAX_FLOW_STEPS = 50
 
 # ALLOW-list of tools permitted inside a batched flow. A batch is exactly where
 # an injected instruction would smuggle arbitrary execution, so run_flow is
-# fail-CLOSED: only these explicitly-vetted read/UI tools may run. Anything not
-# listed — including any dangerous tool (shell, run_skill) AND any tool added to
-# execute_tool in the future — is refused. A deny-list would silently fail-open
-# the moment a new dangerous tool landed in the dispatch; this can't.
-# (Excludes exactly `shell` and `run_skill` from execute_tool's 32 branches.)
-# perception (read-only), UI actions, scoped app control, discovery, web_search
-# — everything EXCEPT the two exec vectors `shell` and `run_skill`.
-FLOW_ALLOWED_TOOLS = frozenset(
-    {
-        "screenshot",
-        "screenshot_annotated",
-        "screenshot_cropped",
-        "get_screen_tree",
-        "get_elements",
-        "get_phone_state",
-        "classify_screen",
-        "find_on_screen",
-        "ocr_screen",
-        "ocr_region",
-        "get_notifications",
-        "tap",
-        "tap_element",
-        "swipe",
-        "type_text",
-        "press_key",
-        "long_press",
-        "paste_text",
-        "clipboard_get",
-        "clipboard_set",
-        "launch_app",
-        "force_stop",
-        "open_camera",
-        "speak_text",
-        "wait",
-        "list_apps",
-        "search_apps",
-        "list_packages",
-        "list_skills",
-        "web_search",
-    }
-)
+# fail-CLOSED: only explicitly-vetted read/UI tools may run. Anything not on the
+# list — a dangerous tool (shell, run_skill) OR any tool added to execute_tool
+# in the future — is refused. Shared with the framework adapters (one source of
+# truth, so the two can't drift): gitd.services.agent_tools.SAFE_DEVICE_TOOLS.
+FLOW_ALLOWED_TOOLS = SAFE_DEVICE_TOOLS
 
 
 def _run_flow(device: str, steps: object) -> dict:

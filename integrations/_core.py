@@ -11,11 +11,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
-# Tools that can execute arbitrary code / commands on the device. Excluded by
-# default so dropping Ghost into a third-party agent doesn't silently hand it a
-# raw shell; callers opt in explicitly via include_dangerous=True.
-DANGEROUS_TOOLS = frozenset({"shell", "run_skill"})
-
 
 @dataclass
 class GhostTool:
@@ -45,16 +40,19 @@ def build_ghost_tools(device: str, *, include_dangerous: bool = False) -> list[G
 
     Args:
         device: the ADB serial every tool call is bound to.
-        include_dangerous: if False (default), the ``shell`` and ``run_skill``
-            tools are omitted.
+        include_dangerous: if False (default), ONLY tools on the vetted
+            ``SAFE_DEVICE_TOOLS`` allow-list are exposed. This fails closed —
+            raw ``shell``/``run_skill`` and any future un-vetted tool are left
+            out until deliberately added to the allow-list. Pass True to hand
+            the agent every tool (use only when you fully trust the agent).
     """
     # Imported lazily so this package never forces gitd to load at import time.
-    from gitd.services.agent_tools import TOOLS, execute_tool
+    from gitd.services.agent_tools import SAFE_DEVICE_TOOLS, TOOLS, execute_tool
 
     tools: list[GhostTool] = []
     for spec in TOOLS:
         name = spec["name"]
-        if name in DANGEROUS_TOOLS and not include_dangerous:
+        if not include_dangerous and name not in SAFE_DEVICE_TOOLS:
             continue
 
         def _make_run(tool_name: str) -> Callable[..., str]:
