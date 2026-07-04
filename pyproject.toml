@@ -52,6 +52,7 @@ all = ["ghost-in-the-droid[llm,analytics,ocr,test]"]
 
 [project.scripts]
 android-agent = "gitd.cli:main"
+ghost-in-the-droid = "gitd.cli:main"
 android-agent-mcp = "gitd.mcp_server:main"
 
 [tool.setuptools.packages.find]

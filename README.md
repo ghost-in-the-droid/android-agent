@@ -64,28 +64,37 @@ Define **skills** for any app, run them from the dashboard or API, scale across 
 
 ## Quick Start
 
+Zero-install with [`uvx`](https://docs.astral.sh/uv/) (or `pipx`):
+
 ```bash
-# 1. Clone the repo
+# Check your environment first — Python, adb on PATH, devices, ports, LLM keys
+uvx ghost-in-the-droid doctor
+
+# Start the server + dashboard
+uvx ghost-in-the-droid up
+# → http://localhost:5055  (dashboard + API; docs at /docs)
+```
+
+`doctor` prints a green/red checklist with fix hints instead of a stack trace when
+something's missing (e.g. `adb` not on PATH). Prefer `pipx`? `pipx install
+ghost-in-the-droid` gives you the `ghost-in-the-droid` / `android-agent` commands.
+
+<details>
+<summary>From a clone (for development)</summary>
+
+```bash
 git clone https://github.com/ghost-in-the-droid/android-agent.git
 cd ghost-in-the-droid
-
-# 2. Install Python dependencies
 pip install -e ".[all]"
 
-# 3. Verify ADB sees your device
-adb devices
+android-agent doctor        # preflight
+android-agent up            # start server + dashboard on :5055
 
-# 4. Start the backend
-python3 run.py
-# API running at http://localhost:5055
-# Interactive API docs at http://localhost:5055/docs
-
-# 5. Start the frontend (separate terminal)
-cd frontend
-npm install
-npx vite --host 0.0.0.0 --port 6175
+# Frontend (separate terminal)
+cd frontend && npm install && npx vite --host 0.0.0.0 --port 6175
 # Dashboard at http://localhost:6175
 ```
+</details>
 
 ### Environment Variables
 
