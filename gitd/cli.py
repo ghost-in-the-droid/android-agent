@@ -1,6 +1,7 @@
 """CLI entry point: android-agent skill install/list/update/remove/validate/search"""
 
 import argparse
+import json
 import logging
 import os
 import re
@@ -692,16 +693,46 @@ def cmd_doctor(args):
 # ── login (Claude subscription, no API key) ──────────────────────────────────
 
 
-def _claude_auth_state() -> str:
-    """Offline check of Claude subscription sign-in.
+def _claude_status_logged_in(timeout: int = 10) -> bool:
+    """Ask the claude CLI whether it's signed in, via `claude auth status`.
 
-    Returns 'not_installed' | 'logged_out' | 'logged_in'. This NEVER reads the
-    token value — only that the claude CLI's own OAuth credential is present.
-    Ghost does not store or manage the token; the claude CLI owns it (and its
-    refresh). No network call, so it's cheap enough for `doctor`.
+    Storage-agnostic — respects wherever the CLI keeps creds (plain file on
+    Linux, the login Keychain on macOS), so it fixes the false-negative when the
+    file check misses on a Mac. Still NEVER reads the token itself; we only look
+    at the CLI's own yes/no. Best-effort: any failure → treat as not-signed-in.
     """
-    import json
+    try:
+        r = subprocess.run(
+            ["claude", "auth", "status"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except Exception:
+        return False
+    out = (r.stdout or "").strip()
+    try:
+        data = json.loads(out)
+        if isinstance(data, dict) and "loggedIn" in data:
+            return bool(data["loggedIn"])
+    except Exception:
+        pass
+    # Older/plain-text CLIs: fall back to the exit code.
+    return r.returncode == 0
 
+
+def _claude_auth_state() -> str:
+    """Check Claude subscription sign-in.
+
+    Returns 'not_installed' | 'logged_out' | 'logged_in'. NEVER reads the token
+    value — only whether the CLI is signed in. Ghost does not store or manage
+    the token; the claude CLI owns it (and its refresh).
+
+    Fast path: the plain-file credential (Linux, and macOS when the CLI uses the
+    file) — no subprocess. If that's absent the CLI may keep creds elsewhere
+    (e.g. the macOS Keychain), so we ask `claude auth status`, which respects its
+    own storage. On Linux this only costs a subprocess when NOT signed in.
+    """
     if shutil.which("claude") is None:
         return "not_installed"
     creds = Path.home() / ".claude" / ".credentials.json"
@@ -710,6 +741,9 @@ def _claude_auth_state() -> str:
             return "logged_in"
     except Exception:
         pass
+    # File missing/unreadable — ask the CLI itself (catches macOS Keychain).
+    if _claude_status_logged_in():
+        return "logged_in"
     return "logged_out"
 
 

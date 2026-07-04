@@ -23,14 +23,59 @@ def test_auth_state_not_installed(monkeypatch):
 def test_auth_state_logged_out(monkeypatch, tmp_path):
     monkeypatch.setattr(cli.shutil, "which", lambda n: "/usr/bin/claude")
     monkeypatch.setattr(cli.Path, "home", lambda: tmp_path)  # no creds file
+    monkeypatch.setattr(cli, "_claude_status_logged_in", lambda: False)  # CLI says not signed in
     assert cli._claude_auth_state() == "logged_out"
 
 
-def test_auth_state_logged_in(monkeypatch, tmp_path):
+def test_auth_state_logged_in_fast_path_skips_status_probe(monkeypatch, tmp_path):
     monkeypatch.setattr(cli.shutil, "which", lambda n: "/usr/bin/claude")
     monkeypatch.setattr(cli.Path, "home", lambda: tmp_path)
     _write_creds(tmp_path, {"claudeAiOauth": {"accessToken": "SECRET-should-not-be-read"}})
+
+    def _boom():
+        raise AssertionError("status probe must not run when the creds file exists")
+
+    monkeypatch.setattr(cli, "_claude_status_logged_in", _boom)
     assert cli._claude_auth_state() == "logged_in"
+
+
+def test_auth_state_logged_in_via_status_when_file_absent(monkeypatch, tmp_path):
+    """macOS Keychain case: no creds file, but the CLI reports signed in."""
+    monkeypatch.setattr(cli.shutil, "which", lambda n: "/usr/bin/claude")
+    monkeypatch.setattr(cli.Path, "home", lambda: tmp_path)  # no creds file
+    monkeypatch.setattr(cli, "_claude_status_logged_in", lambda: True)
+    assert cli._claude_auth_state() == "logged_in"
+
+
+def test_claude_status_parses_loggedIn_json(monkeypatch):
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='{"loggedIn": true}', stderr=""),
+    )
+    assert cli._claude_status_logged_in() is True
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda *a, **k: types.SimpleNamespace(returncode=0, stdout='{"loggedIn": false}', stderr=""),
+    )
+    assert cli._claude_status_logged_in() is False
+
+
+def test_claude_status_falls_back_to_exit_code(monkeypatch):
+    # non-JSON output → use the exit code
+    monkeypatch.setattr(
+        cli.subprocess, "run", lambda *a, **k: types.SimpleNamespace(returncode=0, stdout="Signed in", stderr="")
+    )
+    assert cli._claude_status_logged_in() is True
+
+
+def test_claude_status_handles_failure(monkeypatch):
+    def _raise(*a, **k):
+        raise FileNotFoundError("claude")
+
+    monkeypatch.setattr(cli.subprocess, "run", _raise)
+    assert cli._claude_status_logged_in() is False
 
 
 # ── cmd_login ────────────────────────────────────────────────────────────────
