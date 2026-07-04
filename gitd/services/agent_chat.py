@@ -121,49 +121,46 @@ _active_procs: dict[str, subprocess.Popen] = {}  # session_id -> running subproc
 
 
 def stop_agent(session_id: str):
-    """Kill the running agent subprocess AND all its children.
+    """Kill the running agent subprocess AND all its children — THIS session only.
 
-    Two layers of kill so a runaway claude can't keep tapping the phone after
-    the user hits Stop:
-      1. Typed kill via _active_procs[session_id] — sends SIGTERM (then SIGKILL)
-         to the whole process group (chat_claude_code uses start_new_session=True
-         so claude+node+MCP-tool children share a pgid).
-      2. Nuclear pkill on the claude --print command line as a safety net for
-         processes that escaped the group (e.g., claude re-execed via node).
+    chat_claude_code launches claude with start_new_session=True, so claude and
+    its node + MCP-tool children share one process group (pgid == the claude
+    pid). Killing that group through the proc handle registered in
+    _active_procs[session_id] is a complete, session-scoped stop: SIGTERM the
+    group, then SIGKILL if it doesn't exit within 2s. A re-exec (execve) keeps
+    the same pgid, so a changed PID doesn't escape this.
+
+    We deliberately do NOT fall back to `pkill -f claude...stream-json`: that
+    pattern matches EVERY claude stream-json process on the box, so stopping
+    session A would reap session B mid-tap. Worse, the router calls stop_agent
+    in the finally of every stream (including non-claude providers that never
+    register a proc), so a normal completion on one session would nuke every
+    other live agent. Multi-session is a headline capability — keep stops
+    isolated to their own process group.
     """
     import os as _os
     import signal as _sig
 
     proc = _active_procs.pop(session_id, None)
-    if proc:
-        try:
-            pgid = _os.getpgid(proc.pid)
-            _os.killpg(pgid, _sig.SIGTERM)
-            try:
-                proc.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                _os.killpg(pgid, _sig.SIGKILL)
-        except (ProcessLookupError, PermissionError):
-            pass
-        except Exception:
-            # Fallback to plain kill if pgid lookup failed
-            try:
-                proc.kill()
-            except Exception:
-                pass
-    # Nuclear safety net — pkill anything matching the claude --print pattern.
-    # Catches procs that re-execed (PID changed), procs from a different
-    # session that crashed mid-stream, and the case where _active_procs lost
-    # track because chat_claude_code registered after Popen but before adding
-    # to the dict.
+    if proc is None:
+        # No process for this session (e.g. anthropic/ollama providers, or
+        # already stopped). Nothing to kill — and crucially, no global sweep.
+        return
     try:
-        subprocess.run(
-            ["pkill", "-9", "-f", "claude.*--print.*--output-format.*stream-json"],
-            capture_output=True,
-            timeout=3,
-        )
-    except Exception:
+        pgid = _os.getpgid(proc.pid)
+        _os.killpg(pgid, _sig.SIGTERM)
+        try:
+            proc.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            _os.killpg(pgid, _sig.SIGKILL)
+    except (ProcessLookupError, PermissionError):
         pass
+    except Exception:
+        # pgid lookup failed (proc already reaped) — best-effort plain kill.
+        try:
+            proc.kill()
+        except Exception:
+            pass
     log.info("Stopped agent for session %s", session_id)
 
 
