@@ -122,6 +122,8 @@ claude mcp add android-agent android-agent-mcp
 
 Every other client — Cursor, Windsurf, Zed, Continue, Cline, Codex CLI, Claude Desktop, Cherry Studio, OpenClaw, and ChatGPT / GPT Actions (via the OpenAPI REST layer) — has its own config format. The **[MCP Clients compatibility matrix](/features/mcp-clients/)** lists the transport each one supports and the exact snippet to wire Ghost in.
 
+Prefer to drive Ghost from **LangChain or LlamaIndex** directly? Skip MCP entirely and use the native framework adapters — see [LangChain & LlamaIndex](/features/integrations/).
+
 ## Typical Agent Loop
 
 ```
