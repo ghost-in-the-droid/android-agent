@@ -570,16 +570,47 @@ def run_action(device: str, skill: str, action: str, params: str = "{}") -> str:
 
 MAX_FLOW_STEPS = 50
 
-# Tools that must NEVER run inside a batched flow. A batch is exactly where an
-# injected instruction would smuggle arbitrary execution, so these injection
-# vectors are refused: raw shell, skill/code execution, and arbitrary intents.
-# The flow is rejected as a whole (before any step runs) if it names one.
-FLOW_BLOCKED_ACTIONS = frozenset(
+# ALLOW-list of tools permitted inside a batched flow. A batch is exactly where
+# an injected instruction would smuggle arbitrary execution, so run_flow is
+# fail-CLOSED: only these explicitly-vetted read/UI tools may run. Anything not
+# listed — including any dangerous tool (shell, run_skill) AND any tool added to
+# execute_tool in the future — is refused. A deny-list would silently fail-open
+# the moment a new dangerous tool landed in the dispatch; this can't.
+# (Excludes exactly `shell` and `run_skill` from execute_tool's 32 branches.)
+# perception (read-only), UI actions, scoped app control, discovery, web_search
+# — everything EXCEPT the two exec vectors `shell` and `run_skill`.
+FLOW_ALLOWED_TOOLS = frozenset(
     {
-        "shell",  # raw `adb shell <cmd>` — arbitrary command execution
-        "run_skill",  # runs an arbitrary installed skill's code
-        "create_skill",  # writes generated code into the package dir
-        "launch_intent",  # arbitrary intent + arbitrary data payload
+        "screenshot",
+        "screenshot_annotated",
+        "screenshot_cropped",
+        "get_screen_tree",
+        "get_elements",
+        "get_phone_state",
+        "classify_screen",
+        "find_on_screen",
+        "ocr_screen",
+        "ocr_region",
+        "get_notifications",
+        "tap",
+        "tap_element",
+        "swipe",
+        "type_text",
+        "press_key",
+        "long_press",
+        "paste_text",
+        "clipboard_get",
+        "clipboard_set",
+        "launch_app",
+        "force_stop",
+        "open_camera",
+        "speak_text",
+        "wait",
+        "list_apps",
+        "search_apps",
+        "list_packages",
+        "list_skills",
+        "web_search",
     }
 )
 
@@ -587,11 +618,17 @@ FLOW_BLOCKED_ACTIONS = frozenset(
 def _run_flow(device: str, steps: object) -> dict:
     """Core of run_flow (kept import-light + side-effect-free to unit test).
 
-    Validates the whole batch first (shape + blocklist), then executes each
-    step via the shared execute_tool dispatch, aborting on the first error.
-    Returns a consolidated dict with per-step results and ONE final screenshot.
+    Validates the whole batch first (shape + allow-list), then executes each
+    step, aborting on the first error. Returns a consolidated dict with per-step
+    results and ONE final screenshot.
+
+    Dispatches via _execute_tool_inner (not the wrapped execute_tool): the
+    wrapper appends a fresh screen tree and sleeps 0.5s after every UI action,
+    which for a 50-step flow would add ~25s of latency and 50 inflated results —
+    exactly the per-step overhead batching exists to remove. We take one final
+    screenshot for the whole batch instead.
     """
-    from gitd.services.agent_tools import execute_tool, get_screenshot_b64
+    from gitd.services.agent_tools import _execute_tool_inner, get_screenshot_b64
 
     if not isinstance(steps, list):
         return {"error": "steps must be a JSON list of {tool, args} objects"}
@@ -601,13 +638,13 @@ def _run_flow(device: str, steps: object) -> dict:
         return {"error": f"too many steps ({len(steps)} > {MAX_FLOW_STEPS})"}
 
     # Fail closed: validate EVERY step before running ANY of them, so a flow
-    # that hides a blocked action after some benign steps executes nothing.
+    # that hides a disallowed action after some benign steps executes nothing.
     for i, step in enumerate(steps):
         if not isinstance(step, dict) or "tool" not in step:
             return {"error": f"step {i} must be an object with a 'tool' field"}
-        if step["tool"] in FLOW_BLOCKED_ACTIONS:
+        if step["tool"] not in FLOW_ALLOWED_TOOLS:
             return {
-                "error": f"step {i}: tool '{step['tool']}' is blocked inside run_flow (injection guard)",
+                "error": f"step {i}: tool '{step['tool']}' is not allowed inside run_flow (injection guard)",
                 "blocked": step["tool"],
             }
 
@@ -618,7 +655,7 @@ def _run_flow(device: str, steps: object) -> dict:
         args = dict(step.get("args") or {})
         args.setdefault("device", device)
         try:
-            out = execute_tool(tool, args)
+            out = _execute_tool_inner(tool, args)
             results.append({"step": i, "tool": tool, "ok": True, "result": str(out)[:800]})
         except Exception as e:
             results.append({"step": i, "tool": tool, "ok": False, "error": f"{type(e).__name__}: {e}"[:800]})
@@ -655,10 +692,10 @@ def run_flow(device: str, steps: str) -> str:
                            {"tool":"find_on_screen","args":{"text":"Wi-Fi"}},
                            {"tool":"tap","args":{"x":540,"y":300}}]')
 
-    Security: raw `shell`, `run_skill`, `create_skill`, and `launch_intent` are
-    rejected inside a flow (the whole flow is refused before any step runs) —
-    a batch is exactly where an injected instruction would smuggle a shell
-    command. Max 50 steps.
+    Security: fail-closed allow-list — only vetted read/UI tools may run inside
+    a flow. Anything else (raw `shell`, `run_skill`, or any unknown tool) makes
+    the whole flow be refused before any step runs, since a batch is exactly
+    where an injected instruction would smuggle a shell command. Max 50 steps.
     """
     try:
         parsed = json.loads(steps)

@@ -1,18 +1,21 @@
 """Tests for the batch-flow MCP primitive (_run_flow / run_flow).
 
 Covers the happy path (ordered execution, one final screenshot), the fail-fast
-error behaviour, and — most importantly — the injection guard: a flow that
-names a blocked tool is refused as a whole, executing NOTHING.
+error behaviour, and — most importantly — the fail-closed allow-list: a flow
+naming any non-allowed tool (dangerous OR unknown) is refused as a whole,
+executing NOTHING.
 """
 
 import json
 
 import gitd.services.agent_tools as agent_tools
-from gitd.mcp_server import FLOW_BLOCKED_ACTIONS, MAX_FLOW_STEPS, _run_flow, run_flow
+from gitd.mcp_server import FLOW_ALLOWED_TOOLS, MAX_FLOW_STEPS, _run_flow, run_flow
 
 
 def _patch(monkeypatch, calls, *, raise_on=None, screenshot="IMGB64"):
-    def fake_execute_tool(name, args):
+    # _run_flow dispatches via _execute_tool_inner (NOT the wrapped execute_tool,
+    # which sleeps + appends a screen tree per step), so we patch that.
+    def fake_execute(name, args):
         calls.append((name, dict(args)))
         if raise_on and name == raise_on:
             raise RuntimeError("adb ... failed (exit 1): device not found")
@@ -24,7 +27,7 @@ def _patch(monkeypatch, calls, *, raise_on=None, screenshot="IMGB64"):
         shots["n"] += 1
         return screenshot
 
-    monkeypatch.setattr(agent_tools, "execute_tool", fake_execute_tool)
+    monkeypatch.setattr(agent_tools, "_execute_tool_inner", fake_execute)
     monkeypatch.setattr(agent_tools, "get_screenshot_b64", fake_shot)
     return shots
 
@@ -61,12 +64,26 @@ def test_run_flow_blocks_dangerous_tool_and_runs_nothing(monkeypatch):
     out = _run_flow("SER1", steps)
 
     assert out.get("blocked") == "shell"
-    assert "blocked" in out["error"]
-    assert calls == [], "no step may execute when the flow contains a blocked tool"
+    assert "not allowed" in out["error"]
+    assert calls == [], "no step may execute when the flow contains a non-allowed tool"
 
 
-def test_run_flow_blocklist_covers_all_injection_vectors():
-    assert {"shell", "run_skill", "create_skill", "launch_intent"} <= set(FLOW_BLOCKED_ACTIONS)
+def test_run_flow_fails_closed_on_unknown_tool(monkeypatch):
+    """The whole point of the allow-list: a tool not on it (e.g. a future
+    dangerous addition to execute_tool) is refused, not auto-allowed."""
+    calls = []
+    _patch(monkeypatch, calls)
+    out = _run_flow("SER1", [{"tool": "some_new_tool_added_later", "args": {}}])
+    assert out.get("blocked") == "some_new_tool_added_later"
+    assert calls == []
+
+
+def test_run_flow_allowlist_excludes_dangerous_tools():
+    # shell / run_skill are the two exec vectors in execute_tool — never allowed.
+    assert "shell" not in FLOW_ALLOWED_TOOLS
+    assert "run_skill" not in FLOW_ALLOWED_TOOLS
+    # but the common read/UI tools are.
+    assert {"tap", "launch_app", "find_on_screen", "screenshot"} <= FLOW_ALLOWED_TOOLS
 
 
 def test_run_flow_aborts_on_first_error(monkeypatch):
