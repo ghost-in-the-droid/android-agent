@@ -5,6 +5,7 @@ Device tests require a connected Android phone (set DEVICE env var).
 API tests use FastAPI TestClient (no phone needed).
 """
 
+import hashlib
 import os
 import tempfile
 from pathlib import Path
@@ -20,7 +21,14 @@ import pytest
 # real data/gitd.db and wipe live rows. This module does NOT import gitd, so the
 # env var is set first.
 if "DB_PATH" not in os.environ:
-    _TEST_DB = Path(tempfile.gettempdir()) / "gitd_pytest.db"
+    # Per-worktree DB path. A fixed /tmp/gitd_pytest.db is shared by every
+    # checkout, so pytest running concurrently in two per-agent worktrees would
+    # race on the same file (one session's clean-slate unlink + create clobbers
+    # the other → intermittent "no such table"/locked failures). Keying the path
+    # to this worktree's root makes each checkout use its own DB; re-runs in the
+    # same worktree still reuse one stable, debuggable path.
+    _wt_key = hashlib.md5(str(Path(__file__).resolve().parent.parent).encode()).hexdigest()[:8]
+    _TEST_DB = Path(tempfile.gettempdir()) / f"gitd_pytest_{_wt_key}.db"
     # Start each test session from a clean slate (drop WAL/SHM sidecars too).
     for _suffix in ("", "-wal", "-shm"):
         Path(str(_TEST_DB) + _suffix).unlink(missing_ok=True)
