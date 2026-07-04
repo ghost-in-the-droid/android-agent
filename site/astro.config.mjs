@@ -3,6 +3,10 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 export default defineConfig({
+	// Canonical site URL — enables absolute canonical <link> tags, correct
+	// social/OG URLs, and sitemap generation (Starlight's @astrojs/sitemap
+	// integration is a no-op without this).
+	site: 'https://ghostinthedroid.com',
 	integrations: [
 		starlight({
 			title: 'Ghost in the Droid',
