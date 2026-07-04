@@ -2,6 +2,7 @@
 
 import io
 import json
+import re
 import shutil
 import time
 import zipfile
@@ -13,6 +14,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from gitd.models.base import get_db
+from gitd.services.admin_auth import require_admin_token
 
 router = APIRouter(prefix="/api/skills", tags=["skills"])
 
@@ -134,41 +136,86 @@ def api_skills_community():
     return _fetch_cached(_COMMUNITY_URL, "community")
 
 
-@router.post("/install", summary="Install Skill From Registry or URL")
+# Strict shape check for GitHub repo references.  ``_is_github_url`` only
+# checks the prefix, which lets whitespace / newline / leading-dash tricks
+# reach ``git clone`` as smuggled flags (e.g. ``--upload-pack=<cmd>``).
+# Only accept plain ``[https://]github.com/<owner>/<repo>[.git]``.
+_SAFE_GITHUB_URL_RE = re.compile(r"^(?:https?://)?github\.com/[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+(?:\.git)?/?$")
+
+# Registry names are drawn from ``_download_skill_from_registry`` output —
+# keep the accepted alphabet narrow so the value can never do anything
+# surprising when it eventually reaches ``importlib.import_module``.
+_SAFE_REGISTRY_NAME_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_\-]{0,63}$")
+
+
+@router.post(
+    "/install",
+    summary="Install Skill From Registry or URL",
+    dependencies=[Depends(require_admin_token)],
+)
 def api_skills_install(data: dict = Body(...)):
     """Install a skill by name (from registry) or by URL (GitHub repo).
 
     Body: {"name": "tiktok"} or {"url": "github.com/user/repo"}
+
+    Requires the admin token dependency: installing a skill drops Python
+    code into ``gitd/skills/<name>`` which is later loaded via
+    ``importlib.import_module`` — trivially RCE for an unauthenticated
+    caller (CWE-94).  See ``gitd/services/admin_auth.py``.
     """
     from gitd.cli import (
         _clone_github_skill,
         _download_skill_from_registry,
         _install_to_skills_dir,
-        _is_github_url,
+        _validate_skill_dir,
     )
 
-    name = data.get("name", "").strip()
-    url = data.get("url", "").strip()
+    name = data.get("name", "").strip() if isinstance(data.get("name"), str) else ""
+    url = data.get("url", "").strip() if isinstance(data.get("url"), str) else ""
 
     if not name and not url:
         raise HTTPException(status_code=400, detail="Provide 'name' or 'url'")
 
-    if url and _is_github_url(url):
+    if url:
+        # Reject anything that isn't a plain github.com/<owner>/<repo> URL —
+        # ``git clone`` will happily interpret ``-uexec=...`` style tokens
+        # as flags when we haven't sanitised them first.
+        if not _SAFE_GITHUB_URL_RE.match(url):
+            raise HTTPException(
+                status_code=400,
+                detail=("url must look like 'github.com/<owner>/<repo>' (no shell metacharacters, no leading dash)."),
+            )
         source = _clone_github_skill(url)
         if source is None:
             raise HTTPException(status_code=400, detail=f"Failed to clone {url}")
-        ok = _install_to_skills_dir(source)
-        shutil.rmtree(source, ignore_errors=True)
+        try:
+            if not _validate_skill_dir(source, verbose=False):
+                raise HTTPException(
+                    status_code=400,
+                    detail=("Skill failed validation (see server logs); refusing to install untrusted code."),
+                )
+            ok = _install_to_skills_dir(source)
+        finally:
+            shutil.rmtree(source, ignore_errors=True)
         if not ok:
             raise HTTPException(status_code=500, detail="Install failed")
         return {"ok": True, "message": f"Installed from {url}"}
 
     if name:
+        if not _SAFE_REGISTRY_NAME_RE.match(name):
+            raise HTTPException(status_code=400, detail="Invalid registry name")
         source = _download_skill_from_registry(name)
         if source is None:
             raise HTTPException(status_code=404, detail=f"Skill '{name}' not found in registry")
-        ok = _install_to_skills_dir(source, name=name)
-        shutil.rmtree(source, ignore_errors=True)
+        try:
+            if not _validate_skill_dir(source, verbose=False):
+                raise HTTPException(
+                    status_code=400,
+                    detail=("Skill failed validation (see server logs); refusing to install untrusted code."),
+                )
+            ok = _install_to_skills_dir(source, name=name)
+        finally:
+            shutil.rmtree(source, ignore_errors=True)
         if not ok:
             raise HTTPException(status_code=500, detail="Install failed")
         return {"ok": True, "message": f"Installed '{name}' from registry"}
