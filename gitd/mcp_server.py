@@ -671,6 +671,118 @@ def run_flow(device: str, steps: str) -> str:
     return json.dumps(_run_flow(device, parsed))
 
 
+# ── Crash reports ────────────────────────────────────────────────────────
+# Read app crashes/ANRs from the logcat `crash` buffer — works WITHOUT root
+# (unlike /data/tombstones or /data/anr, which need it). Parser is a pure
+# function so it's unit-testable against captured logcat text.
+
+_CRASH_TS_RE = re.compile(r"^(\d\d-\d\d \d\d:\d\d:\d\d\.\d+)")
+
+
+def _run_logcat_crash(device: str, timeout: int = 10) -> str:
+    """Dump the on-device crash ring buffer (`-d` = dump and exit)."""
+    r = subprocess.run(
+        ["adb", "-s", device, "logcat", "-b", "crash", "-d"],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    return r.stdout
+
+
+def _parse_crashes(logcat_text: str) -> list[dict]:
+    """Parse the crash buffer into crash events, most-recent first.
+
+    Handles Java `FATAL EXCEPTION` blocks (with process + first exception line)
+    and `ANR in <pkg>` lines. Native tombstones need root and are out of scope.
+    """
+    lines = logcat_text.splitlines()
+    crashes: list[dict] = []
+    i, n = 0, len(lines)
+    while i < n:
+        line = lines[i]
+        if "FATAL EXCEPTION" in line and "AndroidRuntime:" in line:
+            ts_m = _CRASH_TS_RE.match(line)
+            ts = ts_m.group(1) if ts_m else ""
+            block, process, summary = [], "", ""
+            j = i
+            while j < n and "AndroidRuntime:" in lines[j]:
+                content = lines[j].split("AndroidRuntime:", 1)[1].strip()
+                block.append(lines[j])
+                pm = re.search(r"Process:\s*([^,]+)", content)
+                if pm and not process:
+                    process = pm.group(1).strip()
+                if not summary and "FATAL EXCEPTION" not in content and ("Exception" in content or "Error" in content):
+                    summary = content
+                j += 1
+            crashes.append(
+                {
+                    "type": "java",
+                    "timestamp": ts,
+                    "process": process,
+                    "summary": summary or "FATAL EXCEPTION",
+                    "raw": "\n".join(block),
+                }
+            )
+            i = j
+            continue
+        if "ANR in " in line:
+            ts_m = _CRASH_TS_RE.match(line)
+            am = re.search(r"ANR in ([^\s(]+)", line)
+            crashes.append(
+                {
+                    "type": "anr",
+                    "timestamp": ts_m.group(1) if ts_m else "",
+                    "process": am.group(1) if am else "",
+                    "summary": line.split("ANR in ", 1)[1].strip() if "ANR in " in line else line.strip(),
+                    "raw": line,
+                }
+            )
+        i += 1
+    crashes.reverse()  # logcat is chronological → most recent first
+    return crashes
+
+
+@mcp.tool()
+def list_crashes(device: str, package: str = "", limit: int = 10) -> str:
+    """List recent app crashes and ANRs (from the logcat crash buffer, no root).
+
+    Optionally filter by package (substring match on the crashing process).
+    Returns JSON: {count, crashes: [{type, timestamp, process, summary}]}.
+    Use get_crash() to pull a full stack for the most recent one."""
+    try:
+        text = _run_logcat_crash(device)
+    except Exception as e:
+        return json.dumps({"error": f"could not read crash log: {e}"})
+    crashes = _parse_crashes(text)
+    if package:
+        crashes = [c for c in crashes if package in (c["process"] or "")]
+    out = [
+        {"type": c["type"], "timestamp": c["timestamp"], "process": c["process"], "summary": c["summary"][:300]}
+        for c in crashes[:limit]
+    ]
+    return json.dumps({"count": len(out), "crashes": out}, indent=2)
+
+
+@mcp.tool()
+def get_crash(device: str, package: str = "") -> str:
+    """Return the full stack trace of the MOST RECENT crash (from the crash buffer).
+
+    Optionally filter by package. Pair with list_crashes() to see what's there."""
+    try:
+        text = _run_logcat_crash(device)
+    except Exception as e:
+        return f"Error: could not read crash log: {e}"
+    crashes = _parse_crashes(text)
+    if package:
+        crashes = [c for c in crashes if package in (c["process"] or "")]
+    if not crashes:
+        scope = f" for {package}" if package else ""
+        return f"No crashes found{scope} in the crash buffer."
+    c = crashes[0]
+    return f"[{c['type']}] {c['timestamp']} {c['process']}\n{c['raw'][:6000]}"
+
+
 # ── Tier 3: Meta / Discovery ────────────────────────────────────────────
 
 
