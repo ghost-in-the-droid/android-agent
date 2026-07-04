@@ -4,6 +4,9 @@ The parser is exercised against captured logcat crash-buffer text — no device.
 """
 
 import json
+import types
+
+import pytest
 
 import gitd.mcp_server as mcp_server
 from gitd.mcp_server import _parse_crashes, get_crash, list_crashes
@@ -71,3 +74,36 @@ def test_get_crash_returns_most_recent_full_stack(monkeypatch):
 def test_get_crash_no_crashes(monkeypatch):
     monkeypatch.setattr(mcp_server, "_run_logcat_crash", lambda device, timeout=10: "")
     assert "No crashes found" in get_crash("SER1")
+
+
+# ── #675: adb failure must surface, not read as "no crashes" ─────────────────
+
+
+def _fake_run(returncode, stdout="", stderr=""):
+    return lambda *a, **k: types.SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
+
+
+def test_run_logcat_crash_raises_on_nonzero(monkeypatch):
+    monkeypatch.setattr(mcp_server.subprocess, "run", _fake_run(1, "", "error: device offline"))
+    with pytest.raises(RuntimeError, match="offline"):
+        mcp_server._run_logcat_crash("SER1")
+
+
+def test_offline_device_surfaces_error_not_phantom_no_crashes(monkeypatch):
+    # nonzero exit + empty stdout used to parse to zero crashes → "app is fine".
+    monkeypatch.setattr(mcp_server.subprocess, "run", _fake_run(1, "", "device offline"))
+    body = json.loads(list_crashes("SER1"))
+    assert "error" in body and body.get("count") != 0
+    assert get_crash("SER1").startswith("Error")
+
+
+# ── #675: ANRs come from the events buffer (am_anr), not the crash buffer ─────
+
+_ANR_EVENT = "06-24 05:00:00.000 1500 1600 I am_anr  : [0,21001,com.anr.app,952647748,Input dispatching timed out]"
+
+
+def test_parse_am_anr_event():
+    anr = [c for c in _parse_crashes(_ANR_EVENT) if c["type"] == "anr"]
+    assert len(anr) == 1
+    assert anr[0]["process"] == "com.anr.app"
+    assert "timed out" in anr[0]["summary"]

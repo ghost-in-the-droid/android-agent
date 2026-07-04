@@ -680,13 +680,29 @@ _CRASH_TS_RE = re.compile(r"^(\d\d-\d\d \d\d:\d\d:\d\d\.\d+)")
 
 
 def _run_logcat_crash(device: str, timeout: int = 10) -> str:
-    """Dump the on-device crash ring buffer (`-d` = dump and exit)."""
-    r = subprocess.run(
-        ["adb", "-s", device, "logcat", "-b", "crash", "-d"],
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-    )
+    """Dump the crash + events ring buffers (`-d` = dump and exit).
+
+    Reads the `crash` buffer (Java FATAL EXCEPTIONs) AND the `events` buffer,
+    which is where ANRs land as `am_anr` events — the crash buffer has none.
+
+    Raises on any adb failure so callers surface a real error instead of a
+    phantom "no crashes": an offline/unauthorized device makes adb exit nonzero
+    with empty stdout, which would otherwise parse to zero crashes and read as
+    "the app is fine".
+    """
+    try:
+        r = subprocess.run(
+            ["adb", "-s", device, "logcat", "-b", "crash", "-b", "events", "-d"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except FileNotFoundError as e:
+        raise RuntimeError("adb not found on PATH") from e
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError(f"adb logcat timed out after {timeout}s (device unresponsive?)") from e
+    if r.returncode != 0:
+        raise RuntimeError(f"adb exited {r.returncode}: {(r.stderr or '').strip() or 'device offline/unauthorized?'}")
     return r.stdout
 
 
@@ -738,6 +754,21 @@ def _parse_crashes(logcat_text: str) -> list[dict]:
                     "raw": line,
                 }
             )
+        elif "am_anr" in line:
+            # events-buffer ANR: `... I am_anr : [userId,pid,packageName,flags,reason]`
+            ts_m = _CRASH_TS_RE.match(line)
+            bm = re.search(r"\[([^\]]*)\]", line)
+            fields = [f.strip() for f in bm.group(1).split(",")] if bm else []
+            if len(fields) >= 3:
+                crashes.append(
+                    {
+                        "type": "anr",
+                        "timestamp": ts_m.group(1) if ts_m else "",
+                        "process": fields[2],
+                        "summary": "ANR: " + ", ".join(fields[4:]) if len(fields) > 4 else "ANR",
+                        "raw": line,
+                    }
+                )
         i += 1
     crashes.reverse()  # logcat is chronological → most recent first
     return crashes
