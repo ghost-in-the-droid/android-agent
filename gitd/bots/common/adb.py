@@ -6,6 +6,38 @@ Single Device class providing tap, swipe, type, screenshot, XML dump,
 and other low-level ADB operations used by skills and bot scripts.
 """
 import hashlib, html, json, re, subprocess, time
+from typing import NamedTuple
+
+
+class ADBError(RuntimeError):
+    """Raised when an adb invocation fails (nonzero exit, timeout, or adb missing).
+
+    Subclasses RuntimeError so the many call sites that already wrap adb calls in
+    ``try/except Exception`` keep degrading gracefully — the only behaviour change
+    is that a failure now carries a real message instead of masquerading as an
+    empty-string success.
+    """
+
+    def __init__(self, args, returncode: int, stderr: str = "", stdout: str = ""):
+        self.cmd_args = tuple(args)
+        self.returncode = returncode
+        self.stderr = stderr or ""
+        self.stdout = stdout or ""
+        detail = self.stderr.strip() or self.stdout.strip() or "no output"
+        cmd = "adb " + " ".join(str(a) for a in args)
+        super().__init__(f"{cmd} failed (exit {returncode}): {detail}")
+
+
+class ADBResult(NamedTuple):
+    """Result of a soft (non-raising) adb call — see ``Device.adb_soft``."""
+
+    returncode: int
+    stdout: str
+    stderr: str
+
+    @property
+    def ok(self) -> bool:
+        return self.returncode == 0
 
 
 def _stable_port(serial: str, base: int = 18000) -> int:
@@ -53,12 +85,47 @@ class Device:
 
     # ── ADB primitives ────────────────────────────────────────────────────────
 
+    def _run(self, args, timeout) -> subprocess.CompletedProcess:
+        """Invoke adb once. Raises ADBError if adb is missing or the call times
+        out — both are hard failures no caller can recover from as a string."""
+        try:
+            return subprocess.run(
+                ["adb", "-s", self.serial, *args],
+                capture_output=True, text=True, timeout=timeout,
+            )
+        except FileNotFoundError as e:
+            raise ADBError(args, 127, "adb executable not found on PATH") from e
+        except subprocess.TimeoutExpired as e:
+            raise ADBError(args, -1, f"timed out after {timeout}s") from e
+
     def adb(self, *args, timeout=30) -> str:
-        r = subprocess.run(
-            ["adb", "-s", self.serial, *args],
-            capture_output=True, text=True, timeout=timeout,
-        )
+        """Run an adb command, returning stripped stdout.
+
+        Raises ADBError on a nonzero exit (device offline/unauthorized/unknown
+        serial, adb transport errors) instead of silently returning "" — that
+        empty string used to read as success and gave every downstream tool a
+        phantom success. Note: app-level tools like ``am``/``pm``/``monkey``
+        usually still exit 0 on their own failures and print the error to
+        stdout, so callers that care about those must still parse stdout; this
+        only surfaces adb-process-level failures. For commands where a nonzero
+        exit is expected and tolerable, use ``adb_soft``.
+        """
+        r = self._run(args, timeout)
+        if r.returncode != 0:
+            raise ADBError(args, r.returncode, r.stderr, r.stdout)
         return r.stdout.strip()
+
+    def adb_soft(self, *args, timeout=30) -> ADBResult:
+        """Run an adb command without raising on a nonzero exit.
+
+        Returns an ADBResult(returncode, stdout, stderr) so the caller can
+        inspect the exit code / stderr itself. Use for calls where a nonzero
+        exit is a normal, expected outcome (e.g. probing an optional feature
+        that may be unavailable on older devices). adb-missing / timeout still
+        raise ADBError — those are never a normal outcome.
+        """
+        r = self._run(args, timeout)
+        return ADBResult(r.returncode, r.stdout.strip(), r.stderr.strip())
 
     def adb_show(self, *args):
         """adb with live output (e.g. for push progress)."""
@@ -88,8 +155,13 @@ class Device:
         time.sleep(delay)
 
     def clipboard_get(self) -> str:
-        """Get clipboard text (requires API 29+)."""
-        return self.adb("shell", "cmd", "clipboard", "get-text") or ''
+        """Get clipboard text (requires API 29+).
+
+        Uses adb_soft — the clipboard service is unavailable on some devices
+        and returns nonzero; that's a normal "no clipboard" outcome, not an
+        error worth raising through every caller.
+        """
+        return self.adb_soft("shell", "cmd", "clipboard", "get-text").stdout or ''
 
     def clipboard_set(self, text: str):
         """Set clipboard text."""

@@ -443,7 +443,16 @@ def _chat_anthropic(session: ChatSession, user_message: str):
                 )
                 yield {"type": "tool_call", "name": tool_name, "args": tool_args}
 
-                result = execute_tool(tool_name, tool_args)
+                # Catch tool failures (e.g. ADBError on an offline/unauthorized
+                # device) so they become a tool_result the model can react to,
+                # not an uncaught raise that breaks the SSE stream. Every
+                # tool_use MUST get a matching tool_result or the next turn's
+                # Anthropic request is malformed — so the error text flows into
+                # the same result path below. Mirrors the vllm/ollama loops.
+                try:
+                    result = execute_tool(tool_name, tool_args)
+                except Exception as e:
+                    result = f"Tool error: {e}"
                 image_b64 = ""
                 if tool_name in ("screenshot", "screenshot_annotated", "screenshot_cropped"):
                     image_b64 = get_screenshot_b64(tool_args.get("device", session.device)) or ""
