@@ -562,6 +562,111 @@ def run_action(device: str, skill: str, action: str, params: str = "{}") -> str:
     return f"SUCCESS:\n{output}"
 
 
+# ── Batch flow ──────────────────────────────────────────────────────────
+# Execute a whole sequence of tool calls in ONE MCP round-trip. Today every
+# action is its own round-trip, so the LLM re-sends the schema + a screenshot +
+# history per step; batching collapses that into one call with a single final
+# screenshot — the token/latency win.
+
+MAX_FLOW_STEPS = 50
+
+# Tools that must NEVER run inside a batched flow. A batch is exactly where an
+# injected instruction would smuggle arbitrary execution, so these injection
+# vectors are refused: raw shell, skill/code execution, and arbitrary intents.
+# The flow is rejected as a whole (before any step runs) if it names one.
+FLOW_BLOCKED_ACTIONS = frozenset(
+    {
+        "shell",  # raw `adb shell <cmd>` — arbitrary command execution
+        "run_skill",  # runs an arbitrary installed skill's code
+        "create_skill",  # writes generated code into the package dir
+        "launch_intent",  # arbitrary intent + arbitrary data payload
+    }
+)
+
+
+def _run_flow(device: str, steps: object) -> dict:
+    """Core of run_flow (kept import-light + side-effect-free to unit test).
+
+    Validates the whole batch first (shape + blocklist), then executes each
+    step via the shared execute_tool dispatch, aborting on the first error.
+    Returns a consolidated dict with per-step results and ONE final screenshot.
+    """
+    from gitd.services.agent_tools import execute_tool, get_screenshot_b64
+
+    if not isinstance(steps, list):
+        return {"error": "steps must be a JSON list of {tool, args} objects"}
+    if not steps:
+        return {"error": "steps is empty"}
+    if len(steps) > MAX_FLOW_STEPS:
+        return {"error": f"too many steps ({len(steps)} > {MAX_FLOW_STEPS})"}
+
+    # Fail closed: validate EVERY step before running ANY of them, so a flow
+    # that hides a blocked action after some benign steps executes nothing.
+    for i, step in enumerate(steps):
+        if not isinstance(step, dict) or "tool" not in step:
+            return {"error": f"step {i} must be an object with a 'tool' field"}
+        if step["tool"] in FLOW_BLOCKED_ACTIONS:
+            return {
+                "error": f"step {i}: tool '{step['tool']}' is blocked inside run_flow (injection guard)",
+                "blocked": step["tool"],
+            }
+
+    results = []
+    stopped_early = False
+    for i, step in enumerate(steps):
+        tool = step["tool"]
+        args = dict(step.get("args") or {})
+        args.setdefault("device", device)
+        try:
+            out = execute_tool(tool, args)
+            results.append({"step": i, "tool": tool, "ok": True, "result": str(out)[:800]})
+        except Exception as e:
+            results.append({"step": i, "tool": tool, "ok": False, "error": f"{type(e).__name__}: {e}"[:800]})
+            stopped_early = True
+            break  # phase 1: abort on first error (on_error/if_not_found is phase 2)
+
+    final_screenshot = ""
+    try:
+        final_screenshot = get_screenshot_b64(device) or ""
+    except Exception:
+        pass
+
+    return {
+        "steps_total": len(steps),
+        "steps_run": len(results),
+        "stopped_early": stopped_early,
+        "results": results,
+        "final_screenshot": final_screenshot,  # ONE shot for the whole batch
+    }
+
+
+@mcp.tool()
+def run_flow(device: str, steps: str) -> str:
+    """Run an ordered batch of tool calls server-side in ONE round-trip.
+
+    `steps` is a JSON list of {"tool": "<name>", "args": {...}} — the same tool
+    names execute_tool exposes (tap, tap_element, type_text, launch_app, etc.).
+    Steps run in order and stop at the first error. Returns a JSON object with
+    per-step results and a SINGLE final screenshot (not one per step) — far
+    fewer tokens/round-trips than calling each tool separately.
+
+    Example:
+      run_flow("SERIAL", '[{"tool":"launch_app","args":{"package":"com.android.settings"}},
+                           {"tool":"find_on_screen","args":{"text":"Wi-Fi"}},
+                           {"tool":"tap","args":{"x":540,"y":300}}]')
+
+    Security: raw `shell`, `run_skill`, `create_skill`, and `launch_intent` are
+    rejected inside a flow (the whole flow is refused before any step runs) —
+    a batch is exactly where an injected instruction would smuggle a shell
+    command. Max 50 steps.
+    """
+    try:
+        parsed = json.loads(steps)
+    except (ValueError, TypeError) as e:
+        return json.dumps({"error": f"steps must be valid JSON: {e}"})
+    return json.dumps(_run_flow(device, parsed))
+
+
 # ── Tier 3: Meta / Discovery ────────────────────────────────────────────
 
 
