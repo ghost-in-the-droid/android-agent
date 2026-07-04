@@ -19,6 +19,13 @@ export default defineConfig({
 			customCss: ['./src/styles/custom.css'],
 			head: [
 				{
+					tag: 'meta',
+					attrs: {
+						name: 'google-site-verification',
+						content: 'lCpzZZM3agcLw_H0vN9ek2NKHN3aRF5ijaIwX5Vsnyw',
+					},
+				},
+				{
 					tag: 'script',
 					attrs: {
 						defer: true,
