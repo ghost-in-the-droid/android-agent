@@ -19,6 +19,7 @@ from mcp.server.fastmcp import FastMCP
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gitd.bots.common.adb import Device, list_connected
+from gitd.services.agent_tools import SAFE_DEVICE_TOOLS
 
 mcp = FastMCP(
     "android-agent",
@@ -560,6 +561,257 @@ def run_action(device: str, skill: str, action: str, params: str = "{}") -> str:
         output += f"\nSTDERR: {result.stderr.strip()}" if result.stderr else ""
         return f"FAILED (exit {result.returncode}):\n{output}"
     return f"SUCCESS:\n{output}"
+
+
+# ── Batch flow ──────────────────────────────────────────────────────────
+# Execute a whole sequence of tool calls in ONE MCP round-trip. Today every
+# action is its own round-trip, so the LLM re-sends the schema + a screenshot +
+# history per step; batching collapses that into one call with a single final
+# screenshot — the token/latency win.
+
+MAX_FLOW_STEPS = 50
+
+# ALLOW-list of tools permitted inside a batched flow. A batch is exactly where
+# an injected instruction would smuggle arbitrary execution, so run_flow is
+# fail-CLOSED: only explicitly-vetted read/UI tools may run. Anything not on the
+# list — a dangerous tool (shell, run_skill) OR any tool added to execute_tool
+# in the future — is refused. Shared with the framework adapters (one source of
+# truth, so the two can't drift): gitd.services.agent_tools.SAFE_DEVICE_TOOLS.
+FLOW_ALLOWED_TOOLS = SAFE_DEVICE_TOOLS
+
+
+def _run_flow(device: str, steps: object) -> dict:
+    """Core of run_flow (kept import-light + side-effect-free to unit test).
+
+    Validates the whole batch first (shape + allow-list), then executes each
+    step, aborting on the first error. Returns a consolidated dict with per-step
+    results and ONE final screenshot.
+
+    Dispatches via _execute_tool_inner (not the wrapped execute_tool): the
+    wrapper appends a fresh screen tree and sleeps 0.5s after every UI action,
+    which for a 50-step flow would add ~25s of latency and 50 inflated results —
+    exactly the per-step overhead batching exists to remove. We take one final
+    screenshot for the whole batch instead.
+    """
+    from gitd.services.agent_tools import _execute_tool_inner, get_screenshot_b64
+
+    if not isinstance(steps, list):
+        return {"error": "steps must be a JSON list of {tool, args} objects"}
+    if not steps:
+        return {"error": "steps is empty"}
+    if len(steps) > MAX_FLOW_STEPS:
+        return {"error": f"too many steps ({len(steps)} > {MAX_FLOW_STEPS})"}
+
+    # Fail closed: validate EVERY step before running ANY of them, so a flow
+    # that hides a disallowed action after some benign steps executes nothing.
+    for i, step in enumerate(steps):
+        if not isinstance(step, dict) or "tool" not in step:
+            return {"error": f"step {i} must be an object with a 'tool' field"}
+        if step["tool"] not in FLOW_ALLOWED_TOOLS:
+            return {
+                "error": f"step {i}: tool '{step['tool']}' is not allowed inside run_flow (injection guard)",
+                "blocked": step["tool"],
+            }
+
+    results = []
+    stopped_early = False
+    for i, step in enumerate(steps):
+        tool = step["tool"]
+        args = dict(step.get("args") or {})
+        args.setdefault("device", device)
+        try:
+            out = _execute_tool_inner(tool, args)
+            results.append({"step": i, "tool": tool, "ok": True, "result": str(out)[:800]})
+        except Exception as e:
+            results.append({"step": i, "tool": tool, "ok": False, "error": f"{type(e).__name__}: {e}"[:800]})
+            stopped_early = True
+            break  # phase 1: abort on first error (on_error/if_not_found is phase 2)
+
+    final_screenshot = ""
+    try:
+        final_screenshot = get_screenshot_b64(device) or ""
+    except Exception:
+        pass
+
+    return {
+        "steps_total": len(steps),
+        "steps_run": len(results),
+        "stopped_early": stopped_early,
+        "results": results,
+        "final_screenshot": final_screenshot,  # ONE shot for the whole batch
+    }
+
+
+@mcp.tool()
+def run_flow(device: str, steps: str) -> str:
+    """Run an ordered batch of tool calls server-side in ONE round-trip.
+
+    `steps` is a JSON list of {"tool": "<name>", "args": {...}} — the same tool
+    names execute_tool exposes (tap, tap_element, type_text, launch_app, etc.).
+    Steps run in order and stop at the first error. Returns a JSON object with
+    per-step results and a SINGLE final screenshot (not one per step) — far
+    fewer tokens/round-trips than calling each tool separately. Steps do NOT
+    auto-settle between UI actions; if a step needs the screen to update before
+    the next one reads it, insert an explicit {"tool":"wait","args":{...}} step.
+
+    Example:
+      run_flow("SERIAL", '[{"tool":"launch_app","args":{"package":"com.android.settings"}},
+                           {"tool":"find_on_screen","args":{"text":"Wi-Fi"}},
+                           {"tool":"tap","args":{"x":540,"y":300}}]')
+
+    Security: fail-closed allow-list — only vetted read/UI tools may run inside
+    a flow. Anything else (raw `shell`, `run_skill`, or any unknown tool) makes
+    the whole flow be refused before any step runs, since a batch is exactly
+    where an injected instruction would smuggle a shell command. Max 50 steps.
+    """
+    try:
+        parsed = json.loads(steps)
+    except (ValueError, TypeError) as e:
+        return json.dumps({"error": f"steps must be valid JSON: {e}"})
+    return json.dumps(_run_flow(device, parsed))
+
+
+# ── Crash reports ────────────────────────────────────────────────────────
+# Read app crashes/ANRs from the logcat `crash` buffer — works WITHOUT root
+# (unlike /data/tombstones or /data/anr, which need it). Parser is a pure
+# function so it's unit-testable against captured logcat text.
+
+_CRASH_TS_RE = re.compile(r"^(\d\d-\d\d \d\d:\d\d:\d\d\.\d+)")
+
+
+def _run_logcat_crash(device: str, timeout: int = 10) -> str:
+    """Dump the crash + events ring buffers (`-d` = dump and exit).
+
+    Reads the `crash` buffer (Java FATAL EXCEPTIONs) AND the `events` buffer,
+    which is where ANRs land as `am_anr` events — the crash buffer has none.
+
+    Raises on any adb failure so callers surface a real error instead of a
+    phantom "no crashes": an offline/unauthorized device makes adb exit nonzero
+    with empty stdout, which would otherwise parse to zero crashes and read as
+    "the app is fine".
+    """
+    try:
+        r = subprocess.run(
+            ["adb", "-s", device, "logcat", "-b", "crash", "-b", "events", "-d"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except FileNotFoundError as e:
+        raise RuntimeError("adb not found on PATH") from e
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError(f"adb logcat timed out after {timeout}s (device unresponsive?)") from e
+    if r.returncode != 0:
+        raise RuntimeError(f"adb exited {r.returncode}: {(r.stderr or '').strip() or 'device offline/unauthorized?'}")
+    return r.stdout
+
+
+def _parse_crashes(logcat_text: str) -> list[dict]:
+    """Parse the crash buffer into crash events, most-recent first.
+
+    Handles Java `FATAL EXCEPTION` blocks (with process + first exception line)
+    and `ANR in <pkg>` lines. Native tombstones need root and are out of scope.
+    """
+    lines = logcat_text.splitlines()
+    crashes: list[dict] = []
+    i, n = 0, len(lines)
+    while i < n:
+        line = lines[i]
+        if "FATAL EXCEPTION" in line and "AndroidRuntime:" in line:
+            ts_m = _CRASH_TS_RE.match(line)
+            ts = ts_m.group(1) if ts_m else ""
+            block, process, summary = [], "", ""
+            j = i
+            while j < n and "AndroidRuntime:" in lines[j]:
+                content = lines[j].split("AndroidRuntime:", 1)[1].strip()
+                block.append(lines[j])
+                pm = re.search(r"Process:\s*([^,]+)", content)
+                if pm and not process:
+                    process = pm.group(1).strip()
+                if not summary and "FATAL EXCEPTION" not in content and ("Exception" in content or "Error" in content):
+                    summary = content
+                j += 1
+            crashes.append(
+                {
+                    "type": "java",
+                    "timestamp": ts,
+                    "process": process,
+                    "summary": summary or "FATAL EXCEPTION",
+                    "raw": "\n".join(block),
+                }
+            )
+            i = j
+            continue
+        if "ANR in " in line:
+            ts_m = _CRASH_TS_RE.match(line)
+            am = re.search(r"ANR in ([^\s(]+)", line)
+            crashes.append(
+                {
+                    "type": "anr",
+                    "timestamp": ts_m.group(1) if ts_m else "",
+                    "process": am.group(1) if am else "",
+                    "summary": line.split("ANR in ", 1)[1].strip() if "ANR in " in line else line.strip(),
+                    "raw": line,
+                }
+            )
+        elif "am_anr" in line:
+            # events-buffer ANR: `... I am_anr : [userId,pid,packageName,flags,reason]`
+            ts_m = _CRASH_TS_RE.match(line)
+            bm = re.search(r"\[([^\]]*)\]", line)
+            fields = [f.strip() for f in bm.group(1).split(",")] if bm else []
+            if len(fields) >= 3:
+                crashes.append(
+                    {
+                        "type": "anr",
+                        "timestamp": ts_m.group(1) if ts_m else "",
+                        "process": fields[2],
+                        "summary": "ANR: " + ", ".join(fields[4:]) if len(fields) > 4 else "ANR",
+                        "raw": line,
+                    }
+                )
+        i += 1
+    crashes.reverse()  # logcat is chronological → most recent first
+    return crashes
+
+
+@mcp.tool()
+def list_crashes(device: str, package: str = "", limit: int = 10) -> str:
+    """List recent app crashes and ANRs (from the logcat crash buffer, no root).
+
+    Optionally filter by package (substring match on the crashing process).
+    Returns JSON: {count, crashes: [{type, timestamp, process, summary}]}.
+    Use get_crash() to pull a full stack for the most recent one."""
+    try:
+        text = _run_logcat_crash(device)
+    except Exception as e:
+        return json.dumps({"error": f"could not read crash log: {e}"})
+    crashes = _parse_crashes(text)
+    if package:
+        crashes = [c for c in crashes if package in (c["process"] or "")]
+    out = [
+        {"type": c["type"], "timestamp": c["timestamp"], "process": c["process"], "summary": c["summary"][:300]}
+        for c in crashes[:limit]
+    ]
+    return json.dumps({"count": len(out), "crashes": out}, indent=2)
+
+
+@mcp.tool()
+def get_crash(device: str, package: str = "") -> str:
+    """Return the full stack trace of the MOST RECENT crash (from the crash buffer).
+
+    Optionally filter by package. Pair with list_crashes() to see what's there."""
+    try:
+        text = _run_logcat_crash(device)
+    except Exception as e:
+        return f"Error: could not read crash log: {e}"
+    crashes = _parse_crashes(text)
+    if package:
+        crashes = [c for c in crashes if package in (c["process"] or "")]
+    if not crashes:
+        scope = f" for {package}" if package else ""
+        return f"No crashes found{scope} in the crash buffer."
+    c = crashes[0]
+    return f"[{c['type']}] {c['timestamp']} {c['process']}\n{c['raw'][:6000]}"
 
 
 # ── Tier 3: Meta / Discovery ────────────────────────────────────────────

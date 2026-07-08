@@ -3,6 +3,10 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 export default defineConfig({
+	// Canonical site URL — enables absolute canonical <link> tags, correct
+	// social/OG URLs, and sitemap generation (Starlight's @astrojs/sitemap
+	// integration is a no-op without this).
+	site: 'https://ghostinthedroid.com',
 	integrations: [
 		starlight({
 			title: 'Ghost in the Droid',
@@ -14,6 +18,13 @@ export default defineConfig({
 			],
 			customCss: ['./src/styles/custom.css'],
 			head: [
+				{
+					tag: 'meta',
+					attrs: {
+						name: 'google-site-verification',
+						content: 'lCpzZZM3agcLw_H0vN9ek2NKHN3aRF5ijaIwX5Vsnyw',
+					},
+				},
 				{
 					tag: 'script',
 					attrs: {
@@ -117,6 +128,9 @@ document.addEventListener('DOMContentLoaded', function() {
 						{ label: '🛠️ Skill Creator', slug: 'features/skill-creator' },
 						{ label: '⛏️ App Explorer', slug: 'features/app-explorer' },
 						{ label: '🔌 MCP Server', slug: 'features/mcp-server' },
+						{ label: '🔗 MCP Clients', slug: 'features/mcp-clients' },
+						{ label: '🦜 LangChain & LlamaIndex', slug: 'features/integrations' },
+						{ label: '⚖️ How Ghost Compares', slug: 'features/how-ghost-compares' },
 						{ label: '📋 Dashboard', slug: 'features/dashboard' },
 						{ label: '⏰ Scheduler', slug: 'features/scheduler' },
 						{ label: '🎥 WebRTC Streaming', slug: 'features/webrtc' },

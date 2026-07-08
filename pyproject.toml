@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ghost-in-the-droid"
-version = "1.2.0"
+version = "1.3.0"
 description = "Give any AI agent an Android body. Open-source phone automation via ADB — tap, swipe, type, run skills, scale across devices."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -45,15 +45,18 @@ Issues = "https://github.com/ghost-in-the-droid/android-agent/issues"
 llm = ["anthropic>=0.30"]
 analytics = ["google-analytics-data>=0.18"]
 ocr = ["rapidocr-onnxruntime>=1.3"]
-test = ["playwright>=1.40", "pytest>=7.0"]
+langchain = ["langchain-core>=0.3"]
+llamaindex = ["llama-index-core>=0.11"]
+test = ["playwright>=1.40", "pytest>=7.0", "langchain-core>=0.3", "llama-index-core>=0.11"]
 all = ["ghost-in-the-droid[llm,analytics,ocr,test]"]
 
 [project.scripts]
 android-agent = "gitd.cli:main"
+ghost-in-the-droid = "gitd.cli:main"
 android-agent-mcp = "gitd.mcp_server:main"
 
 [tool.setuptools.packages.find]
-include = ["gitd*"]
+include = ["gitd*", "integrations*"]
 
 [tool.ruff]
 target-version = "py310"

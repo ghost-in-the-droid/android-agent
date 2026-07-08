@@ -64,28 +64,57 @@ Define **skills** for any app, run them from the dashboard or API, scale across 
 
 ## Quick Start
 
+Zero-install with [`uvx`](https://docs.astral.sh/uv/) (or `pipx`):
+
 ```bash
-# 1. Clone the repo
+# Check your environment first — Python, adb on PATH, devices, ports, LLM keys
+uvx ghost-in-the-droid doctor
+
+# Sign in with your Claude subscription — no API key needed (see below)
+uvx ghost-in-the-droid login
+
+# Start the server + dashboard
+uvx ghost-in-the-droid up
+# → http://localhost:5055  (dashboard + API; docs at /docs)
+```
+
+`doctor` prints a green/red checklist with fix hints instead of a stack trace when
+something's missing (e.g. `adb` not on PATH). Prefer `pipx`? `pipx install
+ghost-in-the-droid` gives you the `ghost-in-the-droid` / `android-agent` commands.
+
+### Sign in with your Claude subscription (no API key)
+
+If you have a **Claude Max/Pro** subscription, you don't need an API key.
+`android-agent login` signs you in through the `claude` CLI's own Anthropic
+OAuth flow and points Ghost at the `claude-code` provider:
+
+```bash
+android-agent login       # opens Anthropic sign-in via the claude CLI
+```
+
+Ghost never handles or stores your token — the `claude` CLI owns it, including
+refresh. Under the hood this is the sanctioned subscription path (we don't touch
+Anthropic's private OAuth endpoints). `doctor` shows a green **Claude
+subscription** check once you're signed in. To use an API key instead, set
+`ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` / `OPENROUTER_API_KEY`) and pick that
+provider.
+
+<details>
+<summary>From a clone (for development)</summary>
+
+```bash
 git clone https://github.com/ghost-in-the-droid/android-agent.git
 cd ghost-in-the-droid
-
-# 2. Install Python dependencies
 pip install -e ".[all]"
 
-# 3. Verify ADB sees your device
-adb devices
+android-agent doctor        # preflight
+android-agent up            # start server + dashboard on :5055
 
-# 4. Start the backend
-python3 run.py
-# API running at http://localhost:5055
-# Interactive API docs at http://localhost:5055/docs
-
-# 5. Start the frontend (separate terminal)
-cd frontend
-npm install
-npx vite --host 0.0.0.0 --port 6175
+# Frontend (separate terminal)
+cd frontend && npm install && npx vite --host 0.0.0.0 --port 6175
 # Dashboard at http://localhost:6175
 ```
+</details>
 
 ### Environment Variables
 

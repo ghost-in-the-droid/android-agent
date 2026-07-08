@@ -107,58 +107,22 @@ Connect MCP to the Ghost Skills system in `registry/`.
 | `create_skill` | Record a new reusable skill from a JSON step list |
 | `explore_app` | BFS crawl an app's UI and return a state graph |
 
-## Platform Setup
+## Connecting a client
 
-### Claude Code (recommended)
+Ghost speaks MCP over two transports:
 
-Add `.mcp.json` to your project root:
+- **stdio** — run `android-agent-mcp` (or `python3 -m gitd.mcp_server`)
+- **streamable HTTP** — `http://localhost:8002/mcp` (start the server with `python3 -m gitd.mcp_server`)
 
-```json
-{
-  "mcpServers": {
-    "android-agent": {
-      "command": "android-agent-mcp"
-    }
-  }
-}
-```
-
-Or register globally:
+The fastest start is Claude Code:
 
 ```bash
 claude mcp add android-agent android-agent-mcp
 ```
 
-### Claude Desktop (HTTP)
+Every other client — Cursor, Windsurf, Zed, Continue, Cline, Codex CLI, Claude Desktop, Cherry Studio, OpenClaw, and ChatGPT / GPT Actions (via the OpenAPI REST layer) — has its own config format. The **[MCP Clients compatibility matrix](/features/mcp-clients/)** lists the transport each one supports and the exact snippet to wire Ghost in.
 
-```json
-{
-  "mcpServers": {
-    "android-agent": {
-      "url": "http://localhost:8002/mcp"
-    }
-  }
-}
-```
-
-Start the server first: `python3 -m gitd.mcp_server`
-
-### Cursor / Codex CLI (stdio)
-
-```json
-{
-  "mcpServers": {
-    "android-agent": {
-      "command": "python3",
-      "args": ["-m", "gitd.mcp_server"]
-    }
-  }
-}
-```
-
-### ChatGPT / GPT Actions
-
-ChatGPT uses OpenAPI, not MCP. Expose port 5055 via ngrok or Cloudflare Tunnel, then import the OpenAPI spec as a Custom GPT Action.
+Prefer to drive Ghost from **LangChain or LlamaIndex** directly? Skip MCP entirely and use the native framework adapters — see [LangChain & LlamaIndex](/features/integrations/).
 
 ## Typical Agent Loop
 

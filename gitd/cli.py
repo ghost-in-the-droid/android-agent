@@ -1,6 +1,7 @@
 """CLI entry point: android-agent skill install/list/update/remove/validate/search"""
 
 import argparse
+import json
 import logging
 import os
 import re
@@ -506,6 +507,305 @@ def cmd_search(args):
 # ── Main ──────────────────────────────────────────────────────────────────
 
 
+def cmd_up(args):
+    """Boot the server + dashboard (replaces `python3 run.py`)."""
+    from pathlib import Path as _Path
+
+    # Load .env from the current working dir if present (uvx/pipx runs from
+    # anywhere, so we can't assume the repo layout run.py relied on).
+    try:
+        from dotenv import load_dotenv
+
+        env = _Path.cwd() / ".env"
+        if env.exists():
+            load_dotenv(env)
+    except Exception:
+        pass
+
+    try:
+        import uvicorn
+
+        from gitd.app import app
+        from gitd.config import settings
+    except Exception as e:
+        print(f"✗ Could not start server: {e}")
+        print("  Run `android-agent doctor` to check your install.")
+        return 1
+
+    # Default to localhost — this server shells into a physical phone, so it
+    # must NOT be exposed to the whole LAN on first run. Opt into LAN access
+    # explicitly with `--host 0.0.0.0`. (settings.host stays 0.0.0.0 for the
+    # container/run.py path, which is deliberately behind other controls.)
+    host = args.host or "127.0.0.1"
+    port = args.port or settings.port
+    shown_host = "localhost" if host in ("0.0.0.0", "127.0.0.1") else host
+    print(f"Ghost in the Droid → http://{shown_host}:{port}  (dashboard + API)")
+    if host == "0.0.0.0":
+        print("⚠  Bound to 0.0.0.0 — reachable by anyone on your network. This server controls your phone.")
+    print("Press Ctrl+C to stop.")
+    uvicorn.run(app, host=host, port=port)
+    return 0
+
+
+# ── doctor ───────────────────────────────────────────────────────────────────
+
+_DOCTOR_ICON = {"ok": "✓", "warn": "!", "fail": "✗"}
+
+
+def _port_in_use(port: int, host: str = "127.0.0.1") -> bool:
+    import socket
+
+    probe_host = "127.0.0.1" if host in ("0.0.0.0", "") else host
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex((probe_host, port)) == 0
+
+
+def collect_doctor_checks() -> list[dict]:
+    """Preflight environment checks. Returns a list of
+    {name, status: ok|warn|fail, detail, hint} dicts — no printing, so it's
+    unit-testable. `cmd_doctor` renders and sets the exit code from these.
+    """
+    checks: list[dict] = []
+
+    # Python version
+    py = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    py_ok = sys.version_info >= (3, 10)
+    checks.append(
+        {
+            "name": "Python >= 3.10",
+            "status": "ok" if py_ok else "fail",
+            "detail": py,
+            "hint": "" if py_ok else "Ghost requires Python 3.10+.",
+        }
+    )
+
+    # adb on PATH — the #1 first-run failure
+    adb = shutil.which("adb")
+    checks.append(
+        {
+            "name": "adb on PATH",
+            "status": "ok" if adb else "fail",
+            "detail": adb or "not found",
+            "hint": "" if adb else "Install Android platform-tools and add `adb` to PATH.",
+        }
+    )
+
+    # Connected devices (only meaningful if adb exists)
+    if adb:
+        try:
+            from gitd.bots.common.adb import list_connected
+
+            devices = list_connected()
+        except Exception as e:
+            devices = []
+            checks.append({"name": "adb devices", "status": "warn", "detail": f"could not query: {e}", "hint": ""})
+        else:
+            checks.append(
+                {
+                    "name": "adb devices",
+                    "status": "ok" if devices else "warn",
+                    "detail": ", ".join(devices) if devices else "no devices connected",
+                    "hint": "" if devices else "Plug in a device / start an emulator and enable USB debugging.",
+                }
+            )
+
+    # Server port
+    try:
+        from gitd.config import settings
+
+        port = settings.port
+        host = settings.host
+    except Exception:
+        port, host = 5055, "0.0.0.0"
+    in_use = _port_in_use(port, host)
+    checks.append(
+        {
+            "name": f"server port {port}",
+            "status": "warn" if in_use else "ok",
+            "detail": "already in use (server running?)" if in_use else "free",
+            "hint": f"Another process holds port {port}; stop it or set a different port." if in_use else "",
+        }
+    )
+
+    # LLM backend configured — a key OR the claude CLI (subscription auth)
+    try:
+        from gitd.config import settings as _s
+
+        keys = {
+            "anthropic": bool(_s.anthropic_api_key),
+            "openai": bool(_s.openai_api_key),
+            "openrouter": bool(_s.openrouter_api_key),
+        }
+    except Exception:
+        keys = {}
+    claude_cli = shutil.which("claude") is not None
+    configured = [k for k, v in keys.items() if v] + (["claude-code CLI"] if claude_cli else [])
+    checks.append(
+        {
+            "name": "LLM backend",
+            "status": "ok" if configured else "warn",
+            "detail": ", ".join(configured) if configured else "none configured",
+            "hint": "" if configured else "Set an API key (e.g. ANTHROPIC_API_KEY) or install the `claude` CLI.",
+        }
+    )
+
+    # Claude subscription sign-in (the no-API-key path). Only surfaced when the
+    # claude CLI is present but not signed in — otherwise the LLM-backend check
+    # above already covers it.
+    if claude_cli:
+        signed_in = _claude_auth_state() == "logged_in"
+        checks.append(
+            {
+                "name": "Claude subscription",
+                "status": "ok" if signed_in else "warn",
+                "detail": "signed in (no API key needed)" if signed_in else "claude CLI present, not signed in",
+                "hint": "" if signed_in else "Run `android-agent login` to use your Claude Max/Pro subscription.",
+            }
+        )
+
+    return checks
+
+
+def cmd_doctor(args):
+    """Print a green/red preflight checklist and exit non-zero on any failure."""
+    checks = collect_doctor_checks()
+    print("Ghost in the Droid — doctor\n")
+    for c in checks:
+        icon = _DOCTOR_ICON.get(c["status"], "?")
+        line = f"  {icon} {c['name']}: {c['detail']}"
+        print(line)
+        if c["hint"] and c["status"] != "ok":
+            print(f"      → {c['hint']}")
+    failed = [c for c in checks if c["status"] == "fail"]
+    warned = [c for c in checks if c["status"] == "warn"]
+    print()
+    if failed:
+        print(f"{len(failed)} problem(s) must be fixed before Ghost will run.")
+        return 1
+    if warned:
+        print(f"Ready, with {len(warned)} warning(s).")
+    else:
+        print("All checks passed. Run `android-agent up` to start.")
+    return 0
+
+
+# ── login (Claude subscription, no API key) ──────────────────────────────────
+
+
+def _claude_status_logged_in(timeout: int = 10) -> bool:
+    """Ask the claude CLI whether it's signed in, via `claude auth status`.
+
+    Storage-agnostic — respects wherever the CLI keeps creds (plain file on
+    Linux, the login Keychain on macOS), so it fixes the false-negative when the
+    file check misses on a Mac. Still NEVER reads the token itself; we only look
+    at the CLI's own yes/no. Best-effort: any failure → treat as not-signed-in.
+    """
+    try:
+        r = subprocess.run(
+            ["claude", "auth", "status"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except Exception:
+        return False
+    out = (r.stdout or "").strip()
+    try:
+        data = json.loads(out)
+        if isinstance(data, dict) and "loggedIn" in data:
+            return bool(data["loggedIn"])
+    except Exception:
+        pass
+    # Older/plain-text CLIs: fall back to the exit code.
+    return r.returncode == 0
+
+
+def _claude_auth_state() -> str:
+    """Check Claude subscription sign-in.
+
+    Returns 'not_installed' | 'logged_out' | 'logged_in'. NEVER reads the token
+    value — only whether the CLI is signed in. Ghost does not store or manage
+    the token; the claude CLI owns it (and its refresh).
+
+    Fast path: the plain-file credential (Linux, and macOS when the CLI uses the
+    file) — no subprocess. If that's absent the CLI may keep creds elsewhere
+    (e.g. the macOS Keychain), so we ask `claude auth status`, which respects its
+    own storage. On Linux this only costs a subprocess when NOT signed in.
+    """
+    if shutil.which("claude") is None:
+        return "not_installed"
+    creds = Path.home() / ".claude" / ".credentials.json"
+    try:
+        if creds.exists() and json.loads(creds.read_text()).get("claudeAiOauth"):
+            return "logged_in"
+    except Exception:
+        pass
+    # File missing/unreadable — ask the CLI itself (catches macOS Keychain).
+    if _claude_status_logged_in():
+        return "logged_in"
+    return "logged_out"
+
+
+def _record_default_provider(provider: str) -> None:
+    """Best-effort upsert of DEFAULT_PROVIDER in ./.env (records the preference;
+    auth is the real work, so failures here are non-fatal)."""
+    env_path = Path.cwd() / ".env"
+    key = "DEFAULT_PROVIDER"
+    try:
+        lines, found = [], False
+        if env_path.exists():
+            for line in env_path.read_text().splitlines():
+                if line.strip().startswith(f"{key}="):
+                    lines.append(f"{key}={provider}")
+                    found = True
+                else:
+                    lines.append(line)
+        if not found:
+            lines.append(f"{key}={provider}")
+        env_path.write_text("\n".join(lines) + "\n")
+    except Exception:
+        pass
+
+
+def cmd_login(args):
+    """Sign in Ghost's LLM backend via your Claude Max/Pro subscription — no API key.
+
+    Ghost's `claude-code` provider runs through the `claude` CLI, which signs in
+    with your Claude subscription via Anthropic's own OAuth flow. This command
+    delegates to `claude auth login` and confirms the result — Ghost never
+    handles or stores the token; the claude CLI owns it, refresh included.
+    """
+    state = _claude_auth_state()
+    if state == "not_installed":
+        print("✗ The `claude` CLI (Claude Code) is not installed.")
+        print("  Ghost uses your Claude Max/Pro subscription through it — no API key needed.")
+        print("  Install: https://docs.claude.com/claude-code, then re-run `android-agent login`.")
+        return 1
+
+    if state == "logged_out" or getattr(args, "relogin", False):
+        print("Opening Anthropic sign-in via the claude CLI…")
+        try:
+            rc = subprocess.run(["claude", "auth", "login"]).returncode
+        except Exception as e:
+            print(f"✗ Could not launch `claude auth login`: {e}")
+            return 1
+        if rc != 0:
+            print("✗ Sign-in didn't complete. Re-run `android-agent login` after finishing in the browser.")
+            return 1
+        state = _claude_auth_state()
+
+    if state == "logged_in":
+        _record_default_provider("claude-code")
+        print("✓ Signed in to your Claude subscription.")
+        print("  No API key needed — Ghost will use the `claude-code` provider by default.")
+        print("  Start it: android-agent up")
+        return 0
+
+    print("! Could not confirm sign-in. Check `claude auth status`.")
+    return 1
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -544,11 +844,32 @@ def main():
     search_p = skill_sub.add_parser("search", help="Search registry by name/description")
     search_p.add_argument("query", help="Search query")
 
+    # ── up subcommand — boot the server + dashboard ──
+    up_p = sub.add_parser("up", help="Start the Ghost server + dashboard")
+    up_p.add_argument("--host", default=None, help="Bind host (default 127.0.0.1; use 0.0.0.0 to expose on your LAN)")
+    up_p.add_argument("--port", type=int, default=None, help="Bind port (default from settings)")
+
+    # ── doctor subcommand — environment preflight ──
+    sub.add_parser("doctor", help="Check your environment (adb, ports, deps, LLM keys)")
+
+    # ── login subcommand — Claude subscription sign-in (no API key) ──
+    login_p = sub.add_parser("login", help="Sign in via your Claude subscription (no API key needed)")
+    login_p.add_argument("--relogin", action="store_true", help="Force re-authentication even if already signed in")
+
     args = parser.parse_args()
 
     if args.command is None:
         parser.print_help()
         return 0
+
+    if args.command == "login":
+        return cmd_login(args)
+
+    if args.command == "up":
+        return cmd_up(args)
+
+    if args.command == "doctor":
+        return cmd_doctor(args)
 
     if args.command == "skill":
         if args.skill_command is None:
