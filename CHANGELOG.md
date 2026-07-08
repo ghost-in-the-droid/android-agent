@@ -6,6 +6,52 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [1.3.0] — TBD
+
+_Ghost 1.3 turns Ghost in the Droid into a full agent harness for Android. See [release notes](docs/release-notes/v1.3.0.md) for the full story._
+
+### Added
+- **6 LLM backends** — Claude Code (CLI), Anthropic API, OpenRouter, Ollama, on-device Gemma, vLLM.
+- **On-device inference** — Gemma runs on the phone via MediaPipe (`.task`) or llama.cpp (`.gguf`), Chaquopy Python-in-APK bridge.
+- **LangChain + LlamaIndex integrations** — `GhostToolkit` (LangChain `BaseTool`) + `GhostAndroidToolSpec` (LlamaIndex `ToolSpec`), device auto-bound, shared `SAFE_DEVICE_TOOLS` allow-list.
+- **`android-agent up` / `doctor` / `login` CLI** — one-command boot, preflight, and Claude subscription sign-in (wraps sanctioned `claude` CLI).
+- **`run_flow` MCP tool** — batched execution with fail-closed allow-list + injection blocklist. One round-trip for multi-step workflows.
+- **`list_crashes` / `get_crash` MCP tools** — no-root crash + ANR reports (widened to `-b crash -b events`).
+- **Docker+KVM emulator backend** — replaces broken native `avdmanager` path (Linux fix).
+- **Tracing tab** — per-turn traces, token accounting, tool-call visibility.
+- **Web search tool** — agent-callable mid-conversation.
+- **Marketing jobs seam** — `POST /api/marketing-jobs/enqueue` external orchestrator hook.
+- **`lookup_lead` + `list_unread_leads` MCP tools** — CRM-generic lead lookup primitives.
+- **Sitemap + Google Search Console verification** — canonical `site:` URL, `robots.txt`, auto-generated `sitemap-index.xml`.
+- **Vercel Web Analytics** — wired into landing + Skill Hub pages.
+- **`GITD_CORS_ORIGINS` env override** — comma-separated allowlist for reverse-proxy deploys.
+
+### Changed
+- `android-agent up` now defaults to `127.0.0.1`; passing `--host 0.0.0.0` prints an explicit network-exposure warning.
+- `create_session` default provider path: `""` → `settings.default_provider`; explicit provider still wins.
+- Allow-listed tool set shared as one frozenset across `run_flow` + LangChain toolkit + LlamaIndex toolspec — cannot drift.
+- Concurrent-pytest DB isolation: per-worktree path (`/tmp/gitd_pytest_<hash>.db`).
+
+### Fixed
+- **Security (CWE-352 / community fix)** — CORS `allow_origins=["*"]` + `allow_credentials=True` caused Starlette to reflect any Origin. Fixed to a localhost allowlist. [#10](https://github.com/ghost-in-the-droid/android-agent/pull/10) — thanks [@sebastiondev](https://github.com/sebastiondev) via [Sebastion AI](https://github.com/apps/sebastionai).
+- **On-device tool arg normalization** — accepts both flat and nested tool-call shapes (was silently dropping args from Gemma's trained shape).
+- **`Device.adb` raises `ADBError` on failure** — was returning stdout with `check=False`, letting ~38 MCP tools inherit phantom-success.
+- **Batch-flow allow-list is fail-closed** — new/unknown tools refused, not auto-allowed.
+- **`stop_agent` respects session boundaries** — no longer kills every claude subprocess.
+- **`doctor` handles macOS Keychain-stored Claude creds** — Linux keeps the fast file-path; macOS falls back to `claude auth status` probe.
+- **`list_crashes` / `get_crash` surface ADB failure** — was silently returning "no crashes" on an offline device.
+- **Three `tap-element` code paths consolidated** — indexes now shared across surfaces.
+- **OpenRouter provider** — full multi-turn tool-use loop.
+- **Test suite is honest** — removed fixtures that wiped the real dev DB; per-worktree DB path prevents cross-branch races.
+
+### Deprecated / Removed
+- Native `avdmanager` emulator path removed on Linux (Docker required).
+- `_chat_claude_code` duplicate code path deleted (~180 LOC).
+- Premium DB schema moved out of `gitd/db.py` into private `ghost_premium.db`. Public users won't have it and shouldn't have been calling it.
+
+### Security
+See [SECURITY.md](SECURITY.md) for reporting policy. Known open surface (tracked for v1.3.1): unauthenticated `POST /api/skills/install` remains reachable via non-browser clients. Run behind a reverse proxy with auth for any non-loopback exposure.
+
 ## [1.2.0] — 2026-04-17
 
 ### Added
