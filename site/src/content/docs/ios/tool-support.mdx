@@ -126,10 +126,17 @@ Before/after UI-tree diffing to verify an action did what you think. Expected cr
 
 The full surface — browser primitives (`open_url`, `web_search`, `extract_articles`, `wait_for_text`, …), notifications, clipboard, screen recording, streaming, health — with per-tool platform status lives in the generated support matrix below. Hardware-confirmed on a real iPhone so far: `read_news`, `screenshot`, `tap`/`tap_element`, `type_text`, `get_screen_tree`/`get_elements`, `press_home`, `open_url`, `extract_visible_text`/`extract_articles`, the OCR fallback, `speak_text`, and MJPEG + H.264 streaming with tap control.
 
+**Population note:** the matrix lists Ghost's *full* tool surface — a superset of the tools exposed over MCP (`run_skill` and `shell` are in the matrix but aren't MCP-registered). If you cross-reference a page that counts MCP tools, expect its totals to be smaller by exactly those entries; both counts are correct for their population.
+
 {/* DRAFT NOTE (remove before merge): matrix below generated from mirror
     feat/platform-matrix-emitter (PR #43). MUST be regenerated after the iOS-branch
-    reconciliation lands — e.g. speak_text flips to cross-platform (native iOS TTS),
-    and chain/screenshot_sequence/sub_agent auto-appear once merged. */}
+    reconciliation lands. KNOWN on-page contradiction until then (flagged by
+    neutral-review): the matrix row classifies speak_text iOS-n/a (mirror/main truth —
+    the /wda/speak TTS route isn't merged there) while the prose section above is
+    iOS-✅ hardware-confirmed (feat/ios-support truth). The reconciliation flips
+    tool_platforms.py (feat/ios-support already reclassifies it) and the regen resolves
+    this; chain/screenshot_sequence/sub_agent also auto-appear once merged. Post-regen
+    expected split: 57 cross-platform / 2 iOS-first / 5 Android-only. */}
 
 {/* GENERATED from gitd/services/tool_platforms.py — do not edit by hand. Regenerate: python -m gitd.services.tool_platforms --mdx */}
 
