@@ -194,7 +194,12 @@ const modalId = `demo-modal-${feature}`;
 		tile.addEventListener('click', () => {
 			if (!modal) return;
 			modal.showModal(); // native focus trap + Esc handling
-			modal.querySelector('video')?.play().catch(() => {});
+			const mv = modal.querySelector('video');
+			// If the modal is closed before play() resolves (fast backdrop/Esc),
+			// pause on resolve — otherwise the pending promise resumes playback.
+			mv?.play().then(() => {
+				if (!modal.open) mv.pause();
+			}).catch(() => {});
 		});
 
 		if (modal) {
