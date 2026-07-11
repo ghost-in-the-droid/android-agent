@@ -1,0 +1,45 @@
+# Recording spec — langchain demo (PROTOTYPE timeline; final commands land
+# with the #786 recording batch). Marketing copy joins from ../copy.yaml.
+demo: langchain
+device: android
+duration_target_s: 60
+platform_notes: >
+  Prototype timeline: terminal drives the phone via Ghost's adb primitives.
+  Calculator tap coordinates are tuned for a 1080x2340 device.
+
+setup:
+  - step: wake_unlock
+  - step: kill_all_apps
+  - step: launch_app
+    args: {package: com.sec.android.app.popupcalculator, settle_s: 3}
+
+timeline:
+  - t: 0
+    caption: "Your LangChain agent just grew hands."
+    action: terminal_type
+    args: {cmd: "gitd doctor"}
+  - t: 14
+    caption: "Ghost exposes 40+ MCP tools — any agent framework connects."
+    action: terminal_type
+    args:
+      cmd: >-
+        python3 -c "from gitd.bots.common.adb import Device;
+        import os; d = Device(os.environ['ANDROID_SERIAL']);
+        d.tap(165, 1396); d.tap(915, 1396); d.tap(415, 1396); d.tap(915, 2065);
+        print('agent: tapped 7 x 8 = on the phone')"
+  - t: 26
+    caption: "The agent thinks. The ghost acts. The phone is the body."
+    action: phone_screenshot_pause
+    args: {seconds: 6}
+  - t: 34
+    action: terminal_type
+    args: {cmd: "echo '56 — verified on-screen. The phone is the body.'"}
+  - t: 40
+    action: sleep
+    args: {seconds: 4}
+
+outro:
+  cta_line: "pip install ghost-in-the-droid"
+  cta_link: "https://ghostinthedroid.com/docs/features/integrations"
+
+highlight_window: {start_s: 14, end_s: 21}

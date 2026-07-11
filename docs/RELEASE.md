@@ -179,4 +179,4 @@ Then cut a new PATCH release with the fix.
 
 ## Automation Roadmap
 
-See [`mono/docs/refactor/release-automation-nbs.md`](https://github.com/ghost-in-the-droid/mono/blob/main/docs/refactor/release-automation-nbs.md) for the next-level automation plans that are deliberately not shipped yet (release-please bot, squash-merge enforcement, Trusted Publishing, public-first workflow).
+See `docs/refactor/release-automation-nbs.md` (internal) for the next-level automation plans that are deliberately not shipped yet (release-please bot, squash-merge enforcement, Trusted Publishing, public-first workflow).

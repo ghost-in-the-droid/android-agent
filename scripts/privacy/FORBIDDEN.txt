@@ -1,0 +1,49 @@
+# Ghost in the Droid — forbidden-pattern list for recording/artifact audits.
+#
+# Every demo recording and every committed showcase artifact is scanned
+# against this list (see scripts/privacy/scrub.py and .github/workflows/privacy.yml).
+# A single hit blocks the output / fails the PR.
+#
+# Format:
+#   - one pattern per line
+#   - lines starting with '#' and blank lines are ignored
+#   - plain lines are case-insensitive substring matches
+#   - lines starting with 're:' are Python regexes (case-insensitive)
+#
+# This file is committed and intentionally GENERIC — it must never itself
+# contain personal identifiers, real hostnames, or real device serials.
+# Put those in scripts/privacy/FORBIDDEN.local.txt (gitignored); scrub.py
+# loads both automatically. See scripts/privacy/RECORDING_CHECKLIST.md.
+
+# ── Real user home directories (a leaked path = a leaked username) ──
+# Lookbehind keeps prose like "wake/home/launch" from matching; ghost/demo/
+# agent/user/runner are non-identifying demo & CI usernames.
+re:(?<![\w/])/Users/(?!ghost\b|demo\b|agent\b|user\b|runner\b)[a-z0-9_.-]+
+re:(?<![\w/])/home/(?!ghost\b|demo\b|agent\b|user\b|runner\b)[a-z0-9_.-]+
+re:(?<![\w/])/Volumes/[A-Za-z0-9_.-]+
+
+# ── Personal-machine hostnames ──
+re:[A-Za-z]+s-MacBook[A-Za-z-]*
+re:[A-Za-z]+s-iPhone[A-Za-z-]*
+re:[a-z0-9-]+\.coredevice\.local
+
+# ── API keys / tokens / secrets ──
+re:sk-[A-Za-z0-9_-]{16,}
+re:sk-ant-[A-Za-z0-9_-]+
+re:AIza[0-9A-Za-z_-]{16,}
+re:ghp_[A-Za-z0-9]{16,}
+re:github_pat_[A-Za-z0-9_]{16,}
+re:gsk_[A-Za-z0-9]{16,}
+re:xox[bap]-[A-Za-z0-9-]+
+re:AKIA[0-9A-Z]{16}
+re:-----BEGIN [A-Z ]*PRIVATE KEY-----
+
+# ── Credentials in output ──
+re:password\s*[:=]\s*(?!<REDACTED)\S+
+re:Pwnd\w*
+
+# ── Private repos of this org (only android-agent is public) ──
+# Note: the bare module name ghost_premium is NOT forbidden — the public/
+# premium split is documented architecture; only repo URLs are a leak.
+re:github\.com/ghost-in-the-droid/(?!android-agent\b)[A-Za-z0-9_.-]+
+ghost-mirror

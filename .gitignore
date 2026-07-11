@@ -49,3 +49,7 @@ portal/*.apk
 
 # Personal/internal notes — never publish
 docs/HUMAN/
+
+# Privacy: local-only forbidden patterns + recording work dirs
+scripts/privacy/FORBIDDEN.local.txt
+.recordings/

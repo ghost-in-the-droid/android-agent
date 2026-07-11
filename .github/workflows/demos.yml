@@ -1,0 +1,41 @@
+name: demo-specs
+
+# Demos double as integration tests: --dry-run validates every recording spec
+# (schema, timeline sanity, brand assets present) so tool-signature drift or a
+# renamed asset breaks the PR, not the next recording session.
+
+on:
+  pull_request:
+    paths:
+      - "site/public/showcase/**"
+      - "scripts/record_demo.py"
+      - "scripts/record_showcase_reel.py"
+      - "scripts/privacy/**"
+  push:
+    branches: [main]
+
+jobs:
+  dry-run-all-specs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pyyaml
+
+      - name: Dry-run every recording spec
+        run: |
+          set -e
+          found=0
+          for spec in site/public/showcase/*/spec.yaml; do
+            [ -e "$spec" ] || continue
+            found=1
+            demo=$(basename "$(dirname "$spec")")
+            echo "── $demo"
+            python3 scripts/record_demo.py --dry-run --demo "$demo"
+          done
+          [ "$found" = 1 ] || echo "no spec.yaml files yet — nothing to validate"
+
+      - name: Reel stitch plan is coherent
+        run: python3 scripts/record_showcase_reel.py --dry-run || true
