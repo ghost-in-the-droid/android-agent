@@ -38,7 +38,7 @@ Use a dedicated `ed25519` keypair per Ghost host, and never forward your SSH age
 
 On a **remote** device, a destructive tool call is intercepted *before dispatch* and returns `CONFIRM_REQUIRED` unless the call carries `confirm: true`:
 
-- **Gated tools:** inherently irreversible / high-impact / code-executing ones — `shell`, `launch_intent`, `run_skill` / `run_action` / `run_workflow`, `create_skill`, `force_stop`, `clear_notifications`. Extend the set with `GITD_DESTRUCTIVE_TOOLS_EXTRA="tool_a,tool_b"`.
+- **Gated tools:** inherently irreversible / high-impact / code-executing ones — `shell`, `launch_intent`, `run_skill` / `run_action` / `run_workflow`, `create_skill`, `force_stop`, `clear_notifications`. Extend the set with `GITD_DESTRUCTIVE_TOOLS_EXTRA="tool_a,tool_b"`. (On a remote *iPhone* specifically, `shell` and `launch_intent` don't exist at all — they're Android-only — so the gate's practical iOS coverage is the skill-executing and app-level tools.)
 - **Fail-closed for unknown tools:** a tool name the gate doesn't recognize, targeting a remote device, is treated as destructive if its name reads destructive (`delete`, `uninstall`, `purchase`, `wipe`, `reset`, `transfer`, …). A tool added later is never silently un-gated.
 - **Local devices unaffected:** USB Android/iOS behave exactly as before.
 - **Kill-switch:** `REMOTE_CONFIRM_REQUIRED=false` disables the gate. Default is on; think twice before turning it off for a phone you care about.
