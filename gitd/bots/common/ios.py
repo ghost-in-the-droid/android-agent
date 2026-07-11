@@ -1444,6 +1444,20 @@ class IOSDevice:
                 raise IOSBackendError(f"Appium session response did not include sessionId: {data}")
             self._session_id = sid
             IOSDevice._sessions[self._config] = sid
+            # THE tap-latency fix: WDA waits up to ~2s for animations to "cool
+            # off" and the app to idle around every interaction — measured 2733ms
+            # -> 713ms per tap with these zeroed. These are WDA *settings* (not
+            # session caps; shouldWaitForQuiescence alone did nothing). Best-effort.
+            if os.getenv("IOS_WAIT_FOR_QUIESCENCE", "").strip().lower() not in ("1", "true", "yes"):
+                try:
+                    requests.request(
+                        "POST",
+                        self._url(f"/session/{sid}/appium/settings"),
+                        json={"settings": {"animationCoolOffTimeout": 0, "waitForIdleTimeout": 0}},
+                        timeout=self.timeout,
+                    )
+                except requests.RequestException:
+                    pass  # non-fatal — session still usable, just slower taps
             return sid
 
     def _session_path(self, suffix: str) -> str:
