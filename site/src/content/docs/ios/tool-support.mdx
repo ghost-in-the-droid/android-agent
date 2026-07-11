@@ -1,0 +1,122 @@
+---
+title: "Tool Support on iOS"
+description: Per-tool iOS support status and behavior notes — what works, what differs from Android, and what's coming.
+---
+
+import PlatformBadges from '../../../components/PlatformBadges.astro';
+
+{/* DRAFT NOTE (remove before merge):
+    - The support matrix below will be GENERATED from gitd/services/tool_platforms.py
+      (core-dev's markdown emitter) so it never drifts from code. Prose sections are
+      hand-written and stay.
+    - Badges for chain / a11y_diff / screenshot_sequence / sub_agent: cross-platform by
+      design per core-dev; flip 🔜→✅ per tool once ios-tester confirms on live hardware. */}
+
+Every Ghost tool states its platform support up front. This page covers the agent-facing tools on iOS: what each one does differently than on Android, and a working iOS example. For the setup that makes these work, start at [Requirements](/ios/setup/requirements/).
+
+**How iOS control differs from Android, in one paragraph:** Android tools talk to ADB (fast, no session); iOS tools drive WebDriverAgent through Appium (session-based, slower per action, but with a richer native accessibility tree). Expect actions to be correct but not instant — measured on real hardware: `status` ~5 ms, `screenshot` ~190 ms, `tap` ~730 ms. Design flows around *fewer, more certain* actions rather than rapid-fire tapping.
+
+## screenshot
+
+<PlatformBadges android="yes" ios="yes" />
+
+Base64 PNG of the current screen, captured through WDA.
+
+```text
+screenshot("ios:00008110-0012345678901234")
+```
+
+iOS notes: ~190 ms per capture; quality/size tunable via `IOS_SCREENSHOT_QUALITY`. `screenshot_annotated` and `screenshot_cropped` work on iOS too. Coordinates in the PNG are screenshot pixels — Ghost converts to WDA points for you on input gestures (see `tap`).
+
+## tap / swipe / long_press
+
+<PlatformBadges android="yes" ios="yes" />
+
+```text
+tap("ios:00008110-0012345678901234", 200, 640)
+swipe("ios:00008110-0012345678901234", 200, 900, 200, 300)
+```
+
+iOS notes: WDA gestures wait for UI quiescence, so a tap during an animation *blocks until the animation settles* — that's the dominant part of the ~730 ms tap latency, and it's why taps are reliable during transitions rather than fast. Ghost scales screenshot-pixel coordinates to WDA points and back automatically; if taps land wrong, compare screenshot dimensions with the WDA window rect in `get_phone_state` (see [Troubleshooting](/ios/troubleshooting/#sessions)). `tap_element` (by index from `get_elements`) is the more robust choice when the tree is available.
+
+## type_text
+
+<PlatformBadges android="yes" ios="yes" />
+
+```text
+type_text("ios:00008110-0012345678901234", "hello from ghost")
+```
+
+iOS notes: text goes to the focused element via WDA — tap the field first. `press_key` supports `HOME`, `ENTER`, and best-effort `BACK` (iOS has no system back button; Ghost falls back to navigation-bar/edge heuristics). Clipboard round-trips work: `clipboard_set` + `paste_text` is the fast path for long strings.
+
+## launch_app
+
+<PlatformBadges android="yes" ios="yes" />
+
+```text
+launch_app("ios:00008110-0012345678901234", "com.google.chrome.ios")
+```
+
+iOS notes: takes a bundle ID, not an Android package name. iOS can't enumerate all installed apps the way Android can — `list_apps`/`search_apps` cover configured (`IOS_KNOWN_APPS_JSON`) plus common bundle IDs, verified through Appium. See [Configuration](/ios/setup/configuration/#app-discovery-on-ios).
+
+## ocr_screen
+
+<PlatformBadges android="yes" ios="yes" />
+
+```text
+ocr_screen("ios:00008110-0012345678901234")
+```
+
+iOS notes: OCR runs host-side on the WDA screenshot (RapidOCR must be installed), so behavior matches Android — same engine, different capture path. On iOS prefer the native tree (`get_screen_tree`, `get_elements`) when the app exposes one; OCR is the fallback for WebViews, games, and stubborn custom UI.
+
+## speak_text
+
+<PlatformBadges android="yes" ios="yes" />
+
+```text
+speak_text("ios:00008110-0012345678901234", "task complete")
+```
+
+iOS notes: served by a dedicated `/wda/speak` endpoint on Ghost's WDA build — one of the direct WDA calls that bypasses Appium (in a remote fleet this is why the WDA port is forwarded alongside Appium's). Returns an `audio` diagnostics block so a silent phone is debuggable, not a mystery. Android's equivalent uses the Portal TTS path.
+
+## run_flow
+
+<PlatformBadges android="yes" ios="yes" />
+
+```text
+run_flow("ios:00008110-0012345678901234", "open_ghost_site")
+```
+
+iOS notes: recorded skills/flows carry `platforms: ["ios"]`, an `ios_bundle_id`, and iOS element locators (`elements_ios.yaml`) — a flow recorded on Android needs its iOS variant recorded once before it runs here. The Skill Creator targets `ios:` devices natively.
+
+## chain
+
+<PlatformBadges android="yes" ios="soon" />
+
+Batched sub-actions with settle-detection between steps. Cross-platform by design — lands for iOS with v1.3.x.
+
+## screenshot_sequence
+
+<PlatformBadges android="yes" ios="soon" />
+
+Timed screenshot bursts for capturing transitions. Cross-platform screenshot path; iOS support lands with v1.3.x.
+
+## sub_agent
+
+<PlatformBadges android="yes" ios="soon" />
+
+Delegate a sub-task to a scoped agent. Device-neutral by design; iOS support lands with v1.3.x.
+
+## a11y_diff
+
+<PlatformBadges android="yes" ios="soon" />
+
+Before/after UI-tree diffing to verify an action did what you think. Cross-platform by design; iOS's native accessibility tree makes this a strong fit. Lands with v1.3.x.
+
+---
+
+## Beyond the agent tools
+
+The full surface — browser primitives (`open_url`, `extract_articles`, …), notifications, clipboard, streaming, recording — with per-tool platform status lives in the generated support matrix below.
+
+{/* GENERATED MATRIX PLACEHOLDER — emitted from gitd/services/tool_platforms.py */}
