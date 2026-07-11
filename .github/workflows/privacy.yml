@@ -50,3 +50,17 @@ jobs:
               sys.exit(1)
           print("privacy-guard: clean")
           EOF
+
+  ocr-media-scan:
+    # Text grep can't see inside the showcase's binary artifacts — the demo
+    # WebMs and posters the recording batch commits. OCR every image/video
+    # under site/public/showcase against the generic forbidden list.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tesseract + ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr ffmpeg
+
+      - name: OCR-scan showcase media
+        run: python3 scripts/privacy/ocr_check.py --all-showcase
