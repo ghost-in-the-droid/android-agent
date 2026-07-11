@@ -577,10 +577,15 @@ def ocr_region(device: str, x1: int, y1: int, x2: int, y2: int) -> list[dict]:
 def speak_text(device: str, text: str, rate: float = 1.0) -> str:
     """Make the phone speak text aloud via its TTS engine.
 
-    Works from PC (ADB forward → portal HTTP) and on-device (same HTTP, loopback).
-    Requires the Ghost portal app to be running on the phone.
+    Android: ADB forward → Ghost Portal app HTTP /speak.
+    iOS: WDA /wda/speak (AVSpeechSynthesizer) via Appium, no companion app.
     Returns 'speaking' on success, or an error string.
     """
+    if is_ios_ref(device):
+        try:
+            return str(get_device(device).speak(text, rate=rate))
+        except Exception as e:
+            return f"error: {e}"
     dev = Device(device)
     port = dev._ensure_portal_forward()
     if not port:

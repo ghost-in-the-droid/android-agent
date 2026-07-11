@@ -91,6 +91,7 @@ _CROSS_PLATFORM = {
     "lookup_lead": "Device-neutral marketing data lookup.",
     "list_unread_leads": "Device-neutral marketing inbox lookup.",
     "wait": "Device-neutral delay.",
+    "speak_text": "Android Portal-app TTS, or iOS WDA /wda/speak (AVSpeechSynthesizer) via GhostAgent-patched WebDriverAgent.",
 }
 
 _IOS_SUPPORTED = {
@@ -104,7 +105,6 @@ _ANDROID_ONLY = {
     "shell": "ADB shell has no iOS equivalent.",
     "launch_intent": "Android intents have no iOS equivalent.",
     "toggle_overlay": "Portal overlay is Android-only.",
-    "speak_text": "Uses the Android Portal app TTS path.",
 }
 
 

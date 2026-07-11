@@ -121,6 +121,7 @@ class IOSDeviceConfig:
     allow_provisioning_device_registration: bool | None = None
     show_xcode_log: bool | None = None
     use_prebuilt_wda: bool | None = None
+    use_preinstalled_wda: bool | None = None
     wda_launch_timeout: int = 0
     wda_connection_timeout: int = 0
     wda_startup_retries: int = 0
@@ -148,6 +149,7 @@ class IOSDeviceConfig:
             "allow_provisioning_device_registration": "appium:allowProvisioningDeviceRegistration",
             "show_xcode_log": "appium:showXcodeLog",
             "use_prebuilt_wda": "appium:usePrebuiltWDA",
+            "use_preinstalled_wda": "appium:usePreinstalledWDA",
         }
         for field_name, cap_name in string_caps.items():
             value = getattr(self, field_name)
@@ -219,6 +221,7 @@ _CONFIG_ENV_FIELDS = {
     "IOS_ALLOW_PROVISIONING_DEVICE_REGISTRATION": "allow_provisioning_device_registration",
     "IOS_SHOW_XCODE_LOG": "show_xcode_log",
     "IOS_USE_PREBUILT_WDA": "use_prebuilt_wda",
+    "IOS_USE_PREINSTALLED_WDA": "use_preinstalled_wda",
     "IOS_WDA_LAUNCH_TIMEOUT": "wda_launch_timeout",
     "IOS_WDA_CONNECTION_TIMEOUT": "wda_connection_timeout",
     "IOS_WDA_STARTUP_RETRIES": "wda_startup_retries",
@@ -242,6 +245,7 @@ _BOOL_CONFIG_FIELDS = {
     "allow_provisioning_device_registration",
     "show_xcode_log",
     "use_prebuilt_wda",
+    "use_preinstalled_wda",
     "mjpeg_fix_orientation",
 }
 
@@ -844,21 +848,21 @@ def remote_xpc_tunnel_status(udid: str, *, platform_version: str = "", host: dic
             }
         )
         return status
-    if registry_address and current_address and registry_address != current_address:
-        status.update(
-            {
-                "ok": False,
-                "state": "stale",
-                "message": "RemoteXPC tunnel registry points at a stale tunnel address.",
-                "registry_address": registry_address,
-                "current_address": current_address,
-                "devicectl_connected": devicectl.get("tunnel_state") == "connected",
-                "stale_reason": "registry_address_mismatch",
-            }
-        )
-        return status
-
-    status.update({"state": "available", "ok": True})
+    # NOTE (local fix for validation finding #2): Appium's remotexpc tunnel and
+    # Apple's CoreDevice tunnel are independent stacks, so the registry address
+    # (e.g. fd23::1) will never equal devicectl's tunnelIPAddress (e.g. fd52::1).
+    # Requiring equality produced a false "stale" negative that blocked a
+    # fully-working device. devicectl already confirmed tunnelState==connected
+    # above, so treat the tunnel as available and just record both addresses.
+    status.update(
+        {
+            "state": "available",
+            "ok": True,
+            "registry_address": registry_address,
+            "current_address": current_address,
+            "devicectl_connected": devicectl.get("tunnel_state") == "connected",
+        }
+    )
     return status
 
 
@@ -1502,6 +1506,55 @@ class IOSDevice:
         return self.config.mjpeg_settings()
 
     # -- Device operations -------------------------------------------------
+
+    def _wda_base_url(self) -> str:
+        """Base URL of the WebDriverAgent HTTP server (device :8100 forwarded local)."""
+        if self.wda_url:
+            return self.wda_url.rstrip("/")
+        parsed = urllib.parse.urlparse(self.appium_url)
+        scheme = parsed.scheme or "http"
+        host = parsed.hostname or "127.0.0.1"
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"
+        return f"{scheme}://{host}:8100"
+
+    def speak(self, text: str, rate: float = 1.0, language: str = "") -> str:
+        """Speak text aloud on-device via WDA's /wda/speak (AVSpeechSynthesizer).
+
+        Requires a GhostAgent-patched WebDriverAgent. Posts directly to WDA's
+        HTTP server (the `.withoutSession` route) because Appium's command
+        router does not proxy custom /wda/* paths. Ensures a session first so
+        WDA is running and its :8100 port is forwarded — but WITHOUT foregrounding
+        an app (so it does not launch Chrome/the default bundle).
+        """
+        prev_bundle, prev_browser = self.bundle_id, self.browser_name
+        self.bundle_id, self.browser_name = "", ""
+        try:
+            self._ensure_session()
+        finally:
+            self.bundle_id, self.browser_name = prev_bundle, prev_browser
+        payload: dict[str, Any] = {"text": text, "rate": rate}
+        if language:
+            payload["language"] = language
+        url = f"{self._wda_base_url()}/wda/speak"
+        try:
+            resp = requests.request("POST", url, json=payload, timeout=max(self.timeout, 15))
+        except requests.RequestException as e:
+            raise IOSBackendError(f"WDA /wda/speak request failed: {e}") from e
+        if resp.status_code == 404:
+            raise IOSBackendError(
+                "WDA has no /wda/speak route — rebuild the GhostAgent-patched WebDriverAgent on the device"
+            )
+        if resp.status_code >= 400:
+            raise IOSBackendError(f"WDA /wda/speak failed ({resp.status_code}): {resp.text[:200]}")
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {}
+        value = body.get("value") if isinstance(body, dict) else None
+        if isinstance(value, dict) and value.get("status"):
+            return str(value["status"])
+        return "speaking"
 
     def take_screenshot(self) -> bytes:
         value = self._request("GET", self._session_path("/screenshot"), timeout=max(self.timeout, 60))
