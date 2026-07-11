@@ -67,17 +67,37 @@ def _candidate_urls(udid: str, port: int) -> list[str]:
     return out
 
 
-async def _ensure_session(device: str) -> bool:
-    """Ensure a WDA session is up — this launches WDA on the device, which starts
-    the on-device H.264 server. Without it, the device :9200 port is closed and
-    the relay just spins. Runs the (blocking) session setup off the event loop."""
-    def _ens() -> bool:
+# Guard WDA launches: at most one in flight per device, and not more often than
+# the cooldown — otherwise a reconnect storm spawns a pile of xcodebuild launches
+# that jam the device and fight the dashboard's own session.
+_session_locks: dict[str, asyncio.Lock] = {}
+_last_ensure: dict[str, float] = {}
+ENSURE_COOLDOWN = 30.0
+
+
+async def _ensure_session(device: str) -> None:
+    def _ens() -> None:
         try:
             get_device(device)._ensure_session()
-            return True
         except Exception:
-            return False
-    return await asyncio.to_thread(_ens)
+            pass
+    await asyncio.to_thread(_ens)
+
+
+async def _ensure_session_guarded(device: str, udid: str) -> None:
+    """Launch WDA only if nothing else is launching it and it wasn't launched in
+    the last ENSURE_COOLDOWN seconds. Concurrent callers wait for the in-flight
+    launch instead of starting their own."""
+    loop = asyncio.get_event_loop()
+    lock = _session_locks.setdefault(udid, asyncio.Lock())
+    if lock.locked():
+        async with lock:      # someone is launching — just wait for it
+            return
+    async with lock:
+        if loop.time() - _last_ensure.get(udid, 0.0) < ENSURE_COOLDOWN:
+            return            # launched recently; don't relaunch
+        _last_ensure[udid] = loop.time()
+        await _ensure_session(device)
 
 
 async def _connect_device(udid: str, port: int):
@@ -126,15 +146,19 @@ async def h264_stream(client: WebSocket, device: str):
 
     try:
         while not stop:
-            # Ensure WDA is running (starts the on-device H.264 server). Without a
-            # session, :9200 is closed and we'd spin forever with "connecting".
-            with contextlib.suppress(Exception):
-                await client.send_json({"status": "starting WDA session"})
-            await _ensure_session(device)
-
+            # Try the device stream FIRST — if a session already exists (e.g. the
+            # dashboard's), :9200 is up and we connect immediately with no launch.
             dev_ws, info = await _connect_device(udid, port)
             if dev_ws is None:
-                # Tell the client we're retrying (so the UI shows "reconnecting", not frozen).
+                # Not reachable — WDA probably isn't running. Launch it (guarded so
+                # reconnect storms can't pile up xcodebuild), then retry once.
+                with contextlib.suppress(Exception):
+                    await client.send_json({"status": "starting WDA session"})
+                await _ensure_session_guarded(device, udid)
+                dev_ws, info = await _connect_device(udid, port)
+
+            if dev_ws is None:
+                # Still down — back off and retry (guard's cooldown prevents relaunch).
                 with contextlib.suppress(Exception):
                     await client.send_json({"status": "connecting", "detail": info})
                 await asyncio.sleep(backoff)
