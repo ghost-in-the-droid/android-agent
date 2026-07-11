@@ -22,7 +22,7 @@ import contextlib
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from gitd.bots.common.device import is_ios_ref
+from gitd.bots.common.device import get_device, is_ios_ref
 from gitd.bots.common.ios import (
     _host_device_config_for_udid,
     remote_xpc_tunnel_status,
@@ -67,12 +67,28 @@ def _candidate_urls(udid: str, port: int) -> list[str]:
     return out
 
 
+async def _ensure_session(device: str) -> bool:
+    """Ensure a WDA session is up — this launches WDA on the device, which starts
+    the on-device H.264 server. Without it, the device :9200 port is closed and
+    the relay just spins. Runs the (blocking) session setup off the event loop."""
+    def _ens() -> bool:
+        try:
+            get_device(device)._ensure_session()
+            return True
+        except Exception:
+            return False
+    return await asyncio.to_thread(_ens)
+
+
 async def _connect_device(udid: str, port: int):
     """Try each reachability strategy; return (ws, url) or (None, error)."""
     import websockets
 
     last_err = ""
-    for url in _candidate_urls(udid, port):
+    # _candidate_urls does a blocking tunnel-registry HTTP lookup; run it off the
+    # event loop so it can't stall the WS handshake / other streams.
+    candidates = await asyncio.to_thread(_candidate_urls, udid, port)
+    for url in candidates:
         try:
             ws = await asyncio.wait_for(
                 websockets.connect(url, max_size=None, open_timeout=CONNECT_TIMEOUT),
@@ -110,6 +126,12 @@ async def h264_stream(client: WebSocket, device: str):
 
     try:
         while not stop:
+            # Ensure WDA is running (starts the on-device H.264 server). Without a
+            # session, :9200 is closed and we'd spin forever with "connecting".
+            with contextlib.suppress(Exception):
+                await client.send_json({"status": "starting WDA session"})
+            await _ensure_session(device)
+
             dev_ws, info = await _connect_device(udid, port)
             if dev_ws is None:
                 # Tell the client we're retrying (so the UI shows "reconnecting", not frozen).
