@@ -1402,6 +1402,13 @@ class IOSDevice:
                 "appium:deviceName": self.device_name,
                 "appium:noReset": True,
                 "appium:newCommandTimeout": 300,
+                # WDA waits for the app to be "idle" after every interaction and
+                # times out at ~2.7s/tap when the app never quiesces (animations,
+                # a live screen stream, etc.). That dominates iOS tap latency and
+                # makes tap-to-control feel frozen. Disable it for responsiveness;
+                # the per-action delays already provide settle. Override via
+                # IOS_WAIT_FOR_QUIESCENCE=1 if a flow needs idle-waiting.
+                "appium:shouldWaitForQuiescence": os.getenv("IOS_WAIT_FOR_QUIESCENCE", "").strip().lower() in ("1", "true", "yes"),
             }
             if self.platform_version:
                 always_match["appium:platformVersion"] = self.platform_version
