@@ -652,15 +652,42 @@ function startAllStreams(mode: 'rtc' | 'mjpeg' = 'rtc') {
 function stopAllStreams() { for (const d of devices.value) stopMultiStream(d.serial) }
 
 /* ── single device ───────────────────────────────────────────────────── */
-const singleStreamMode = ref<'rtc' | 'mjpeg'>('rtc')
+const singleStreamMode = ref<'rtc' | 'mjpeg' | 'h264'>('rtc')
 const singleMjpegUrl = ref('')
+
+/* ── H.264 (GhostAgent WebSocket stream, iOS) ─────────────────────────── */
+const h264Status = ref('')
+const h264Fps = ref(0)
+let h264Handle: { status: any; fps: any; stop: () => void } | null = null
+function h264StreamWsUrl(serial: string): string {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+  return `${proto}://${location.host}/api/phone/h264/${encodeURIComponent(serial)}`
+}
+async function startH264(serial: string) {
+  stopH264()
+  await nextTick()
+  const canvas = document.getElementById(`h264-canvas-${serial}`) as HTMLCanvasElement | null
+  if (!canvas) return
+  const { startH264Stream, h264Supported } = await import('@/composables/useH264Stream')
+  if (!h264Supported()) { h264Status.value = 'WebCodecs unavailable — use MJPEG'; return }
+  h264Handle = startH264Stream(h264StreamWsUrl(serial), canvas)
+  watch(h264Handle.status, (v: string) => { h264Status.value = v })
+  watch(h264Handle.fps, (v: number) => { h264Fps.value = v })
+}
+function stopH264() {
+  if (h264Handle) { h264Handle.stop(); h264Handle = null }
+  h264Status.value = ''
+  h264Fps.value = 0
+}
 
 async function startStream() {
   if (!selectedDevice.value) return
   const serial = selectedDevice.value
-  singleStreamMode.value = effectiveStreamMode(serial, singleStreamMode.value)
+  if (singleStreamMode.value !== 'h264') singleStreamMode.value = effectiveStreamMode(serial, singleStreamMode.value)
   streaming.value = true
-  if (singleStreamMode.value === 'rtc') {
+  if (singleStreamMode.value === 'h264') {
+    await startH264(serial)
+  } else if (singleStreamMode.value === 'rtc') {
     rtcStart(serial)
     // Auto-fallback: if RTC doesn't connect within 5s, switch to MJPEG
     setTimeout(() => {
@@ -685,6 +712,7 @@ async function startStream() {
 }
 function stopStream() {
   if (selectedDevice.value) { rtcStop(selectedDevice.value); stopMjpegWatchdog(selectedDevice.value) }
+  stopH264()
   singleMjpegUrl.value = ''
   if (selectedDevice.value) streamInfoStatus.value[selectedDevice.value] = ''
   streaming.value = false
@@ -1615,6 +1643,10 @@ onUnmounted(() => {
             style="font-size:9px;padding:3px 8px"
             :title="selectedIsIos ? 'Start iOS WDA MJPEG stream' : 'Start Android WebRTC stream'"
             @click="singleStreamMode = selectedIsIos ? 'mjpeg' : 'rtc'; startStream()">Stream</button>
+          <button v-if="!streaming && selectedIsIos" class="ctrl-btn ctrl-btn--webrtc"
+            style="font-size:9px;padding:3px 8px"
+            title="Start GhostAgent H.264 stream (beta — needs the patched WDA)"
+            @click="singleStreamMode = 'h264'; startStream()">H.264</button>
           <span v-if="streaming" style="font-size:8px;padding:1px 6px;border-radius:10px;white-space:nowrap"
             :title="streamInfoTitle(selectedDevice)"
             :style="singleStreamMode === 'rtc'
@@ -1716,6 +1748,11 @@ onUnmounted(() => {
             @touchend="mjpegTouchEnd(selectedDevice, $event)"
             @touchcancel="mjpegTouchCancel(selectedDevice)"
             @dragstart.prevent />
+          <canvas v-show="streaming && singleStreamMode === 'h264'"
+            :id="`h264-canvas-${selectedDevice}`" class="stream-media" />
+          <div v-if="streaming && singleStreamMode === 'h264'" class="h264-badge">
+            H.264 {{ h264Status }}<span v-if="h264Fps"> · {{ h264Fps }}fps</span>
+          </div>
           <div v-if="!streaming" class="stream-placeholder">
             Select device &amp; start stream<br/>or chat — auto-starts
           </div>
@@ -2036,6 +2073,11 @@ onUnmounted(() => {
   user-select: none;
 }
 
+.h264-badge {
+  position: absolute; top: 6px; left: 6px; z-index: 3;
+  font-size: 9px; padding: 2px 7px; border-radius: 10px;
+  background: rgba(99,102,241,0.85); color: #fff; white-space: nowrap;
+}
 .stream-placeholder {
   color: var(--text-4);
   font-size: 13px;

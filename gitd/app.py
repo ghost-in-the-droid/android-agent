@@ -16,6 +16,7 @@ from gitd.routers.creator import router as creator_router
 from gitd.routers.emulators import pool_router as emulator_pool_router
 from gitd.routers.emulators import router as emulators_router
 from gitd.routers.explorer import router as explorer_router
+from gitd.routers.h264_stream import router as h264_stream_router
 from gitd.routers.marketing_jobs import router as marketing_jobs_router
 from gitd.routers.misc import router as misc_router
 from gitd.routers.phone import router as phone_router
@@ -104,6 +105,7 @@ def create_app() -> FastAPI:
     app.include_router(misc_router)
     app.include_router(phone_router)
     app.include_router(streaming_router)
+    app.include_router(h264_stream_router)
     app.include_router(streaming_viewers_router)
     app.include_router(skills_router)
     app.include_router(creator_router)
