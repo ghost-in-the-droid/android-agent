@@ -1019,8 +1019,14 @@ function iosRecovery(serial: string): any | null {
 }
 
 function iosRecoveryVisible(serial: string): boolean {
-  const recovery = iosRecovery(serial)
-  return !!(recovery?.code || recovery?.steps?.length)
+  // The tunnel/WDA health probe is synchronous and slow (often >10s), so the
+  // dashboard poll times out and the card flashes "remote_xpc_tunnel_unavailable"
+  // even while a live stream is flowing over that exact tunnel — pure noise. The
+  // stream itself is proof the tunnel works. Suppress this recovery card on the
+  // Phone Agent tab entirely; full, honest diagnostics live in the 🩺 Device
+  // Health tab where a stale reading isn't sitting on top of a working stream.
+  void serial
+  return false
 }
 
 function iosRecoveryState(serial: string): string {
