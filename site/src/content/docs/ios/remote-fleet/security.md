@@ -32,7 +32,7 @@ The key authorized on the Mac can forward exactly four loopback ports and nothin
 restrict,permitopen="127.0.0.1:4723",permitopen="127.0.0.1:8100",permitopen="127.0.0.1:9100",permitopen="127.0.0.1:9200",command="/usr/bin/false" ssh-ed25519 AAAA...
 ```
 
-Use a dedicated `ed25519` keypair per Ghost host, and never forward your SSH agent onto the Mac. If discovery (`ghost-ios report --json`) should run over the same key, swap `/usr/bin/false` for a forced-command wrapper that permits exactly that command.
+Use a dedicated `ed25519` keypair per Ghost host, and never forward your SSH agent onto the Mac. If discovery (`ghost-ios report`) should run over the same key, swap `/usr/bin/false` for a forced-command wrapper that permits exactly that command.
 
 ## The destructive-action confirmation gate
 

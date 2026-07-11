@@ -33,7 +33,8 @@ Remote fleet is an **advanced, experimental** feature rolling out in slices. **L
 |---|---|
 | Remotes config, `<name>@<host>` ref grammar, remote→iOS routing | ✅ Built (slice 1) |
 | Destructive-action confirmation gate (tool-level) | ✅ Built (slice 1) |
-| `ghost-ios report --json` device discovery from the Mac | 🚧 In progress (slice 2) |
+| Mac-side device inventory (`ghost-ios report`) | ✅ Ships with the toolkit (`scripts/ios/`) |
+| Ghost-side auto-discovery (`ghost probe` consuming the report) | 🚧 In progress (slice 2) |
 | Security hardening — gate coverage across composite tools, endpoint-based remote detection, supervised mode for UI-level actions, API auth. **Gates real-device remote use** | 🚧 In progress |
 | Remote H.264 streaming over the forwarded port | 🔜 Pending |
 | WireGuard underlay, SSH certificate CA (multi-site fleets) | 🔮 Planned |

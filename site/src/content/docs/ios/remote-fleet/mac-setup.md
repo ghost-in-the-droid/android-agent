@@ -31,7 +31,7 @@ What this buys you:
 
 - `restrict` — no PTY, no agent forwarding, no X11: the key can't get a shell.
 - `permitopen` ×4 — the key can forward **only** the four automation ports (Appium, WDA, MJPEG, H.264), all on loopback.
-- `command="/usr/bin/false"` — any exec attempt dies immediately. If you also want the Ghost host to run `ghost-ios report --json` over SSH (device discovery), replace `/usr/bin/false` with a forced-command wrapper that allows exactly that command.
+- `command="/usr/bin/false"` — any exec attempt dies immediately. If you also want the Ghost host to run `ghost-ios report` over SSH (device discovery), replace `/usr/bin/false` with a forced-command wrapper that allows exactly that command.
 
 Never forward your SSH agent from the Ghost host to the Mac.
 
@@ -55,7 +55,7 @@ export IOS_USE_PREINSTALLED_WDA="true"
 
 The Mac owns WDA end-to-end. The remote Ghost host never builds, signs, or spawns WDA — it just drives sessions through the forwarded ports.
 
-Day-to-day the node runs under the `ghost-ios` toolkit: `ghost-ios keychain` once (grants CLI codesign access), then `ghost-ios up` starts the backend, Appium, and a self-healing RemoteXPC tunnel supervisor. Note the toolkit is still being packaged into the repository — see [Utility Scripts](/ios/util-scripts/) for its status and full command reference.
+Day-to-day the node runs under the `ghost-ios` toolkit, which ships in the repo at `scripts/ios/`: `ghost-ios keychain` once (grants CLI codesign access), `ghost-ios doctor` to preflight, then `ghost-ios up` starts the backend, Appium, and a self-healing RemoteXPC tunnel supervisor. Zero-config with one attached iPhone and one signing identity; see [Utility Scripts](/ios/util-scripts/) for the full command reference.
 
 ## 4. Keep everything loopback-only
 
@@ -63,19 +63,19 @@ Appium, WDA, MJPEG, and the H.264 stream must stay bound to `127.0.0.1` on the M
 
 ## 5. Health surface
 
-`ghost-ios status` enumerates attached devices plus tunnel/WDA health on the node, and `ghost-ios report --json` emits a machine-readable inventory the Linux side uses for discovery:
+`ghost-ios status` enumerates attached devices plus tunnel/WDA health on the node, and `ghost-ios report` emits a machine-readable inventory the Linux side uses for discovery:
 
 ```json
 {
   "schema": 1,
-  "host": "my-mac",
-  "generated_at": "2026-07-11T21:33Z",
+  "host": "mac1",
+  "generated_at": "2026-01-01T00:00Z",
   "devices": [
     {
       "udid": "00008XXX-XXXXXXXXXXXXXXXX",
-      "name": "my iPhone",
-      "ref_slug": "my-iphone",
-      "ios_version": "26.4",
+      "name": "Demo iPhone",
+      "ref_slug": "demo-iphone",
+      "ios_version": "26.4.2",
       "wda_up": false,
       "appium_up": true,
       "tunnel_up": true

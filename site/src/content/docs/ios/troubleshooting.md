@@ -68,7 +68,7 @@ The health fix endpoint can attempt this (`{"issue":"restart_remote_xpc_tunnel"}
 
 ```bash
 xcrun xctrace list devices        # Mac-local
-ghost-ios report --json           # fleet node inventory
+ghost-ios report                  # fleet node inventory
 ```
 
 Prefer name-based refs (`my-iphone@my-mac`) and let the Mac resolve name→UDID. If a configured UDID stops matching (phone restored, replaced, or re-provisioned), re-run discovery rather than editing by hand.
@@ -93,4 +93,4 @@ Prefer name-based refs (`my-iphone@my-mac`) and let the Mac resolve name→UDID.
 
 ## Still stuck?
 
-Grab the health payload, the resolved dry-run plan, and (for remote setups) `ghost-ios report --json` from the Mac, and open an issue — those three artifacts answer the first ten questions we'd ask.
+Grab the health payload, the resolved dry-run plan, and (for remote setups) `ghost-ios report` from the Mac, and open an issue — those three artifacts answer the first ten questions we'd ask.

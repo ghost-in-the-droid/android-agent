@@ -95,10 +95,10 @@ screenshot("my-iphone@my-mac")
 Rather than hand-typing device details, ask the Mac what's attached (requires the discovery command to be allowed by the [forced-command wrapper](/ios/remote-fleet/mac-setup/#2-enable-ssh-add-a-restricted-key) on the Mac's restricted key):
 
 ```bash
-ssh my-mac ghost-ios report --json
+ssh my-mac ghost-ios report
 ```
 
-> The `ghost-ios` toolkit is being packaged into the repository — see [Utility Scripts](/ios/util-scripts/) for its status and full command reference.
+> The `ghost-ios` toolkit ships in the repo at `scripts/ios/` — see [Utility Scripts](/ios/util-scripts/) for install and the full command reference.
 
 The JSON inventory (schema in [Mac Setup](/ios/remote-fleet/mac-setup/#5-health-surface)) gives you each phone's `ref_slug`, iOS version, and per-leg health: `tunnel_up`, `appium_up`, `wda_up`. Remember `wda_up: false` on an idle phone is normal — readiness is `tunnel_up && appium_up`.
 
