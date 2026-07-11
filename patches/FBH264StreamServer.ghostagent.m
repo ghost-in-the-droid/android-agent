@@ -198,13 +198,25 @@ static const long TAG_KEEPALIVE = 2;
 
 - (void)captureAndEncodeOnce
 {
-  // Capture the raw CGImage directly via XCUIScreen (public XCTest API) instead
-  // of FBScreenshot, which JPEG-encodes on device only for us to decode it right
-  // back. Skipping that encode/decode round-trip is a pure latency win.
-  XCUIScreenshot *shot = [XCUIScreen.mainScreen screenshot];
-  CGImageRef img = shot.image.CGImage;
+  // Capture via FBScreenshot's low-level _XCT_requestScreenshot daemon path. It
+  // JPEG-encodes then we decode — a small round-trip — but it's FAR faster and
+  // less contentious than XCUIScreen.screenshot (a heavy synchronous XCTest call
+  // that starves concurrent taps and destabilises WDA). Measured: FBScreenshot
+  // ~19-24fps vs XCUIScreen ~6fps + tap contention.
+  uint64_t tCap0 = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+  NSError *err = nil;
+  NSData *jpeg = [FBScreenshot takeInOriginalResolutionWithScreenID:self.mainScreenID
+                                                 compressionQuality:0.7
+                                                                uti:UTTypeJPEG
+                                                            timeout:H264_FRAME_TIMEOUT
+                                                              error:&err];
+  if (jpeg == nil) { return; }
+  CGImageSourceRef src = CGImageSourceCreateWithData((__bridge CFDataRef)jpeg, NULL);
+  if (src == NULL) { return; }
+  CGImageRef img = CGImageSourceCreateImageAtIndex(src, 0, NULL);
+  CFRelease(src);
   if (img == NULL) { return; }
-  CGImageRetain(img);   // shot/image are autoreleased; hold the CGImage across use
+  uint64_t tCap1 = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
 
   // Encode at a SCALED resolution (reuses the mjpegScalingFactor knob, e.g. 50).
   // Full-res 1178x2556 H.264 decode + full-canvas draw bottlenecks the browser
@@ -230,6 +242,14 @@ static const long TAG_KEEPALIVE = 2;
   VTCompressionSessionEncodeFrame(self.session, pb, pts, kCMTimeInvalid,
                                   (__bridge CFDictionaryRef)frameProps, NULL, &flags);
   CVPixelBufferRelease(pb);
+
+  // Per-stage timing, logged ~once/sec, so the bottleneck (capture vs submit) is
+  // visible in the Appium log instead of guessed at.
+  uint64_t tEnc1 = clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW);
+  if (self.frameCount % MAX((NSUInteger)1, (NSUInteger)[self fps]) == 0) {
+    [FBLogger logFmt:@"[GhostAgent] stream timing: capture=%.0fms submit=%.0fms (%dx%d)",
+     (tCap1 - tCap0) / 1e6, (tEnc1 - tCap1) / 1e6, w, h];
+  }
 }
 
 - (BOOL)ensureSessionForWidth:(int32_t)w height:(int32_t)h
