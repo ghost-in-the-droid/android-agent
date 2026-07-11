@@ -3,7 +3,11 @@ title: "Remote Fleet: Linux Setup"
 description: Point a Linux Ghost host at a remote Mac — remotes config, the supervised SSH tunnel, device refs, and probing.
 ---
 
-With the [Mac side](/ios/remote-fleet/mac-setup/) prepared, the Linux Ghost host needs three things: a `remotes:` entry describing the Mac, a persistent SSH tunnel forwarding four ports, and a device ref that names the phone.
+:::caution[Experimental — not yet for real personal devices]
+Remote drive is an advanced feature rolling out in slices. The configuration below is built, but the Linux→Mac path becomes **real-device-ready only once the security hardening lands** (see the [rollout status](/ios/remote-fleet/#rollout-status)). Until then, use it with test devices only — not a phone with real accounts. Local on-Mac iOS automation is unaffected and works today.
+:::
+
+With the [Mac side](/ios/remote-fleet/mac-setup/) prepared, the Linux Ghost host needs three things: a remotes-config entry describing the Mac, a persistent SSH tunnel forwarding four ports, and a device ref that names the phone.
 
 ## 1. Configure the remote
 
@@ -32,7 +36,7 @@ The ports are **local, Linux-side forwarded ports** — where the tunnel deliver
 }
 ```
 
-Host keys are simple identifiers (they appear after the `@` in device refs, so they can't contain `@`). Malformed entries are skipped rather than crashing device listing — check your JSON if a remote silently doesn't appear.
+Remote names — the keys of the remotes map, `my-mac` above — are simple identifiers (they appear after the `@` in device refs, so they can't contain `@`). Malformed entries are skipped rather than crashing device listing — check your JSON if a remote silently doesn't appear.
 
 ## 2. Open the tunnel
 
@@ -74,7 +78,7 @@ A remote iPhone is `<name>@<host>` — no `ios:` prefix, no UDID:
 my-iphone@my-mac
 ```
 
-- `<host>` must match a configured `remotes:` key; an `@` ref whose host is unknown is *not* treated as remote (so it can never mis-route), and Android serials never contain `@`, so the grammar is unambiguous.
+- `<host>` must match a remote name from your remotes config; an `@` ref whose host is unknown is *not* treated as remote (so it can never mis-route), and Android serials never contain `@`, so the grammar is unambiguous.
 - `<name>` is the phone's `ref_slug` from `ghost-ios report` — derived from the device's user-assigned name. The UDID is resolved on the Mac; **never hand-maintain UDID lists** (they rot). A phone that moves to another Mac keeps its name and just changes its `@host`.
 
 Remote refs route to the iOS backend automatically and use the standard `IOS_WDA_URL`-style plumbing pointed at your forwarded ports.
@@ -88,11 +92,13 @@ screenshot("my-iphone@my-mac")
 
 ## 4. Discover devices from the Mac
 
-Rather than hand-typing device details, ask the Mac what's attached (requires the discovery command to be allowed by the forced-command wrapper on the Mac's restricted key):
+Rather than hand-typing device details, ask the Mac what's attached (requires the discovery command to be allowed by the [forced-command wrapper](/ios/remote-fleet/mac-setup/#2-enable-ssh-add-a-restricted-key) on the Mac's restricted key):
 
 ```bash
 ssh my-mac ghost-ios report --json
 ```
+
+> The `ghost-ios` toolkit is being packaged into the repository — see [Utility Scripts](/ios/util-scripts/) for its status and full command reference.
 
 The JSON inventory (schema in [Mac Setup](/ios/remote-fleet/mac-setup/#5-health-surface)) gives you each phone's `ref_slug`, iOS version, and per-leg health: `tunnel_up`, `appium_up`, `wda_up`. Remember `wda_up: false` on an idle phone is normal — readiness is `tunnel_up && appium_up`.
 

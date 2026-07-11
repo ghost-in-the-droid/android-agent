@@ -27,14 +27,14 @@ The iPhone-facing leg (RemoteXPC tunnel, code-signing, WDA lifecycle) stays **en
 
 ## Rollout status
 
-Remote fleet is rolling out in slices. **Local (on-Mac) iOS automation and streaming work today**; the Linux→Mac remote-drive path becomes real-device-ready once the security hardening lands — it is deliberately gated on that, not on features.
+Remote fleet is an **advanced, experimental** feature rolling out in slices. **Local (on-Mac) iOS automation and streaming work today.** The Linux→Mac remote-drive path becomes real-device-ready only once the security hardening lands — deliberately gated on security, not on features. Until then, point it at test devices, not a phone with real accounts.
 
 | Piece | Status |
 |---|---|
-| `remotes:` config, `<name>@<host>` ref grammar, remote→iOS routing | ✅ Built (slice 1) |
-| Destructive-action confirmation gate | ✅ Built (slice 1) |
+| Remotes config, `<name>@<host>` ref grammar, remote→iOS routing | ✅ Built (slice 1) |
+| Destructive-action confirmation gate (tool-level) | ✅ Built (slice 1) |
 | `ghost-ios report --json` device discovery from the Mac | 🚧 In progress (slice 2) |
-| Security hardening pass (gates real-device remote use) | 🚧 In progress |
+| Security hardening — gate coverage across composite tools, endpoint-based remote detection, supervised mode for UI-level actions, API auth. **Gates real-device remote use** | 🚧 In progress |
 | Remote H.264 streaming over the forwarded port | 🔜 Pending |
 | WireGuard underlay, SSH certificate CA (multi-site fleets) | 🔮 Planned |
 
@@ -43,5 +43,5 @@ Remote fleet is rolling out in slices. **Local (on-Mac) iOS automation and strea
 Set up the two ends in order:
 
 1. **[Mac Setup](/ios/remote-fleet/mac-setup/)** — auto-login session, restricted SSH key, keychain, installer
-2. **[Linux Setup](/ios/remote-fleet/linux-setup/)** — `remotes:` config, the tunnel, device refs, probing
+2. **[Linux Setup](/ios/remote-fleet/linux-setup/)** — remotes config, the tunnel, device refs, probing
 3. **[Security Model](/ios/remote-fleet/security/)** — threat model and why it's built this way

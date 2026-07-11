@@ -45,7 +45,7 @@ On a **remote** device, a destructive tool call is intercepted *before dispatch*
 
 ### Honest scope note (v1)
 
-The gate is **tool-name-based**. It catches semantic destructive tools and the control plane, but on iOS many destructive actions are performed through *generic* `tap`/`type` calls — tapping a "Delete", "Buy", or "Send" button has no destructive tool name to match. That is a conscious v1 limitation, not an oversight: the mitigations there are agent judgment and a human watching remote sessions. A perception-based "confirm irreversible UI sequences" check is planned research, not a shipped control. Size your trust accordingly: the gate meaningfully raises the bar; it is not a sandbox.
+The gate is **tool-name-based**. It catches semantic destructive tools and the control plane, but on iOS many destructive actions are performed through *generic* `tap`/`type` calls — tapping a "Delete", "Buy", or "Send" button has no destructive tool name to match. That is a conscious v1 limitation, not an oversight: the mitigations there are agent judgment and a human watching remote sessions. A session-level supervised mode for UI-level actions is planned (part of the security hardening the remote path is gated on), not a shipped control. Size your trust accordingly: the gate meaningfully raises the bar; it is not a sandbox.
 
 ## Why not just put a token on WDA?
 

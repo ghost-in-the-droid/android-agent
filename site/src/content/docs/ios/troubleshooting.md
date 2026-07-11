@@ -83,7 +83,7 @@ Prefer name-based refs (`my-iphone@my-mac`) and let the Mac resolve name→UDID.
 
 ## Remote fleet
 
-**Remote ref not recognized (`my-iphone@my-mac` treated as unknown device)** — the host after `@` must exactly match a `remotes:` key, and malformed JSON makes the whole remotes map empty (by design, malformed entries are skipped silently). Validate: `echo "$GITD_REMOTES_JSON" | python3 -m json.tool`.
+**Remote ref not recognized (`my-iphone@my-mac` treated as unknown device)** — the host after `@` must exactly match a remote name in the remotes map, and malformed JSON makes the whole map empty (by design, malformed entries are skipped silently). Validate: `echo "$GITD_REMOTES_JSON" | python3 -m json.tool`.
 
 **Everything times out after a network blip** — the SSH tunnel died and isn't supervised. Run it under `autossh` (or systemd with restart). Remember the session itself survives on the Mac until `newCommandTimeout` — a supervised tunnel usually reattaches without losing the session.
 

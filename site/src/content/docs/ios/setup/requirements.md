@@ -14,7 +14,7 @@ Everything that touches an iPhone is macOS-only: `xcodebuild` and `codesign` (to
 | macOS with Xcode installed | Builds and signs WebDriverAgent; provides the device tunnel |
 | Node.js + Appium 2 with the XCUITest driver | The automation control plane Ghost talks to |
 | A physical iPhone or a booted iOS Simulator | The device under automation |
-| An Apple developer team (free tier works) | Signs WebDriverAgent for a real device |
+| An Apple developer team (free tier works, but its certificates expire every 7 days — WDA needs weekly re-signing; a paid team avoids that, which matters for always-on setups) | Signs WebDriverAgent for a real device |
 | `ffmpeg` (optional) | iOS screen recordings from the WDA MJPEG stream |
 
 ## Real-device prerequisites
