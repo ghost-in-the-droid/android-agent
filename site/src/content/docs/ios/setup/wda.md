@@ -34,7 +34,7 @@ export IOS_SHOW_XCODE_LOG="true"            # verbose xcodebuild output while de
 
 ## Signing needs a GUI login session
 
-`codesign` fails with `errSecInternalComponent` when run from a headless context (plain SSH, CI runner without a desktop). The Mac that builds/signs WDA **must have an active Aqua (GUI) login session** and an unlocked keychain. For an interactive workstation this is automatic; for an always-on automation Mac, set up auto-login — see [Remote Fleet: Mac Setup](/ios/remote-fleet/mac-setup/).
+`codesign` fails with `errSecInternalComponent` when run from a headless context (plain SSH, CI runner without a desktop) — and no, unlocking the keychain over SSH or `security set-key-partition-list` does **not** fix it; only a real interactive login session does. The Mac that builds/signs WDA **must have an active Aqua (GUI) login session** and an unlocked keychain. For an interactive workstation this is automatic; for an always-on automation Mac, set up auto-login — see [Remote Fleet: Mac Setup](/ios/remote-fleet/mac-setup/).
 
 ## Prebuilt and preinstalled WDA
 

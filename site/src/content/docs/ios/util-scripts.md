@@ -1,18 +1,20 @@
 ---
 title: "iOS Utility Scripts"
-description: The ghost-ios host toolkit — status, JSON reports, doctor preflight, and WDA signing repair on the Mac node.
+description: The ghost-ios host toolkit — one command to start, check, repair, and report on the Mac↔iPhone leg.
 ---
 
-<!-- DRAFT NOTE (remove before merge): sections marked [PENDING ios-tester] await the
-     util-script inventory interview — exact install path, args, and sample outputs. -->
+<!-- DRAFT NOTE (remove before merge): ghost-ios currently lives as an operational helper
+     outside the repo tree; packaging into the repo is pending. Install section below is
+     provisional until packaging lands — flagged with core-dev/ios-tester. -->
 
-`ghost-ios` is the Mac-side host toolkit: everything about the Mac↔iPhone leg (tunnel, WDA, Appium health) in one command, designed so both humans and the Linux Ghost host can query the node the same way.
+`ghost-ios` is the Mac-side host toolkit: everything about the Mac↔iPhone leg (RemoteXPC tunnel, WDA, Appium, backend) in one command, designed so both humans and a remote Linux Ghost host can operate the node the same way.
+
+Two ground rules, both consequences of how Apple's tooling works:
+
+- **Run it from a GUI Terminal session** — WDA code-signing needs the login keychain of an interactive desktop session and fails headless (see [Mac Setup](/ios/remote-fleet/mac-setup/)).
+- **It prompts for sudo once** — the iOS 17+ RemoteXPC tunnel is privileged.
 
 ## Install
-
-<!-- [PENDING ios-tester]: confirm packaging/install path for the toolkit. -->
-
-The toolkit ships with the repo and installs on the Mac node alongside Ghost:
 
 ```bash
 git clone https://github.com/ghost-in-the-droid/android-agent.git
@@ -20,29 +22,40 @@ cd android-agent
 pip install -e .
 ```
 
-## `ghost-ios status`
+<!-- [PENDING packaging]: exact ghost-ios install path once it ships in the repo tree. -->
 
-Human-readable node overview: attached devices plus tunnel/WDA/Appium health per phone. Your first stop when anything on the Mac leg misbehaves.
+## Subcommands
 
-```bash
-ghost-ios status
-```
+| Command | What it does |
+|---|---|
+| `ghost-ios up` | Start the whole stack — backend, Appium, and a **self-healing RemoteXPC tunnel supervisor** that auto-reconnects until you Ctrl-C |
+| `ghost-ios doctor` | Preflight every known failure point (tunnel registry, Appium, WDA signing, device trust) and apply fixes where it can |
+| `ghost-ios status` | Human-readable health lines per attached device |
+| `ghost-ios report --json` | Machine-readable device inventory — the remote-fleet discovery source |
+| `ghost-ios dashboard` | Launch the web dashboard (Vite) |
+| `ghost-ios smoke` | Run the Chrome→news end-to-end smoke workflow |
+| `ghost-ios speak` | Test native TTS through the `/wda/speak` endpoint |
+| `ghost-ios keychain` | One-time grant of CLI codesign access to the login keychain |
+| `ghost-ios rebuild-wda` (alias `wda`) | Rebuild and re-sign WebDriverAgent (see below) |
+| `ghost-ios down` | Stop tunnel, Appium, and backend |
+
+Day-one sequence on a fresh node: `keychain` (once) → `up` → `status`.
 
 ## `ghost-ios report --json`
 
-The machine-readable version — the discovery source the Linux side consumes (directly or via `ssh <mac> ghost-ios report --json`). Runs in about 1.6 s; device identity comes from `xctrace list devices` (chosen over `devicectl`, which can hang indefinitely) and is cached, so a slow Xcode toolchain still yields a full record.
+The discovery source the Linux side consumes (directly or via `ssh my-mac ghost-ios report --json`). Runs in about 1.6 s; device identity comes from `xctrace list devices` — chosen over `devicectl`, which can hang indefinitely — and is cached, so a slow Xcode toolchain still yields a full record.
 
 ```json
 {
   "schema": 1,
-  "host": "my-mac",
-  "generated_at": "2026-07-11T21:33Z",
+  "host": "mac1",
+  "generated_at": "2026-01-01T00:00Z",
   "devices": [
     {
-      "udid": "00008110-0012345678901234",
-      "name": "my iPhone",
-      "ref_slug": "my-iphone",
-      "ios_version": "26.4",
+      "udid": "00008XXX-XXXXXXXXXXXXXXXX",
+      "name": "Demo iPhone",
+      "ref_slug": "demo-iphone",
+      "ios_version": "26.4.2",
       "wda_up": false,
       "appium_up": true,
       "tunnel_up": true
@@ -61,26 +74,13 @@ Field notes:
 | `wda_up` | A WDA session is live *right now*. Idle ⇒ `false` (normal — Appium launches WDA per-session) |
 | `appium_up` / `tunnel_up` | The two legs that must both be up to start a session: readiness = `tunnel_up && appium_up` |
 
-## `ghost-ios doctor`
+## WDA build/signing repair
 
-Preflight that walks every known failure point of the Mac leg — tunnel registry, Appium, WDA signing state, device trust — before you burn time on a session that was never going to start.
-
-```bash
-ghost-ios doctor
-```
-
-<!-- [PENDING ios-tester]: doctor's exact check list + sample output. -->
-
-## WDA build/signing helpers
-
-`ios-fix-wda-signing.sh` repairs the WDA signing/install state (the fix for `wda_signing_failed` loops) — see [WebDriverAgent Setup](/ios/setup/wda/) for when signing breaks and why it needs a GUI session.
-
-<!-- [PENDING ios-tester]: helper script inventory — exact names/paths/args for the WDA
-     build helpers, and any additional utilities to document here. -->
+`ios-fix-wda-signing.sh` (companion script, also reachable as `ghost-ios rebuild-wda`) builds and signs a known-good prebuilt WebDriverAgent — including Ghost's `/wda/speak` TTS patch — into a fixed DerivedData path, so Appium reuses it on every session with **no per-launch codesign**. This is the fix for `wda_signing_failed` loops and the setup step behind `IOS_USE_PREBUILT_WDA`; background in [WebDriverAgent Setup](/ios/setup/wda/).
 
 ## Using the toolkit from Linux
 
-In a [remote fleet](/ios/remote-fleet/), the Linux host runs these over the restricted SSH key (the forced-command wrapper must allow the report command):
+In a [remote fleet](/ios/remote-fleet/), the Linux host runs the report over the restricted SSH key (the forced-command wrapper must allow exactly this command):
 
 ```bash
 ssh my-mac ghost-ios report --json

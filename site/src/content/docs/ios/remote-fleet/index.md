@@ -27,13 +27,16 @@ The iPhone-facing leg (RemoteXPC tunnel, code-signing, WDA lifecycle) stays **en
 
 ## Rollout status
 
+Remote fleet is rolling out in slices. **Local (on-Mac) iOS automation and streaming work today**; the Linux→Mac remote-drive path becomes real-device-ready once the security hardening lands — it is deliberately gated on that, not on features.
+
 | Piece | Status |
 |---|---|
-| `remotes:` config, `<name>@<host>` ref grammar, remote→iOS routing | ✅ Shipped (slice 1) |
-| Destructive-action confirmation gate | ✅ Shipped (slice 1) |
+| `remotes:` config, `<name>@<host>` ref grammar, remote→iOS routing | ✅ Built (slice 1) |
+| Destructive-action confirmation gate | ✅ Built (slice 1) |
 | `ghost-ios report --json` device discovery from the Mac | 🚧 In progress (slice 2) |
+| Security hardening pass (gates real-device remote use) | 🚧 In progress |
 | Remote H.264 streaming over the forwarded port | 🔜 Pending |
-| WireGuard underlay, SSH certificate CA (multi-site fleets) | 🔮 Planned (v2) |
+| WireGuard underlay, SSH certificate CA (multi-site fleets) | 🔮 Planned |
 
 ## Setup guides
 

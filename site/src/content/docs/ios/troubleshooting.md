@@ -60,6 +60,8 @@ The health fix endpoint can attempt this (`{"issue":"restart_remote_xpc_tunnel"}
 
 **Taps land in the wrong place** — compare screenshot dimensions with the WDA window rect in `get_phone_state`. Ghost scales WDA points to screenshot pixels and back for gestures; a mismatch there (orientation change mid-session, unusual display zoom) is the culprit. Reset the session after rotating.
 
+**Every tap takes ~3 seconds** — WDA's animation/idle quiescence waits are on. Ghost disables them by default (~0.7 s taps); if you set `IOS_WAIT_FOR_QUIESCENCE=1` (or another client re-enabled the WDA settings), that's the cost. Conversely, if a *flaky* flow mis-taps during animations, turning quiescence back on is the fix, not shorter waits.
+
 ## UDIDs and device identity
 
 **Don't hand-maintain UDID lists — they rot.** UDIDs are 40-char opaque strings; typos and stale entries produce phantom devices that exist nowhere and mislead every later debugging step. Discover instead:

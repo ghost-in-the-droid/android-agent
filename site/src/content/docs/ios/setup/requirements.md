@@ -61,7 +61,7 @@ The same Appium/WDA route works for simulators and real iPhones, so anything you
 iOS devices are addressed with an `ios:` prefix wherever Ghost takes a device ref:
 
 ```text
-ios:00008110-0012345678901234
+ios:00008XXX-XXXXXXXXXXXXXXXX
 ```
 
 Android serials stay as-is. Remote iPhones attached to another Mac use `<name>@<host>` refs instead — see [Remote Fleet](/ios/remote-fleet/).

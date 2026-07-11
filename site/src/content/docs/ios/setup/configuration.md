@@ -6,7 +6,7 @@ description: Every IOS_* environment variable, multi-device JSON config, and how
 Ghost's iOS backend is configured entirely through environment variables (or their JSON-config equivalents). The minimal setup is two lines:
 
 ```bash
-export IOS_DEVICE_UDID="00008110-0012345678901234"
+export IOS_DEVICE_UDID="00008XXX-XXXXXXXXXXXXXXXX"
 export IOS_APPIUM_URL="http://127.0.0.1:4723"
 ```
 
@@ -55,14 +55,22 @@ export IOS_SHOW_XCODE_LOG="false"
 
 See [WebDriverAgent Setup](/ios/setup/wda/) for what these mean and when to use them.
 
+## Interaction timing
+
+Ghost disables WDA's post-interaction quiescence waits (`animationCoolOffTimeout`, `waitForIdleTimeout`) by default — that's the difference between ~2.7 s and ~0.7 s per tap. If a flaky flow needs the conservative behavior back:
+
+```bash
+export IOS_WAIT_FOR_QUIESCENCE="1"   # restore WDA's animation/idle waits (slower, more patient)
+```
+
 ## Multiple iPhones
 
 For more than one device, list the UDIDs and give each its own config block — each device gets its own Appium URL and MJPEG port so they never collide:
 
 ```bash
-export IOS_DEVICE_UDIDS="00008110-0012345678901234,00008101-0098765432109876"
+export IOS_DEVICE_UDIDS="00008XXX-XXXXXXXXXXXXXXXX,00008YYY-YYYYYYYYYYYYYYYY"
 export IOS_DEVICES_JSON='{
-  "00008110-0012345678901234": {
+  "00008XXX-XXXXXXXXXXXXXXXX": {
     "appium_url": "http://127.0.0.1:4723",
     "bundle_id": "com.google.chrome.ios",
     "known_apps": [
@@ -76,7 +84,7 @@ export IOS_DEVICES_JSON='{
     "screenshot_quality": 2,
     "wda_launch_timeout": 180000
   },
-  "00008101-0098765432109876": {
+  "00008YYY-YYYYYYYYYYYYYYYY": {
     "appium_url": "http://127.0.0.1:4725",
     "bundle_id": "com.apple.mobilesafari",
     "mjpeg_server_port": 9101

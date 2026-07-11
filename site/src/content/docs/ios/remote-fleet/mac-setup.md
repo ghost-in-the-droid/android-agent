@@ -55,6 +55,8 @@ export IOS_USE_PREINSTALLED_WDA="true"
 
 The Mac owns WDA end-to-end. The remote Ghost host never builds, signs, or spawns WDA — it just drives sessions through the forwarded ports.
 
+Day-to-day the node runs under the `ghost-ios` toolkit: `ghost-ios keychain` once (grants CLI codesign access), then `ghost-ios up` starts the backend, Appium, and a self-healing RemoteXPC tunnel supervisor. Full command reference: [Utility Scripts](/ios/util-scripts/).
+
 ## 4. Keep everything loopback-only
 
 Appium, WDA, MJPEG, and the H.264 stream must stay bound to `127.0.0.1` on the Mac — the defaults. **Never bind them to `0.0.0.0`.** Exposure happens exclusively through the SSH forward, so access requires possession of the restricted key. This is the primary security control; see [Security](/ios/remote-fleet/security/).
@@ -70,7 +72,7 @@ Appium, WDA, MJPEG, and the H.264 stream must stay bound to `127.0.0.1` on the M
   "generated_at": "2026-07-11T21:33Z",
   "devices": [
     {
-      "udid": "00008110-0012345678901234",
+      "udid": "00008XXX-XXXXXXXXXXXXXXXX",
       "name": "my iPhone",
       "ref_slug": "my-iphone",
       "ios_version": "26.4",
