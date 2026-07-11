@@ -13,6 +13,7 @@
 @import CoreVideo;
 @import ImageIO;
 @import CoreGraphics;
+@import UIKit;              // UIImage (XCUIScreenshot.image)
 @import UniformTypeIdentifiers;
 
 #import "GCDAsyncSocket.h"
@@ -197,18 +198,13 @@ static const long TAG_KEEPALIVE = 2;
 
 - (void)captureAndEncodeOnce
 {
-  NSError *err = nil;
-  NSData *jpeg = [FBScreenshot takeInOriginalResolutionWithScreenID:self.mainScreenID
-                                                 compressionQuality:0.9
-                                                                uti:UTTypeJPEG
-                                                            timeout:H264_FRAME_TIMEOUT
-                                                              error:&err];
-  if (jpeg == nil) { return; }
-  CGImageSourceRef src = CGImageSourceCreateWithData((__bridge CFDataRef)jpeg, NULL);
-  if (src == NULL) { return; }
-  CGImageRef img = CGImageSourceCreateImageAtIndex(src, 0, NULL);
-  CFRelease(src);
+  // Capture the raw CGImage directly via XCUIScreen (public XCTest API) instead
+  // of FBScreenshot, which JPEG-encodes on device only for us to decode it right
+  // back. Skipping that encode/decode round-trip is a pure latency win.
+  XCUIScreenshot *shot = [XCUIScreen.mainScreen screenshot];
+  CGImageRef img = shot.image.CGImage;
   if (img == NULL) { return; }
+  CGImageRetain(img);   // shot/image are autoreleased; hold the CGImage across use
 
   // Encode at a SCALED resolution (reuses the mjpegScalingFactor knob, e.g. 50).
   // Full-res 1178x2556 H.264 decode + full-canvas draw bottlenecks the browser
