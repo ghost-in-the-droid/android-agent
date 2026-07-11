@@ -232,17 +232,18 @@ Core-dev greenlit the Ghost side (CKL approved) and is building slice 1. Agreed:
 Slice-2 discovery source. Runs in ~1.6s; identity via `xctrace list devices` (reliable)
 NOT `devicectl device info details` (hangs indefinitely / exit 124 here); identity is
 cached so a slow/absent `xctrace` still yields a full record. Booleans are sub-second.
+(Sample below is REDACTED — no real UDIDs/hostnames/personal names ship in this doc.)
 
 ```json
 {
   "schema": 1,
-  "host": "Christians-MacBook-Air",
-  "generated_at": "2026-07-11T21:33Z",
+  "host": "mac1",
+  "generated_at": "2026-01-01T00:00Z",
   "devices": [
     {
-      "udid": "00008130-001259DC11C2001C",
-      "name": "Christian’s iPhone",
-      "ref_slug": "christians-iphone",
+      "udid": "00008XXX-XXXXXXXXXXXXXXXX",
+      "name": "Demo iPhone",
+      "ref_slug": "demo-iphone",
       "ios_version": "26.4.2",
       "wda_up": false,
       "appium_up": true,
@@ -256,8 +257,8 @@ cached so a slow/absent `xctrace` still yields a full record. Booleans are sub-s
   the Mac self-identifies its `host`.
 - Superset of core-dev's requested `{udid, name, ios_version, wda_up, tunnel_up}`; adds
   `ref_slug` (ready for `<slug>@<host>`) and `appium_up` (distinct from `wda_up`).
-- **`ref_slug` derives from the user-assigned device name** ("Christian's iPhone" →
-  `christians-iphone`), *not* the marketing name ("iPhone 15 Pro") — the marketing name
+- **`ref_slug` derives from the user-assigned device name** ("Demo iPhone" →
+  `demo-iphone`), *not* the marketing name ("iPhone 15 Pro") — the marketing name
   needs `devicectl`, which hangs; device name is stable, unique-per-phone, and free from
   `xctrace`. Core-dev's `iphone-15-pro` example was illustrative; device-name refs are
   actually better (two phones of the same model stay distinct).
