@@ -56,18 +56,6 @@ interface RecordingResponse {
   error?: string
 }
 
-type NewsResult = {
-  ok?: boolean
-  error?: string
-  current_url?: string
-  headlines?: any[]
-  articles?: any[]
-  errors?: any[]
-  extraction?: any
-  completion?: any
-  screenshots?: Record<string, string>
-}
-
 type StreamInfo = {
   ok?: boolean
   platform?: string
@@ -529,77 +517,6 @@ async function toggleRecording(serial: string) {
   }
 }
 
-/* ── iOS browser/news smoke workflow ────────────────────────────────── */
-const newsUrl = ref('https://text.npr.org/')
-const newsBundleId = ref('com.google.chrome.ios')
-const newsMaxHeadlines = ref(5)
-const newsMaxArticles = ref(3)
-const newsWaitSeconds = ref(2)
-const newsSaveScreenshots = ref(true)
-const newsOutDir = ref('data/ios_chrome_news_smoke')
-const newsRunning = ref(false)
-const newsResult = ref<NewsResult | null>(null)
-const newsError = ref('')
-
-const newsHeadlines = computed(() => Array.isArray(newsResult.value?.headlines) ? newsResult.value!.headlines! : [])
-const newsArticles = computed(() => Array.isArray(newsResult.value?.articles) ? newsResult.value!.articles! : [])
-const newsErrors = computed(() => Array.isArray(newsResult.value?.errors) ? newsResult.value!.errors! : [])
-const newsExtraction = computed(() => newsResult.value?.extraction || {})
-const newsScreenshotEntries = computed(() =>
-  Object.entries(newsResult.value?.screenshots || {}).filter(([, path]) => !!path)
-)
-
-function compactEvidence(evidence: any): string {
-  if (!evidence) return ''
-  const source = evidence.source || 'unknown'
-  const attempts = evidence.attempts !== undefined ? `${evidence.attempts}x` : ''
-  if (evidence.returned !== undefined) return `${source} ${evidence.returned}/${evidence.target} ${attempts}`.trim()
-  if (evidence.returned_lines !== undefined) {
-    return `${source} ${evidence.returned_lines}/${evidence.target_lines} lines ${attempts}`.trim()
-  }
-  return source
-}
-
-function articleEvidence(index: number): any {
-  const items = newsExtraction.value?.articles
-  return Array.isArray(items) ? items[index] || {} : {}
-}
-
-function firstNewsError(): string {
-  if (newsResult.value?.error) return String(newsResult.value.error)
-  const first = newsErrors.value[0]
-  if (!first) return ''
-  return String(first.error || first.back_error || first.stage || first.article || JSON.stringify(first))
-}
-
-async function runNewsSmoke() {
-  if (!selectedDevice.value || newsRunning.value) return
-  newsRunning.value = true
-  newsError.value = ''
-  newsResult.value = null
-  try {
-    const result = await api<NewsResult>('/api/phone/browser/read-news', {
-      method: 'POST',
-      body: JSON.stringify({
-        device: selectedDevice.value,
-        url: newsUrl.value || 'https://text.npr.org/',
-        bundle_id: newsBundleId.value || undefined,
-        max_headlines: Math.max(1, Number(newsMaxHeadlines.value) || 5),
-        max_articles: Math.max(0, Number(newsMaxArticles.value) || 0),
-        wait_s: Math.max(0.5, Number(newsWaitSeconds.value) || 2),
-        save_screenshots: newsSaveScreenshots.value,
-        out_dir: newsOutDir.value || undefined,
-      })
-    })
-    newsResult.value = result
-    if (!result.ok) newsError.value = firstNewsError() || 'News workflow failed'
-  } catch (error) {
-    newsError.value = error instanceof Error ? error.message.replace(/^API \d+:\s*/, '') : 'News workflow failed'
-  } finally {
-    newsRunning.value = false
-  }
-}
-
 /* ── Frozen stream detection ──────────────────────────────────────────── */
 const streamFrozen = ref<Record<string, boolean>>({})
 const frozenTimers = ref<Record<string, number>>({})
@@ -876,6 +793,10 @@ async function pollMultiLogs() {
 const healthData = ref<Record<string, any>>({})
 const healthLoading = ref<Record<string, boolean>>({})
 const healthFixStatus = ref<Record<string, string>>({})
+const showRecoveryDetails = ref<Record<string, boolean>>({})
+function toggleRecoveryDetails(serial: string) {
+  showRecoveryDetails.value[serial] = !showRecoveryDetails.value[serial]
+}
 const showWirelessModal = ref(false)
 const wirelessIp = ref('')
 const wirelessPort = ref('5555')
@@ -883,12 +804,40 @@ const wirelessCode = ref('')
 const wirelessResult = ref('')
 const IOS_AUTO_FIXES = new Set(['start_appium', 'reset_session', 'appium_session', 'wda_session', 'restart_remote_xpc_tunnel'])
 
+// Auto-reset a stale WDA session without the user clicking. Only for session
+// resets (not the heavier tunnel restart), one attempt per distinct dead
+// session, capped so a persistently broken device can't loop (Reset WDA stays
+// available manually). The guard clears once the device is healthy again.
+const AUTO_RESET_ACTIONS = new Set(['reset_session', 'appium_session', 'wda_session'])
+const autoResetGuard = ref<Record<string, { key: string; attempts: number }>>({})
+
+function maybeAutoReset(serial: string) {
+  const h = healthData.value[serial]
+  if (!h) return
+  const state = String(h?.connection?.status || h?.appium?.state || '')
+  if (['available', 'ready', 'connected', 'online'].includes(state)) {
+    delete autoResetGuard.value[serial]
+    return
+  }
+  const action = iosRecoveryAction(serial)
+  if (!AUTO_RESET_ACTIONS.has(action) || !iosRecoveryCanApplyFix(serial) || iosRecoveryFixBusy(serial)) return
+  const key = String(h?.wda?.session || h?.appium?.session_id || state)
+  const g = autoResetGuard.value[serial]
+  if (g && g.key === key) return
+  const attempts = (g?.attempts || 0) + 1
+  if (attempts > 2) return
+  autoResetGuard.value[serial] = { key, attempts }
+  healthFixStatus.value[serial] = 'Auto-resetting WDA…'
+  fixIssue(serial, action)
+}
+
 async function loadHealth(serial: string) {
   healthLoading.value[serial] = true
   try {
     healthData.value[serial] = await api(`/api/phone/health/${serial}`)
   } catch { healthData.value[serial] = null }
   healthLoading.value[serial] = false
+  maybeAutoReset(serial)
 }
 
 async function loadAllHealth() {
@@ -1627,89 +1576,36 @@ onUnmounted(() => {
         <div v-if="iosRecoveryVisible(selectedDevice)" class="ios-recovery-panel">
           <div class="ios-recovery-head">
             <span class="ios-recovery-state">{{ iosRecoveryState(selectedDevice) }}</span>
-            <span v-if="iosRecoveryCode(selectedDevice)" class="ios-recovery-code">{{ iosRecoveryCode(selectedDevice) }}</span>
+            <span class="ios-recovery-summary-inline" :title="iosRecoverySummary(selectedDevice)">{{ iosRecoverySummary(selectedDevice) }}</span>
+            <button v-if="iosRecoveryCanApplyFix(selectedDevice)" class="ios-recovery-link ios-recovery-link--fix"
+              :disabled="iosRecoveryFixBusy(selectedDevice)"
+              @click="fixIssue(selectedDevice, iosRecoveryAction(selectedDevice))"
+              :title="iosRecoveryActionTitle(selectedDevice)">
+              {{ iosRecoveryFixBusy(selectedDevice) ? 'Fixing…' : iosRecoveryActionLabel(selectedDevice) }}
+            </button>
             <button class="ios-recovery-link" @click="loadHealth(selectedDevice)">Refresh</button>
+            <button class="ios-recovery-link" @click="toggleRecoveryDetails(selectedDevice)">
+              {{ showRecoveryDetails[selectedDevice] ? 'Hide' : 'Details' }}
+            </button>
           </div>
-          <div class="ios-recovery-summary">{{ iosRecoverySummary(selectedDevice) }}</div>
           <div v-if="healthFixStatus[selectedDevice]" class="ios-recovery-status">{{ healthFixStatus[selectedDevice] }}</div>
-          <div v-if="iosHealthDetails(selectedDevice).length" class="ios-health-details">
-            <span v-for="row in iosHealthDetails(selectedDevice)" :key="row.label"
-              class="ios-health-chip" :class="{ 'ios-health-chip--ok': row.ok }"
-              :title="`${row.label}: ${row.value}`">
-              {{ row.label }} {{ row.value }}
-            </span>
-          </div>
-          <ol v-if="iosRecoverySteps(selectedDevice).length" class="ios-recovery-steps">
-            <li v-for="(step, i) in iosRecoverySteps(selectedDevice)" :key="i">{{ step }}</li>
-          </ol>
-          <div v-if="iosRecoveryCommands(selectedDevice).length" class="ios-recovery-commands">
-            <div v-for="command in iosRecoveryCommands(selectedDevice)" :key="command" class="ios-recovery-command">
-              <code>{{ command }}</code>
-              <button class="ios-copy-btn" @click="copyIosRecoveryCommand(selectedDevice, command)">Copy</button>
-            </div>
-          </div>
-        </div>
-        <div v-if="selectedIsIos" class="news-panel">
-          <div class="news-panel-head">
-            <span class="news-title">Chrome News</span>
-            <button class="ctrl-btn ctrl-btn--mjpeg ctrl-btn--tiny" :disabled="newsRunning || !selectedDevice"
-              @click="runNewsSmoke">{{ newsRunning ? 'Reading...' : 'Read News' }}</button>
-          </div>
-          <div class="news-controls">
-            <input v-model="newsUrl" class="news-input news-input--url" title="URL" />
-            <input v-model="newsBundleId" class="news-input" title="iOS bundle id" />
-            <input v-model.number="newsMaxHeadlines" class="news-number" type="number" min="1" max="10" title="Headlines" />
-            <input v-model.number="newsMaxArticles" class="news-number" type="number" min="0" max="5" title="Articles" />
-            <label class="news-toggle" title="Save front-page and article screenshots">
-              <input v-model="newsSaveScreenshots" type="checkbox" />
-              shots
-            </label>
-            <input v-if="newsSaveScreenshots" v-model="newsOutDir" class="news-input news-input--out" title="Screenshot output directory" />
-          </div>
-          <div v-if="newsRunning" class="news-status">Running read_news...</div>
-          <div v-else-if="newsError" class="news-status news-status--error">{{ newsError }}</div>
-          <div v-if="newsResult" class="news-result">
-            <div class="news-summary">
-              <span class="news-pill" :class="newsResult.ok ? 'news-pill--ok' : 'news-pill--error'">
-                {{ newsResult.ok ? 'OK' : 'Fail' }}
-              </span>
-              <span>{{ newsHeadlines.length }} headlines</span>
-              <span>{{ newsArticles.length }} articles</span>
-              <span v-if="newsResult.completion">
-                {{ newsResult.completion.articles_with_body || 0 }}/{{ newsResult.completion.requested_articles || 0 }} bodies
-              </span>
-              <span v-if="newsResult.current_url" :title="newsResult.current_url">{{ newsResult.current_url }}</span>
-            </div>
-            <div class="news-evidence">
-              <span :title="JSON.stringify(newsExtraction.headlines || {})">
-                H {{ compactEvidence(newsExtraction.headlines) }}
-              </span>
-              <span :title="JSON.stringify(newsExtraction.front_page_text || {})">
-                Text {{ compactEvidence(newsExtraction.front_page_text) }}
+          <div v-if="showRecoveryDetails[selectedDevice]" class="ios-recovery-details">
+            <div v-if="iosHealthDetails(selectedDevice).length" class="ios-health-details">
+              <span v-for="row in iosHealthDetails(selectedDevice)" :key="row.label"
+                class="ios-health-chip" :class="{ 'ios-health-chip--ok': row.ok }"
+                :title="`${row.label}: ${row.value}`">
+                {{ row.label }} {{ row.value }}
               </span>
             </div>
-            <div v-if="newsScreenshotEntries.length" class="news-artifacts">
-              <span v-for="([name, path]) in newsScreenshotEntries" :key="name" :title="path">
-                {{ name }} {{ path }}
-              </span>
-            </div>
-            <div v-if="newsHeadlines.length" class="news-list">
-              <div v-for="(headline, i) in newsHeadlines.slice(0, 5)" :key="i" class="news-headline">
-                {{ headline.title || headline.text || headline.source_headline }}
+            <ol v-if="iosRecoverySteps(selectedDevice).length" class="ios-recovery-steps">
+              <li v-for="(step, i) in iosRecoverySteps(selectedDevice)" :key="i">{{ step }}</li>
+            </ol>
+            <div v-if="iosRecoveryCommands(selectedDevice).length" class="ios-recovery-commands">
+              <div v-for="command in iosRecoveryCommands(selectedDevice)" :key="command" class="ios-recovery-command">
+                <code>{{ command }}</code>
+                <button class="ios-copy-btn" @click="copyIosRecoveryCommand(selectedDevice, command)">Copy</button>
               </div>
             </div>
-            <div v-if="newsArticles.length" class="news-articles">
-              <div v-for="(article, i) in newsArticles.slice(0, 3)" :key="i" class="news-article">
-                <div class="news-article-title">{{ article.page_title || article.source_headline || `Article ${i + 1}` }}</div>
-                <div class="news-article-meta">
-                  {{ article.open_method || articleEvidence(i).open_method || 'open' }}
-                  <span v-if="articleEvidence(i).text"> · {{ compactEvidence(articleEvidence(i).text) }}</span>
-                </div>
-                <div v-if="article.body_snippet" class="news-article-body">{{ article.body_snippet }}</div>
-                <div v-else-if="article.error" class="news-article-error">{{ article.error }}</div>
-              </div>
-            </div>
-            <div v-if="newsErrors.length" class="news-status news-status--error">{{ firstNewsError() }}</div>
           </div>
         </div>
         <!-- Stream -->
@@ -2651,6 +2547,27 @@ onUnmounted(() => {
 .ios-recovery-summary {
   color: var(--text-3);
   line-height: 1.35;
+}
+
+.ios-recovery-summary-inline {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.ios-recovery-link--fix {
+  margin-left: 0;
+  color: #6ee7b7;
+  font-weight: 700;
+}
+
+.ios-recovery-details {
+  margin-top: 6px;
 }
 
 .ios-recovery-status {
