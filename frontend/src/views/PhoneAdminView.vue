@@ -657,6 +657,7 @@ const singleMjpegUrl = ref('')
 
 /* ── H.264 (GhostAgent WebSocket stream, iOS) ─────────────────────────── */
 const h264Status = ref('')
+const h264ShowMetrics = ref(true)
 const h264M = ref({ recvFps: 0, renderFps: 0, queue: 0, latencyMs: 0, kbps: 0, dropped: 0 })
 let h264Handle: { status: any; recvFps: any; renderFps: any; queue: any; latencyMs: any; kbps: any; dropped: any; stop: () => void } | null = null
 function h264StreamWsUrl(serial: string): string {
@@ -1763,12 +1764,13 @@ onUnmounted(() => {
             @touchend="mjpegTouchEnd(selectedDevice, $event)"
             @touchcancel="mjpegTouchCancel(selectedDevice)"
             @dragstart.prevent />
-          <div v-if="streaming && singleStreamMode === 'h264'" class="h264-badge">
+          <div v-if="streaming && singleStreamMode === 'h264' && h264ShowMetrics" class="h264-badge" @click="h264ShowMetrics = false" title="Click to hide">
             <template v-if="h264M.renderFps || h264M.recvFps">
               recv {{ h264M.recvFps }} · render {{ h264M.renderFps }}fps · q{{ h264M.queue }} · {{ h264M.latencyMs }}ms · {{ h264M.kbps }}kbps<span v-if="h264M.dropped"> · drop {{ h264M.dropped }}</span>
             </template>
             <template v-else>H.264 {{ h264Status }}</template>
           </div>
+          <button v-if="streaming && singleStreamMode === 'h264' && !h264ShowMetrics" class="h264-badge h264-badge--show" @click="h264ShowMetrics = true" title="Show metrics">ⓘ</button>
           <div v-if="!streaming" class="stream-placeholder">
             Select device &amp; start stream<br/>or chat — auto-starts
           </div>
@@ -2093,7 +2095,10 @@ onUnmounted(() => {
   position: absolute; top: 6px; left: 6px; z-index: 3;
   font-size: 9px; padding: 2px 7px; border-radius: 10px;
   background: rgba(99,102,241,0.85); color: #fff; white-space: nowrap;
+  cursor: pointer; border: none;
 }
+.h264-badge--show { opacity: 0.5; padding: 2px 6px; }
+.h264-badge--show:hover { opacity: 1; }
 .stream-placeholder {
   color: var(--text-4);
   font-size: 13px;
