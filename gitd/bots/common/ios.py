@@ -1427,7 +1427,17 @@ class IOSDevice:
                 always_match["appium:webDriverAgentUrl"] = self.wda_url
             if self.browser_name:
                 always_match["browserName"] = self.browser_name
-            elif self.bundle_id:
+            elif self.bundle_id and os.getenv("IOS_LAUNCH_BUNDLE_ON_SESSION", "").strip().lower() in ("1", "true", "yes"):
+                # Putting appium:bundleId in the session caps makes Appium
+                # FOREGROUND that app on every session (re)creation. With
+                # noReset that yanks the phone to Chrome mid-interaction: a
+                # stray tap that lands while the session is being rebuilt
+                # re-launches Chrome AND churns WDA, dropping the live stream
+                # ("Chrome randomly launches on tap" + "disconnects on click").
+                # Every real launch path (launch_app, read_news) foregrounds
+                # its target explicitly, so the default session just attaches
+                # to whatever is on screen. Set IOS_LAUNCH_BUNDLE_ON_SESSION=1
+                # to restore the old auto-launch behavior.
                 always_match["appium:bundleId"] = self.bundle_id
             always_match.update(self.appium_capabilities)
 
