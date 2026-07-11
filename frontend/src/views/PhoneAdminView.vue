@@ -657,8 +657,8 @@ const singleMjpegUrl = ref('')
 
 /* ── H.264 (GhostAgent WebSocket stream, iOS) ─────────────────────────── */
 const h264Status = ref('')
-const h264Fps = ref(0)
-let h264Handle: { status: any; fps: any; stop: () => void } | null = null
+const h264M = ref({ recvFps: 0, renderFps: 0, queue: 0, latencyMs: 0, kbps: 0, dropped: 0 })
+let h264Handle: { status: any; recvFps: any; renderFps: any; queue: any; latencyMs: any; kbps: any; dropped: any; stop: () => void } | null = null
 function h264StreamWsUrl(serial: string): string {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws'
   return `${proto}://${location.host}/api/phone/h264/${encodeURIComponent(serial)}`
@@ -671,13 +671,15 @@ async function startH264(serial: string) {
   const { startH264Stream, h264Supported } = await import('@/composables/useH264Stream')
   if (!h264Supported()) { h264Status.value = 'WebCodecs unavailable — use MJPEG'; return }
   h264Handle = startH264Stream(h264StreamWsUrl(serial), canvas)
-  watch(h264Handle.status, (v: string) => { h264Status.value = v })
-  watch(h264Handle.fps, (v: number) => { h264Fps.value = v })
+  const h = h264Handle
+  watch(h.status, (v: string) => { h264Status.value = v })
+  const sync = () => { h264M.value = { recvFps: h.recvFps.value, renderFps: h.renderFps.value, queue: h.queue.value, latencyMs: h.latencyMs.value, kbps: h.kbps.value, dropped: h.dropped.value } }
+  watch([h.recvFps, h.renderFps, h.queue, h.latencyMs, h.kbps, h.dropped], sync)
 }
 function stopH264() {
   if (h264Handle) { h264Handle.stop(); h264Handle = null }
   h264Status.value = ''
-  h264Fps.value = 0
+  h264M.value = { recvFps: 0, renderFps: 0, queue: 0, latencyMs: 0, kbps: 0, dropped: 0 }
 }
 
 async function startStream() {
@@ -1751,7 +1753,10 @@ onUnmounted(() => {
           <canvas v-show="streaming && singleStreamMode === 'h264'"
             :id="`h264-canvas-${selectedDevice}`" class="stream-media" />
           <div v-if="streaming && singleStreamMode === 'h264'" class="h264-badge">
-            H.264 {{ h264Status }}<span v-if="h264Fps"> · {{ h264Fps }}fps</span>
+            <template v-if="h264M.renderFps || h264M.recvFps">
+              recv {{ h264M.recvFps }} · render {{ h264M.renderFps }}fps · q{{ h264M.queue }} · {{ h264M.latencyMs }}ms · {{ h264M.kbps }}kbps<span v-if="h264M.dropped"> · drop {{ h264M.dropped }}</span>
+            </template>
+            <template v-else>H.264 {{ h264Status }}</template>
           </div>
           <div v-if="!streaming" class="stream-placeholder">
             Select device &amp; start stream<br/>or chat — auto-starts
