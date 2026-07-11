@@ -64,3 +64,36 @@ def test_candidate_urls_ipv4_address_not_bracketed(monkeypatch):
     )
     urls = h._candidate_urls("udid", 9200)
     assert urls[0] == "ws://10.0.0.5:9200/"
+
+
+def test_candidate_urls_force_localhost_skips_tunnel(monkeypatch):
+    # Remote-drive: a caller over the SSH forward can't route the tunnel IPv6, so
+    # force_localhost must drop the tunnel candidate entirely — even when the
+    # registry HAS a live address. Must NOT probe/return the fdxx:: route.
+    called = {"n": 0}
+
+    def _should_not_be_called(_udid):
+        called["n"] += 1
+        return {"registry": {"address": "fd23:a45d:8f2d::1"}}
+
+    monkeypatch.setattr(h, "remote_xpc_tunnel_status", _should_not_be_called)
+    urls = h._candidate_urls("udid", 9200, force_localhost=True)
+    assert urls == ["ws://localhost:9200/", "ws://127.0.0.1:9200/"]
+    assert all("[" not in u for u in urls)  # no bracketed IPv6 tunnel route
+    assert called["n"] == 0  # tunnel registry not even queried when forced local
+
+
+def test_is_remote_ref_interim_signal():
+    # Interim fallback until core-dev's is_remote_ref lands: only remote <name>@<host>
+    # refs carry "@"; iOS and Android local refs never do.
+    assert h._is_remote_ref("demo-iphone@mac1") is True
+    assert h._is_remote_ref("ios:00008XXX-XXXX") is False
+    assert h._is_remote_ref("emulator-5554") is False
+    assert h._is_remote_ref("") is False
+
+
+def test_env_force_localhost(monkeypatch):
+    monkeypatch.delenv("IOS_STREAM_FORCE_LOCALHOST", raising=False)
+    assert h._env_force_localhost() is False
+    monkeypatch.setenv("IOS_STREAM_FORCE_LOCALHOST", "1")
+    assert h._env_force_localhost() is True

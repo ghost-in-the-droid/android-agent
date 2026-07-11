@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import os
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -28,6 +29,19 @@ from gitd.bots.common.ios import (
     remote_xpc_tunnel_status,
     strip_ios_prefix,
 )
+
+try:  # core-dev owns is_remote_ref (Ghost-side @host parsing); use it once it lands.
+    from gitd.bots.common.device import is_remote_ref as _is_remote_ref
+except ImportError:  # safe interim signal: only remote refs carry "@" (Android serials never do)
+    def _is_remote_ref(ref: str) -> bool:
+        return "@" in (ref or "")
+
+
+def _env_force_localhost() -> bool:
+    """Optional global override on top of the per-device signal (mixed hosts should
+    prefer the per-device param; this is an escape hatch for all-remote deployments)."""
+    return os.getenv("IOS_STREAM_FORCE_LOCALHOST", "").strip().lower() in ("1", "true", "yes")
+
 
 router = APIRouter(tags=["streaming"])
 
@@ -47,16 +61,24 @@ def _h264_port(udid: str) -> int:
     return base + H264_PORT_OFFSET
 
 
-def _candidate_urls(udid: str, port: int) -> list[str]:
+def _candidate_urls(udid: str, port: int, force_localhost: bool = False) -> list[str]:
     urls = [f"ws://localhost:{port}/", f"ws://127.0.0.1:{port}/"]
-    try:
-        tunnel = remote_xpc_tunnel_status(udid)
-        addr = str((tunnel.get("registry") or {}).get("address") or "")
-        if addr:
-            host = f"[{addr}]" if ":" in addr and not addr.startswith("[") else addr
-            urls.insert(0, f"ws://{host}:{port}/")  # tunnel route first — most reliable on iOS 17+
-    except Exception:
-        pass
+    # Remote-drive (Linux Ghost -> SSH -> Mac -> iPhone, docs/ios/REMOTE_DRIVE.md):
+    # the RemoteXPC tunnel IPv6 (fdxx::) is only routable ON the Mac, so a remote
+    # caller must use the SSH-forwarded localhost port and MUST NOT probe the tunnel
+    # address. force_localhost is passed PER-DEVICE (is_remote_ref(ref)) — not a
+    # process-global — so a mixed host (a local iPhone physically on the Mac + a
+    # remote one, both streaming) still lets the LOCAL device use its tunnel-IPv6
+    # candidate while the remote one stays on localhost.
+    if not force_localhost:
+        try:
+            tunnel = remote_xpc_tunnel_status(udid)
+            addr = str((tunnel.get("registry") or {}).get("address") or "")
+            if addr:
+                host = f"[{addr}]" if ":" in addr and not addr.startswith("[") else addr
+                urls.insert(0, f"ws://{host}:{port}/")  # tunnel route first — most reliable on iOS 17+
+        except Exception:
+            pass
     # de-dup, keep order
     seen: set[str] = set()
     out: list[str] = []
@@ -100,14 +122,14 @@ async def _ensure_session_guarded(device: str, udid: str) -> None:
         await _ensure_session(device)
 
 
-async def _connect_device(udid: str, port: int):
+async def _connect_device(udid: str, port: int, force_localhost: bool = False):
     """Try each reachability strategy; return (ws, url) or (None, error)."""
     import websockets
 
     last_err = ""
     # _candidate_urls does a blocking tunnel-registry HTTP lookup; run it off the
     # event loop so it can't stall the WS handshake / other streams.
-    candidates = await asyncio.to_thread(_candidate_urls, udid, port)
+    candidates = await asyncio.to_thread(_candidate_urls, udid, port, force_localhost)
     for url in candidates:
         try:
             ws = await asyncio.wait_for(
@@ -130,6 +152,9 @@ async def h264_stream(client: WebSocket, device: str):
 
     udid = strip_ios_prefix(device)
     port = _h264_port(udid)
+    # Remote refs (<name>@<host>) reach us over the SSH forward, where the tunnel
+    # IPv6 isn't routable — force the localhost candidate for THIS device only.
+    force_localhost = _is_remote_ref(device) or _env_force_localhost()
     backoff = RECONNECT_BACKOFF_MIN
     stop = False
 
@@ -148,14 +173,14 @@ async def h264_stream(client: WebSocket, device: str):
         while not stop:
             # Try the device stream FIRST — if a session already exists (e.g. the
             # dashboard's), :9200 is up and we connect immediately with no launch.
-            dev_ws, info = await _connect_device(udid, port)
+            dev_ws, info = await _connect_device(udid, port, force_localhost)
             if dev_ws is None:
                 # Not reachable — WDA probably isn't running. Launch it (guarded so
                 # reconnect storms can't pile up xcodebuild), then retry once.
                 with contextlib.suppress(Exception):
                     await client.send_json({"status": "starting WDA session"})
                 await _ensure_session_guarded(device, udid)
-                dev_ws, info = await _connect_device(udid, port)
+                dev_ws, info = await _connect_device(udid, port, force_localhost)
 
             if dev_ws is None:
                 # Still down — back off and retry (guard's cooldown prevents relaunch).
