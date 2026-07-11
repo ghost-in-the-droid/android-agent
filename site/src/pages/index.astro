@@ -1,6 +1,14 @@
 ---
 // Ghost in the Droid Landing Page — "Phantom Circuit" aesthetic
 // Standalone page, does not use Starlight layout
+import Sizzle from '../components/Sizzle.astro';
+import { loadAllSpecs, loadCopy } from '../lib/showcase';
+
+const copy = loadCopy();
+const featured = loadAllSpecs()
+	.filter((s) => s.featured)
+	.sort((a, b) => (copy[a.demo]?.sizzle_order ?? 99) - (copy[b.demo]?.sizzle_order ?? 99))
+	.slice(0, 3);
 ---
 <html lang="en">
 <head>
@@ -444,6 +452,47 @@
 			gap: 3rem;
 		}
 		.hero-content { text-align: left; flex: 1; max-width: 560px; }
+		.featured-strip {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 1.25rem;
+		}
+		.featured-card {
+			display: block;
+			border: 1px solid #1a2a1f;
+			border-radius: 0.75rem;
+			overflow: hidden;
+			background: #0a0f0b;
+			text-decoration: none;
+			transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+		}
+		.featured-card:hover {
+			transform: translateY(-3px);
+			border-color: var(--accent);
+			box-shadow: 0 6px 32px #00e5a01f;
+		}
+		.featured-card img {
+			width: 100%;
+			aspect-ratio: 16 / 9;
+			object-fit: cover;
+			display: block;
+		}
+		.featured-card h3 {
+			color: var(--text-primary);
+			font-size: 1.05rem;
+			padding: 0.85rem 1rem 0.25rem;
+		}
+		.featured-card p {
+			color: var(--text-secondary);
+			font-size: 0.85rem;
+			padding: 0 1rem 1rem;
+		}
+		@media (max-width: 768px) {
+			.featured-strip { grid-template-columns: 1fr; }
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.featured-card, .featured-card:hover { transform: none; transition: none; }
+		}
 		.hero-ghost {
 			flex-shrink: 0;
 			width: 280px;
@@ -618,6 +667,7 @@
 		</a>
 		<div class="nav-links">
 			<a href="/getting-started/introduction/">Docs</a>
+			<a href="/showcase/">Showcase</a>
 			<a href="/skills/">Skill Hub</a>
 			<a href="http://localhost:6175" target="_blank">Dashboard</a>
 			<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
@@ -628,45 +678,30 @@
 	<!-- ASCII SPHERE -->
 	<canvas id="ascii-sphere" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.35"></canvas>
 
-	<!-- HERO -->
-	<section class="hero" style="position:relative;z-index:1">
+	<!-- HERO — sizzle reel (task #783; reel built by the showcase pipeline) -->
+	<div style="position:relative;z-index:1">
+		<Sizzle />
+	</div>
+
+	<!-- FEATURED DEMOS STRIP -->
+	<section style="position:relative;z-index:1;padding:2.5rem 0 0.5rem">
 		<div class="container">
-			<div class="hero-badge">
-				<span class="tag">Open Source</span>
-				<span>MIT Licensed — free forever</span>
+			<div class="featured-strip">
+				{featured.map((s) => (
+					<a class="featured-card" href="/showcase/">
+						<img src={`/showcase/${s.demo}/poster.png`} alt="" loading="lazy" />
+						<h3>{s.title}</h3>
+						{copy[s.demo]?.hook && <p>{copy[s.demo].hook}</p>}
+					</a>
+				))}
 			</div>
-			<div class="hero-split">
-				<div class="hero-content">
-					<h1>
-						Summon a Ghost<br/>Into Your <span class="gradient">Android</span>
-					</h1>
-					<p class="hero-sub">
-						It sees the screen. It taps the buttons. It never sleeps.
-						Open-source Python framework for controlling real phones via ADB.
-						No root required. No cloud dependency. Pure automation.
-					</p>
-					<div class="hero-actions">
-						<a href="/getting-started/installation/" class="btn-primary">
-							Get Started
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-						</a>
-						<a href="https://github.com/ghost-in-the-droid/android-agent" class="btn-outline">
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-							View on GitHub
-						</a>
-					</div>
-					<div class="hero-integrations" style="margin-top:1.35rem;display:flex;align-items:center;gap:0.55rem;flex-wrap:wrap;font-size:0.85rem;color:var(--text-secondary)">
-						<span>Works with</span>
-						<a href="/features/integrations/" style="color:var(--accent);text-decoration:none;font-weight:600">LangChain</a>
-						<span style="opacity:0.4">·</span>
-						<a href="/features/integrations/" style="color:var(--accent);text-decoration:none;font-weight:600">LlamaIndex</a>
-						<span style="opacity:0.4">·</span>
-						<a href="/features/mcp-server/" style="color:var(--accent);text-decoration:none;font-weight:600">MCP</a>
-					</div>
-				</div>
-				<div class="hero-ghost" style="animation: fade-up 0.6s ease-out 0.3s both">
-					<img src="/mascot/12-the-tap.png" alt="Ghost tapping a phone" />
-				</div>
+			<div class="hero-integrations" style="margin-top:1.35rem;display:flex;align-items:center;justify-content:center;gap:0.55rem;flex-wrap:wrap;font-size:0.85rem;color:var(--text-secondary)">
+				<span>Open source · MIT licensed · Works with</span>
+				<a href="/features/integrations/" style="color:var(--accent);text-decoration:none;font-weight:600">LangChain</a>
+				<span style="opacity:0.4">·</span>
+				<a href="/features/integrations/" style="color:var(--accent);text-decoration:none;font-weight:600">LlamaIndex</a>
+				<span style="opacity:0.4">·</span>
+				<a href="/features/mcp-server/" style="color:var(--accent);text-decoration:none;font-weight:600">MCP</a>
 			</div>
 		</div>
 	</section>

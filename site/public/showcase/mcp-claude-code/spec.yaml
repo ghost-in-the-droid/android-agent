@@ -1,0 +1,31 @@
+# Showcase demo spec — schema per task #782 (record_demo.py is the consumer).
+# placeholder: true until the pipeline records the real demo.
+placeholder: true
+demo: mcp-claude-code
+title: "Claude Code → Your Phone"
+category: ai-integration
+featured: true
+docs: /features/mcp-server/
+duration_target_s: 60
+device: android
+platform_notes: ""
+setup:
+  - kill_all_apps
+  - unlock
+timeline:
+  - t: 0
+    caption: "Add the Ghost MCP server to Claude Code"
+    action: terminal_type
+    args: { text: "claude mcp add android-agent -- android-agent-mcp" }
+  - t: 10
+    caption: "Claude Code drives the phone through MCP tools"
+    action: terminal_type
+    args: { text: "claude 'take a screenshot of my phone and describe the screen'" }
+  - t: 20
+    caption: "Screenshot lands in the conversation"
+    action: wait_for_phone
+    args: { seconds: 30 }
+outro:
+  cta_line: "pip install ghost-in-the-droid"
+  cta_link: /features/mcp-server/
+highlight_window: { start_s: 12, end_s: 20 }

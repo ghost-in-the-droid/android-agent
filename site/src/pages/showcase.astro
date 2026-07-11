@@ -1,0 +1,162 @@
+---
+// Ghost Showcase — every demo, grouped by category. Standalone page
+// (same treatment as the landing page, not Starlight).
+import DemoTile from '../components/DemoTile.astro';
+import Sizzle from '../components/Sizzle.astro';
+import { loadAllSpecs, loadCopy, CATEGORY_LABELS } from '../lib/showcase';
+import '../styles/showcase.css';
+
+const specs = loadAllSpecs();
+const copy = loadCopy();
+
+const CATEGORY_ORDER = ['ai-integration', 'llm-providers', 'platform', 'dev-tools'];
+const grouped = CATEGORY_ORDER.map((cat) => ({
+	cat,
+	label: CATEGORY_LABELS[cat] ?? cat,
+	demos: specs.filter((s) => s.category === cat),
+})).filter((g) => g.demos.length > 0);
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="google-site-verification" content="lCpzZZM3agcLw_H0vN9ek2NKHN3aRF5ijaIwX5Vsnyw" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<title>Ghost Showcase — Ghost in the Droid</title>
+		<meta
+			name="description"
+			content="Watch Ghost in the Droid drive real phones: on-device LLMs, MCP with Claude Code, LangChain flows, iPhone support, and more. Real phones. Any AI. Zero cloud."
+		/>
+		<meta property="og:title" content="Ghost Showcase — Ghost in the Droid" />
+		<meta property="og:description" content="Every Ghost demo in one place. Real phones. Any AI. Zero cloud." />
+		<meta property="og:image" content="https://ghostinthedroid.com/showcase/hero-poster.png" />
+		<meta property="og:type" content="website" />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			*,
+			*::before,
+			*::after {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			html {
+				scroll-behavior: smooth;
+			}
+			body {
+				font-family: 'Outfit', sans-serif;
+				background: #070b08;
+				color: #bec8c0;
+			}
+			nav {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 1rem 2rem;
+				border-bottom: 1px solid #16281d;
+			}
+			.nav-logo {
+				display: flex;
+				align-items: center;
+				gap: 0.6rem;
+				color: #e8ede9;
+				font-weight: 700;
+				text-decoration: none;
+			}
+			.nav-logo img {
+				width: 32px;
+			}
+			.nav-links {
+				display: flex;
+				gap: 1.5rem;
+				align-items: center;
+			}
+			.nav-links a {
+				color: #8a9a8d;
+				text-decoration: none;
+				font-size: 0.95rem;
+			}
+			.nav-links a:hover {
+				color: #00e5a0;
+			}
+			main {
+				max-width: 1200px;
+				margin: 0 auto;
+				padding: 0 1.5rem 5rem;
+			}
+			.page-head {
+				text-align: center;
+				padding: 3rem 0 1rem;
+			}
+			.page-head h1 {
+				font-size: clamp(2rem, 5vw, 3rem);
+				font-weight: 800;
+				color: #e8ede9;
+			}
+			.page-head p {
+				margin-top: 0.6rem;
+				color: #8a9a8d;
+			}
+			footer {
+				text-align: center;
+				padding: 2rem;
+				color: #4a5c4e;
+				font-size: 0.85rem;
+				border-top: 1px solid #16281d;
+			}
+			footer a {
+				color: #8a9a8d;
+			}
+		</style>
+	</head>
+	<body>
+		<nav>
+			<a href="/" class="nav-logo">
+				<img src="/mascot/43-wave.png" alt="" />
+				Ghost in the Droid
+			</a>
+			<div class="nav-links">
+				<a href="/getting-started/introduction/">Docs</a>
+				<a href="/skills/">Skill Hub</a>
+				<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
+			</div>
+		</nav>
+
+		<Sizzle demosHref="#showcase-grid" />
+
+		<main>
+			<div class="page-head" id="showcase-grid">
+				<h1>Ghost Showcase</h1>
+				<p>Every demo is recorded by Ghost driving a real phone — the ghost records the ghost.</p>
+			</div>
+
+			{
+				grouped.map(({ cat, label, demos }) => (
+					<section class="showcase-category" aria-label={label}>
+						<h2>
+							{label}
+							<span class="category-count">{demos.length} demo{demos.length === 1 ? '' : 's'}</span>
+						</h2>
+						{copy[demos[0].demo]?.hook && demos.length === 1 && <p>{copy[demos[0].demo].hook}</p>}
+						<div class="showcase-grid">
+							{demos.map((s) => (
+								<DemoTile feature={s.demo} />
+							))}
+						</div>
+					</section>
+				))
+			}
+		</main>
+
+		<footer>
+			<a href="/">ghostinthedroid.com</a> · MIT licensed ·
+			<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
+		</footer>
+	</body>
+</html>
