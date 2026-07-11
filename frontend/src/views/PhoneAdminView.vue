@@ -631,14 +631,17 @@ async function startMultiStream(serial: string, mode: 'rtc' | 'mjpeg' = 'rtc') {
     rtcStart(serial)
   } else {
     streamFrozen.value[serial] = false
+    mjpegReconnects.value[serial] = 0
     streamInfoStatus.value[serial] = isIosDevice(serial) ? 'Loading WDA MJPEG...' : ''
     mjpegUrls.value[serial] = mjpegStreamUrl(serial)
     mjpegUrls.value[serial] = await resolveMjpegStreamUrl(serial, actualMode)
+    startMjpegWatchdog(serial)
   }
 }
 function stopMultiStream(serial: string) {
   multiStreaming.value[serial] = false
   if (multiStreamMode.value[serial] === 'rtc') rtcStop(serial)
+  stopMjpegWatchdog(serial)
   mjpegUrls.value[serial] = ''
   streamInfoStatus.value[serial] = ''
   multiStreamMode.value[serial] = 'rtc'
@@ -668,17 +671,20 @@ async function startStream() {
         void resolveMjpegStreamUrl(serial, 'mjpeg').then(url => {
           if (streaming.value && selectedDevice.value === serial && singleStreamMode.value === 'mjpeg') singleMjpegUrl.value = url
         })
+        startMjpegWatchdog(serial)
       }
     }, 5000)
   } else {
     streamFrozen.value[serial] = false
+    mjpegReconnects.value[serial] = 0
     streamInfoStatus.value[serial] = isIosDevice(serial) ? 'Loading WDA MJPEG...' : ''
     singleMjpegUrl.value = mjpegStreamUrl(serial)
     singleMjpegUrl.value = await resolveMjpegStreamUrl(serial, singleStreamMode.value)
+    startMjpegWatchdog(serial)
   }
 }
 function stopStream() {
-  if (selectedDevice.value) rtcStop(selectedDevice.value)
+  if (selectedDevice.value) { rtcStop(selectedDevice.value); stopMjpegWatchdog(selectedDevice.value) }
   singleMjpegUrl.value = ''
   if (selectedDevice.value) streamInfoStatus.value[selectedDevice.value] = ''
   streaming.value = false
@@ -695,8 +701,81 @@ function mjpegImageLoaded(serial: string) {
 function mjpegImageError(serial: string) {
   streamFrozen.value[serial] = true
   streamInfoStatus.value[serial] = isIosDevice(serial)
-    ? 'WDA MJPEG failed — tap stream to reconnect or check iOS health'
-    : 'MJPEG stream failed — tap stream to reconnect'
+    ? 'WDA MJPEG failed — reconnecting…'
+    : 'MJPEG stream failed — reconnecting…'
+  // Hard error → reconnect right away (backoff-limited by the watchdog).
+  reconnectMjpeg(serial)
+}
+
+/* ── MJPEG stall watchdog ─────────────────────────────────────────────────
+ * An <img> streaming multipart-JPEG holds its LAST frame forever if the
+ * connection silently stalls — no 'error' event fires, so health stays green
+ * while the picture is frozen. Sample the frame to a tiny canvas every few
+ * seconds; if it hasn't changed for a while, force a reconnect (cache-busted
+ * src reload). Reconnecting a genuinely-static screen is harmless. */
+const mjpegWatchTimers = ref<Record<string, number>>({})
+const mjpegLastHash = ref<Record<string, string>>({})
+const mjpegStaleCount = ref<Record<string, number>>({})
+const mjpegReconnects = ref<Record<string, number>>({})
+const MJPEG_STALL_CHECKS = 3          // ~3 * 2.5s = ~7.5s frozen → reconnect
+const MJPEG_MAX_RECONNECTS = 20       // safety cap; reset on any fresh frame
+
+function mjpegFrameHash(serial: string): string | null {
+  const img = document.getElementById(`mjpeg-img-${serial}`) as HTMLImageElement | null
+  if (!img || !img.naturalWidth) return null
+  try {
+    const c = document.createElement('canvas')
+    c.width = 16; c.height = 16
+    const ctx = c.getContext('2d')!
+    ctx.drawImage(img, 0, 0, 16, 16)
+    const d = ctx.getImageData(0, 0, 16, 16).data
+    let h = 0
+    for (let i = 0; i < d.length; i += 4) h = (h * 31 + (d[i]! + d[i+1]! * 3 + d[i+2]! * 7)) | 0
+    return String(h)
+  } catch { return null }  // tainted canvas etc. → skip (don't false-reconnect)
+}
+
+function reconnectMjpeg(serial: string) {
+  if ((mjpegReconnects.value[serial] || 0) >= MJPEG_MAX_RECONNECTS) return
+  mjpegReconnects.value[serial] = (mjpegReconnects.value[serial] || 0) + 1
+  mjpegStaleCount.value[serial] = 0
+  const base = mjpegStreamUrl(serial)
+  const sep = base.includes('?') ? '&' : '?'
+  // New URL forces the <img> to drop the dead connection and open a fresh one.
+  const url = `${base}${sep}_r=${mjpegReconnects.value[serial]}`
+  // Route to whichever view is showing this device (multi grid vs single panel).
+  if (multiStreaming.value[serial]) mjpegUrls.value[serial] = url
+  else singleMjpegUrl.value = url
+}
+
+function startMjpegWatchdog(serial: string) {
+  stopMjpegWatchdog(serial)
+  mjpegLastHash.value[serial] = ''
+  mjpegStaleCount.value[serial] = 0
+  mjpegWatchTimers.value[serial] = window.setInterval(() => {
+    // Active if this device is streaming MJPEG in either the single panel or the grid.
+    const singleActive = streaming.value && selectedDevice.value === serial && singleStreamMode.value === 'mjpeg'
+    const multiActive = multiStreaming.value[serial] && multiStreamMode.value[serial] === 'mjpeg'
+    if (!singleActive && !multiActive) return
+    const hash = mjpegFrameHash(serial)
+    if (hash == null) return
+    if (hash === mjpegLastHash.value[serial]) {
+      mjpegStaleCount.value[serial] = (mjpegStaleCount.value[serial] || 0) + 1
+      if (mjpegStaleCount.value[serial] >= MJPEG_STALL_CHECKS) {
+        streamInfoStatus.value[serial] = 'Stream stalled — reconnecting…'
+        reconnectMjpeg(serial)
+      }
+    } else {
+      mjpegLastHash.value[serial] = hash
+      mjpegStaleCount.value[serial] = 0
+      mjpegReconnects.value[serial] = 0   // healthy frames → reset backoff
+      streamFrozen.value[serial] = false
+    }
+  }, 2500)
+}
+
+function stopMjpegWatchdog(serial: string) {
+  if (mjpegWatchTimers.value[serial]) { clearInterval(mjpegWatchTimers.value[serial]); delete mjpegWatchTimers.value[serial] }
 }
 
 function mjpegImagePoint(img: HTMLImageElement, clientX: number, clientY: number): { x: number; y: number; width: number; height: number } | null {
@@ -1621,8 +1700,10 @@ onUnmounted(() => {
             @touchmove="videoTouchMove(selectedDevice)"
             @touchend="videoTouchEnd(selectedDevice, $event)" />
           <img v-else-if="streaming && singleStreamMode === 'mjpeg' && singleMjpegUrl"
+            :id="`mjpeg-img-${selectedDevice}`"
             :src="singleMjpegUrl"
             class="stream-media"
+            crossorigin="anonymous"
             draggable="false"
             @load="mjpegImageLoaded(selectedDevice)"
             @error="mjpegImageError(selectedDevice)"
@@ -1754,8 +1835,10 @@ onUnmounted(() => {
               @touchend="videoTouchEnd(d.serial, $event)" />
             <!-- MJPEG img -->
             <img v-else-if="multiStreaming[d.serial] && multiStreamMode[d.serial] === 'mjpeg' && mjpegUrls[d.serial]"
+              :id="`mjpeg-img-${d.serial}`"
               :src="mjpegUrls[d.serial]"
               class="multi-stream-media"
+              crossorigin="anonymous"
               draggable="false"
               @load="mjpegImageLoaded(d.serial)"
               @error="mjpegImageError(d.serial)"
