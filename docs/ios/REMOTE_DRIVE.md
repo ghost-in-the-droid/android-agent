@@ -193,3 +193,75 @@ accounts/data. Threats, in priority order:
   key + Ghost-side destructive-action gate.
 - **v2 (fleet / WAN):** WireGuard underlay (fixes stream HoL blocking, flat net), SSH cert
   CA, optional WDA header token, `ghost probe` registration command.
+
+---
+
+## Resolved decisions (round 2, with core-dev)
+
+Core-dev greenlit the Ghost side (CKL approved) and is building slice 1. Agreed:
+
+- **(i) Destructive-action gate — NEW module, core-dev owns it.** No prior per-action
+  gate existed (only `SAFE_DEVICE_TOOLS`/`EXEC_CAPABLE_TOOLS` tool-class allowlists +
+  app-wide admin-token auth). New `gitd/services/action_gate.py`: a curated
+  `DESTRUCTIVE_TOOLS` set intercepted **before dispatch**; on a **remote** device a
+  destructive call returns `CONFIRM_REQUIRED` unless it carries `confirm:true` (or is
+  pre-authorized for that device). **Fail-closed:** unknown tool + destructive verb +
+  remote target ⇒ treated destructive. Local USB/Android unaffected. My WDA
+  `X-Ghost-Token` is welcome **defense-in-depth on top**, not the primary gate.
+  - **⚠️ iOS-specific gap I flagged:** on iOS most destructive actions (delete app,
+    send a DM) are performed through **generic `tap`/`type` tools**, not semantic tools
+    like `uninstall_app` — so a tool-*name* gate can't catch them the way it does on
+    Android. v1 accepts this consciously (the gate covers the semantic tools + the
+    control plane; UI-sequence destructive actions fall to agent judgment). A
+    remote-iOS "confirm irreversible UI sequences" heuristic is a v2 research item.
+    Dashboard taps by CKL are human-driven and *not* gated (the gate is for agent tool
+    calls). The direct `/wda/speak` + H.264 paths bypass Appium but are non-destructive.
+- **(ii) H.264 stays on the SSH tunnel for v1/LAN.** No WireGuard now (v2/WAN, triggered
+  by the TCP-over-TCP HoL problem). The remote-mode candidate-URL fix (skip tunnel-IPv6,
+  use forwarded `localhost:9200`) is still needed for v1-over-SSH but is
+  **reconciliation-gated** — `h264_stream.py` is only on `feat/ios-support`, not
+  `mirror/main`. So v1 remote streaming waits on the reconciliation escalated to CKL.
+- **(iii) Ref grammar FINAL: bare `<name>@<host>`** (no `ios:` prefix). Core-dev extends
+  `is_ios_ref(ref) = ref.startswith("ios:") OR is_remote_ref(ref)`, with
+  `is_remote_ref(ref) = "@" in ref AND host-after-@ is a known remotes: key`
+  (unambiguous vs Android serials, which never contain `@`). UDID stays out of the ref,
+  mapped name→UDID via `ghost-ios report`.
+
+## `ghost-ios report --json` — schema (LIVE, verified on real hardware)
+
+Slice-2 discovery source. Runs in ~1.6s; identity via `xctrace list devices` (reliable)
+NOT `devicectl device info details` (hangs indefinitely / exit 124 here); identity is
+cached so a slow/absent `xctrace` still yields a full record. Booleans are sub-second.
+
+```json
+{
+  "schema": 1,
+  "host": "Christians-MacBook-Air",
+  "generated_at": "2026-07-11T21:33Z",
+  "devices": [
+    {
+      "udid": "00008130-001259DC11C2001C",
+      "name": "Christian’s iPhone",
+      "ref_slug": "christians-iphone",
+      "ios_version": "26.4.2",
+      "wda_up": false,
+      "appium_up": true,
+      "tunnel_up": true
+    }
+  ]
+}
+```
+
+- Envelope `{schema, host, generated_at, devices:[…]}` (not a bare array) — extensible +
+  the Mac self-identifies its `host`.
+- Superset of core-dev's requested `{udid, name, ios_version, wda_up, tunnel_up}`; adds
+  `ref_slug` (ready for `<slug>@<host>`) and `appium_up` (distinct from `wda_up`).
+- **`ref_slug` derives from the user-assigned device name** ("Christian's iPhone" →
+  `christians-iphone`), *not* the marketing name ("iPhone 15 Pro") — the marketing name
+  needs `devicectl`, which hangs; device name is stable, unique-per-phone, and free from
+  `xctrace`. Core-dev's `iphone-15-pro` example was illustrative; device-name refs are
+  actually better (two phones of the same model stay distinct).
+- **`wda_up` honestly means "a WDA session is live right now"** — Appium launches WDA
+  per-session, so `:8100` is only up during an active session; idle ⇒ `false`. The
+  readiness signal the Ghost cares about for *can I start a session* is `tunnel_up &&
+  appium_up`.
