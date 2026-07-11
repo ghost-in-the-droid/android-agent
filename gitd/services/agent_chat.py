@@ -16,15 +16,16 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from gitd.services.agent_tools import TOOLS, execute_tool, get_screenshot_b64
+from gitd.bots.common.device import is_ios_ref
+from gitd.services.agent_tools import execute_tool, get_screenshot_b64, tool_prompt_list, tools_for_device
 from gitd.services.device_context import get_phone_state, get_screen_tree
 
 log = logging.getLogger(__name__)
 
-DEFAULT_SYSTEM = """You are an Android automation agent with full control over a physical Android device.
+DEFAULT_SYSTEM = """You are a mobile automation agent with full control over one connected mobile device.
 
 You can see the screen (via screenshots and UI tree), interact with it (tap, swipe, type),
-manage apps (install, uninstall, launch), run shell commands, and execute automation skills.
+launch and control apps, navigate browser pages, and execute automation skills.
 
 ## Available tools:
 {tool_list}
@@ -41,17 +42,19 @@ You can call multiple tools in sequence. After each tool call, I'll show you the
 - Always use get_screen_tree first to understand what's on screen
 - Use element indices from the tree for precise tapping (tap_element)
 - After actions, verify results with get_screen_tree
+- Use only the tools listed above; unavailable platform-specific tools have been filtered out
 - Keep responses concise"""
 
-ANTHROPIC_SYSTEM = """You are an Android automation agent with full control over a physical Android device.
+ANTHROPIC_SYSTEM = """You are a mobile automation agent with full control over one connected mobile device.
 
 You can see the screen (via screenshots and UI tree), interact with it (tap, swipe, type),
-manage apps (install, uninstall, launch), run shell commands, and execute automation skills.
+launch and control apps, navigate browser pages, and execute automation skills.
 
 Guidelines:
 - Always use get_screen_tree first to understand what's on screen before tapping
 - Use element indices from the tree for precise tapping (tap_element)
 - After performing actions, use get_screen_tree to verify the result
+- Use only the tools exposed for the current device platform
 - Keep responses concise — show what you did and the result"""
 
 MAX_TURNS = 15
@@ -118,6 +121,36 @@ class ChatSession:
 
 _sessions: dict[str, ChatSession] = {}
 _active_procs: dict[str, subprocess.Popen] = {}  # session_id -> running subprocess
+
+
+def platform_context(device: str) -> str:
+    if is_ios_ref(device):
+        return (
+            "Target platform: iOS via Appium/WebDriverAgent. Device refs look like ios:<udid>. "
+            "Use iOS bundle ids with launch_app; call search_apps/list_apps if you need to discover a bundle id. "
+            "Use browser tools such as open_url/extract_visible_text/extract_articles/read_news for web tasks, "
+            "and avoid Android-only concepts such as ADB shell, Android intents, Portal overlay, Play Store, "
+            "and Android package-manager commands."
+        )
+    return (
+        "Target platform: Android via ADB/Portal. Device refs are Android serials. "
+        "Android intents, ADB shell, app packages, Portal overlay, notifications, and package search "
+        "may be available when their tools are listed."
+    )
+
+
+def system_prompt_for_device(device: str, base: str = ANTHROPIC_SYSTEM) -> str:
+    return f"{base}\n\n{platform_context(device)}"
+
+
+def openai_tools_for_device(device: str) -> list[dict]:
+    return [
+        {
+            "type": "function",
+            "function": {"name": t["name"], "description": t["description"], "parameters": t["input_schema"]},
+        }
+        for t in tools_for_device(device)
+    ]
 
 
 def stop_agent(session_id: str):
@@ -411,15 +444,16 @@ def _chat_anthropic(session: ChatSession, user_message: str):
     session.api_messages.append({"role": "user", "content": _build_vision_content(session, user_message)})
 
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+    available_tools = tools_for_device(session.device)
 
     for turn in range(MAX_TURNS):
         try:
             resp = client.messages.create(
                 model=session.model,
                 max_tokens=4096,
-                system=ANTHROPIC_SYSTEM,
+                system=system_prompt_for_device(session.device),
                 messages=session.api_messages,
-                tools=TOOLS,
+                tools=available_tools,
             )
         except Exception as e:
             yield {"type": "error", "content": str(e)}
@@ -494,13 +528,7 @@ def _chat_openrouter(session: ChatSession, user_message: str):
     )
 
     # Convert tools to OpenAI format
-    oai_tools = [
-        {
-            "type": "function",
-            "function": {"name": t["name"], "description": t["description"], "parameters": t["input_schema"]},
-        }
-        for t in TOOLS
-    ]
+    oai_tools = openai_tools_for_device(session.device)
 
     # Build messages
     context = ""
@@ -512,7 +540,7 @@ def _chat_openrouter(session: ChatSession, user_message: str):
         pass
 
     messages = [
-        {"role": "system", "content": ANTHROPIC_SYSTEM},
+        {"role": "system", "content": system_prompt_for_device(session.device)},
         {"role": "user", "content": f"{context}Device: {session.device}\n\n{user_message}"},
     ]
 
@@ -573,13 +601,7 @@ def _chat_vllm(session: ChatSession, user_message: str):
         base_url=os.environ.get("GITD_VLLM_BASE_URL", settings.vllm_base_url),
     )
 
-    oai_tools = [
-        {
-            "type": "function",
-            "function": {"name": t["name"], "description": t["description"], "parameters": t["input_schema"]},
-        }
-        for t in TOOLS
-    ]
+    oai_tools = openai_tools_for_device(session.device)
 
     # Initial screen context.
     context = ""
@@ -591,7 +613,7 @@ def _chat_vllm(session: ChatSession, user_message: str):
         pass
 
     messages: list[dict] = [
-        {"role": "system", "content": ANTHROPIC_SYSTEM},
+        {"role": "system", "content": system_prompt_for_device(session.device)},
         {"role": "user", "content": f"{context}Device: {session.device}\n\n{user_message}"},
     ]
 
@@ -880,11 +902,8 @@ def _chat_ollama(session: ChatSession, user_message: str):
         pass
 
     # Build tool list with param names so the LLM knows what args to send
-    tool_list = "\n".join(
-        f"- {t['name']}: {t['description']}  params: {list(t.get('input_schema', {}).get('properties', {}).keys())}"
-        for t in TOOLS
-    )
-    system = DEFAULT_SYSTEM.replace("{tool_list}", tool_list)
+    system = DEFAULT_SYSTEM.replace("{tool_list}", tool_prompt_list(tools_for_device(session.device)))
+    system = system_prompt_for_device(session.device, system)
 
     messages = [
         {"role": "system", "content": system},

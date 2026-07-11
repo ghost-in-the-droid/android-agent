@@ -21,7 +21,7 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Any
 
-from gitd.bots.common.adb import Device
+from gitd.bots.common.device import is_ios_ref
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +48,9 @@ class Macro:
     name: str
     steps: list[MacroStep] = field(default_factory=list)
     device_serial: str = ""
+    platform: str = ""
+    app_package: str = ""
+    ios_bundle_id: str = ""
     recorded_at: str = ""
     duration_s: float = 0.0
 
@@ -55,6 +58,9 @@ class Macro:
         return {
             "name": self.name,
             "device_serial": self.device_serial,
+            "platform": self.platform,
+            "app_package": self.app_package,
+            "ios_bundle_id": self.ios_bundle_id,
             "recorded_at": self.recorded_at,
             "duration_s": self.duration_s,
             "step_count": len(self.steps),
@@ -68,6 +74,9 @@ class Macro:
             name=d["name"],
             steps=steps,
             device_serial=d.get("device_serial", ""),
+            platform=d.get("platform", ""),
+            app_package=d.get("app_package", ""),
+            ios_bundle_id=d.get("ios_bundle_id", ""),
             recorded_at=d.get("recorded_at", ""),
             duration_s=d.get("duration_s", 0.0),
         )
@@ -87,7 +96,7 @@ class Macro:
 class MacroRecorder:
     """Records and replays sequences of device actions."""
 
-    def __init__(self, dev: Device):
+    def __init__(self, dev: Any):
         self.dev = dev
         self._recording = False
         self._start_time = 0.0
@@ -104,14 +113,37 @@ class MacroRecorder:
         self._steps = []
         log.info("Recording started")
 
+    def _app_identity(self) -> tuple[str, str]:
+        try:
+            state = self.dev.get_phone_state()
+        except Exception:
+            state = {}
+        if not isinstance(state, dict):
+            return "", ""
+        package = (
+            state.get("packageName")
+            or state.get("package")
+            or state.get("bundleId")
+            or state.get("bundle_id")
+            or state.get("currentApp")
+            or ""
+        )
+        bundle_id = state.get("bundleId") or state.get("bundle_id") or ""
+        return str(package or ""), str(bundle_id or "")
+
     def stop(self) -> Macro:
         """Stop recording and return the Macro."""
         self._recording = False
         duration = time.time() - self._start_time
+        platform = "ios" if is_ios_ref(getattr(self.dev, "serial", "")) else "android"
+        app_package, ios_bundle_id = self._app_identity()
         macro = Macro(
             name="recording",
             steps=self._steps.copy(),
             device_serial=self.dev.serial,
+            platform=platform,
+            app_package=app_package,
+            ios_bundle_id=ios_bundle_id if platform == "ios" else "",
             recorded_at=time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
             duration_s=round(duration, 2),
         )
@@ -141,7 +173,10 @@ class MacroRecorder:
 
     def type_text(self, text: str, delay=0.3):
         self.record_step("type", text=text)
-        self.dev.adb("shell", "input", "text", text.replace(" ", "%s"))
+        if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "type_text"):
+            self.dev.type_text(text)
+        else:
+            self.dev.adb("shell", "input", "text", text.replace(" ", "%s"))
         time.sleep(delay)
 
     def back(self, delay=1.0):
@@ -150,8 +185,20 @@ class MacroRecorder:
 
     def home(self, delay=0.5):
         self.record_step("home")
-        self.dev.adb("shell", "input", "keyevent", "KEYCODE_HOME")
+        if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "press_key"):
+            self.dev.press_key("HOME")
+        else:
+            self.dev.adb("shell", "input", "keyevent", "KEYCODE_HOME")
         time.sleep(delay)
+
+    def _replay_back(self, delay: float = 0):
+        if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "browser_back"):
+            try:
+                self.dev.browser_back(delay=delay)
+                return
+            except Exception:
+                pass
+        self.dev.back(delay=delay)
 
     def wait(self, seconds: float):
         self.record_step("wait", seconds=seconds)
@@ -182,15 +229,21 @@ class MacroRecorder:
                 self.dev.swipe(p["x1"], p["y1"], p["x2"], p["y2"],
                               ms=p.get("ms", 500), delay=0)
             elif action == "type":
-                self.dev.adb("shell", "input", "text",
-                            p["text"].replace(" ", "%s"))
+                if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "type_text"):
+                    self.dev.type_text(p["text"])
+                else:
+                    self.dev.adb("shell", "input", "text",
+                                p["text"].replace(" ", "%s"))
             elif action == "back":
-                self.dev.back(delay=0)
+                self._replay_back(delay=0)
             elif action == "home":
-                self.dev.adb("shell", "input", "keyevent", "KEYCODE_HOME")
+                if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "press_key"):
+                    self.dev.press_key("HOME")
+                else:
+                    self.dev.adb("shell", "input", "keyevent", "KEYCODE_HOME")
             elif action == "wait":
                 time.sleep(p.get("seconds", 1.0) / speed)
             else:
                 log.warning(f"  Unknown action: {action}")
 
-        log.info(f"Replay complete")
+        log.info("Replay complete")

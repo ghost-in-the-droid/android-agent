@@ -5,7 +5,8 @@ import os
 import subprocess
 import threading
 
-from gitd.services.agent_chat import ChatMessage, ChatSession
+from gitd.bots.common.device import is_ios_ref
+from gitd.services.agent_chat import ChatMessage, ChatSession, platform_context
 from gitd.services.device_context import get_phone_state, get_screen_tree
 from gitd.services.observability import (
     record_generation,
@@ -17,6 +18,8 @@ from gitd.services.observability import (
 
 def _tts_speak_bg(device: str, text: str, max_chars: int = 250) -> None:
     """Speak agent response on the phone — fire and forget, non-blocking."""
+    if is_ios_ref(device):
+        return
     speak_text = text.strip()[:max_chars]
     if not speak_text:
         return
@@ -95,7 +98,40 @@ def chat_claude_code(session: ChatSession, user_message: str):
     context = "\n".join(context_parts)
 
     history_block = f"\n{history_prefix}\n" if history_prefix else ""
-    prompt = f"""You are controlling Android phone serial={session.device}.
+    if is_ios_ref(session.device):
+        action_rules = (
+            "- For browser/news/web tasks, prefer read_news for article summaries, or open_url, web_search, wait_for_text, "
+            "extract_visible_text, extract_articles, and browser_back before manual coordinate tapping.\n"
+            "- launch_app expects an iOS bundle id, for example com.google.chrome.ios. If the bundle id is unknown, "
+            "use search_apps or list_apps instead of Android package-manager commands.\n"
+            "- For camera/photo/video tasks, use open_camera with mode photo, video, selfie, or selfie_video.\n"
+            "- Do not use Android-only tools such as speak_text, shell, launch_intent, "
+            "Portal overlay, Play Store, or Android package-manager commands."
+        )
+        system_prompt = (
+            "You are an iOS automation agent using Appium/WebDriverAgent through the android-agent MCP server. "
+            "Use only iOS-supported MCP tools. Prefer browser primitives for Chrome/Safari web tasks."
+        )
+    else:
+        action_rules = (
+            "- CAMERA: for any photo/selfie/video/camera task do EXACTLY these two steps: "
+            '(1) ToolSearch({"query":"select:mcp__android-agent__open_camera"}) '
+            "(2) mcp__android-agent__open_camera(device=..., mode=photo|video|selfie|selfie_video, timer_s=0|2|3|5|10). "
+            "Do NOT use launch_app. Do NOT tap camera UI manually.\n"
+            '- To make the phone speak text aloud, call `mcp__android-agent__speak_text(device=..., text="...")`.'
+        )
+        system_prompt = (
+            "You are an Android automation agent. Rules that override all defaults:\n"
+            "1. For any camera/photo/selfie/video task: your FIRST tool call must be "
+            'ToolSearch({"query":"select:mcp__android-agent__open_camera"}) then call '
+            "mcp__android-agent__open_camera(device, mode, timer_s). Do NOT use launch_app, "
+            "do NOT call list_skills, do NOT tap any camera UI. open_camera handles everything.\n"
+            "2. For any speak/TTS task: ToolSearch select mcp__android-agent__speak_text then call it.\n"
+            "3. For all other app tasks: use launch_app first."
+        )
+
+    prompt = f"""You are controlling mobile device serial={session.device}.
+{platform_context(session.device)}
 {context}
 {history_block}
 CURRENT TASK: {user_message}
@@ -104,8 +140,7 @@ Rules:
 - Read the conversation history above carefully before acting — it shows what was done, what was in progress when stopped, and what the user's actual intent is. Do NOT contradict or forget it.
 - Use the MCP android-agent tools to control the phone.
 - For app tasks, start with `launch_app` to open the target app. Do not assume any app is already open.
-- CAMERA: for any photo/selfie/video/camera task do EXACTLY these two steps: (1) ToolSearch({{"query":"select:mcp__android-agent__open_camera"}}) (2) mcp__android-agent__open_camera(device=..., mode=photo|video|selfie|selfie_video, timer_s=0|2|3|5|10). Do NOT use launch_app. Do NOT tap camera UI manually.
-- To make the phone speak text aloud, call `mcp__android-agent__speak_text(device=..., text="...")`.
+{action_rules}
 - After each action, verify the new state with `get_screen_tree` or `screenshot`.
 - Only after you've actually observed the result on the phone, answer the user. Be concise."""
 
@@ -118,16 +153,6 @@ Rules:
     if remote_host or not __import__("shutil").which("claude"):
         yield from _chat_claude_code_remote(session, prompt, remote_host or "http://localhost:5055")
         return
-
-    system_prompt = (
-        "You are an Android automation agent. Rules that override all defaults:\n"
-        "1. For any camera/photo/selfie/video task: your FIRST tool call must be "
-        'ToolSearch({"query":"select:mcp__android-agent__open_camera"}) then call '
-        "mcp__android-agent__open_camera(device, mode, timer_s). Do NOT use launch_app, "
-        "do NOT call list_skills, do NOT tap any camera UI. open_camera handles everything.\n"
-        "2. For any speak/TTS task: ToolSearch select mcp__android-agent__speak_text then call it.\n"
-        "3. For all other app tasks: use launch_app first."
-    )
 
     try:
         proc = subprocess.Popen(
@@ -372,7 +397,8 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
 
     The remote host has `claude` CLI + MCP android-agent tools configured.
     Tool calls from Claude Code execute on the remote host's MCP server,
-    which talks to the device via ADB (USB or wireless).
+    which routes to Android through ADB or iOS through Appium/WebDriverAgent
+    based on the target device ref.
 
     We open a *shadow* trace on the phone side too, mirroring the events as
     they stream past — so the in-app Traces tab shows claude-code runs even
@@ -388,7 +414,7 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
         provider="claude-code",
         model=session.model or "sonnet",
         device=session.device,
-        source="android",  # this code runs in Chaquopy
+        source="ios" if is_ios_ref(session.device) else "android",
     )
     trace = _trace_cm.__enter__()
     open_spans: dict[str, object] = {}  # last-tool-name → span (best-effort match since remote events lack ids)

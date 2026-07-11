@@ -5,12 +5,21 @@ Tool schemas are in Anthropic's tool format and auto-converted for other provide
 """
 
 import json
+import sys
 
+from gitd.bots.common.device import get_device, is_ios_ref
 from gitd.services import device_context as ctx
+from gitd.services.tool_platforms import platform_error_text, supports_platform
+from gitd.skills.platforms import skill_platform_error_text, skill_supports_device
 
 # ── Tool registry ────────────────────────────────────────────────────────────
 
 TOOLS = [
+    {
+        "name": "list_devices",
+        "description": "List connected Android ADB device refs and configured iOS Appium device refs.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
     # Screen reading
     {
         "name": "screenshot",
@@ -38,8 +47,56 @@ TOOLS = [
         },
     },
     {
+        "name": "start_screen_recording",
+        "description": "Start recording the device screen. iOS uses WDA MJPEG through ffmpeg; Android uses adb screenrecord.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "filename": {"type": "string", "description": "Optional MP4 filename."},
+            },
+            "required": ["device"],
+        },
+    },
+    {
+        "name": "stop_screen_recording",
+        "description": "Stop a running device screen recording and return the saved MP4 path/URL.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "screen_recording_status",
+        "description": "Return active screen recording status for a device.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "get_stream_info",
+        "description": (
+            "Return platform-aware stream metadata without opening the stream. "
+            "iOS reports WDA MJPEG URL/settings and unsupported Portal/WebRTC actions; "
+            "Android reports Portal/H264/screencap mode metadata."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "mode": {
+                    "type": "string",
+                    "description": "Requested mode, e.g. mjpeg, wda-mjpeg, portal, h264, screencap.",
+                },
+                "fps": {"type": "integer", "default": 5},
+                "quality": {"type": "integer", "default": 8},
+            },
+            "required": ["device"],
+        },
+    },
+    {
         "name": "get_screen_tree",
         "description": 'Get LLM-readable indented UI hierarchy. Each node: [idx] Class "label" [clickable] [bounds]. Use this to understand screen layout before acting.',
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "get_screen_xml",
+        "description": "Get the raw normalized UI XML dump. Prefer get_screen_tree unless exact attributes are needed.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
@@ -51,6 +108,26 @@ TOOLS = [
         "name": "get_phone_state",
         "description": "Get current app, activity, keyboard state. Quick check what's on screen.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "device_health",
+        "description": "Run a comprehensive device health check. On iOS, includes Appium/WDA status and recovery steps.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "fix_device_health",
+        "description": (
+            "Apply a recovery action returned by device_health.recommended_fix. "
+            "On iOS this can reset stale Appium/WDA sessions or restart a user-owned RemoteXPC tunnel."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "issue": {"type": "string", "description": "Recovery code from device_health.recommended_fix."},
+            },
+            "required": ["device", "issue"],
+        },
     },
     {
         "name": "classify_screen",
@@ -131,6 +208,25 @@ TOOLS = [
         },
     },
     {
+        "name": "type_unicode",
+        "description": "Type unicode text into the focused field. Use for emoji, CJK, accented characters, and other non-ASCII input.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"device": {"type": "string"}, "text": {"type": "string"}},
+            "required": ["device", "text"],
+        },
+    },
+    {
+        "name": "press_back",
+        "description": "Press the platform Back/navigation-back control.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "press_home",
+        "description": "Press the platform Home button.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
         "name": "press_key",
         "description": "Press a key: BACK, HOME, ENTER, TAB, POWER, VOLUME_UP, VOLUME_DOWN, APP_SWITCH.",
         "input_schema": {
@@ -157,8 +253,8 @@ TOOLS = [
     {
         "name": "launch_app",
         "description": (
-            "Launch an app by package name. E.g. com.zhiliaoapp.musically (TikTok). "
-            "Use search_apps to find the package name. "
+            "Launch an app by Android package name or iOS bundle id. "
+            "Use search_apps to find the package or bundle id. "
             "Set fresh=true to force-stop first (cold start, clears state — use for benchmarks "
             "or when prior app state would interfere). Default is warm start (resumes prior state)."
         ),
@@ -173,10 +269,26 @@ TOOLS = [
         },
     },
     {
+        "name": "launch_intent",
+        "description": "Launch a full Android intent with optional action, data URI, package/component, and extras. Android-only.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "action": {"type": "string"},
+                "data": {"type": "string"},
+                "package": {"type": "string"},
+                "component": {"type": "string"},
+                "extras": {"type": "object"},
+            },
+            "required": ["device"],
+        },
+    },
+    {
         "name": "open_camera",
         "description": (
-            "Open the camera in a specific mode using standard Android intents. "
-            "Works on any device — no need to know the camera package name. "
+            "Open the platform camera app in a specific mode. "
+            "On Android this uses launcher/UI automation; on iOS this uses the Camera bundle and WDA UI controls. "
             "Modes: 'photo' (default rear photo), 'video' (rear video), "
             "'selfie' (front photo), 'selfie_video' (front video). "
             "Set timer_s=3 or timer_s=10 to activate the self-timer."
@@ -219,6 +331,15 @@ TOOLS = [
         },
     },
     {
+        "name": "toggle_overlay",
+        "description": "Toggle Portal numbered element overlay on/off. Android-only.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"device": {"type": "string"}, "visible": {"type": "boolean", "default": True}},
+            "required": ["device"],
+        },
+    },
+    {
         "name": "force_stop",
         "description": "Force-stop an app.",
         "input_schema": {
@@ -228,13 +349,22 @@ TOOLS = [
         },
     },
     {
+        "name": "app_state",
+        "description": "Check whether an Android package or iOS bundle id is installed, running, or foreground.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"device": {"type": "string"}, "package": {"type": "string"}},
+            "required": ["device", "package"],
+        },
+    },
+    {
         "name": "list_apps",
-        "description": "List installed apps with human-readable names and package names. Returns [{name, package}]. Use search_apps for faster lookup.",
+        "description": "List installed apps with human-readable names and Android package names or iOS bundle ids. Returns [{name, package, bundle_id}]. Use search_apps for faster lookup.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
     {
         "name": "search_apps",
-        "description": "Search installed apps by name. E.g. search_apps('tiktok') returns matching apps with package names. Case-insensitive.",
+        "description": "Search installed apps by name. Returns Android package names or iOS bundle ids. Case-insensitive.",
         "input_schema": {
             "type": "object",
             "properties": {"device": {"type": "string"}, "query": {"type": "string"}},
@@ -243,8 +373,25 @@ TOOLS = [
     },
     {
         "name": "list_packages",
-        "description": "List raw package names (no app names). Use list_apps or search_apps instead.",
+        "description": "List raw Android package names or iOS bundle ids. Use list_apps or search_apps instead.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "explore_app",
+        "description": (
+            "Explore an app UI with the cross-platform BFS app explorer and return the discovered state graph. "
+            "Use an Android package name or iOS bundle id."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "package": {"type": "string", "description": "Android package name or iOS bundle id."},
+                "max_depth": {"type": "integer", "default": 2},
+                "max_states": {"type": "integer", "default": 10},
+            },
+            "required": ["device", "package"],
+        },
     },
     {
         "name": "web_search",
@@ -261,8 +408,90 @@ TOOLS = [
                 "device": {"type": "string"},
                 "query": {"type": "string"},
                 "engine": {"type": "string", "description": "Search engine: google, ddg, bing, brave. Default google."},
+                "bundle_id": {"type": "string", "description": "Optional iOS browser bundle id override."},
             },
             "required": ["device", "query"],
+        },
+    },
+    {
+        "name": "open_url",
+        "description": "Open a URL in the platform browser. On iOS, uses Appium/WDA and the configured browser bundle id.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "url": {"type": "string"},
+                "bundle_id": {"type": "string", "description": "Optional iOS browser bundle id override."},
+            },
+            "required": ["device", "url"],
+        },
+    },
+    {
+        "name": "browser_back",
+        "description": "Navigate back in the current browser/app context.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "get_current_url",
+        "description": "Get the current browser URL when the platform exposes it.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "wait_for_text",
+        "description": "Wait until text appears on screen and return visible text context.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "text": {"type": "string"},
+                "timeout": {"type": "number", "default": 12.0},
+            },
+            "required": ["device", "text"],
+        },
+    },
+    {
+        "name": "extract_visible_text",
+        "description": "Extract visible text from the current screen. Browser controls are filtered by default.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "max_lines": {"type": "integer", "default": 200},
+                "include_controls": {"type": "boolean", "default": False},
+            },
+            "required": ["device"],
+        },
+    },
+    {
+        "name": "extract_articles",
+        "description": "Extract likely visible article/headline candidates from the current browser page.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "max_items": {"type": "integer", "default": 5},
+            },
+            "required": ["device"],
+        },
+    },
+    {
+        "name": "read_news",
+        "description": (
+            "Open a news page in iOS Chrome/browser, extract headlines, open the first articles, "
+            "and return structured title/body snippets. Use this for news-reading tasks."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "url": {"type": "string", "default": "https://text.npr.org/"},
+                "max_headlines": {"type": "integer", "default": 5},
+                "max_articles": {"type": "integer", "default": 3},
+                "bundle_id": {"type": "string", "description": "Optional iOS browser bundle id override."},
+                "wait_s": {"type": "number", "default": 2.0},
+                "save_screenshots": {"type": "boolean", "default": False},
+            },
+            "required": ["device"],
         },
     },
     # Shell
@@ -311,11 +540,30 @@ TOOLS = [
         "description": "List active notifications.",
         "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
     },
+    {
+        "name": "open_notifications",
+        "description": "Open the platform notification shade or Notification Center.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
+    {
+        "name": "clear_notifications",
+        "description": "Dismiss visible notifications when the platform exposes a clear control.",
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"]},
+    },
     # Skills
     {
         "name": "list_skills",
         "description": "List installed automation skills with actions and workflows.",
-        "input_schema": {"type": "object", "properties": {}},
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {
+                    "type": "string",
+                    "description": "Optional device ref used to include platform support flags.",
+                },
+                "supported_only": {"type": "boolean", "default": False},
+            },
+        },
     },
     {
         "name": "run_skill",
@@ -330,6 +578,78 @@ TOOLS = [
             },
             "required": ["device", "skill", "workflow"],
         },
+    },
+    {
+        "name": "run_workflow",
+        "description": "Run a skill workflow. Alias of run_skill for MCP/agent parity.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "skill": {"type": "string"},
+                "workflow": {"type": "string"},
+                "params": {"type": "object", "default": {}},
+            },
+            "required": ["device", "skill", "workflow"],
+        },
+    },
+    {
+        "name": "run_action",
+        "description": "Run a single skill action when the skill supports the target device platform.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "skill": {"type": "string"},
+                "action": {"type": "string"},
+                "params": {"type": "object", "default": {}},
+            },
+            "required": ["device", "skill", "action"],
+        },
+    },
+    {
+        "name": "create_skill",
+        "description": "Create a recorded automation skill with Android/iOS platform metadata and optional element selectors.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "app_package": {
+                    "type": "string",
+                    "description": "Android package, or iOS bundle id when platforms is ios.",
+                },
+                "steps": {"type": "array", "description": "Recorded step list."},
+                "platforms": {"type": "array", "items": {"type": "string"}, "default": []},
+                "ios_bundle_id": {"type": "string", "default": ""},
+                "elements_ios": {
+                    "type": ["object", "array"],
+                    "items": {"type": "object"},
+                    "default": [],
+                    "description": "Captured iOS element list or selector map for elements_ios.yaml.",
+                },
+                "elements_android": {
+                    "type": ["object", "array"],
+                    "items": {"type": "object"},
+                    "default": [],
+                    "description": "Captured Android element list or selector map for elements.yaml.",
+                },
+            },
+            "required": ["name", "app_package", "steps"],
+        },
+    },
+    {
+        "name": "crm_lookup_contact",
+        "description": "Get the stored fact sheet for one local CRM contact by handle. Read-only.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"handle": {"type": "string", "description": "Contact handle with or without @."}},
+            "required": ["handle"],
+        },
+    },
+    {
+        "name": "crm_list_unread_messages",
+        "description": "List local CRM contacts with unread messages, sorted by recency. Read-only.",
+        "input_schema": {"type": "object", "properties": {}},
     },
     # System
     {
@@ -348,14 +668,17 @@ TOOLS = [
 # contexts — the run_flow batch primitive and the LangChain/LlamaIndex adapters
 # both gate on this. It is an EXPLICIT allow-list (not "all TOOLS minus a
 # dangerous set") so it fails CLOSED: a tool added to the dispatch later is NOT
-# auto-exposed until it's deliberately vetted and added here. It is exactly the
-# 32 execute_tool branches minus the two exec vectors `shell` and `run_skill`.
+# auto-exposed until it's deliberately vetted and added here. Every iOS-era
+# tool below was classified individually; the exec-capable ones live in
+# EXEC_CAPABLE_TOOLS instead and must never move here.
 SAFE_DEVICE_TOOLS = frozenset(
     {
+        # Screen reading
         "screenshot",
         "screenshot_annotated",
         "screenshot_cropped",
         "get_screen_tree",
+        "get_screen_xml",
         "get_elements",
         "get_phone_state",
         "classify_screen",
@@ -363,11 +686,24 @@ SAFE_DEVICE_TOOLS = frozenset(
         "ocr_screen",
         "ocr_region",
         "get_notifications",
+        # Device inventory / status (read-only)
+        "list_devices",
+        "device_health",
+        "app_state",
+        "get_stream_info",
+        "screen_recording_status",
+        # Screen recording (writes only to the vetted recordings dir)
+        "start_screen_recording",
+        "stop_screen_recording",
+        # UI actions
         "tap",
         "tap_element",
         "swipe",
         "type_text",
+        "type_unicode",
         "press_key",
+        "press_back",
+        "press_home",
         "long_press",
         "paste_text",
         "clipboard_get",
@@ -376,19 +712,97 @@ SAFE_DEVICE_TOOLS = frozenset(
         "force_stop",
         "open_camera",
         "speak_text",
+        "toggle_overlay",
+        "open_notifications",
+        "clear_notifications",
         "wait",
+        # App inventory
         "list_apps",
         "search_apps",
         "list_packages",
         "list_skills",
+        # Browser (read/navigate)
         "web_search",
+        "open_url",
+        "browser_back",
+        "get_current_url",
+        "wait_for_text",
+        "extract_visible_text",
+        "extract_articles",
+        "read_news",
+        # Local CRM (read-only DB queries, no exec)
+        "crm_lookup_contact",
+        "crm_list_unread_messages",
+    }
+)
+
+# Exec-capable tools, deliberately EXCLUDED from SAFE_DEVICE_TOOLS — same class
+# as `shell`: they run subprocesses, launch arbitrary intents, or write code
+# that is later imported. Kept as an explicit set so tests can prove the two
+# sets stay disjoint and that new dispatch branches land in one or the other.
+#   shell            — arbitrary adb shell
+#   run_skill / run_workflow / run_action — execute skill code in a subprocess
+#   create_skill     — writes skill code to gitd/skills/ (later imported)
+#   launch_intent    — arbitrary Android intent incl. component + extras
+#   explore_app      — spawns the BFS explorer subprocess, drives UI for minutes
+#   fix_device_health — device-admin recovery actions (can install the Portal APK)
+EXEC_CAPABLE_TOOLS = frozenset(
+    {
+        "shell",
+        "run_skill",
+        "run_workflow",
+        "run_action",
+        "create_skill",
+        "launch_intent",
+        "explore_app",
+        "fix_device_health",
     }
 )
 
 
 # ── Tool execution ───────────────────────────────────────────────────────────
 
-_UI_ACTION_TOOLS = {"tap", "tap_element", "swipe", "type_text", "press_key", "long_press", "launch_app"}
+_KNOWN_TOOL_NAMES = {tool["name"] for tool in TOOLS}
+_UI_ACTION_TOOLS = {
+    "tap",
+    "tap_element",
+    "swipe",
+    "type_text",
+    "type_unicode",
+    "press_back",
+    "press_home",
+    "press_key",
+    "long_press",
+    "launch_app",
+    "open_url",
+    "web_search",
+    "browser_back",
+    "wait_for_text",
+}
+
+
+def _device_platform(device: str) -> str:
+    return "ios" if is_ios_ref(device) else "android"
+
+
+def _platform_unsupported(tool_name: str, device: str) -> str:
+    return platform_error_text(tool_name, _device_platform(device))
+
+
+def tools_for_device(device: str | None) -> list[dict]:
+    """Return the tools that should be offered to an agent for this device."""
+    if not device:
+        return list(TOOLS)
+    platform = _device_platform(device)
+    return [tool for tool in TOOLS if supports_platform(tool["name"], platform)]
+
+
+def tool_prompt_list(tools: list[dict]) -> str:
+    """Compact tool list for text-only providers."""
+    return "\n".join(
+        f"- {t['name']}: {t['description']}  params: {list(t.get('input_schema', {}).get('properties', {}).keys())}"
+        for t in tools
+    )
 
 
 def execute_tool(name: str, args: dict) -> str:
@@ -418,27 +832,111 @@ def _execute_tool_inner(name: str, args: dict) -> str:
     device = args.get("device", "")
 
     try:
-        if name == "screenshot":
+        if name not in _KNOWN_TOOL_NAMES:
+            return f"Unknown tool: {name}"
+        if device and not supports_platform(name, _device_platform(device)):
+            return _platform_unsupported(name, device)
+
+        if name == "list_devices":
+            from gitd.bots.common.device import list_configured_ios_devices, list_connected_device_refs
+
+            ios_details = {}
+            try:
+                ios_details = {
+                    item.get("serial"): item
+                    for item in list_configured_ios_devices(deep_probe=False)
+                    if item.get("serial")
+                }
+            except Exception:
+                ios_details = {}
+            entries = []
+            for serial in list_connected_device_refs():
+                platform = "ios" if is_ios_ref(serial) else "android"
+                entry = {"serial": serial, "platform": platform}
+                if platform == "ios":
+                    details = ios_details.get(serial) or {}
+                    for key in (
+                        "status",
+                        "status_message",
+                        "device_name",
+                        "model",
+                        "appium_url",
+                        "source",
+                        "host_state",
+                    ):
+                        if details.get(key):
+                            entry[key] = details[key]
+                entries.append(entry)
+            return json.dumps(entries, indent=2)
+        elif name == "screenshot":
             r = ctx.screenshot(device)
             return json.dumps(
-                {"image": r["image"][:100] + "...(truncated)", "width": r["width"], "height": r["height"]}
+                {
+                    "device": r.get("device", device),
+                    "platform": r.get("platform", "ios" if is_ios_ref(device) else "android"),
+                    "image": r["image"][:100] + "...(truncated)",
+                    "width": r["width"],
+                    "height": r["height"],
+                }
             )
         elif name == "screenshot_annotated":
             r = ctx.screenshot_annotated(device)
             return json.dumps(
-                {"image": r["image"][:100] + "...(truncated)", "width": r["width"], "height": r["height"]}
+                {
+                    "device": r.get("device", device),
+                    "platform": r.get("platform", "ios" if is_ios_ref(device) else "android"),
+                    "image": r["image"][:100] + "...(truncated)",
+                    "width": r["width"],
+                    "height": r["height"],
+                }
             )
         elif name == "screenshot_cropped":
             r = ctx.screenshot_cropped(device, args["x1"], args["y1"], args["x2"], args["y2"])
             return json.dumps(
-                {"image": r["image"][:100] + "...(truncated)", "width": r["width"], "height": r["height"]}
+                {
+                    "device": r.get("device", device),
+                    "platform": r.get("platform", "ios" if is_ios_ref(device) else "android"),
+                    "image": r["image"][:100] + "...(truncated)",
+                    "width": r["width"],
+                    "height": r["height"],
+                }
+            )
+        elif name == "start_screen_recording":
+            from gitd.services.phone_recording import start_recording
+
+            return json.dumps(start_recording(device, filename=args.get("filename", "")), indent=2)
+        elif name == "stop_screen_recording":
+            from gitd.services.phone_recording import stop_recording
+
+            return json.dumps(stop_recording(device), indent=2)
+        elif name == "screen_recording_status":
+            from gitd.services.phone_recording import recording_status
+
+            return json.dumps(recording_status(device), indent=2)
+        elif name == "get_stream_info":
+            from gitd.routers.streaming import phone_stream_info
+
+            return json.dumps(
+                phone_stream_info(
+                    device=device,
+                    fps=int(args.get("fps", 5)),
+                    quality=int(args.get("quality", 8)),
+                    mode=args.get("mode", "mjpeg"),
+                ),
+                indent=2,
             )
         elif name == "get_screen_tree":
             return ctx.get_screen_tree(device)
+        elif name == "get_screen_xml":
+            return ctx.get_screen_xml(device)
         elif name == "get_elements":
             return json.dumps(ctx.get_interactive_elements(device), indent=2)
         elif name == "get_phone_state":
             return json.dumps(ctx.get_phone_state(device), indent=2)
+        elif name == "device_health":
+            return json.dumps(ctx.device_health(device), indent=2)
+        elif name == "fix_device_health":
+            return json.dumps(ctx.fix_device_health(device, args["issue"]), indent=2)
         elif name == "classify_screen":
             return json.dumps(ctx.classify_screen(device), indent=2)
         elif name == "find_on_screen":
@@ -449,7 +947,7 @@ def _execute_tool_inner(name: str, args: dict) -> str:
         elif name == "ocr_region":
             return json.dumps(ctx.ocr_region(device, args["x1"], args["y1"], args["x2"], args["y2"]), indent=2)
         elif name == "tap":
-            Device(device).tap(args["x"], args["y"])
+            get_device(device).tap(args["x"], args["y"])
             return f"Tapped ({args['x']}, {args['y']})"
         elif name == "tap_element":
             elements = ctx.get_interactive_elements(device)
@@ -457,25 +955,56 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             if 0 <= idx < len(elements):
                 el = elements[idx]
                 cx, cy = el["center"]["x"], el["center"]["y"]
-                Device(device).tap(cx, cy)
+                get_device(device).tap(cx, cy)
                 return f"Tapped element #{idx} '{el.get('text') or el.get('content_desc') or el.get('resource_id', '')}' at ({cx}, {cy})"
             return f"Element index {idx} out of range (0-{len(elements) - 1})"
         elif name == "swipe":
-            Device(device).swipe(args["x1"], args["y1"], args["x2"], args["y2"], ms=args.get("duration_ms", 500))
+            get_device(device).swipe(args["x1"], args["y1"], args["x2"], args["y2"], ms=args.get("duration_ms", 500))
             return f"Swiped ({args['x1']},{args['y1']}) -> ({args['x2']},{args['y2']})"
         elif name == "type_text":
-            Device(device).adb("shell", "input", "text", args["text"].replace(" ", "%s"))
+            if is_ios_ref(device):
+                get_device(device).type_text(args["text"])
+            else:
+                Device(device).adb("shell", "input", "text", args["text"].replace(" ", "%s"))
             return f"Typed: {args['text']}"
+        elif name == "type_unicode":
+            if is_ios_ref(device):
+                get_device(device).type_text(args["text"])
+            else:
+                Device(device).type_unicode(args["text"])
+            return f"Typed (unicode): {args['text']}"
+        elif name == "press_back":
+            get_device(device).back()
+            return "Pressed Back"
+        elif name == "press_home":
+            if is_ios_ref(device):
+                get_device(device).press_key("HOME")
+            else:
+                Device(device).adb("shell", "input", "keyevent", "KEYCODE_HOME")
+            return "Pressed Home"
         elif name == "press_key":
             key = args["key"]
-            if not key.startswith("KEYCODE_"):
+            if is_ios_ref(device):
+                get_device(device).press_key(key)
+            elif not key.startswith("KEYCODE_"):
                 key = "KEYCODE_" + key
-            Device(device).adb("shell", "input", "keyevent", key)
+                Device(device).adb("shell", "input", "keyevent", key)
+            else:
+                Device(device).adb("shell", "input", "keyevent", key)
             return f"Pressed {key}"
         elif name == "long_press":
-            Device(device).long_press(args["x"], args["y"], duration_ms=args.get("duration_ms", 1000))
+            get_device(device).long_press(args["x"], args["y"], duration_ms=args.get("duration_ms", 1000))
             return f"Long pressed ({args['x']}, {args['y']})"
         elif name == "launch_app":
+            if is_ios_ref(device):
+                bundle_id = args["package"]
+                if bool(args.get("fresh", False)):
+                    try:
+                        get_device(device).terminate_app(bundle_id)
+                    except Exception:
+                        pass
+                get_device(device).launch_app(bundle_id)
+                return f"Launched iOS app {bundle_id}" + (" [fresh]" if args.get("fresh", False) else "")
             dev = Device(device)
             pkg = args["package"]
             fresh = bool(args.get("fresh", False))
@@ -565,6 +1094,20 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                     return f"ERROR launching {pkg}: {out.strip()[:200]}"
                 return f"Launched {pkg} ({launcher})" + (" [fresh]" if fresh else "")
         elif name == "open_camera":
+            if is_ios_ref(device):
+                result = get_device(device).open_camera(
+                    mode=args.get("mode", "photo"),
+                    timer_s=int(args.get("timer_s", 0)),
+                )
+                warnings = []
+                if not result.get("selected_mode"):
+                    warnings.append("mode control not found")
+                if result.get("switched_camera") is False:
+                    warnings.append("front camera switch not found")
+                if result.get("timer_set") is False:
+                    warnings.append("timer control not found")
+                suffix = f" ({'; '.join(warnings)})" if warnings else ""
+                return f"Opened iOS Camera - {result['mode']}{suffix}"
             dev = Device(device)
             mode = args.get("mode", "photo").lower()
             timer_s = int(args.get("timer_s", 0))
@@ -746,77 +1289,144 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             from gitd.services.device_context import speak_text as _speak
 
             return _speak(device, args["text"], float(args.get("rate", 1.0)))
+        elif name == "toggle_overlay":
+            ok = ctx.toggle_overlay(device, bool(args.get("visible", True)))
+            return (
+                f"Overlay {'enabled' if args.get('visible', True) else 'disabled'}"
+                if ok
+                else "Failed — Portal not available"
+            )
         elif name == "force_stop":
+            if is_ios_ref(device):
+                get_device(device).terminate_app(args["package"])
+                return f"Stopped iOS app {args['package']}"
             Device(device).adb("shell", "am", "force-stop", args["package"])
             return f"Stopped {args['package']}"
+        elif name == "app_state":
+            return json.dumps(ctx.app_state(device, args["package"]), indent=2)
+        elif name == "launch_intent":
+            return ctx.launch_intent(
+                device,
+                action=args.get("action", ""),
+                data=args.get("data", ""),
+                package=args.get("package", ""),
+                component=args.get("component", ""),
+                extras=args.get("extras") or None,
+            )
         elif name == "web_search":
+            if is_ios_ref(device):
+                from gitd.services.browser import dumps
+                from gitd.services.browser import web_search as _web_search
+
+                return dumps(
+                    _web_search(
+                        device,
+                        args["query"],
+                        engine=args.get("engine", "google"),
+                        bundle_id=args.get("bundle_id") or None,
+                    )
+                )
             from gitd.services.web_search import open_search
 
             return open_search(device, args["query"], engine=args.get("engine", "google"))
+        elif name == "open_url":
+            from gitd.services.browser import dumps
+            from gitd.services.browser import open_url as _open_url
+
+            return dumps(_open_url(device, args["url"], bundle_id=args.get("bundle_id") or None))
+        elif name == "browser_back":
+            from gitd.services.browser import browser_back as _browser_back
+            from gitd.services.browser import dumps
+
+            return dumps(_browser_back(device))
+        elif name == "get_current_url":
+            from gitd.services.browser import dumps
+            from gitd.services.browser import get_current_url as _get_current_url
+
+            return dumps(_get_current_url(device))
+        elif name == "wait_for_text":
+            from gitd.services.browser import dumps
+            from gitd.services.browser import wait_for_text as _wait_for_text
+
+            return dumps(_wait_for_text(device, args["text"], timeout=float(args.get("timeout", 12.0))))
+        elif name == "extract_visible_text":
+            from gitd.services.browser import dumps
+            from gitd.services.browser import extract_visible_text as _extract_visible_text
+
+            return dumps(
+                _extract_visible_text(
+                    device,
+                    max_lines=int(args.get("max_lines", 200)),
+                    include_controls=bool(args.get("include_controls", False)),
+                )
+            )
+        elif name == "extract_articles":
+            from gitd.services.browser import dumps
+            from gitd.services.browser import extract_articles as _extract_articles
+
+            return dumps(_extract_articles(device, max_items=int(args.get("max_items", 5))))
+        elif name == "read_news":
+            from gitd.services.browser import dumps
+            from gitd.services.browser import read_news as _read_news
+
+            return dumps(
+                _read_news(
+                    device,
+                    args.get("url", "https://text.npr.org/"),
+                    max_headlines=int(args.get("max_headlines", 5)),
+                    max_articles=int(args.get("max_articles", 3)),
+                    bundle_id=args.get("bundle_id") or None,
+                    wait_s=float(args.get("wait_s", 2.0)),
+                    save_screenshots=bool(args.get("save_screenshots", False)),
+                )
+            )
         elif name == "list_apps" or name == "search_apps":
-            out = Device(device).adb("shell", "pm", "list", "packages", timeout=10)
-            pkgs = [p.replace("package:", "").strip() for p in out.splitlines() if p.startswith("package:")]
-            # Known app names for common packages
-            KNOWN = {
-                "com.zhiliaoapp.musically": "TikTok",
-                "com.instagram.android": "Instagram",
-                "com.facebook.katana": "Facebook",
-                "com.facebook.orca": "Messenger",
-                "com.whatsapp": "WhatsApp",
-                "com.twitter.android": "X (Twitter)",
-                "com.snapchat.android": "Snapchat",
-                "com.google.android.youtube": "YouTube",
-                "com.google.android.apps.youtube.music": "YouTube Music",
-                "com.google.android.apps.maps": "Google Maps",
-                "com.google.android.gm": "Gmail",
-                "com.google.android.apps.photos": "Google Photos",
-                "com.google.android.apps.docs": "Google Drive",
-                "com.android.chrome": "Chrome",
-                "com.android.vending": "Play Store",
-                "org.telegram.messenger": "Telegram",
-                "com.discord": "Discord",
-                "com.reddit.frontpage": "Reddit",
-                "com.spotify.music": "Spotify",
-                "com.amazon.mShop.android.shopping": "Amazon",
-                "com.tinder": "Tinder",
-                "com.bumble.app": "Bumble",
-                "co.hinge.app": "Hinge",
-                "com.nordvpn.android": "NordVPN",
-                "com.anydesk.adcontrol.ad1": "AnyDesk",
-                "com.google.android.calendar": "Calendar",
-                "com.google.android.contacts": "Contacts",
-                "com.google.android.dialer": "Phone",
-                "com.android.camera": "Camera",
-                "com.sec.android.app.camera": "Camera",
-                "com.android.settings": "Settings",
-                "com.android.calculator2": "Calculator",
-                "com.android.deskclock": "Clock",
-                "com.sec.android.gallery3d": "Gallery",
-                "com.samsung.android.messaging": "Messages",
-                "com.samsung.android.dialer": "Phone",
-                "com.samsung.android.app.notes": "Samsung Notes",
-            }
-            apps = []
-            for pkg in pkgs:
-                name_guess = KNOWN.get(pkg, "")
-                if not name_guess:
-                    # Derive from package: com.example.myapp → myapp, capitalize
-                    last = pkg.split(".")[-1]
-                    name_guess = last.replace("_", " ").replace("-", " ").title()
-                apps.append({"name": name_guess, "package": pkg})
-            apps.sort(key=lambda a: a["name"].lower())
-            if name == "search_apps":
-                query = args.get("query", "").lower()
-                apps = [a for a in apps if query in a["name"].lower() or query in a["package"].lower()]
-            return json.dumps(apps, indent=2)
+            query = args.get("query", "") if name == "search_apps" else ""
+            return json.dumps(ctx.list_apps(device, query=query), indent=2)
         elif name == "list_packages":
-            out = Device(device).adb("shell", "pm", "list", "packages", "-3", timeout=15)
-            pkgs = [p.replace("package:", "").strip() for p in out.splitlines() if p.startswith("package:")]
-            return json.dumps(pkgs[:50])
+            return json.dumps(ctx.list_packages(device)[:50], indent=2)
+        elif name == "explore_app":
+            from pathlib import Path
+
+            package = args["package"]
+            script = Path(__file__).resolve().parents[1] / "skills" / "auto_creator.py"
+            project_dir = Path(__file__).resolve().parents[2]
+            max_depth = int(args.get("max_depth", 2))
+            max_states = int(args.get("max_states", 10))
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-u",
+                    str(script),
+                    "--package",
+                    package,
+                    "--device",
+                    device,
+                    "--max-depth",
+                    str(max_depth),
+                    "--max-states",
+                    str(max_states),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=300,
+                cwd=str(project_dir),
+            )
+            graph_path = project_dir / "data" / "app_explorer" / package / "state_graph.json"
+            if graph_path.exists():
+                return graph_path.read_text()[:10000]
+            output = result.stdout[-1000:]
+            if result.returncode != 0 and result.stderr:
+                output += f"\nSTDERR:\n{result.stderr[-1000:]}"
+            return f"Exploration finished. Output:\n{output}"
         elif name == "shell":
             out = Device(device).adb("shell", *args["command"].split(), timeout=15)
             return out[:3000]
         elif name == "paste_text":
+            if is_ios_ref(device):
+                get_device(device).paste_text(args["text"])
+                t = args["text"]
+                return f"Inserted text on iOS: {t[:60]}{'...' if len(t) > 60 else ''}"
             from gitd.bots.common.adb import Device as _Dev
 
             ctx.clipboard_set(device, args["text"])
@@ -830,31 +1440,63 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return "Clipboard set"
         elif name == "get_notifications":
             return json.dumps(ctx.get_notifications(device), indent=2)
+        elif name == "open_notifications":
+            if not ctx.open_notifications(device):
+                return "Failed"
+            return "Notification Center opened" if is_ios_ref(device) else "Notification shade opened"
+        elif name == "clear_notifications":
+            return "Notifications cleared" if ctx.clear_notifications(device) else "Failed"
         elif name == "list_skills":
             from gitd.routers.skills import _load_all_skills, _load_skill
 
             skills = _load_all_skills()
             result = []
+            target_device = args.get("device") or device
+            supported_only = bool(args.get("supported_only"))
             for sname, info in skills.items():
+                supported = skill_supports_device(info.get("metadata") or {}, target_device) if target_device else None
+                if supported_only and supported is False:
+                    continue
                 s = _load_skill(sname)
-                entry = {"name": info["name"], "app_package": info.get("app_package", "")}
+                entry = {
+                    "name": info["name"],
+                    "description": info.get("description", ""),
+                    "app_package": info.get("app_package", ""),
+                    "android_package": info.get("android_package", ""),
+                    "ios_bundle_id": info.get("ios_bundle_id", ""),
+                    "platforms": info.get("platforms", []),
+                    "supports_android": info.get("supports_android", False),
+                    "supports_ios": info.get("supports_ios", False),
+                    "platform_limitations": info.get("platform_limitations", {}),
+                    "default_params": info.get("default_params", {}),
+                }
+                if supported is not None:
+                    entry["supported_on_device"] = supported
                 if s and not isinstance(s, dict):
                     entry["workflows"] = s.list_workflows()
                     entry["actions"] = s.list_actions()
                 result.append(entry)
             return json.dumps(result, indent=2)
-        elif name == "run_skill":
+        elif name in {"run_skill", "run_workflow", "run_action"}:
+            from gitd.routers.skills import _load_all_skills
+
+            skills = _load_all_skills()
+            skill_info = skills.get(args["skill"])
+            if skill_info and not skill_supports_device(skill_info.get("metadata") or {}, device):
+                return skill_platform_error_text(args["skill"], skill_info.get("metadata") or {}, device)
             runner = __import__("pathlib").Path(__file__).parent.parent / "skills" / "_run_skill.py"
             params = json.dumps(args.get("params", {}))
+            mode_arg = "--action" if name == "run_action" else "--workflow"
+            target = args["action"] if name == "run_action" else args["workflow"]
             r = subprocess.run(
                 [
-                    "python3",
+                    sys.executable,
                     "-u",
                     str(runner),
                     "--skill",
                     args["skill"],
-                    "--workflow",
-                    args["workflow"],
+                    mode_arg,
+                    target,
                     "--device",
                     device,
                     "--params",
@@ -866,6 +1508,37 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 cwd=str(__import__("pathlib").Path(__file__).parent.parent.parent),
             )
             return r.stdout[-2000:] if r.returncode == 0 else f"FAILED: {r.stdout[-1000:]}\n{r.stderr[-500:]}"
+        elif name == "create_skill":
+            from gitd.services.skill_creation import create_recorded_skill
+
+            result = create_recorded_skill(
+                name=args["name"],
+                app_package=args.get("app_package", ""),
+                steps=args.get("steps", []),
+                platforms=args.get("platforms", []),
+                ios_bundle_id=args.get("ios_bundle_id", ""),
+                elements_ios=args.get("elements_ios") if "elements_ios" in args else None,
+                elements_android=args.get("elements_android") if "elements_android" in args else None,
+            )
+            return json.dumps(
+                {
+                    "ok": True,
+                    "skill": result["skill"],
+                    "steps": result["steps"],
+                    "dir": result["dir"],
+                    "platforms": result["platforms"],
+                    "metadata": result["metadata"],
+                },
+                indent=2,
+            )
+        elif name == "crm_lookup_contact":
+            from gitd.services.crm_lookup import crm_lookup_contact
+
+            return crm_lookup_contact(args["handle"])
+        elif name == "crm_list_unread_messages":
+            from gitd.services.crm_lookup import crm_list_unread_messages
+
+            return crm_list_unread_messages()
         elif name == "wait":
             time.sleep(args.get("seconds", 2))
             return f"Waited {args.get('seconds', 2)}s"
@@ -873,19 +1546,6 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return f"Unknown tool: {name}"
     except Exception as e:
         return f"Error: {e}"
-
-    # Auto-append screen tree after UI actions so agent sees result immediately
-    if name in _UI_ACTION_TOOLS and device and isinstance(result, str):
-        try:
-            import time as _t
-
-            _t.sleep(0.5)  # Brief settle time for UI to update
-            tree = ctx.get_screen_tree(device)
-            if tree and tree != "(empty screen)":
-                result += f"\n\n[Screen after action]\n{tree}"
-        except Exception:
-            pass
-    return result
 
 
 def get_screenshot_b64(device: str) -> str | None:

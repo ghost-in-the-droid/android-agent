@@ -2,7 +2,7 @@
 
 ## What It Does
 
-Per-phone job queue with priority-based scheduling, preemption, timeout enforcement, and orphan recovery. Runs as a daemon thread inside the Flask server, ticking every 30 seconds to enqueue due scheduled jobs, launch pending work, and detect finished processes. All automation jobs (crawl, post, skill execution, app exploration) flow through this single scheduler.
+Per-phone job queue with priority-based scheduling, preemption, timeout enforcement, and orphan recovery. Runs as a daemon thread inside the Flask server, ticking every 30 seconds to enqueue due scheduled jobs, launch pending work, and detect finished processes. All automation jobs (post, skill execution, app exploration) flow through this single scheduler.
 
 ## Current State
 
@@ -11,12 +11,15 @@ Per-phone job queue with priority-based scheduling, preemption, timeout enforcem
 - Per-phone job queues (one active job per device at a time)
 - Priority-based preemption with 90-second grace period
 - 6 job types supported
+- Platform guards for `ios:<udid>` devices
 - Orphan detection and recovery (dead PIDs, server restart)
 - Timeout enforcement with SIGTERM → SIGKILL escalation
 - 24h timeline visualization in dashboard Scheduler tab
 - Full job CRUD via REST API
 - Log file capture per job (`/tmp/sched_job_<id>.log`)
 - Job summary parsing from `[done]` markers in logs
+- Skill workflow result parsing from `Data: {...}` log payloads
+- Manual restarts preserve platform guards and scheduled job timeouts
 - Protection: never preempts post/publish_draft jobs (interrupting corrupts state)
 
 **Limitations:**
@@ -56,12 +59,76 @@ State machine per job:
 
 | Type | Script | Default Timeout | Purpose |
 |------|--------|----------------|---------|
-| `crawl` | `bots/tiktok/scraper.py` | 900s | Hashtag/user crawling |
 | `post` | `bots/tiktok/upload.py` | 900s | Video upload (draft/post) |
 | `publish_draft` | `bots/tiktok/upload.py` | 900s | Publish existing draft |
 | `skill_workflow` | `skills/_run_skill.py` | 900s | Run a skill workflow |
 | `skill_action` | `skills/_run_skill.py` | 900s | Run a single skill action |
 | `app_explore` | `skills/auto_creator.py` | 900s | BFS app exploration |
+
+## iOS Scheduling
+
+iOS schedules use the same queue and schedule tables, but `ios:<udid>` devices are limited to supported skill workflows and app exploration for now. Android TikTok jobs such as `post` and `publish_draft` return `unsupported_platform` for iOS because the iOS upload flow is not ported yet.
+
+TikTok account preflight is partially supported on iOS. The scheduler can launch
+TikTok, read visible WDA text, detect the active handle, and block an observed
+wrong-account run. Calling the account-switch endpoint for the already active
+iOS handle returns a successful no-op; switching from one iOS TikTok account to
+another still returns `unsupported_platform` until the iOS account-switcher flow
+is ported.
+
+The dashboard schedule form detects iOS devices and now defaults to the
+release-quality Chrome/news workflow:
+
+```json
+{
+  "skill": "safari",
+  "workflow": "read_news",
+  "params": {
+    "url": "https://text.npr.org/",
+    "max_headlines": 5,
+    "max_articles": 3,
+    "wait_s": 2,
+    "bundle_id": "com.google.chrome.ios",
+    "save_screenshots": true,
+    "out_dir": "data/ios_chrome_news_smoke"
+  }
+}
+```
+
+The same form also exposes TikTok smoke workflows and `app_explore` for iOS:
+
+```json
+{
+  "skill": "tiktok_ios",
+  "workflow": "profile_smoke",
+  "params": {
+    "expected": "Profile",
+    "wait_timeout": 8,
+    "max_lines": 80
+  }
+}
+```
+
+```json
+{
+  "package": "com.google.chrome.ios",
+  "max_depth": 2,
+  "max_states": 8
+}
+```
+
+Real iPhone execution still depends on Appium/WebDriverAgent being healthy for the target UDID.
+
+Completed skill jobs that emit structured `Data: {...}` output can be queried
+without parsing raw logs:
+
+```bash
+curl http://localhost:5055/api/scheduler/history/<run_id>/result | python3 -m json.tool
+```
+
+In the dashboard, click a completed Recent Runs row to open the run detail panel.
+When structured output is present, the panel shows a compact result section above
+the raw logs; iOS Chrome/news runs render headlines and article snippets.
 
 ## Files
 
@@ -88,6 +155,7 @@ State machine per job:
 | POST | `/api/scheduler/runs/<id>/restart` | Re-enqueue a completed/failed job |
 | GET | `/api/scheduler/history` | All archived job runs |
 | GET | `/api/scheduler/history/<id>/logs` | Logs for an archived run |
+| GET | `/api/scheduler/history/<id>/result` | Structured skill result parsed from run logs |
 | GET | `/api/scheduler/timeline` | 24h timeline data (runs + upcoming schedules) |
 
 ## Database Tables
@@ -109,12 +177,12 @@ job_runs         -- Archived history (completed/failed/killed with duration, exi
 ## Dashboard Integration
 
 - **Scheduler tab:** 24h visual timeline (color-coded bars per job type), schedule CRUD form, recent runs table with filters, per-phone queue status indicators
-- **Bot tab:** Quick-launch buttons for crawl/post that enqueue to the same job queue
+- **Bot tab:** Quick-launch buttons for post jobs that enqueue to the same job queue
 - **Skill Hub tab:** Run workflow/action buttons enqueue `skill_workflow`/`skill_action` jobs
 
 ## Known Issues & TODOs
 
-- [ ] No retry-on-failure (a failed crawl stays failed — must manually re-enqueue)
+- [ ] No retry-on-failure (a failed job stays failed — must manually re-enqueue)
 - [ ] No cron-style scheduling (e.g., "every Monday at 9am")
 - [ ] Preemption kills subprocess hard — no graceful pause/resume mechanism
 - [ ] Log files accumulate in `/tmp/` — no automatic cleanup

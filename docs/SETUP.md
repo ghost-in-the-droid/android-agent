@@ -187,7 +187,7 @@ DEVICE=SERIAL python3 -m pytest tests/ -v
 
 ## MCP Server (AI Agent Tools)
 
-The project includes an MCP server that exposes 35 Android automation tools to any AI client. If you cloned this repo, the `.mcp.json` is already configured.
+The project includes an MCP server that exposes the full mobile automation tool catalog to any AI client. If you cloned this repo, the `.mcp.json` is already configured.
 
 **Claude Code / Codex** (if not using the repo's `.mcp.json`):
 ```bash
@@ -234,3 +234,7 @@ The Emulators tab in the dashboard handles creation, boot, snapshots, and pool m
 4. Browse **Skill Hub** to see installed skills and run them
 5. Open Claude Code in this project — the MCP tools are ready to use
 6. Read [ARCHITECTURE.md](ARCHITECTURE.md) for how the system fits together
+
+## iOS (Experimental)
+
+iOS devices are driven through Appium/WebDriverAgent and are feature-gated OFF by default (`GITD_ENABLE_IOS=1` to enable). Full setup: [SETUP_IOS.md](SETUP_IOS.md).

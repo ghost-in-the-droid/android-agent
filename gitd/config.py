@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     # ── Devices ──────────────────────────────────────────────────────────────
     default_device: str = ""  # ADB serial of primary phone (auto-detected if empty)
 
+    # ── iOS (feature-gated) ──────────────────────────────────────────────────
+    # iOS support (Appium/WebDriverAgent) ships dev-only for one release cycle:
+    # OFF by default, so `ios:` device refs surface "not supported" errors and
+    # iOS devices are excluded from discovery. Enable with GITD_ENABLE_IOS=1
+    # (or ios_platform_enabled=true in .env). Flip the default once device
+    # testing passes.
+    ios_platform_enabled: bool = False
+
     # ── LLM ──────────────────────────────────────────────────────────────────
     # Provider used when a session is created without an explicit one. Defaults
     # to claude-code (Claude subscription, no API key) — `android-agent login`

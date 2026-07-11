@@ -10,6 +10,10 @@ interface TestFile {
 interface Recording {
   name: string
   device: string
+  device_ref?: string
+  device_label?: string
+  platform?: string
+  test_name?: string
   date: string
   size_mb: string
   result?: { passed: number; failed: number; skipped: number; errors: number }
@@ -49,8 +53,29 @@ function phoneName(serial: string): string {
   return d ? (d.nickname || d.model || d.label || d.serial) : serial.slice(0, 6)
 }
 
-function recTestName(name: string): string {
-  return name.replace(/^[^_]+_\d{8}_\d{6}_/, '').replace('.mp4', '')
+function testRecordingUrl(name: string): string {
+  return `/api/test-runner/recording/${encodeURIComponent(name)}`
+}
+
+function testRecordingLogUrl(name: string): string {
+  return `/api/test-runner/recording-log/${encodeURIComponent(name)}`
+}
+
+function recDeviceRef(r: Recording): string {
+  return r.device_ref || r.device || ''
+}
+
+function recPhoneName(r: Recording): string {
+  return r.device_label || phoneName(recDeviceRef(r))
+}
+
+function recTestName(r: Recording): string {
+  if (r.test_name) return r.test_name
+  return r.name.replace(/^.+?_\d{8}_\d{6}_/, '').replace('.mp4', '')
+}
+
+function recPlatform(r: Recording): string {
+  return (r.platform || (recDeviceRef(r).startsWith('ios:') ? 'ios' : 'android')).toUpperCase()
 }
 
 function recTime(date: string): string {
@@ -84,8 +109,9 @@ async function load() {
   testCatalog.value = Array.isArray(t) ? t : t.tests || []
   devices.value = d.devices || d || []
   recordings.value = Array.isArray(r) ? r : r.recordings || []
-  if (!selectedTest.value && testCatalog.value.length) {
-    selectedTest.value = testCatalog.value[0].file + '|'
+  const firstTest = testCatalog.value[0]
+  if (!selectedTest.value && firstTest) {
+    selectedTest.value = firstTest.file + '|'
   }
 }
 
@@ -155,9 +181,9 @@ async function viewRecording(rec: Recording) {
   viewingRecLogs.value = []
   highlightedLogIdx.value = -1
   recLogAutoScroll.value = true
-  // Load logs for the recording's device
+  // Load saved logs for this recording. The live logs endpoint only knows active in-memory runs.
   try {
-    const resp = await api(`/api/test-runner/logs?device=${rec.device}&since=0`)
+    const resp = await api(testRecordingLogUrl(rec.name))
     viewingRecLogs.value = resp.lines || []
   } catch {}
 }
@@ -167,7 +193,8 @@ function parseLogTimestamp(line: string): number | null {
   // Matches patterns like "2026-04-01 12:34:56" or "12:34:56" at the start of a log line
   const m = line.match(/(?:^\d{4}-\d{2}-\d{2}\s+)?(\d{2}):(\d{2}):(\d{2})/)
   if (!m) return null
-  return parseInt(m[1]) * 3600 + parseInt(m[2]) * 60 + parseInt(m[3])
+  const [, hh = '0', mm = '0', ss = '0'] = m
+  return parseInt(hh) * 3600 + parseInt(mm) * 60 + parseInt(ss)
 }
 
 function onVideoTimeUpdate() {
@@ -255,7 +282,7 @@ onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
 
         <!-- Inline video player (during test execution) -->
         <div v-if="phoneStates[d.serial]?.running && phoneStates[d.serial]?.recording" style="border-radius: 8px; overflow: hidden; background: #000">
-          <video :src="`/api/test-runner/recording/${phoneStates[d.serial].recording}`"
+          <video :src="testRecordingUrl(phoneStates[d.serial].recording)"
             autoplay muted loop
             style="width: 100%; max-height: 200px; object-fit: contain; display: block" />
         </div>
@@ -292,7 +319,7 @@ onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
       <div class="grid grid-cols-2 gap-4" style="max-height: 520px">
         <div class="card p-3 flex flex-col" style="max-height: 520px">
           <div class="text-xs font-semibold uppercase tracking-widest mb-2" style="color: var(--text-3)">{{ viewingRec.name }}</div>
-          <video ref="recVideoRef" controls :src="`/api/test-runner/recording/${viewingRec.name}`"
+          <video ref="recVideoRef" controls :src="testRecordingUrl(viewingRec.name)"
             @timeupdate="onVideoTimeUpdate"
             style="width: 100%; max-height: 480px; object-fit: contain; border-radius: 6px; background: #000; display: block"></video>
         </div>
@@ -353,8 +380,8 @@ onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
               @mouseenter="($event.currentTarget as HTMLElement).style.background = '#0f1523'"
               @mouseleave="($event.currentTarget as HTMLElement).style.background = 'transparent'">
               <td style="padding: 5px 8px; text-align: center">&#127916;</td>
-              <td style="padding: 5px 8px; color: #a5b4fc">{{ recTestName(r.name) }}</td>
-              <td style="padding: 5px 8px; color: var(--text-3)">{{ phoneName(r.device || '') }}</td>
+              <td style="padding: 5px 8px; color: #a5b4fc">{{ recTestName(r) }}</td>
+              <td style="padding: 5px 8px; color: var(--text-3)">{{ recPhoneName(r) }} <span style="color: var(--text-5)">({{ recPlatform(r) }})</span></td>
               <td style="padding: 5px 8px; color: var(--text-4); font-family: monospace">{{ recTime(r.date) }}</td>
               <td style="padding: 5px 8px; color: var(--text-4)">{{ r.size_mb ? r.size_mb + ' MB' : '' }}</td>
               <td style="padding: 5px 8px">

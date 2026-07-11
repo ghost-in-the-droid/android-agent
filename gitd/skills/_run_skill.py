@@ -8,7 +8,24 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from gitd.bots.common.adb import Device
+from gitd.bots.common.device import get_device
+from gitd.skills.platforms import (
+    skill_platform_error_text,
+    skill_supports_device,
+    skill_target_for_device,
+)
+
+
+def _load_skill_metadata(skill: str) -> dict:
+    try:
+        import yaml
+
+        meta_path = Path(__file__).parent / skill / 'skill.yaml'
+        if meta_path.exists():
+            return yaml.safe_load(meta_path.read_text()) or {}
+    except Exception:
+        pass
+    return {}
 
 
 # ── Skill run tracking ──────────────────────────────────────────────────
@@ -27,9 +44,9 @@ def _record_start(device: str, skill: str, target_type: str, target_name: str,
             meta_path = Path(__file__).parent / skill / 'skill.yaml'
             if meta_path.exists():
                 meta = yaml.safe_load(meta_path.read_text()) or {}
-                pkg = meta.get('app_package')
+                pkg = skill_target_for_device(meta, device)
                 if pkg:
-                    app_ver = Device(device).get_app_version(pkg)
+                    app_ver = get_device(device).get_app_version(pkg)
         except Exception:
             pass
         row = SkillRun(
@@ -127,7 +144,12 @@ def main():
     import time
 
     params = json.loads(args.params)
-    dev = Device(args.device)
+    skill_meta = _load_skill_metadata(args.skill)
+    if not skill_supports_device(skill_meta, args.device):
+        print(skill_platform_error_text(args.skill, skill_meta, args.device), file=sys.stderr)
+        sys.exit(2)
+
+    dev = get_device(args.device)
 
     # Build engine config from CLI flags
     from gitd.skills.base import EngineConfig
@@ -164,7 +186,7 @@ def main():
         meta_path = skill_dir / 'skill.yaml'
         if meta_path.exists():
             meta = yaml.safe_load(meta_path.read_text()) or {}
-            wf.app_package = meta.get('app_package', '') or ''
+            wf.app_package = skill_target_for_device(meta, args.device) or ''
             wf._popup_detectors = meta.get('popup_detectors') or None
         if engine_cfg:
             wf.engine = engine_cfg
@@ -210,14 +232,13 @@ def main():
         sys.exit(0 if result.success else 1)
 
     elif args.action:
-        action_cls = s.get_action(args.action)
-        if not action_cls:
+        action = s.get_action(args.action, dev, **params)
+        if not action:
             dur = (_time.time() - t0) * 1000
             _record_finish(run_id, False, dur, f'Action not found: {args.action}')
             print(f'Action not found: {args.action}', file=sys.stderr)
             sys.exit(1)
         print(f'Running action: {args.action}')
-        action = action_cls(dev, s.elements, **params)
         result = action.run()
         dur = (_time.time() - t0) * 1000
         _record_finish(run_id, result.success, dur, result.error)

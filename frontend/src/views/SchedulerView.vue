@@ -23,6 +23,9 @@ const logPanelTitle = ref('')
 const logPanelLines = ref<string[]>([])
 const logPanelAutoScroll = ref(true)
 const logPanelSource = ref<{ type: 'queue' | 'history'; id: number } | null>(null)
+const logPanelResult = ref<any | null>(null)
+const logPanelResultLoading = ref(false)
+const logPanelResultError = ref('')
 let logPollTimer: number | null = null
 
 /* form state */
@@ -34,10 +37,112 @@ const sf = ref<any>({
   max_duration_s: 900, account: '', config_json: '{}',
 })
 
+type JobTypeOption = {
+  value: string
+  label: string
+  android: boolean
+  ios: boolean
+}
+
+type IosScheduleTemplate = {
+  id: string
+  label: string
+  name: string
+  max_duration_s: number
+  config: Record<string, any>
+}
+
+type ReadNewsItem = {
+  title?: string
+  page_title?: string
+  source_headline?: string
+  url?: string
+  current_url?: string
+  body_snippet?: string
+  text?: string
+}
+
+type ExtractionEvidence = {
+  source?: string
+  attempts?: number
+  returned?: number
+  target?: number
+  returned_lines?: number
+  target_lines?: number
+  text?: ExtractionEvidence
+  open_method?: string
+  [key: string]: any
+}
+
+const DEFAULT_IOS_TEMPLATE_ID = 'chrome_browser_smoke'
+
+const JOB_TYPE_OPTIONS: JobTypeOption[] = [
+  { value: 'post', label: 'Post', android: true, ios: false },
+  { value: 'publish_draft', label: 'Publish Draft', android: true, ios: false },
+  { value: 'skill_workflow', label: 'Skill', android: true, ios: true },
+  { value: 'app_explore', label: 'Explore App', android: true, ios: true },
+]
+
+const IOS_SCHEDULE_TEMPLATES: IosScheduleTemplate[] = [
+  {
+    id: 'chrome_browser_smoke',
+    label: 'Chrome News',
+    name: 'iOS Chrome News',
+    max_duration_s: 600,
+    config: {
+      skill: 'safari',
+      workflow: 'read_news',
+      params: {
+        url: 'https://text.npr.org/',
+        max_headlines: 5,
+        max_articles: 3,
+        wait_s: 2,
+        bundle_id: 'com.google.chrome.ios',
+        save_screenshots: true,
+        out_dir: 'data/ios_chrome_news_smoke',
+      },
+    },
+  },
+  {
+    id: 'tiktok_profile_smoke',
+    label: 'TikTok Profile Smoke',
+    name: 'iOS TikTok Profile Smoke',
+    max_duration_s: 300,
+    config: {
+      skill: 'tiktok_ios',
+      workflow: 'profile_smoke',
+      params: { max_lines: 80 },
+    },
+  },
+  {
+    id: 'tiktok_search_smoke',
+    label: 'TikTok Search Smoke',
+    name: 'iOS TikTok Search Smoke',
+    max_duration_s: 300,
+    config: {
+      skill: 'tiktok_ios',
+      workflow: 'search_smoke',
+      params: { query: '#news' },
+    },
+  },
+  {
+    id: 'tiktok_open_app_smoke',
+    label: 'TikTok Open App Smoke',
+    name: 'iOS TikTok Open App Smoke',
+    max_duration_s: 300,
+    config: {
+      skill: 'tiktok_ios',
+      workflow: 'open_app_smoke',
+      params: {},
+    },
+  },
+]
+
 /* timeline canvas */
 const timelineCanvas = ref<HTMLCanvasElement | null>(null)
-let timelineHits: any[] = []
+let timelineHits: { x: number; y: number; w: number; h: number; data: any }[] = []
 let animFrameId: number | null = null
+const tooltip = ref<{ x: number; y: number; data: any } | null>(null)
 
 const TYPE_COLORS: Record<string, string> = {
   post: '#f59e0b', content_gen: '#22c55e', publish_draft: '#a855f7',
@@ -75,9 +180,13 @@ function openLogPanel(source: { type: 'queue' | 'history'; id: number }, title: 
   logPanelOpen.value = true
   logPanelTitle.value = title
   logPanelLines.value = []
+  logPanelResult.value = null
+  logPanelResultLoading.value = false
+  logPanelResultError.value = ''
   logPanelAutoScroll.value = true
   logPanelSource.value = source
   pollLogPanel()
+  loadLogPanelResult(source)
   if (logPollTimer) clearInterval(logPollTimer)
   logPollTimer = window.setInterval(pollLogPanel, 1500)
 }
@@ -86,7 +195,32 @@ function closeLogPanel() {
   logPanelOpen.value = false
   logPanelSource.value = null
   logPanelLines.value = []
+  logPanelResult.value = null
+  logPanelResultLoading.value = false
+  logPanelResultError.value = ''
   if (logPollTimer) { clearInterval(logPollTimer); logPollTimer = null }
+}
+
+async function loadLogPanelResult(source: { type: 'queue' | 'history'; id: number }) {
+  if (source.type !== 'history') return
+  const stillCurrent = () => logPanelSource.value?.type === source.type && logPanelSource.value?.id === source.id
+  logPanelResultLoading.value = true
+  try {
+    const resp = await api(`/api/scheduler/history/${source.id}/result`)
+    if (!stillCurrent()) return
+    if (resp?.ok && resp.result) {
+      logPanelResult.value = resp
+    } else {
+      logPanelResult.value = null
+      logPanelResultError.value = resp?.error || ''
+    }
+  } catch (e: any) {
+    if (!stillCurrent()) return
+    logPanelResult.value = null
+    logPanelResultError.value = e?.message || 'result unavailable'
+  } finally {
+    if (stillCurrent()) logPanelResultLoading.value = false
+  }
 }
 
 async function pollLogPanel() {
@@ -122,6 +256,45 @@ function phoneName(serial: string | null): string {
   return serial.slice(0, 5)
 }
 
+function isIosSerial(serial: string | null | undefined): boolean {
+  return !!serial && serial.startsWith('ios:')
+}
+
+function platformValue(value: any): 'ios' | 'android' | '' {
+  const platform = String(value || '').toLowerCase()
+  return platform === 'ios' || platform === 'android' ? platform : ''
+}
+
+function platformForSerial(serial: string | null | undefined, ...sources: any[]): 'ios' | 'android' {
+  for (const source of sources) {
+    const platform = platformValue(source?.platform || source?.device_platform)
+    if (platform) return platform
+  }
+  if (isIosSerial(serial)) return 'ios'
+  return 'android'
+}
+
+function schedulerPlatformSource(serial: string): any | null {
+  const collections = [
+    schedules.value,
+    history.value,
+    queue.value,
+    timeline.value.past || [],
+    timeline.value.future || [],
+    timeline.value.content_plan || [],
+  ]
+  for (const collection of collections) {
+    const match = collection.find((item: any) => item.phone_serial === serial && platformValue(item.platform))
+    if (match) return match
+  }
+  return status.value[serial] || null
+}
+
+function deviceOptionLabel(ph: any): string {
+  const platform = ph.platform === 'ios' ? 'iOS' : 'Android'
+  return `${ph.label} (${platform})`
+}
+
 const phoneList = computed(() => {
   // Build phone list from devices + any serials found in data
   const serials = new Set<string>()
@@ -134,7 +307,37 @@ const phoneList = computed(() => {
   return Array.from(serials).map(s => ({
     serial: s,
     label: phoneName(s),
+    platform: platformForSerial(s, devices.value.find((d: any) => d.serial === s), schedulerPlatformSource(s)),
   }))
+})
+
+const selectedScheduleDevice = computed(() =>
+  devices.value.find((p: any) => p.serial === sf.value.phone_serial)
+)
+
+const selectedScheduleIsIos = computed(() =>
+  platformForSerial(sf.value.phone_serial, selectedScheduleDevice.value) === 'ios'
+)
+
+const selectedSchedulePlatform = computed(() =>
+  selectedScheduleIsIos.value ? 'ios' : 'android'
+)
+
+const jobTypeOptions = computed(() =>
+  JOB_TYPE_OPTIONS.filter(option => selectedScheduleIsIos.value ? option.ios : option.android)
+)
+
+const schedulePlatformNotice = computed(() => {
+  if (!selectedScheduleIsIos.value) return ''
+  return 'iOS schedules default to the Chrome/news workflow and can run supported skill workflows or app exploration. TikTok post and publish jobs stay Android-only until the iOS upload flow is ported.'
+})
+
+const currentIosTemplateId = computed(() => {
+  const cfg = parseConfig(sf.value.config_json)
+  const match = IOS_SCHEDULE_TEMPLATES.find(template =>
+    cfg.skill === template.config.skill && cfg.workflow === template.config.workflow
+  )
+  return match?.id || 'custom'
 })
 
 /* ── computed: filtered schedules ───────────────────────────────────────── */
@@ -185,11 +388,145 @@ function parseConfig(json: string): any {
   try { return JSON.parse(json || '{}') } catch { return {} }
 }
 
+function findNestedResult(data: any, predicate: (item: any) => boolean): any | null {
+  if (!data || typeof data !== 'object') return null
+  if (predicate(data)) return data
+  if (data.data && typeof data.data === 'object') {
+    const nested = findNestedResult(data.data, predicate)
+    if (nested) return nested
+  }
+  const steps = Array.isArray(data.step_results) ? data.step_results : []
+  for (const step of steps) {
+    const nested = findNestedResult(step?.data, predicate)
+    if (nested) return nested
+  }
+  return null
+}
+
+const logPanelReadNews = computed(() =>
+  findNestedResult(
+    logPanelResult.value?.result,
+    item => Array.isArray(item?.headlines) && Array.isArray(item?.articles),
+  )
+)
+
+const logPanelGenericResult = computed(() => {
+  const result = logPanelResult.value?.result
+  if (!result || logPanelReadNews.value) return null
+  return result
+})
+
+const logPanelHeadlines = computed<ReadNewsItem[]>(() =>
+  Array.isArray(logPanelReadNews.value?.headlines) ? logPanelReadNews.value.headlines.slice(0, 5) : []
+)
+
+const logPanelArticles = computed<ReadNewsItem[]>(() =>
+  Array.isArray(logPanelReadNews.value?.articles) ? logPanelReadNews.value.articles.slice(0, 3) : []
+)
+
+const logPanelExtraction = computed<Record<string, any>>(() => logPanelReadNews.value?.extraction || {})
+
+const logPanelResultJson = computed(() =>
+  logPanelGenericResult.value ? JSON.stringify(logPanelGenericResult.value, null, 2) : ''
+)
+
+function resultTitle(item: any): string {
+  return String(item?.title || item?.page_title || item?.source_headline || '').trim()
+}
+
+function resultUrl(item: any): string {
+  return String(item?.url || item?.current_url || '').trim()
+}
+
+function resultSnippet(item: any): string {
+  return String(item?.body_snippet || item?.text || '').trim()
+}
+
+function compactEvidence(evidence: any): string {
+  if (!evidence) return ''
+  const source = String(evidence.source || 'unknown')
+  const attempts = evidence.attempts !== undefined ? `${evidence.attempts}x` : ''
+  if (evidence.returned !== undefined) return `${source} ${evidence.returned}/${evidence.target} ${attempts}`.trim()
+  if (evidence.returned_lines !== undefined) {
+    return `${source} ${evidence.returned_lines}/${evidence.target_lines} lines ${attempts}`.trim()
+  }
+  return source
+}
+
+function displayIndex(index: string | number): number {
+  return Number(index) + 1
+}
+
+function articleEvidence(index: string | number): ExtractionEvidence {
+  const items = logPanelExtraction.value?.articles
+  return Array.isArray(items) ? items[Number(index)] || {} : {}
+}
+
+function evidenceTitle(evidence: any): string {
+  return evidence ? JSON.stringify(evidence) : ''
+}
+
+function stringifyConfig(config: Record<string, any>): string {
+  return JSON.stringify(config, null, 2)
+}
+
+function appExploreDefaultConfig(): Record<string, any> {
+  const pkg = selectedSchedulePlatform.value === 'ios'
+    ? 'com.google.chrome.ios'
+    : 'com.zhiliaoapp.musically'
+  return {
+    package: pkg,
+    max_depth: 2,
+    max_states: 8,
+  }
+}
+
+function applyIosScheduleTemplate(templateId: string) {
+  if (templateId === 'custom') return
+  const template = IOS_SCHEDULE_TEMPLATES.find(t => t.id === templateId)
+  if (!template) return
+  const hadTemplateName = IOS_SCHEDULE_TEMPLATES.some(t => t.name === sf.value.name)
+  sf.value.job_type = 'skill_workflow'
+  if (!String(sf.value.name || '').trim() || hadTemplateName) {
+    sf.value.name = template.name
+  }
+  sf.value.max_duration_s = template.max_duration_s
+  sf.value.config_json = stringifyConfig(template.config)
+}
+
+function ensureIosScheduleDefaults() {
+  if (sf.value.job_type === 'app_explore') {
+    const cfg = parseConfig(sf.value.config_json)
+    if (!cfg.package) {
+      sf.value.config_json = stringifyConfig({ ...appExploreDefaultConfig(), ...cfg })
+    }
+    return
+  }
+  if (!selectedScheduleIsIos.value) return
+  const selectedTypeAllowed = jobTypeOptions.value.some(option => option.value === sf.value.job_type)
+  if (!selectedTypeAllowed) {
+    applyIosScheduleTemplate(DEFAULT_IOS_TEMPLATE_ID)
+    return
+  }
+  if (sf.value.job_type === 'skill_workflow') {
+    const cfg = parseConfig(sf.value.config_json)
+    if (!cfg.skill && !cfg.workflow) {
+      applyIosScheduleTemplate(DEFAULT_IOS_TEMPLATE_ID)
+    }
+  }
+}
+
+function onIosTemplateChange(event: Event) {
+  const target = event.target as HTMLSelectElement | null
+  applyIosScheduleTemplate(target?.value || '')
+}
+
 function configDetail(r: any): string {
   const cfg = parseConfig(r.config_json)
   const jt = r.job_type
   let detail = ''
   if (jt === 'post') detail = cfg.action || 'draft'
+  if (jt === 'app_explore') detail = cfg.package || ''
   if (cfg.account) detail += ` @${cfg.account}`
   return detail
 }
@@ -212,6 +549,7 @@ function schedConfigDetail(s: any): string {
   const cfg = parseConfig(s.config_json)
   const jt = s.job_type
   if (jt === 'post') return cfg.action || 'draft'
+  if (jt === 'app_explore') return cfg.package || ''
   return ''
 }
 
@@ -301,6 +639,7 @@ function sfReset() {
 
 async function sfSave() {
   const f = sf.value
+  ensureIosScheduleDefaults()
   // Inject account into config if set
   if (f.account) {
     try {
@@ -439,6 +778,7 @@ function renderTimeline() {
     ctx.globalAlpha = 0.8
     ctx.fillRect(x, ph.y - 5, w, 14)
     ctx.globalAlpha = 1
+    timelineHits.push({ x, y: ph.y - 5, w, h: 14, data: { kind: 'past', run } })
   }
 
   // Currently running - glowing block
@@ -473,6 +813,7 @@ function renderTimeline() {
     const elapsed = Math.max(0, Math.floor((Date.now() - new Date(job.started_at.replace(' ', 'T')).getTime()) / 1000))
     const elStr = elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m`
     ctx.fillText(`\u25B6 ${elStr}`, x + 2, ph.y + 5)
+    timelineHits.push({ x, y: ph.y - 6, w, h: 16, data: { kind: 'active', job, elapsed } })
   }
 
   // Future - outlined blocks
@@ -506,6 +847,7 @@ function renderTimeline() {
     if (shortLabel) ctx.fillText(shortLabel, x + w / 2, ph.y + 2)
     ctx.globalAlpha = 1
     ctx.textBaseline = 'alphabetic'
+    timelineHits.push({ x, y: ph.y - 5, w, h: 14, data: { kind: 'future', fut } })
   }
 
   // Legend
@@ -526,6 +868,29 @@ function renderTimeline() {
   }
 }
 
+function onTimelineMove(ev: MouseEvent) {
+  const canvas = timelineCanvas.value
+  if (!canvas) return
+  const rect = canvas.getBoundingClientRect()
+  const x = ev.clientX - rect.left
+  const y = ev.clientY - rect.top
+  const hit = timelineHits.find(h => x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h)
+  if (hit) {
+    canvas.style.cursor = 'pointer'
+    // Clamp x so the tooltip never overflows the right edge of the viewport
+    const tx = Math.min(ev.clientX + 14, window.innerWidth - 280)
+    tooltip.value = { x: tx, y: ev.clientY + 14, data: hit.data }
+  } else {
+    canvas.style.cursor = 'default'
+    tooltip.value = null
+  }
+}
+
+function onTimelineLeave() {
+  tooltip.value = null
+  if (timelineCanvas.value) timelineCanvas.value.style.cursor = 'default'
+}
+
 // Rerender timeline when data or window changes
 function handleResize() {
   renderTimeline()
@@ -534,6 +899,11 @@ function handleResize() {
 watch([timeline, queue, devices], () => {
   nextTick(() => renderTimeline())
 })
+
+watch(
+  () => [sf.value.phone_serial, sf.value.job_type],
+  () => ensureIosScheduleDefaults()
+)
 
 onMounted(() => {
   load()
@@ -598,7 +968,69 @@ onUnmounted(() => {
         <span class="section-subtitle">{{ phoneList.length }} device{{ phoneList.length !== 1 ? 's' : '' }}</span>
       </div>
       <div class="timeline-canvas-wrap">
-        <canvas ref="timelineCanvas" height="160" style="width: 100%; cursor: default" />
+        <canvas
+          ref="timelineCanvas"
+          height="160"
+          style="width: 100%; cursor: default"
+          @mousemove="onTimelineMove"
+          @mouseleave="onTimelineLeave"
+        />
+        <!-- Hover tooltip -->
+        <div
+          v-if="tooltip"
+          :style="{
+            position: 'fixed',
+            left: tooltip.x + 'px',
+            top: tooltip.y + 'px',
+            zIndex: 1000,
+            background: 'var(--bg-card, #141e17)',
+            border: '1px solid var(--border, #1e2e22)',
+            borderRadius: '6px',
+            padding: '8px 10px',
+            fontSize: '11px',
+            color: 'var(--text-1, #e8ede9)',
+            maxWidth: '260px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            pointerEvents: 'none',
+            fontFamily: 'JetBrains Mono, monospace',
+            lineHeight: 1.5,
+          }"
+        >
+          <template v-if="tooltip.data.kind === 'past'">
+            <div style="font-weight: 600; margin-bottom: 4px">
+              {{ tooltip.data.run.schedule_name || tooltip.data.run.job_type }}
+            </div>
+            <div style="opacity: 0.7">type: {{ tooltip.data.run.job_type }}</div>
+            <div style="opacity: 0.7">status:
+              <span :style="{ color: tooltip.data.run.status === 'completed' ? '#22c55e' : tooltip.data.run.status === 'failed' ? '#ef4444' : '#f59e0b' }">
+                {{ tooltip.data.run.status }}
+              </span>
+            </div>
+            <div style="opacity: 0.7">started: {{ tooltip.data.run.started_at }}</div>
+            <div style="opacity: 0.7">duration: {{ fmtDuration(tooltip.data.run.duration_s) }}</div>
+            <div style="opacity: 0.7">phone: {{ tooltip.data.run.phone_serial?.slice(-6) || '—' }}</div>
+            <div v-if="tooltip.data.run.exit_code != null" style="opacity: 0.7">exit: {{ tooltip.data.run.exit_code }}</div>
+            <div v-if="tooltip.data.run.error_msg" style="color: #ef4444; margin-top: 4px">{{ tooltip.data.run.error_msg.slice(0, 100) }}</div>
+          </template>
+          <template v-else-if="tooltip.data.kind === 'active'">
+            <div style="font-weight: 600; margin-bottom: 4px; color: #22c55e">
+              ▶ {{ tooltip.data.job.schedule_name || tooltip.data.job.job_type }} (running)
+            </div>
+            <div style="opacity: 0.7">type: {{ tooltip.data.job.job_type }}</div>
+            <div style="opacity: 0.7">started: {{ tooltip.data.job.started_at }}</div>
+            <div style="opacity: 0.7">elapsed: {{ fmtDuration(tooltip.data.elapsed) }}</div>
+            <div style="opacity: 0.7">phone: {{ tooltip.data.job.phone_serial?.slice(-6) || '—' }}</div>
+          </template>
+          <template v-else-if="tooltip.data.kind === 'future'">
+            <div style="font-weight: 600; margin-bottom: 4px">
+              ⏰ {{ tooltip.data.fut.schedule_name || tooltip.data.fut.job_type }}
+            </div>
+            <div style="opacity: 0.7">type: {{ tooltip.data.fut.job_type }}</div>
+            <div style="opacity: 0.7">scheduled: {{ tooltip.data.fut.time }}</div>
+            <div style="opacity: 0.7">phone: {{ tooltip.data.fut.phone_serial?.slice(-6) || '—' }}</div>
+            <div v-if="tooltip.data.fut.is_past" style="color: #f59e0b">missed (in past)</div>
+          </template>
+        </div>
       </div>
     </div>
 
@@ -616,7 +1048,7 @@ onUnmounted(() => {
           </span>
           <select v-model="schedPhoneFilter" class="filter-select">
             <option value="">All Phones</option>
-            <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ ph.label }}</option>
+            <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ deviceOptionLabel(ph) }}</option>
           </select>
         </div>
 
@@ -670,18 +1102,30 @@ onUnmounted(() => {
           <div class="form-field">
             <label class="form-label">Type</label>
             <select v-model="sf.job_type" class="form-input">
-              <option value="post">Post</option>
-              <option value="publish_draft">Publish Draft</option>
-              <option value="skill_workflow">Skill</option>
+              <option v-for="option in jobTypeOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
             </select>
           </div>
           <div class="form-field">
             <label class="form-label">Phone</label>
             <select v-model="sf.phone_serial" class="form-input">
               <option value="">None</option>
-              <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ ph.label }}</option>
+              <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ deviceOptionLabel(ph) }}</option>
             </select>
           </div>
+        </div>
+        <div v-if="schedulePlatformNotice" class="form-hint form-hint--ios">
+          {{ schedulePlatformNotice }}
+        </div>
+        <div v-if="selectedScheduleIsIos && sf.job_type === 'skill_workflow'" class="form-field">
+          <label class="form-label">iOS Skill Template</label>
+          <select :value="currentIosTemplateId" class="form-input" @change="onIosTemplateChange">
+            <option v-for="template in IOS_SCHEDULE_TEMPLATES" :key="template.id" :value="template.id">
+              {{ template.label }}
+            </option>
+            <option value="custom">Custom JSON</option>
+          </select>
         </div>
         <!-- Priority + Schedule -->
         <div class="form-row-2">
@@ -754,13 +1198,15 @@ onUnmounted(() => {
         <div class="runs-filters">
           <select v-model="historyPhoneFilter" class="filter-select">
             <option value="">All Phones</option>
-            <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ ph.label }}</option>
+            <option v-for="ph in phoneList" :key="ph.serial" :value="ph.serial">{{ deviceOptionLabel(ph) }}</option>
           </select>
           <select v-model="historyTypeFilter" class="filter-select">
             <option value="">All Types</option>
             <option value="post">&#x1f4f9; post</option>
             <option value="publish_draft">&#x1f4e4; publish_draft</option>
             <option value="content_gen">&#x1f916; content_gen</option>
+            <option value="skill_workflow">skill_workflow</option>
+            <option value="app_explore">app_explore</option>
           </select>
         </div>
       </div>
@@ -844,6 +1290,58 @@ onUnmounted(() => {
           </label>
           <button class="rounded px-2 py-0.5 text-xs" style="background: #1e293b; border: 1px solid #334155; color: #94a3b8; cursor: pointer" @click="closeLogPanel">Close</button>
         </div>
+      </div>
+      <div v-if="logPanelResultLoading" class="run-result-note">Loading structured result...</div>
+      <div v-else-if="logPanelReadNews" class="run-result-section">
+        <div class="run-result-header">
+          <span>Structured Result</span>
+          <span>{{ logPanelResult?.summary || 'read_news result' }}</span>
+        </div>
+        <div class="run-result-metrics">
+          <span>{{ logPanelReadNews.headlines?.length || 0 }} headlines</span>
+          <span>{{ logPanelReadNews.articles?.length || 0 }} articles</span>
+          <span v-if="logPanelReadNews.current_url">{{ logPanelReadNews.current_url }}</span>
+        </div>
+        <div v-if="logPanelExtraction.headlines || logPanelExtraction.front_page_text" class="run-result-evidence">
+          <span v-if="logPanelExtraction.headlines" :title="evidenceTitle(logPanelExtraction.headlines)">
+            Headlines {{ compactEvidence(logPanelExtraction.headlines) }}
+          </span>
+          <span v-if="logPanelExtraction.front_page_text" :title="evidenceTitle(logPanelExtraction.front_page_text)">
+            Page text {{ compactEvidence(logPanelExtraction.front_page_text) }}
+          </span>
+        </div>
+        <div class="run-result-grid">
+          <div>
+            <div class="run-result-subtitle">Headlines</div>
+            <div v-for="(headline, i) in logPanelHeadlines" :key="`headline-${i}`" class="run-result-line">
+              <span class="run-result-index">{{ displayIndex(i) }}</span>
+              <span>{{ resultTitle(headline) || 'Untitled headline' }}</span>
+            </div>
+          </div>
+          <div>
+            <div class="run-result-subtitle">Articles</div>
+            <div v-for="(article, i) in logPanelArticles" :key="`article-${i}`" class="run-result-article">
+              <div class="run-result-article-title">{{ resultTitle(article) || resultTitle({ title: article.source_headline }) || 'Untitled article' }}</div>
+              <div v-if="resultUrl(article)" class="run-result-url">{{ resultUrl(article) }}</div>
+              <div v-if="articleEvidence(i).text || articleEvidence(i).open_method" class="run-result-evidence run-result-evidence--article">
+                <span v-if="articleEvidence(i).open_method" :title="evidenceTitle(articleEvidence(i))">
+                  {{ articleEvidence(i).open_method }}
+                </span>
+                <span v-if="articleEvidence(i).text" :title="evidenceTitle(articleEvidence(i).text)">
+                  Text {{ compactEvidence(articleEvidence(i).text) }}
+                </span>
+              </div>
+              <div v-if="resultSnippet(article)" class="run-result-snippet">{{ resultSnippet(article) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="logPanelGenericResult" class="run-result-section">
+        <div class="run-result-header">
+          <span>Structured Result</span>
+          <span>{{ logPanelResult?.summary || 'skill result' }}</span>
+        </div>
+        <pre class="run-result-json">{{ logPanelResultJson }}</pre>
       </div>
       <div id="sched-log-viewer"
         style="height: 320px; overflow-y: auto; background: #070b10; border: 1px solid #1e2438; border-radius: 8px; padding: 10px 12px; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 11px; line-height: 1.55; color: #94a3b8; white-space: pre-wrap; word-break: break-all">
@@ -1242,6 +1740,17 @@ onUnmounted(() => {
   color: var(--text-4);
 }
 
+.form-hint--ios {
+  margin: -2px 0 8px;
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: 4px;
+}
+
 .form-input {
   width: 100%;
   padding: 4px 8px;
@@ -1275,6 +1784,166 @@ onUnmounted(() => {
 .form-actions .act-btn {
   font-size: 12px;
   padding: 4px 14px;
+}
+
+/* ── Run Result Panel ─────────────────────────────────────────────────── */
+.run-result-note {
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: var(--text-4);
+}
+
+.run-result-section {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #0b1220;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+}
+
+.run-result-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.run-result-header span:last-child {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.run-result-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.run-result-metrics span {
+  padding: 2px 6px;
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.run-result-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: -4px 0 10px;
+}
+
+.run-result-evidence span {
+  padding: 2px 6px;
+  color: #67e8f9;
+  background: rgba(8, 47, 73, 0.5);
+  border: 1px solid rgba(14, 116, 144, 0.35);
+  border-radius: 4px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.run-result-evidence--article {
+  margin: 4px 0 0;
+}
+
+.run-result-evidence--article span {
+  color: #a5b4fc;
+  background: rgba(49, 46, 129, 0.35);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.run-result-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 12px;
+}
+
+.run-result-subtitle {
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.run-result-line {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+  padding: 3px 0;
+  color: #dbeafe;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.run-result-index {
+  color: #64748b;
+  font-family: monospace;
+}
+
+.run-result-article {
+  padding: 6px 0;
+  border-top: 1px solid #1e293b;
+}
+.run-result-article:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.run-result-article-title {
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.run-result-url {
+  margin-top: 2px;
+  color: #38bdf8;
+  font-size: 10px;
+  word-break: break-all;
+}
+
+.run-result-snippet {
+  margin-top: 4px;
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.run-result-json {
+  max-height: 220px;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  background: #070b10;
+  border: 1px solid #1e2438;
+  border-radius: 4px;
+  color: #94a3b8;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+@media (max-width: 800px) {
+  .run-result-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ── Recent Runs Section ──────────────────────────────────────────────── */

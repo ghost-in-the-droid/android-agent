@@ -91,3 +91,12 @@ class TestCreator:
         assert r.status_code == 200
         body = r.json()
         assert isinstance(body.get("models"), list)
+
+    def test_openapi_metadata_is_ios_aware(self, client):
+        r = client.get("/openapi.json")
+        assert r.status_code == 200
+        schema = r.json()
+        assert "iOS Appium/WDA" in schema["info"]["description"]
+        tags = {tag["name"]: tag["description"] for tag in schema["tags"]}
+        assert tags["phone"] == "Android/iOS device control, tap, swipe, screenshots"
+        assert "iOS WDA MJPEG" in tags["streaming"]

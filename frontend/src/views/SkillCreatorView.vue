@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { api } from '@/composables/useApi'
 import { renderMermaid } from '@/composables/useMermaid'
-import PhoneStreamWidget from '@/components/PhoneStreamWidget.vue'
 
 const devices = ref<any[]>([])
 const selectedDevice = ref('')
+const selectedIsIos = computed(() => selectedDevice.value.startsWith('ios:'))
+const selectedPlatform = computed(() => selectedIsIos.value ? 'ios' : 'android')
+const targetIdLabel = computed(() => selectedIsIos.value ? 'iOS bundle id' : 'Android package')
+const targetIdPlaceholder = computed(() => selectedIsIos.value ? 'com.google.chrome.ios' : 'com.zhiliaoapp.musically')
 const backend = ref(localStorage.getItem('creator_backend') || 'claude-code')
 const model = ref(localStorage.getItem('creator_model') || 'anthropic/claude-sonnet-4')
 const messages = ref<{role: string; content: string; actions?: any[]}[]>([])
@@ -13,6 +16,9 @@ const input = ref('')
 const sending = ref(false)
 const streaming = ref(false)
 const streamImg = ref('')
+const mjpegUrl = ref('')
+const streamStatus = ref('')
+const streamInfo = ref<any | null>(null)
 const overlayOn = ref(false)
 const elements = ref<any[]>([])
 const actionHistory = ref<any[]>([])
@@ -21,6 +27,9 @@ const recording = ref(false)
 const recordedActions = ref<any[]>([])
 const showContextModal = ref(false)
 const overlayCanvas = ref<HTMLCanvasElement | null>(null)
+const streamImageEl = ref<HTMLImageElement | null>(null)
+const streamFrame = ref({ width: 0, height: 0 })
+const elementFrame = ref({ width: 0, height: 0 })
 let streamTimer: number | null = null
 
 const BACKENDS = [
@@ -42,7 +51,8 @@ async function loadDevices() {
   try {
     const resp = await api('/api/phone/devices')
     devices.value = resp.devices || resp || []
-    if (devices.value.length && !selectedDevice.value) selectedDevice.value = devices.value[0].serial
+    const firstDevice = devices.value[0]
+    if (firstDevice && !selectedDevice.value) selectedDevice.value = firstDevice.serial
   } catch {}
 }
 
@@ -56,9 +66,9 @@ async function loadOllamaModels() {
 function onBackendChange() {
   localStorage.setItem('creator_backend', backend.value)
   if (backend.value === 'ollama' && ollamaModels.value.length) {
-    model.value = ollamaModels.value[0]
+    model.value = ollamaModels.value[0] || model.value
   } else if (MODELS[backend.value]?.length) {
-    model.value = MODELS[backend.value][0]
+    model.value = MODELS[backend.value]?.[0] || model.value
   }
 }
 
@@ -71,25 +81,90 @@ function availableModels() {
   return MODELS[backend.value] || []
 }
 
+const streamMode = computed(() => selectedIsIos.value ? 'mjpeg' : 'screenshot')
+const streamSource = computed(() => streamMode.value === 'mjpeg' ? mjpegUrl.value : streamImg.value)
+const streamPlaceholder = computed(() => selectedIsIos.value ? 'Start WDA stream' : 'Select a device and press Stream')
+
 function toggleStream() {
   if (streaming.value) {
-    streaming.value = false
-    if (streamTimer) { clearInterval(streamTimer); streamTimer = null }
+    stopStream()
   } else {
-    streaming.value = true
-    pollFrame()
-    streamTimer = window.setInterval(pollFrame, 200)
+    startStream()
   }
 }
 
+async function resolveMjpegUrl(): Promise<string> {
+  const fallback = `/api/phone/stream?device=${encodeURIComponent(selectedDevice.value)}&fps=5&mode=wda-mjpeg`
+  try {
+    const info = await api(`/api/phone/stream-info?device=${encodeURIComponent(selectedDevice.value)}&fps=5&mode=mjpeg`)
+    streamInfo.value = info
+    streamStatus.value = info.effective_mode ? `${info.effective_mode}` : ''
+    return String(info.stream_url || fallback)
+  } catch (error) {
+    streamStatus.value = error instanceof Error ? error.message.replace(/^API \d+:\s*/, '') : 'Stream metadata unavailable'
+    return fallback
+  }
+}
+
+async function startStream() {
+  if (!selectedDevice.value || streaming.value) return
+  streaming.value = true
+  streamImg.value = ''
+  mjpegUrl.value = ''
+  streamStatus.value = ''
+  streamInfo.value = null
+  if (streamMode.value === 'mjpeg') {
+    streamStatus.value = 'Loading WDA MJPEG...'
+    const url = await resolveMjpegUrl()
+    if (streaming.value && streamMode.value === 'mjpeg') mjpegUrl.value = url
+    return
+  }
+  pollFrame()
+  streamTimer = window.setInterval(pollFrame, 200)
+}
+
+function stopStream() {
+  streaming.value = false
+  if (streamTimer) { clearInterval(streamTimer); streamTimer = null }
+  streamImg.value = ''
+  mjpegUrl.value = ''
+  streamStatus.value = ''
+  streamInfo.value = null
+  streamFrame.value = { width: 0, height: 0 }
+}
+
 async function pollFrame() {
-  if (!selectedDevice.value) return
+  if (!selectedDevice.value || streamMode.value !== 'screenshot') return
   try {
     const resp = await api(`/api/phone/screenshot/${selectedDevice.value}`)
     if (resp.ok && resp.image) {
       streamImg.value = `data:image/jpeg;base64,${resp.image}`
+      streamFrame.value = { width: Number(resp.width || 0), height: Number(resp.height || 0) }
     }
   } catch {}
+}
+
+function updateStreamFrame() {
+  const img = streamImageEl.value
+  if (!img) return
+  streamFrame.value = {
+    width: img.naturalWidth || streamFrame.value.width,
+    height: img.naturalHeight || streamFrame.value.height,
+  }
+  nextTick(drawOverlay)
+}
+
+function handleStreamLoad() {
+  updateStreamFrame()
+  if (streamStatus.value.startsWith('Loading ')) {
+    streamStatus.value = streamInfo.value?.effective_mode ? String(streamInfo.value.effective_mode) : ''
+  }
+}
+
+function handleStreamError() {
+  streamStatus.value = selectedIsIos.value
+    ? 'WDA MJPEG failed — check iOS health or restart the stream'
+    : 'Stream failed — restart the stream'
 }
 
 async function refreshElements() {
@@ -97,6 +172,11 @@ async function refreshElements() {
   try {
     const resp = await api(`/api/phone/elements/${selectedDevice.value}`)
     elements.value = resp.elements || resp || []
+    const size = resp.screen_size || {}
+    elementFrame.value = {
+      width: Number(size.width || 0),
+      height: Number(size.height || 0),
+    }
   } catch {}
 }
 
@@ -160,7 +240,10 @@ async function executeActions(actions: any[]) {
     } else if (step.action === 'back') {
       await api('/api/phone/back', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value }) })
     } else if (step.action === 'launch') {
-      await api('/api/phone/launch', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, package: step.package }) })
+      await api('/api/phone/launch', {
+        method: 'POST',
+        body: JSON.stringify({ device: selectedDevice.value, package: step.package || step.bundle_id })
+      })
     } else if (step.action === 'swipe') {
       await api('/api/phone/swipe', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, ...step }) })
     } else if (step.action === 'wait') {
@@ -185,16 +268,38 @@ function sendKey(key: number | string) {
   if (recording.value) recordedActions.value.push(step)
 }
 
-function handleStreamClick(e: MouseEvent) {
-  if (!selectedDevice.value) return
-  const el = e.target as HTMLImageElement
+function streamPoint(el: HTMLImageElement, clientX: number, clientY: number): { x: number; y: number; streamW: number; streamH: number } | null {
   const rect = el.getBoundingClientRect()
-  const x = Math.round((e.clientX - rect.left) / rect.width * 1080)
-  const y = Math.round((e.clientY - rect.top) / rect.height * 2400)
-  api('/api/phone/tap', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, x, y }) })
-  const step = { action: 'tap', x, y }
+  const streamW = el.naturalWidth || streamFrame.value.width || 540
+  const streamH = el.naturalHeight || streamFrame.value.height || 1200
+  if (!rect.width || !rect.height || !streamW || !streamH) return null
+  return {
+    x: Math.round((clientX - rect.left) / rect.width * streamW),
+    y: Math.round((clientY - rect.top) / rect.height * streamH),
+    streamW,
+    streamH,
+  }
+}
+
+function tapStreamAt(el: HTMLImageElement, clientX: number, clientY: number) {
+  if (!selectedDevice.value) return
+  const point = streamPoint(el, clientX, clientY)
+  if (!point) return
+  api('/api/phone/tap', { method: 'POST', body: JSON.stringify({ device: selectedDevice.value, x: point.x, y: point.y, stream_w: point.streamW, stream_h: point.streamH }) })
+  const step = { action: 'tap', x: point.x, y: point.y }
   actionHistory.value.push(step)
   if (recording.value) recordedActions.value.push(step)
+}
+
+function handleStreamClick(e: MouseEvent) {
+  tapStreamAt(e.target as HTMLImageElement, e.clientX, e.clientY)
+}
+
+function handleStreamTouchEnd(e: TouchEvent) {
+  const touch = e.changedTouches[0]
+  if (!touch) return
+  e.preventDefault()
+  tapStreamAt(e.target as HTMLImageElement, touch.clientX, touch.clientY)
 }
 
 function toggleRecord() {
@@ -209,11 +314,44 @@ function toggleRecord() {
 }
 
 const saveSkillName = ref('')
+const saveSkillTarget = ref('')
 const saveSkillModal = ref(false)
+
+const hardwareKeys = computed(() => {
+  if (selectedIsIos.value) {
+    return [
+      { label: 'Back', key: 'BACK', title: 'Back' },
+      { label: 'Home', key: 'HOME', title: 'Home' },
+      { label: 'Enter', key: 'ENTER', title: 'Enter' },
+    ]
+  }
+  return [
+    { label: '\u25C0', key: 4, title: 'Back' },
+    { label: '\u2302', key: 3, title: 'Home' },
+    { label: '\u25A6', key: 187, title: 'Recents' },
+    { label: '\u23FB', key: 26, title: 'Power' },
+    { label: 'Vol+', key: 24, title: 'Vol+' },
+    { label: 'Vol-', key: 25, title: 'Vol-' },
+  ]
+})
+
+function deviceLabel(d: any): string {
+  const platform = d.platform === 'ios' || String(d.serial || '').startsWith('ios:') ? 'iOS' : 'Android'
+  return `${d.nickname || d.model || d.serial} (${platform})`
+}
+
+function defaultSkillTarget(): string {
+  const launchStep = [...recordedActions.value].reverse().find(step => step.action === 'launch' && (step.package || step.bundle_id))
+  if (launchStep) return launchStep.package || launchStep.bundle_id || ''
+  const dev = devices.value.find(d => d.serial === selectedDevice.value)
+  if (selectedIsIos.value) return dev?.bundle_id || dev?.ios_bundle_id || ''
+  return dev?.package || dev?.app_package || ''
+}
 
 function openSaveSkill() {
   if (!recordedActions.value.length) return
   saveSkillName.value = ''
+  saveSkillTarget.value = defaultSkillTarget()
   saveSkillModal.value = true
 }
 
@@ -221,11 +359,25 @@ async function saveRecordedSkill() {
   const name = saveSkillName.value.trim().toLowerCase().replace(/\s+/g, '_')
   if (!name || !recordedActions.value.length) return
   try {
+    const platform = selectedPlatform.value
+    const target = saveSkillTarget.value.trim()
+    const payload: any = {
+      name,
+      steps: recordedActions.value,
+      platforms: [platform],
+      app_package: platform === 'android' ? target : '',
+      android_package: platform === 'android' ? target : '',
+      ios_bundle_id: platform === 'ios' ? target : '',
+    }
+    if (elements.value.length) {
+      if (platform === 'ios') payload.elements_ios = elements.value
+      else payload.elements_android = elements.value
+    }
     const res = await api('/api/skills/create-from-recording', {
       method: 'POST',
-      body: JSON.stringify({ name, steps: recordedActions.value, app_package: '' })
+      body: JSON.stringify(payload)
     })
-    messages.value.push({ role: 'system', content: `Skill "${name}" saved with ${recordedActions.value.length} steps.` })
+    messages.value.push({ role: 'system', content: `Skill "${name}" saved for ${platform} with ${recordedActions.value.length} steps.` })
     saveSkillModal.value = false
     recordedActions.value = []
   } catch (e: any) {
@@ -236,17 +388,38 @@ async function saveRecordedSkill() {
 function drawOverlay() {
   const canvas = overlayCanvas.value
   if (!canvas) return
+  const cssWidth = Math.max(1, Math.round(canvas.clientWidth || canvas.getBoundingClientRect().width || 360))
+  const cssHeight = Math.max(1, Math.round(canvas.clientHeight || canvas.getBoundingClientRect().height || 800))
+  if (canvas.width !== cssWidth) canvas.width = cssWidth
+  if (canvas.height !== cssHeight) canvas.height = cssHeight
   const ctx = canvas.getContext('2d')
   if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   if (!overlayOn.value || !elements.value.length) return
-  // Scale from device coords (1080x2400) to canvas size
-  const scaleX = canvas.width / 1080
-  const scaleY = canvas.height / 2400
+  const image = streamImageEl.value
+  const streamW = image?.naturalWidth || streamFrame.value.width || 540
+  const streamH = image?.naturalHeight || streamFrame.value.height || 1200
+  const coordinateScale = selectedIsIos.value && streamMode.value === 'mjpeg' ? 1 : 2
+  const frameW = elementFrame.value.width || streamW * coordinateScale
+  const frameH = elementFrame.value.height || streamH * coordinateScale
+  let offsetX = 0
+  let offsetY = 0
+  let displayW = canvas.width
+  let displayH = canvas.height
+  if (image) {
+    const canvasRect = canvas.getBoundingClientRect()
+    const imageRect = image.getBoundingClientRect()
+    offsetX = imageRect.left - canvasRect.left
+    offsetY = imageRect.top - canvasRect.top
+    displayW = imageRect.width || displayW
+    displayH = imageRect.height || displayH
+  }
+  const scaleX = displayW / frameW
+  const scaleY = displayH / frameH
   elements.value.forEach((el, i) => {
     if (!el.bounds) return
-    const x = el.bounds.x1 * scaleX
-    const y = el.bounds.y1 * scaleY
+    const x = offsetX + el.bounds.x1 * scaleX
+    const y = offsetY + el.bounds.y1 * scaleY
     const w = (el.bounds.x2 - el.bounds.x1) * scaleX
     const h = (el.bounds.y2 - el.bounds.y1) * scaleY
     ctx.strokeStyle = '#6366f1'
@@ -258,7 +431,16 @@ function drawOverlay() {
   })
 }
 
-watch([overlayOn, elements], () => { nextTick(drawOverlay) })
+watch([overlayOn, elements, streamFrame, elementFrame], () => { nextTick(drawOverlay) })
+watch(selectedDevice, async (newDevice, oldDevice) => {
+  if (newDevice === oldDevice) return
+  const wasStreaming = streaming.value
+  stopStream()
+  elements.value = []
+  elementFrame.value = { width: 0, height: 0 }
+  if (newDevice && overlayOn.value) await refreshElements()
+  if (wasStreaming && newDevice) startStream()
+})
 watch(messages, () => {
   nextTick(() => {
     const el = document.getElementById('creator-messages')
@@ -274,7 +456,7 @@ onMounted(async () => {
     setTimeout(async () => { await loadDevices() }, 3000)
   }
 })
-onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
+onUnmounted(() => { stopStream() })
 </script>
 
 <template>
@@ -344,7 +526,7 @@ onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
         <span class="sc-status-dot" :style="{ background: streaming ? '#22c55e' : '#475569' }"></span>
         <select v-model="selectedDevice" class="sc-select sc-select--device">
           <option value="">{{ devices.length ? 'Select device' : 'No devices — click ↻' }}</option>
-          <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ d.nickname || d.model || d.serial }}</option>
+          <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ deviceLabel(d) }}</option>
         </select>
         <button class="sc-pill-btn" @click="loadDevices" title="Refresh devices" style="padding: 4px 8px; font-size: 11px">↻</button>
         <div class="sc-device-actions">
@@ -369,21 +551,27 @@ onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
 
       <!-- Hardware keys -->
       <div class="sc-hw-keys">
-        <button class="sc-hw-btn" @click="sendKey(4)" title="Back">&#x25C0;</button>
-        <button class="sc-hw-btn" @click="sendKey(3)" title="Home">&#x2302;</button>
-        <button class="sc-hw-btn" @click="sendKey(187)" title="Recents">&#x25A6;</button>
-        <button class="sc-hw-btn" @click="sendKey(26)" title="Power">&#x23FB;</button>
-        <button class="sc-hw-btn" @click="sendKey(24)" title="Vol+">&#x1F50A;</button>
-        <button class="sc-hw-btn" @click="sendKey(25)" title="Vol-">&#x1F509;</button>
+        <button v-for="key in hardwareKeys" :key="String(key.key)" class="sc-hw-btn" @click="sendKey(key.key)" :title="key.title">
+          {{ key.label }}
+        </button>
       </div>
 
       <!-- Stream area -->
       <div class="sc-stream-area">
-        <img v-if="streamImg" :src="streamImg" class="sc-stream-img"
-          @click="handleStreamClick" />
+        <img v-if="streaming && streamSource" ref="streamImageEl" :src="streamSource" class="sc-stream-img"
+          draggable="false"
+          @click="handleStreamClick"
+          @touchstart.prevent
+          @touchend="handleStreamTouchEnd"
+          @load="handleStreamLoad"
+          @error="handleStreamError"
+          @dragstart.prevent />
         <canvas ref="overlayCanvas" width="360" height="800" class="sc-overlay-canvas"></canvas>
-        <div v-if="!streamImg" class="sc-stream-empty">
-          Select a device and press Stream
+        <div v-if="streamStatus" class="sc-stream-status" :title="streamStatus">
+          {{ streamStatus }}
+        </div>
+        <div v-if="!streamSource" class="sc-stream-empty">
+          {{ streamPlaceholder }}
         </div>
       </div>
 
@@ -415,9 +603,9 @@ onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
           <div class="sc-modal-meta">Backend: {{ backend }} / {{ model }}</div>
           <div class="sc-modal-meta">Elements: {{ elements.length }}</div>
         </div>
-        <div v-if="streamImg" class="sc-modal-section">
+        <div v-if="streamSource" class="sc-modal-section">
           <div class="sc-modal-section-title">Current Screen</div>
-          <img :src="streamImg" class="sc-modal-screenshot" />
+          <img :src="streamSource" class="sc-modal-screenshot" />
         </div>
         <div v-if="elements.length" class="sc-modal-section">
           <div class="sc-modal-section-title">Elements ({{ elements.length }})</div>
@@ -457,6 +645,15 @@ onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
             <input v-model="saveSkillName" placeholder="my_automation"
               style="width: 100%; padding: 8px 12px; font-size: 13px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1); outline: none"
               @keyup.enter="saveRecordedSkill" />
+          </div>
+          <div style="margin-top: 12px">
+            <label style="font-size: 11px; color: var(--text-3); display: block; margin-bottom: 4px">{{ targetIdLabel }}</label>
+            <input v-model="saveSkillTarget" :placeholder="targetIdPlaceholder"
+              style="width: 100%; padding: 8px 12px; font-size: 13px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-1); outline: none"
+              @keyup.enter="saveRecordedSkill" />
+            <div style="margin-top: 4px; font-size: 10px; color: var(--text-4)">
+              Saving as {{ selectedIsIos ? 'iOS' : 'Android' }} skill.
+            </div>
           </div>
           <div style="margin-top: 8px; max-height: 200px; overflow-y: auto; font-size: 10px; font-family: monospace; color: var(--text-4)">
             <div v-for="(a, i) in recordedActions" :key="i">
@@ -949,6 +1146,22 @@ onUnmounted(() => { if (streamTimer) clearInterval(streamTimer) })
   text-align: center;
   padding: 48px 24px;
   line-height: 1.6;
+}
+.sc-stream-status {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  max-width: calc(100% - 16px);
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #cbd5e1;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 /* ── Element list ────────────────────────────────────────────────── */

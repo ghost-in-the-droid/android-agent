@@ -14,9 +14,21 @@ import io
 import json
 import re
 import subprocess
+import urllib.parse
 import urllib.request
 
 from gitd.bots.common.adb import Device
+from gitd.bots.common.device import get_device, is_ios_ref
+from gitd.bots.common.ios import remote_xpc_manual_recovery
+
+
+def _platform(device: str) -> str:
+    return "ios" if is_ios_ref(device) else "android"
+
+
+def _device_payload(device: str, payload: dict) -> dict:
+    return {"device": device, "platform": _platform(device), **payload}
+
 
 # ── Phone state ──────────────────────────────────────────────────────────────
 
@@ -24,6 +36,8 @@ from gitd.bots.common.adb import Device
 def get_phone_state(device: str) -> dict:
     """Current app, package, activity, keyboard state, focused element.
     Uses Portal if available, falls back to dumpsys."""
+    if is_ios_ref(device):
+        return get_device(device).get_phone_state()
     dev = Device(device)
     port = dev._ensure_portal_forward()
     if port:
@@ -47,34 +61,227 @@ def get_phone_state(device: str) -> dict:
     return {}
 
 
+_APP_STATE_NAMES = {
+    0: "not_installed",
+    1: "not_running",
+    2: "running_background_suspended",
+    3: "running_background",
+    4: "running_foreground",
+}
+
+
+def _android_current_package(dev: Device) -> str:
+    try:
+        out = dev.adb("shell", "dumpsys", "window", "windows", timeout=5)
+        m = re.search(r"mCurrentFocus.*?(\S+)/\S+", out)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    try:
+        out = dev.adb("shell", "dumpsys", "activity", "activities", timeout=5)
+        m = re.search(r"mResumedActivity.*?\s([A-Za-z0-9_.]+)/\S+", out)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    return ""
+
+
+def app_state(device: str, package: str) -> dict:
+    """Return installed/running/foreground state for an Android package or iOS bundle id."""
+    if not package:
+        return {
+            "ok": False,
+            "device": device,
+            "platform": "ios" if is_ios_ref(device) else "android",
+            "error": "package required",
+        }
+
+    if is_ios_ref(device):
+        ios_dev = get_device(device)
+        raw_state = int(ios_dev.app_state(package))
+        state = _APP_STATE_NAMES.get(raw_state, "unknown")
+        return {
+            "ok": True,
+            "device": device,
+            "platform": "ios",
+            "package": package,
+            "bundle_id": package,
+            "state": state,
+            "raw_state": raw_state,
+            "installed": raw_state > 0,
+            "running": raw_state in {2, 3, 4},
+            "foreground": raw_state == 4,
+            "source": "appium_queryAppState",
+        }
+
+    dev = Device(device)
+    installed = False
+    running = False
+    foreground = False
+    current_package = _android_current_package(dev)
+    try:
+        installed = bool(dev.adb("shell", "pm", "path", package, timeout=5).strip())
+    except Exception:
+        installed = False
+    if current_package == package:
+        installed = True
+        foreground = True
+    if installed:
+        try:
+            running = bool(dev.adb("shell", "pidof", package, timeout=5).strip())
+        except Exception:
+            running = False
+        if foreground:
+            running = True
+    raw_state = 0 if not installed else (4 if foreground else (3 if running else 1))
+    return {
+        "ok": True,
+        "device": device,
+        "platform": "android",
+        "package": package,
+        "state": _APP_STATE_NAMES[raw_state],
+        "raw_state": raw_state,
+        "installed": installed,
+        "running": running,
+        "foreground": foreground,
+        "current_package": current_package,
+        "source": "adb",
+    }
+
+
+_ANDROID_APP_NAMES = {
+    "com.zhiliaoapp.musically": "TikTok",
+    "com.instagram.android": "Instagram",
+    "com.facebook.katana": "Facebook",
+    "com.facebook.orca": "Messenger",
+    "com.whatsapp": "WhatsApp",
+    "com.twitter.android": "X (Twitter)",
+    "com.snapchat.android": "Snapchat",
+    "com.google.android.youtube": "YouTube",
+    "com.google.android.apps.youtube.music": "YouTube Music",
+    "com.google.android.apps.maps": "Google Maps",
+    "com.google.android.gm": "Gmail",
+    "com.google.android.apps.photos": "Google Photos",
+    "com.google.android.apps.docs": "Google Drive",
+    "com.android.chrome": "Chrome",
+    "com.android.vending": "Play Store",
+    "org.telegram.messenger": "Telegram",
+    "com.discord": "Discord",
+    "com.reddit.frontpage": "Reddit",
+    "com.spotify.music": "Spotify",
+    "com.amazon.mShop.android.shopping": "Amazon",
+    "com.tinder": "Tinder",
+    "com.bumble.app": "Bumble",
+    "co.hinge.app": "Hinge",
+    "com.nordvpn.android": "NordVPN",
+    "com.anydesk.adcontrol.ad1": "AnyDesk",
+    "com.google.android.calendar": "Calendar",
+    "com.google.android.contacts": "Contacts",
+    "com.google.android.dialer": "Phone",
+    "com.android.camera": "Camera",
+    "com.sec.android.app.camera": "Camera",
+    "com.android.settings": "Settings",
+    "com.android.calculator2": "Calculator",
+    "com.android.deskclock": "Clock",
+    "com.sec.android.gallery3d": "Gallery",
+    "com.samsung.android.messaging": "Messages",
+    "com.samsung.android.dialer": "Phone",
+    "com.samsung.android.app.notes": "Samsung Notes",
+}
+
+
+def _guess_android_app_name(package: str) -> str:
+    known = _ANDROID_APP_NAMES.get(package)
+    if known:
+        return known
+    last = package.split(".")[-1] if package else ""
+    return last.replace("_", " ").replace("-", " ").title() or package
+
+
+def list_apps(device: str, query: str = "", *, verify: bool = True, include_system: bool = True) -> list[dict]:
+    """Return app inventory entries with a stable {name, package, platform} shape."""
+    needle = (query or "").strip().lower()
+    if is_ios_ref(device):
+        apps = get_device(device).list_apps(query=query, verify=verify)
+        return [
+            {
+                **app,
+                "package": app.get("package") or app.get("bundle_id", ""),
+                "bundle_id": app.get("bundle_id") or app.get("package", ""),
+                "platform": "ios",
+            }
+            for app in apps
+        ]
+
+    dev = Device(device)
+    args = ["shell", "pm", "list", "packages"]
+    if not include_system:
+        args.append("-3")
+    raw = dev.adb(*args, timeout=15)
+    packages = sorted(pkg.replace("package:", "").strip() for pkg in raw.splitlines() if pkg.startswith("package:"))
+    apps = []
+    for package in packages:
+        entry = {
+            "name": _guess_android_app_name(package),
+            "package": package,
+            "bundle_id": "",
+            "platform": "android",
+            "verified": True,
+            "installed": True,
+        }
+        if needle and needle not in entry["name"].lower() and needle not in package.lower():
+            continue
+        apps.append(entry)
+    apps.sort(key=lambda app: (app["name"].lower(), app["package"]))
+    return apps
+
+
+def list_packages(device: str, *, include_system: bool = False) -> list[str]:
+    apps = list_apps(device, include_system=include_system)
+    if is_ios_ref(device):
+        return [app["bundle_id"] for app in apps if app.get("bundle_id")]
+    return [app["package"] for app in apps if app.get("package")]
+
+
 # ── Screenshots ──────────────────────────────────────────────────────────────
 
 
+def _raw_screenshot_bytes(device: str) -> bytes:
+    if is_ios_ref(device):
+        return get_device(device).take_screenshot()
+    return subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+
+
 def screenshot(device: str, half_res: bool = True, quality: int = 50) -> dict:
-    """Take screenshot via ADB screencap. Returns {image: base64, width, height}."""
+    """Take screenshot from the platform backend. Returns {image, width, height, device, platform}."""
     from PIL import Image
 
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = _raw_screenshot_bytes(device)
     img = Image.open(io.BytesIO(raw)).convert("RGB")
     if half_res:
         img = img.resize((img.width // 2, img.height // 2), Image.NEAREST)
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=quality)
-    return {
-        "image": base64.b64encode(buf.getvalue()).decode(),
-        "width": img.width,
-        "height": img.height,
-    }
+    return _device_payload(
+        device,
+        {
+            "image": base64.b64encode(buf.getvalue()).decode(),
+            "width": img.width,
+            "height": img.height,
+        },
+    )
 
 
 def screenshot_annotated(device: str) -> dict:
     """Screenshot with our own numbered element overlay drawn server-side.
     Each interactive element gets a colored badge with its index number.
-    Returns {image: base64, width, height}."""
+    Returns {image, width, height, device, platform}."""
     from PIL import Image, ImageDraw, ImageFont
 
     # Take screenshot
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = _raw_screenshot_bytes(device)
     img = Image.open(io.BytesIO(raw)).convert("RGB")
     draw = ImageDraw.Draw(img)
 
@@ -129,36 +336,42 @@ def screenshot_annotated(device: str) -> dict:
     # Encode
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=70)
-    return {
-        "image": base64.b64encode(buf.getvalue()).decode(),
-        "width": img.width,
-        "height": img.height,
-    }
+    return _device_payload(
+        device,
+        {
+            "image": base64.b64encode(buf.getvalue()).decode(),
+            "width": img.width,
+            "height": img.height,
+        },
+    )
 
 
 def screenshot_cropped(device: str, x1: int, y1: int, x2: int, y2: int, quality: int = 70) -> dict:
     """Screenshot a specific region of the screen.
-    Coordinates are in device pixels. Returns {image: base64, width, height}."""
+    Coordinates are in device pixels. Returns {image, width, height, device, platform}."""
     from PIL import Image
 
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = _raw_screenshot_bytes(device)
     img = Image.open(io.BytesIO(raw)).convert("RGB")
     cropped = img.crop((x1, y1, x2, y2))
     buf = io.BytesIO()
     cropped.save(buf, format="JPEG", quality=quality)
-    return {
-        "image": base64.b64encode(buf.getvalue()).decode(),
-        "width": cropped.width,
-        "height": cropped.height,
-    }
+    return _device_payload(
+        device,
+        {
+            "image": base64.b64encode(buf.getvalue()).decode(),
+            "width": cropped.width,
+            "height": cropped.height,
+        },
+    )
 
 
 # ── XML / Element tree ───────────────────────────────────────────────────────
 
 
 def get_screen_xml(device: str, max_length: int = 50000) -> str:
-    """Raw UI XML dump from uiautomator. Use get_screen_tree() for LLM-friendly format."""
-    dev = Device(device)
+    """Raw Android UIAutomator XML or normalized iOS WDA XML."""
+    dev = get_device(device)
     xml = dev.dump_xml()
     return xml[:max_length] if xml else ""
 
@@ -166,7 +379,7 @@ def get_screen_xml(device: str, max_length: int = 50000) -> str:
 def get_interactive_elements(device: str, interactive_only: bool = True) -> list[dict]:
     """Interactive UI elements as a JSON-serializable list.
     Each element: {idx, text, content_desc, resource_id, class, bounds, center, clickable, scrollable}."""
-    dev = Device(device)
+    dev = get_device(device)
     xml = dev.dump_xml()
     if not xml:
         return []
@@ -217,7 +430,7 @@ def get_screen_tree(device: str, max_nodes: int = 80) -> str:
     """
     import xml.etree.ElementTree as ET
 
-    dev = Device(device)
+    dev = get_device(device)
     xml_str = dev.dump_xml()
     if not xml_str:
         return "(empty screen)"
@@ -321,7 +534,7 @@ def _get_ocr():
 
 def ocr_screen(device: str) -> list[dict]:
     """OCR the full device screen. Returns [{text, conf, x, y}] sorted top-to-bottom."""
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = _raw_screenshot_bytes(device)
     ocr = _get_ocr()
     result = ocr(raw)
     if not result or not result.txts:
@@ -341,7 +554,7 @@ def ocr_region(device: str, x1: int, y1: int, x2: int, y2: int) -> list[dict]:
     Returns [{text, conf, x, y, w, h}] where x/y are relative to the crop."""
     from PIL import Image
 
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
+    raw = _raw_screenshot_bytes(device)
     img = Image.open(io.BytesIO(raw))
     cropped = img.crop((x1, y1, x2, y2))
     ocr = _get_ocr()
@@ -417,7 +630,7 @@ def classify_screen(device: str) -> dict:
     screen_type is one of: home, search, profile, settings, dialog, error, loading, unknown.
     Uses XML heuristics — no LLM needed."""
     state = get_phone_state(device)
-    dev = Device(device)
+    dev = get_device(device)
     xml = dev.dump_xml() or ""
 
     pkg = state.get("packageName", "")
@@ -459,14 +672,17 @@ def classify_screen(device: str) -> dict:
     elif any(w in xml for w in ["RecyclerView", "ViewPager", "feed"]):
         screen_type = "feed"
 
-    return {
-        "app": app,
-        "package": pkg,
-        "screen_type": screen_type,
-        "has_keyboard": has_keyboard,
-        "activity": state.get("activityName", ""),
-        "details": details,
-    }
+    return _device_payload(
+        device,
+        {
+            "app": app,
+            "package": pkg,
+            "screen_type": screen_type,
+            "has_keyboard": has_keyboard,
+            "activity": state.get("activityName", ""),
+            "details": details,
+        },
+    )
 
 
 # ── Clipboard ────────────────────────────────────────────────────────────────
@@ -474,6 +690,11 @@ def classify_screen(device: str) -> dict:
 
 def clipboard_get(device: str) -> str:
     """Get current clipboard text from device."""
+    if is_ios_ref(device):
+        try:
+            return get_device(device).clipboard_get()
+        except Exception:
+            return ""
     dev = Device(device)
     try:
         return dev.adb("shell", "am", "broadcast", "-a", "clipper.get", timeout=3).strip()
@@ -490,6 +711,11 @@ def clipboard_get(device: str) -> str:
 
 def clipboard_set(device: str, text: str) -> bool:
     """Set clipboard text on device via Ghost portal (ClipboardManager)."""
+    if is_ios_ref(device):
+        try:
+            return bool(get_device(device).clipboard_set(text))
+        except Exception:
+            return False
     dev = Device(device)
     port = dev._ensure_portal_forward()
     if port:
@@ -520,6 +746,11 @@ def clipboard_set(device: str, text: str) -> bool:
 def get_notifications(device: str) -> list[dict]:
     """Get active notifications from the notification panel.
     Returns [{package, title, text, time}]."""
+    if is_ios_ref(device):
+        try:
+            return get_device(device).get_notifications()
+        except Exception:
+            return []
     dev = Device(device)
     try:
         out = dev.adb("shell", "dumpsys", "notification", "--noredact", timeout=10)
@@ -548,6 +779,11 @@ def get_notifications(device: str) -> list[dict]:
 
 def open_notifications(device: str) -> bool:
     """Pull down the notification shade."""
+    if is_ios_ref(device):
+        try:
+            return bool(get_device(device).open_notifications())
+        except Exception:
+            return False
     dev = Device(device)
     try:
         dev.adb("shell", "cmd", "statusbar", "expand-notifications", timeout=3)
@@ -558,6 +794,11 @@ def open_notifications(device: str) -> bool:
 
 def clear_notifications(device: str) -> bool:
     """Dismiss all notifications."""
+    if is_ios_ref(device):
+        try:
+            return bool(get_device(device).clear_notifications())
+        except Exception:
+            return False
     dev = Device(device)
     try:
         dev.adb("shell", "service", "call", "notification", "1", timeout=3)
@@ -608,7 +849,7 @@ def find_on_screen(device: str, text: str) -> dict | None:
     """Find specific text on screen and return its location.
     Searches XML elements first (fast), falls back to OCR (slower).
     Returns {text, x, y, w, h, method} or None if not found."""
-    dev = Device(device)
+    dev = get_device(device)
     xml = dev.dump_xml()
     if xml:
         # Search in XML text + content-desc
@@ -670,9 +911,227 @@ def build_llm_context(
 
 # ── Device health check ──────────────────────────────────────────────────────
 
+_IOS_HEALTH_RECOVERY: dict[str, dict] = {
+    "appium_down": {
+        "code": "start_appium",
+        "summary": "Appium is not reachable at the configured URL.",
+        "steps": [
+            "Start Appium with the XCUITest driver, for example: appium --address 127.0.0.1 --port 4723",
+            "Verify IOS_APPIUM_URL points to the running server.",
+            "Re-run /api/phone/devices?probe=deep or /api/phone/health/ios:<udid>.",
+        ],
+    },
+    "configured_unreachable": {
+        "code": "check_ios_device_config",
+        "summary": "The iOS device ref or Appium/WDA configuration is inconsistent.",
+        "steps": [
+            "Confirm the ref is ios:<udid> and the UDID appears in xcrun xctrace list devices.",
+            "Check IOS_DEVICE_UDID, IOS_DEVICES_JSON, IOS_APPIUM_URL, IOS_WDA_URL, and per-device ports.",
+            "Use a shallow device list first, then a deep probe after config is corrected.",
+        ],
+    },
+    "remote_xpc_tunnel_unavailable": {
+        "code": "restart_remote_xpc_tunnel",
+        "summary": "The iPhone is paired, but Appium cannot reach the XCUITest RemoteXPC tunnel.",
+        "steps": [
+            "Stop any stale root-owned XCUITest tunnel process for the device.",
+            "Start a fresh tunnel with: sudo appium driver run xcuitest tunnel-creation --udid <udid>",
+            "Verify the tunnel registry returns a current entry at /remotexpc/tunnels/<udid>, then rerun the health probe.",
+        ],
+    },
+    "locked": {
+        "code": "unlock_and_trust_device",
+        "summary": "The iPhone is locked, not trusted, or Developer Mode/UI Automation is blocked.",
+        "steps": [
+            "Unlock the iPhone and keep it awake.",
+            "Accept the Trust This Computer prompt if shown.",
+            "Confirm Developer Mode and UI Automation are enabled, then retry the health probe.",
+        ],
+    },
+    "wda_signing_failed": {
+        "code": "fix_wda_signing",
+        "summary": "WebDriverAgent could not be built, signed, installed, or launched by Xcode/Appium.",
+        "steps": [
+            "Set IOS_XCODE_ORG_ID, IOS_XCODE_SIGNING_ID, and IOS_UPDATED_WDA_BUNDLE_ID for the device/team.",
+            "If the device reports the Developer App certificate is not trusted, open iOS Settings > General > VPN & Device Management and trust the developer certificate.",
+            "Unlock the device and manually run a WDA build once if Xcode needs account/device registration.",
+            "Set IOS_SHOW_XCODE_LOG=true for detailed xcodebuild output, then retry with /api/phone/health/ios:<udid>.",
+        ],
+    },
+    "wda_launch_timeout": {
+        "code": "fix_wda_launch_timeout",
+        "summary": "Appium is reachable, but WebDriverAgent did not finish launching before the session timeout.",
+        "steps": [
+            "Keep the iPhone unlocked and awake while WDA is building and launching.",
+            "Inspect the Appium/Xcode log for signing, provisioning, or device-lock prompts that occurred during session creation.",
+            "Increase IOS_APPIUM_TIMEOUT and IOS_WDA_LAUNCH_TIMEOUT for first-time WDA builds, then retry the health probe.",
+        ],
+    },
+    "session_error": {
+        "code": "reset_session",
+        "summary": "The cached Appium session is stale or WDA stopped responding.",
+        "steps": [
+            "Call /api/phone/health/ios:<udid>/fix with issue=reset_session.",
+            "If the next probe still fails, restart Appium and rerun the XCUITest tunnel for the device.",
+        ],
+    },
+    "error": {
+        "code": "reset_session",
+        "summary": "Ghost hit an unexpected iOS health-check error.",
+        "steps": [
+            "Reset the Appium session and retry.",
+            "If the error persists, inspect the Appium server log and WDA setup.",
+        ],
+    },
+}
+
+
+def _ios_recovery_for_state(state: str) -> dict:
+    recovery = dict(_IOS_HEALTH_RECOVERY.get(state) or {})
+    if not recovery:
+        return {"code": "", "summary": "iOS Appium/WDA session is usable.", "steps": []}
+    recovery["state"] = state
+    return recovery
+
+
+def ios_recovery_for_state(state: str) -> dict:
+    return _ios_recovery_for_state(state)
+
+
+def _is_local_http_appium_url(appium_url: str) -> bool:
+    parsed = urllib.parse.urlparse(appium_url or "")
+    scheme = parsed.scheme or "http"
+    host = parsed.hostname or "127.0.0.1"
+    return scheme == "http" and host in {"127.0.0.1", "localhost", "::1"}
+
+
+def ios_device_health(device: str, ios_dev=None) -> dict:
+    try:
+        ios_dev = ios_dev or get_device(device)
+        status = ios_dev.probe(deep=True).to_dict()
+        state = status.get("state", "session_error")
+        checks = status.get("checks") or {}
+        screenshot_bytes = checks.get("screenshot_bytes") or 0
+        source_bytes = checks.get("source_bytes") or 0
+        appium_status_code = checks.get("appium_status_code")
+        appium_reachable = state != "appium_down"
+        if isinstance(appium_status_code, int):
+            appium_reachable = appium_status_code < 400
+        recovery = _ios_recovery_for_state(state)
+        if state == "remote_xpc_tunnel_unavailable":
+            try:
+                recovery = remote_xpc_manual_recovery(
+                    status.get("udid") or device, checks.get("remote_xpc_tunnel") or {}
+                )
+            except Exception:
+                recovery = _ios_recovery_for_state(state)
+        elif state == "appium_down":
+            appium_url = status.get("appium_url") or getattr(ios_dev, "appium_url", "")
+            auto_fixable = _is_local_http_appium_url(str(appium_url))
+            recovery = {
+                **recovery,
+                "auto_fixable": auto_fixable,
+                "manual_action_required": not auto_fixable,
+                "requires_sudo": False,
+            }
+        recommended_fix = recovery.get("code", "")
+        return {
+            "serial": device,
+            "connection": {"type": "appium-wda", "status": state},
+            "platform": "ios",
+            "appium": {
+                "url": status.get("appium_url", ""),
+                "session_id": status.get("session_id", ""),
+                "reachable": appium_reachable,
+                "state": state,
+                "message": status.get("message", ""),
+                "status_code": appium_status_code,
+            },
+            "wda": {
+                "session": status.get("session_id", ""),
+                "ready": state == "available",
+                "active_app": status.get("active_app") or {},
+                "screen_size": status.get("screen_size") or {},
+                "screenshot_ok": bool(screenshot_bytes),
+                "source_ok": bool(source_bytes),
+                "mjpeg_url": ios_dev.mjpeg_url,
+                "mjpeg_settings": ios_dev.mjpeg_settings,
+                "checks": status.get("checks") or {},
+            },
+            "recommended_fix": recommended_fix,
+            "recovery": recovery,
+            "device_info": status,
+        }
+    except Exception as e:
+        recovery = _ios_recovery_for_state("error")
+        return {
+            "serial": device,
+            "connection": {"type": "appium-wda", "status": "error"},
+            "platform": "ios",
+            "appium": {"reachable": False, "message": str(e), "state": "error"},
+            "wda": {"session": "", "screenshot_ok": False, "source_ok": False, "checks": {"error": str(e)}},
+            "recommended_fix": recovery["code"],
+            "recovery": recovery,
+            "error": str(e),
+        }
+
+
+def _ios_state_for_fix(issue: str) -> str:
+    for state, recovery in _IOS_HEALTH_RECOVERY.items():
+        if recovery.get("code") == issue:
+            return state
+    return ""
+
+
+def fix_device_health(device: str, issue: str) -> dict:
+    """Apply a recovery action returned by device_health()."""
+    issue = (issue or "").strip()
+    platform = "ios" if is_ios_ref(device) else "android"
+    if not issue:
+        return {"ok": False, "platform": platform, "error": "issue is required"}
+
+    if is_ios_ref(device):
+        if issue == "start_appium":
+            return get_device(device).start_appium_server()
+        if issue in {"reset_session", "appium_session", "wda_session"}:
+            get_device(device).reset_session()
+            return {"ok": True, "platform": "ios", "issue": issue, "message": "iOS Appium session reset"}
+        if issue == "restart_remote_xpc_tunnel":
+            return get_device(device).restart_remote_xpc_tunnel()
+
+        state = _ios_state_for_fix(issue)
+        if state:
+            recovery = _ios_recovery_for_state(state)
+            return {
+                "ok": False,
+                "platform": "ios",
+                "issue": issue,
+                "manual_action_required": True,
+                "message": recovery["summary"],
+                "recovery": recovery,
+            }
+        return {"ok": False, "platform": "ios", "issue": issue, "error": f"Unknown iOS health fix: {issue}"}
+
+    if issue in {"portal_service", "portal_install", "portal"}:
+        from gitd.routers.streaming import portal_fix
+
+        result = portal_fix(device)
+        if isinstance(result, dict):
+            result.setdefault("platform", "android")
+            result.setdefault("issue", issue)
+        return result
+    if issue == "screen_wake":
+        subprocess.run(
+            ["adb", "-s", device, "shell", "input", "keyevent", "KEYCODE_WAKEUP"], capture_output=True, timeout=3
+        )
+        return {"ok": True, "platform": "android", "issue": issue, "message": "Screen woken"}
+    return {"ok": False, "platform": "android", "issue": issue, "error": f"Unknown Android health fix: {issue}"}
+
 
 def device_health(device: str) -> dict:
     """Comprehensive device health check. Returns status for every subsystem."""
+    if is_ios_ref(device):
+        return ios_device_health(device)
     dev = Device(device)
     health = {"serial": device}
 
@@ -914,16 +1373,19 @@ def fingerprint_screen(device: str) -> dict:
     pkg = state.get("packageName", "")
     activity = state.get("activityName", "")
 
-    return {
-        "package": pkg,
-        "activity": activity,
-        "screen_type": classify_screen(device).get("screen_type", "unknown"),
-        "is_launcher": "launcher" in activity.lower() if activity else False,
-        "has_keyboard": state.get("keyboardVisible", False),
-        "interactive_count": len(elements),
-        "element_signatures": [f"{e.get('class', '')}.{e.get('resource_id', '')}" for e in elements[:20]],
-        "hash": _fingerprint_hash(pkg, activity, elements),
-    }
+    return _device_payload(
+        device,
+        {
+            "package": pkg,
+            "activity": activity,
+            "screen_type": classify_screen(device).get("screen_type", "unknown"),
+            "is_launcher": "launcher" in activity.lower() if activity else False,
+            "has_keyboard": state.get("keyboardVisible", False),
+            "interactive_count": len(elements),
+            "element_signatures": [f"{e.get('class', '')}.{e.get('resource_id', '')}" for e in elements[:20]],
+            "hash": _fingerprint_hash(pkg, activity, elements),
+        },
+    )
 
 
 def _fingerprint_hash(pkg: str, activity: str, elements: list[dict]) -> str:
@@ -943,4 +1405,4 @@ def validate_fingerprint(device: str, expected: dict) -> dict:
     for key in ("package", "activity", "screen_type", "is_launcher"):
         if key in expected and current.get(key) != expected[key]:
             mismatches.append({"field": key, "expected": expected[key], "actual": current.get(key)})
-    return {"valid": len(mismatches) == 0, "mismatches": mismatches, "current": current}
+    return _device_payload(device, {"valid": len(mismatches) == 0, "mismatches": mismatches, "current": current})

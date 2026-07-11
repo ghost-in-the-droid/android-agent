@@ -62,6 +62,20 @@ Define **skills** for any app, run them from the dashboard or API, scale across 
 
 ---
 
+## iOS Support (Experimental)
+
+Ghost can also drive iPhones through Appium/WebDriverAgent with the same tool
+surface: `ios:<udid>` device refs route tap/swipe/type/screenshot to WDA, and
+iOS-aware browser primitives (`open_url`, `read_news`, `extract_visible_text`)
+cover web tasks. Android-only tools (`shell`, `launch_intent`, Portal overlay)
+return a clear platform error instead of failing silently.
+
+iOS support is **feature-gated and OFF by default** while device testing
+matures — enable it with `GITD_ENABLE_IOS=1` (or `ios_platform_enabled=true`
+in `.env`). See [docs/SETUP_IOS.md](docs/SETUP_IOS.md) for Appium/WDA setup.
+
+---
+
 ## Quick Start
 
 Zero-install with [`uvx`](https://docs.astral.sh/uv/) (or `pipx`):

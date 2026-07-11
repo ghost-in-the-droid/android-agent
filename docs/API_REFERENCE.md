@@ -18,8 +18,8 @@ The backend auto-generates interactive API documentation via FastAPI's OpenAPI i
 | **bot** | `/api/bot` | Post bot, crawl queue |
 | **bot-workers** | `/api/bot-workers` | Background bot worker management |
 | **scheduler** | `/api/schedules`, `/api/scheduler` | Job scheduling, queue management, history |
-| **phone** | `/api/phone` | ADB device control, tap, swipe, screenshots |
-| **streaming** | `/api/phone/stream` | MJPEG + WebRTC phone screen streaming |
+| **phone** | `/api/phone` | Android/iOS device control, tap, swipe, screenshots |
+| **streaming** | `/api/phone/stream` | Android Portal/WebRTC and iOS WDA MJPEG phone screen streaming |
 | **streaming-viewers** | `/api/phone/webrtc-*` | WebRTC viewer pages and signaling |
 | **skills** | `/api/skills` | Installed skill packages, run actions/workflows |
 | **creator** | `/api/creator` | LLM-assisted skill builder with device stream |
@@ -47,6 +47,84 @@ curl http://localhost:5055/api/health
 
 ```bash
 curl http://localhost:5055/api/phone/devices
+```
+
+For configured iOS devices, request a deep WebDriverAgent readiness probe:
+
+```bash
+curl "http://localhost:5055/api/phone/devices?probe=deep"
+```
+
+### App lifecycle
+
+Check whether an Android package or iOS bundle id is installed, running, or
+foreground:
+
+```bash
+curl "http://localhost:5055/api/phone/apps/ios:<udid>?query=chrome"
+
+curl "http://localhost:5055/api/phone/app-state/ios:<udid>?package=com.google.chrome.ios"
+
+curl -X POST http://localhost:5055/api/phone/app-state \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>", "package": "com.google.chrome.ios"}'
+```
+
+### Screen recording
+
+Start and stop a cross-platform MP4 recording. Android uses `adb screenrecord`;
+iOS captures the WDA MJPEG stream through `ffmpeg`.
+
+```bash
+curl -X POST http://localhost:5055/api/phone/recording/start \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>", "filename": "ios-smoke.mp4"}'
+
+curl "http://localhost:5055/api/phone/recording/status/ios:<udid>"
+
+curl -X POST http://localhost:5055/api/phone/recording/stop \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>"}'
+
+curl http://localhost:5055/api/phone/recordings
+```
+
+### Streaming metadata
+
+Inspect the effective streaming mode before opening the MJPEG response. iOS
+returns WDA MJPEG settings, screenshot-polling fallback, health/fix links, and
+Portal/WebRTC unsupported flags.
+
+```bash
+curl "http://localhost:5055/api/phone/stream-info?device=ios:<udid>&mode=mjpeg&fps=5" | python3 -m json.tool
+
+curl "http://localhost:5055/api/phone/stream?device=ios:<udid>&mode=wda-mjpeg&fps=5"
+```
+
+### Clipboard and notifications
+
+These routes work for Android serials and `ios:<udid>` device refs:
+
+```bash
+curl "http://localhost:5055/api/phone/clipboard/ios:<udid>"
+
+curl -X POST http://localhost:5055/api/phone/clipboard \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>", "text": "hello"}'
+
+curl -X POST http://localhost:5055/api/phone/paste-text \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>", "text": "hello"}'
+
+curl "http://localhost:5055/api/phone/notifications/ios:<udid>"
+
+curl -X POST http://localhost:5055/api/phone/notifications/open \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>"}'
+
+curl -X POST http://localhost:5055/api/phone/notifications/clear \
+  -H "Content-Type: application/json" \
+  -d '{"device": "ios:<udid>"}'
 ```
 
 ### List installed skills

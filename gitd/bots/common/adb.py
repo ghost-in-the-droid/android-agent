@@ -376,11 +376,12 @@ class Device:
         n = list(map(int, re.findall(r'\d+', bounds_str)))
         return (n[0] + n[2]) // 2, (n[1] + n[3]) // 2
 
-    def find_bounds(self, xml: str, *, text=None, content_desc=None, resource_id=None) -> str | None:
+    def find_bounds(self, xml: str, *, text=None, content_desc=None, resource_id=None, class_name=None) -> str | None:
         """Return bounds string of first node matching the given attribute."""
         if text:          key, val = "text",         text
         elif content_desc: key, val = "content-desc", content_desc
         elif resource_id:  key, val = "resource-id",  resource_id
+        elif class_name:   key, val = "class",        class_name
         else:              return None
         m = re.search(rf'<node[^>]*{key}="{re.escape(val)}"[^>]*>', xml)
         if m:
@@ -460,7 +461,17 @@ class Device:
         time.sleep(0.5)
         self.adb("shell", "am", "force-stop", TIKTOK_PKG)
         time.sleep(1)
-        self.adb("shell", "am", "start", "-n", activity)
+        # Try the canonical MainActivity first; fall back to the LAUNCHER intent
+        # (which is what 'tap the icon' uses — works on Samsung where the
+        # explicit activity start sometimes lands in background only).
+        # adb_soft: a nonzero am-start exit is a normal fallback trigger here,
+        # not an error to raise.
+        r = self.adb_soft("shell", "am", "start", "-n", activity, timeout=10)
+        time.sleep(2)
+        if not r.ok or "Error" in r.stdout or "Activity not started" in r.stdout \
+                or self.screen_type(self.dump_xml()) == "unknown":
+            self.adb("shell", "monkey", "-p", TIKTOK_PKG, "-c",
+                     "android.intent.category.LAUNCHER", "1", timeout=10)
         time.sleep(3)
         # TikTok sometimes restores a previous creation session — back out until home
         for _ in range(8):

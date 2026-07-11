@@ -9,6 +9,9 @@ export interface BenchmarkTask {
   category: string
   complexity: number
   max_steps: number
+  platforms?: string[]
+  supports_android?: boolean
+  supports_ios?: boolean
 }
 
 export interface BenchmarkSuite {

@@ -11,6 +11,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 _Ghost 1.3 turns Ghost in the Droid into a full agent harness for Android. See [release notes](docs/release-notes/v1.3.0.md) for the full story._
 
 ### Added
+- **iOS support (experimental, feature-gated)** — control iPhones via Appium/WebDriverAgent with the same tool surface: `ios:<udid>` device refs, platform-routed tap/swipe/type/screenshot, iOS browser primitives (`open_url`, `read_news`, `extract_visible_text`, …), device health + recovery, WDA MJPEG screen recording. OFF by default — enable with `GITD_ENABLE_IOS=1`. Thanks [@blah-mad](https://github.com/blah-mad) ([#8](https://github.com/ghost-in-the-droid/android-agent/pull/8)).
 - **6 LLM backends** — Claude Code (CLI), Anthropic API, OpenRouter, Ollama, on-device Gemma, vLLM.
 - **On-device inference** — Gemma runs on the phone via MediaPipe (`.task`) or llama.cpp (`.gguf`), Chaquopy Python-in-APK bridge.
 - **LangChain + LlamaIndex integrations** — `GhostToolkit` (LangChain `BaseTool`) + `GhostAndroidToolSpec` (LlamaIndex `ToolSpec`), device auto-bound, shared `SAFE_DEVICE_TOOLS` allow-list.
@@ -21,7 +22,7 @@ _Ghost 1.3 turns Ghost in the Droid into a full agent harness for Android. See [
 - **Tracing tab** — per-turn traces, token accounting, tool-call visibility.
 - **Web search tool** — agent-callable mid-conversation.
 - **Marketing jobs seam** — `POST /api/marketing-jobs/enqueue` external orchestrator hook.
-- **`lookup_lead` + `list_unread_leads` MCP tools** — CRM-generic lead lookup primitives.
+- **`crm_lookup_contact` + `crm_list_unread_messages` MCP tools** — read-only local CRM lookup primitives.
 - **Sitemap + Google Search Console verification** — canonical `site:` URL, `robots.txt`, auto-generated `sitemap-index.xml`.
 - **Vercel Web Analytics** — wired into landing + Skill Hub pages.
 - **`GITD_CORS_ORIGINS` env override** — comma-separated allowlist for reverse-proxy deploys.

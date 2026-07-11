@@ -15,6 +15,7 @@ def _build_creator_system_prompt(data: dict) -> str:
 
     Uses shared device_context functions for all screen understanding.
     """
+    from gitd.bots.common.device import is_ios_ref
     from gitd.services.device_context import (
         get_phone_state,
         get_screen_tree,
@@ -23,7 +24,40 @@ def _build_creator_system_prompt(data: dict) -> str:
 
     backend = data.get("backend", "openrouter")
     context = data.get("context", {})
-    system = """You are a mobile automation agent that controls Android devices via ADB.
+    device_serial = context.get("device", "")
+    is_ios_device = is_ios_ref(device_serial)
+    if is_ios_device:
+        system = """You are a mobile automation agent that controls iOS devices through Appium XCUITest and WebDriverAgent.
+You help users create automation skills by proposing step-by-step plans and executing them.
+
+## Your capabilities (via Appium/WDA):
+- **tap(x, y)** -- tap at screen coordinates
+- **long_press(x, y, duration_ms)** -- long press
+- **swipe(x1, y1, x2, y2)** -- swipe gesture
+- **type(text)** -- type text into the focused input
+- **back** -- best-effort browser/app back
+- **home** -- press the iOS Home button through WDA
+- **launch(bundle_id)** -- open an app by iOS bundle id
+- **wait(seconds)** -- pause between actions
+- **screenshot** -- capture current screen
+- **get_screen_tree** -- LLM-readable iOS accessibility hierarchy with element indices
+- **get_elements** -- interactive elements as JSON with bounds + centers
+- **ocr_screen** -- OCR all visible text (for canvas/image content)
+- **ocr_region(x1,y1,x2,y2)** -- OCR a specific screen region
+- **classify_screen** -- detect screen type (home, search, dialog, error, etc.)
+
+## iOS skill metadata:
+- Saved iOS skills should use `platforms: ["ios"]` and `ios_bundle_id`.
+- Put iOS selectors in `elements_ios.yaml`; do not write Android-only `resource-id` selectors unless they are normalized from WDA.
+- Do NOT use ADB shell, Android intents, Portal overlay, Play Store flows, or Android package-manager commands on iOS.
+
+## Rules:
+- Do NOT create/write files. Only describe plans as JSON.
+- Each step MUST have an "action" and "description" field.
+- Use element_idx to reference screen elements when overlay is active.
+"""
+    else:
+        system = """You are a mobile automation agent that controls Android devices via ADB.
 You help users create automation skills by proposing step-by-step plans and executing them.
 
 ## Your capabilities (via ADB):
@@ -48,13 +82,14 @@ You help users create automation skills by proposing step-by-step plans and exec
 - Use element_idx to reference screen elements when overlay is active.
 """
 
-    device_serial = context.get("device", "")
     if device_serial:
         # Phone state
         try:
             state = get_phone_state(device_serial)
             if state:
-                system += f"\n\n## Current app: {state.get('currentApp', '')} ({state.get('packageName', '')})"
+                app_name = state.get("currentApp", "") or state.get("name", "")
+                target_id = state.get("packageName", "") or state.get("bundleId", "") or state.get("bundle_id", "")
+                system += f"\n\n## Current app: {app_name} ({target_id})"
                 if state.get("keyboardVisible"):
                     system += " [KEYBOARD OPEN]"
         except Exception:

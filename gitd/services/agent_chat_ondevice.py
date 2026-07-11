@@ -18,8 +18,9 @@ from gitd.services.agent_chat import (
     ChatSession,
     _parse_tool_calls,
     normalize_tool_call,
+    system_prompt_for_device,
 )
-from gitd.services.agent_tools import TOOLS, execute_tool
+from gitd.services.agent_tools import execute_tool, tool_prompt_list, tools_for_device
 from gitd.services.device_context import get_phone_state, get_screen_tree
 from gitd.services.observability import (
     record_generation,
@@ -144,11 +145,8 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
     except Exception:
         pass
 
-    tool_list = "\n".join(
-        f"- {t['name']}: {t['description']}  params: {list(t.get('input_schema', {}).get('properties', {}).keys())}"
-        for t in TOOLS
-    )
-    system = DEFAULT_SYSTEM.replace("{tool_list}", tool_list)
+    system = DEFAULT_SYSTEM.replace("{tool_list}", tool_prompt_list(tools_for_device(session.device)))
+    system = system_prompt_for_device(session.device, system)
 
     # Prompt structure tuned for KV prefix reuse:
     #   [SYSTEM]              ← invariant across turns + sessions

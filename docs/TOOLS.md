@@ -11,6 +11,8 @@ Both paths execute the same underlying logic — for tools with non-trivial
 behavior (e.g. `web_search`) they share a service module so there's one
 implementation, not two drifts.
 
+> **iOS:** with `GITD_ENABLE_IOS=1`, `ios:<udid>` device refs route cross-platform tools (tap, swipe, type, screenshot, browser primitives) through Appium/WDA. Android-only tools (`shell`, `launch_intent`, Portal overlay, crash reports) return a platform error for iOS refs. See `gitd/services/tool_platforms.py` for the per-tool support matrix.
+
 ## App lifecycle
 
 ### `launch_app(device, package, fresh=false)`

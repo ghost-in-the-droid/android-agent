@@ -46,3 +46,6 @@ portal/app/build/
 portal/build/
 portal/local.properties
 portal/*.apk
+
+# Personal/internal notes — never publish
+docs/HUMAN/

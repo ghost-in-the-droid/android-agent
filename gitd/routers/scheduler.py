@@ -16,6 +16,19 @@ from gitd.models.base import get_db
 router = APIRouter(tags=["scheduler"])
 
 
+def _phone_platform(phone_serial: str | None) -> str | None:
+    if not phone_serial:
+        return None
+    from gitd.skills.platforms import platform_for_device_ref
+
+    return platform_for_device_ref(phone_serial)
+
+
+def _annotate_phone_platform(record: dict) -> dict:
+    record["platform"] = _phone_platform(record.get("phone_serial"))
+    return record
+
+
 def _sched_next_run(sched: dict, db: Session) -> str | None:
     """Compute the next scheduled run time as HH:MM string."""
     if sched["schedule_type"] == "daily":
@@ -83,6 +96,85 @@ def _parse_live_stats(job: dict) -> str:
     return ""
 
 
+def _coerce_config(value) -> dict:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str) and value.strip():
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _scheduler_platform_error(record: dict) -> dict | None:
+    phone = record.get("phone_serial")
+    job_type = record.get("job_type", "")
+    if not phone or not job_type:
+        return None
+
+    config = _coerce_config(record.get("config_json"))
+    from gitd.services.job_engine import (
+        _job_platform_preflight,
+        _skill_config_preflight,
+        _skill_platform_preflight,
+    )
+    from gitd.skills.platforms import platform_for_device_ref
+
+    message = _skill_config_preflight(job_type, config)
+    if message:
+        detail = {
+            "error": "invalid_config",
+            "platform": platform_for_device_ref(phone),
+            "job_type": job_type,
+            "message": message,
+        }
+        skill = config.get("skill")
+        if skill:
+            detail["skill"] = skill
+        return detail
+
+    message = _job_platform_preflight(phone, job_type)
+    if not message:
+        message = _skill_platform_preflight(phone, job_type, config)
+    if not message:
+        return None
+
+    detail = {
+        "error": "unsupported_platform",
+        "platform": platform_for_device_ref(phone),
+        "job_type": job_type,
+        "message": message,
+    }
+    skill = config.get("skill")
+    if skill:
+        detail["skill"] = skill
+    return detail
+
+
+def _raise_scheduler_platform_error(record: dict):
+    detail = _scheduler_platform_error(record)
+    if detail:
+        raise HTTPException(status_code=400, detail=detail)
+
+
+def _restart_max_duration(row: dict, db: Session) -> int | None:
+    max_duration = row.get("max_duration_s")
+    if max_duration:
+        return int(max_duration)
+    scheduled_job_id = row.get("scheduled_job_id")
+    if not scheduled_job_id:
+        return None
+    existing = db.execute(
+        text("SELECT max_duration_s FROM scheduled_jobs WHERE id = :sid"),
+        {"sid": scheduled_job_id},
+    ).first()
+    if existing and existing[0]:
+        return int(existing[0])
+    return None
+
+
 # ── Schedules CRUD ──────────────────────────────────────────────────────────
 
 
@@ -93,6 +185,7 @@ def schedules_list(db: Session = Depends(get_db)):
     result = []
     for s in scheds:
         s = dict(s)
+        _annotate_phone_platform(s)
         last_run = (
             db.execute(
                 text("SELECT * FROM job_runs WHERE scheduled_job_id = :sid ORDER BY created_at DESC LIMIT 1"),
@@ -101,7 +194,7 @@ def schedules_list(db: Session = Depends(get_db)):
             .mappings()
             .first()
         )
-        s["last_run"] = dict(last_run) if last_run else None
+        s["last_run"] = _annotate_phone_platform(dict(last_run)) if last_run else None
         s["next_run"] = _sched_next_run(s, db) if s.get("is_enabled") else None
         result.append(s)
     return result
@@ -114,6 +207,7 @@ def schedules_create(data: dict = Body({}), db: Session = Depends(get_db)):
     for r in required:
         if not data.get(r):
             raise HTTPException(status_code=400, detail=f"{r} required")
+    _raise_scheduler_platform_error(data)
     from gitd.services.db_helpers import create_scheduled_job
 
     sid = create_scheduled_job(db, **data)
@@ -124,6 +218,13 @@ def schedules_create(data: dict = Body({}), db: Session = Depends(get_db)):
 def schedules_update(sid: int, data: dict = Body({}), db: Session = Depends(get_db)):
     """Update an existing scheduled job's configuration."""
     from gitd.services.db_helpers import update_scheduled_job
+
+    existing = db.execute(text("SELECT * FROM scheduled_jobs WHERE id = :sid"), {"sid": sid}).mappings().first()
+    if not existing:
+        raise HTTPException(status_code=404, detail="not found")
+    merged = dict(existing)
+    merged.update(data)
+    _raise_scheduler_platform_error(merged)
 
     update_scheduled_job(db, sid, **data)
     return {"ok": True}
@@ -170,6 +271,7 @@ def schedules_run_now(sid: int, db: Session = Depends(get_db)):
     if not sched:
         raise HTTPException(status_code=404, detail="not found")
     sched = dict(sched)
+    _raise_scheduler_platform_error(sched)
     from gitd.services.db_helpers import enqueue_job
 
     qid = enqueue_job(
@@ -196,14 +298,15 @@ def scheduler_status(db: Session = Depends(get_db)):
     for row in db_running:
         row = dict(row)
         key = row.get("phone_serial") or "__none__"
-        phones[key] = {"running": True, "job": row, "pid": row.get("pid")}
+        _annotate_phone_platform(row)
+        phones[key] = {"running": True, "job": row, "pid": row.get("pid"), "platform": row["platform"]}
     pending = db.execute(
         text("SELECT phone_serial, COUNT(*) as cnt FROM job_queue WHERE status='pending' GROUP BY phone_serial")
     ).fetchall()
     for row in pending:
         key = row[0] or "__none__"
         if key not in phones:
-            phones[key] = {"running": False, "job": None, "pid": None}
+            phones[key] = {"running": False, "job": None, "pid": None, "platform": _phone_platform(row[0])}
         phones[key]["pending"] = row[1]
     return phones
 
@@ -215,6 +318,7 @@ def scheduler_queue(db: Session = Depends(get_db)):
     result = []
     for r in rows:
         r = dict(r)
+        _annotate_phone_platform(r)
         if r.get("scheduled_job_id"):
             s = db.execute(
                 text("SELECT name FROM scheduled_jobs WHERE id = :sid"),
@@ -308,6 +412,7 @@ def scheduler_run_restart(run_id: int, db: Session = Depends(get_db)):
     if not row:
         raise HTTPException(status_code=404, detail="Run not found")
     row = dict(row)
+    _raise_scheduler_platform_error(row)
     from gitd.services.db_helpers import enqueue_job
 
     new_id = enqueue_job(
@@ -317,9 +422,10 @@ def scheduler_run_restart(run_id: int, db: Session = Depends(get_db)):
         config_json=row.get("config_json"),
         priority=row.get("priority", 2),
         scheduled_job_id=row.get("scheduled_job_id"),
+        max_duration_s=_restart_max_duration(row, db),
         trigger="manual",
     )
-    return {"ok": True, "new_job_id": new_id}
+    return {"ok": True, "new_job_id": new_id, "platform": _phone_platform(row.get("phone_serial"))}
 
 
 # ── History & timeline ──────────────────────────────────────────────────────
@@ -332,6 +438,7 @@ def scheduler_history(db: Session = Depends(get_db)):
     result = []
     for r in rows:
         r = dict(r)
+        _annotate_phone_platform(r)
         if r.get("scheduled_job_id"):
             s = db.execute(
                 text("SELECT name FROM scheduled_jobs WHERE id = :sid"),
@@ -360,6 +467,33 @@ def scheduler_history_logs(run_id: int, since: int = 0, db: Session = Depends(ge
     }
 
 
+@router.get("/api/scheduler/history/{run_id}/result", summary="Get Run Structured Result")
+def scheduler_history_result(run_id: int, db: Session = Depends(get_db)):
+    """Return the newest structured Data JSON emitted by a completed scheduler run."""
+    from gitd.services._job_helpers import _parse_job_result_data, _summarize_job_result_data
+
+    row = (
+        db.execute(
+            text("SELECT id, log_file FROM job_runs WHERE id = :rid"),
+            {"rid": run_id},
+        )
+        .mappings()
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Run not found")
+    log_path = row.get("log_file")
+    if not log_path or not Path(log_path).exists():
+        return {"ok": False, "result": None, "summary": "", "error": "log file not found"}
+    result = _parse_job_result_data(run_id, log_path=log_path)
+    return {
+        "ok": result is not None,
+        "result": result,
+        "summary": _summarize_job_result_data(result),
+        "error": "" if result is not None else "structured result not found",
+    }
+
+
 @router.get("/api/scheduler/timeline", summary="Get Scheduler Timeline")
 def scheduler_timeline(db: Session = Depends(get_db)):
     """Return 24h timeline data — past runs + future scheduled times per phone."""
@@ -384,6 +518,7 @@ def scheduler_timeline(db: Session = Depends(get_db)):
             ).first()
             if s:
                 r["schedule_name"] = s[0]
+        _annotate_phone_platform(r)
         past.append(r)
 
     future = []
@@ -402,6 +537,7 @@ def scheduler_timeline(db: Session = Depends(get_db)):
                         "scheduled_job_id": s["id"],
                         "schedule_name": s["name"],
                         "phone_serial": s.get("phone_serial"),
+                        "platform": _phone_platform(s.get("phone_serial")),
                         "job_type": s["job_type"],
                         "time": t,
                         "is_past": t <= now_time,
@@ -430,6 +566,7 @@ def scheduler_timeline(db: Session = Depends(get_db)):
                     "plan_id": cp["id"],
                     "schedule_name": f"CP: {cp.get('style_id', '?')}",
                     "phone_serial": cp.get("phone_serial"),
+                    "platform": _phone_platform(cp.get("phone_serial")),
                     "job_type": "content_plan",
                     "time": cp.get("scheduled_time"),
                     "date": cp.get("scheduled_date"),
@@ -442,3 +579,41 @@ def scheduler_timeline(db: Session = Depends(get_db)):
         pass
 
     return {"past": past, "future": future, "content_plan": content_plan_items}
+
+
+# ── Account health endpoints ────────────────────────────────────────────────
+
+
+@router.get("/api/scheduler/account-health", summary="Account Health for All Devices")
+def account_health_all():
+    """Probe every connected device for its TikTok account state."""
+    from gitd.services.account_health import all_devices_health
+
+    return all_devices_health()
+
+
+@router.get("/api/scheduler/account-health/{device}", summary="Account Health for One Device")
+def account_health_one(device: str, fresh: bool = False):
+    """Probe a single device. Pass ?fresh=true to bypass the 60s cache."""
+    from gitd.services.account_health import device_account_health
+
+    return device_account_health(device, fresh=fresh)
+
+
+@router.post("/api/scheduler/account-switch/{device}", summary="Switch Active TikTok Account")
+def account_switch(device: str, data: dict = Body(...)):
+    """Switch the active TikTok account on `device` to body.handle."""
+    handle = (data.get("handle") or "").strip()
+    if not handle:
+        raise HTTPException(status_code=400, detail="handle required")
+    from gitd.services.account_health import switch_active_account
+
+    return switch_active_account(device, handle)
+
+
+@router.post("/api/scheduler/account-sync/{device}", summary="Sync DB tiktok_accounts with Device State")
+def account_sync(device: str):
+    """Update tiktok_accounts DB rows to match what's actually logged in on `device`."""
+    from gitd.services.account_health import sync_tiktok_accounts_table
+
+    return sync_tiktok_accounts_table(device)

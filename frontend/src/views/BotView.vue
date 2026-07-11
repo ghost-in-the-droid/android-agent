@@ -4,7 +4,7 @@ import { api } from '@/composables/useApi'
 
 /* ── State ── */
 const activity = ref('post')
-const devices = ref<{serial: string; nickname?: string; model?: string; label?: string}[]>([])
+const devices = ref<{serial: string; nickname?: string; model?: string; label?: string; platform?: string}[]>([])
 const selectedDevice = ref('')
 const accounts = ref<{handle: string; is_default?: number}[]>([])
 const selectedAccount = ref('')
@@ -40,11 +40,24 @@ const history = ref<any[]>([])
 
 /* ── Computed ── */
 const startButtonLabel = computed(() => {
+  if (!selectedActivitySupported.value) return 'Not Available on iOS'
   const labels: Record<string, string> = {
     post: '📹 Start Upload',
     publish_draft: '📤 Publish Draft',
   }
   return labels[activity.value] || '▶ Start'
+})
+const selectedDeviceRow = computed(() => devices.value.find(d => d.serial === selectedDevice.value))
+const selectedDevicePlatform = computed<'android' | 'ios'>(() => {
+  const platform = String(selectedDeviceRow.value?.platform || '').toLowerCase()
+  if (platform === 'ios') return 'ios'
+  return selectedDevice.value.startsWith('ios:') ? 'ios' : 'android'
+})
+const selectedActivitySupported = computed(() => selectedDevicePlatform.value !== 'ios')
+const selectedActivitySupportMessage = computed(() => {
+  if (selectedActivitySupported.value) return ''
+  const label = activity.value === 'publish_draft' ? 'Publish draft' : 'Post'
+  return `${label} jobs are Android-only until the iOS TikTok workflow is ported.`
 })
 
 /* ── Data loading ── */
@@ -52,7 +65,8 @@ async function loadDevices() {
   try {
     const resp = await api('/api/phone/devices')
     devices.value = resp.devices || resp || []
-    if (devices.value.length && !selectedDevice.value) selectedDevice.value = devices.value[0].serial
+    const firstDevice = devices.value[0]
+    if (firstDevice && !selectedDevice.value) selectedDevice.value = firstDevice.serial
   } catch { /* ignore */ }
 }
 
@@ -186,6 +200,10 @@ function pbVideoClear() {
   postVideoLabel.value = ''
 }
 
+function hidePostVideoDropdownSoon() {
+  window.setTimeout(() => { postVideoDropdownVisible.value = false }, 150)
+}
+
 /* ── Hashtag pill helpers ── */
 function addHashtag(e?: KeyboardEvent) {
   const raw = postHashtagInput.value.trim().replace(/^#/, '')
@@ -204,6 +222,10 @@ function removeHashtag(tag: string) {
 
 /* ── Actions ── */
 async function botStart() {
+  if (!selectedActivitySupported.value) {
+    alert(selectedActivitySupportMessage.value)
+    return
+  }
   const device = selectedDevice.value
   const account = selectedAccount.value.replace(/^@/, '') || undefined
   const payload: any = { job_type: activity.value, device, account }
@@ -228,7 +250,7 @@ async function botStart() {
       pollStart()
       loadHistory()
     } else {
-      alert((r && r.error) || 'Failed to add job')
+      alert((r && (r.message || r.error)) || 'Failed to add job')
     }
   } catch (e: any) {
     alert('Failed: ' + e.message)
@@ -268,6 +290,14 @@ function phoneName(serial: string): string {
   const ph = devices.value.find(p => p.serial === serial)
   if (ph) return ph.nickname || ph.model || ph.label || serial.slice(0, 5)
   return serial.slice(0, 5)
+}
+
+function deviceLabel(d: {serial: string; nickname?: string; model?: string; label?: string; platform?: string}): string {
+  const name = d.nickname || d.model || d.label || d.serial
+  const platform = (d.platform || (d.serial.startsWith('ios:') ? 'ios' : 'android')).toLowerCase() === 'ios'
+    ? 'iOS'
+    : 'Android'
+  return `${name} (${platform}, ${d.serial.slice(0, 4)}…)`
 }
 
 function historyName(r: any): string {
@@ -362,7 +392,7 @@ onUnmounted(() => { pollStop() })
                 autocomplete="off" class="bot-input" style="width: 100%; box-sizing: border-box; max-width: none"
                 @input="pbVideoFilter(postVideoSearch)"
                 @focus="postVideoDropdownVisible = true"
-                @blur="setTimeout(() => postVideoDropdownVisible = false, 150)" />
+                @blur="hidePostVideoDropdownSoon" />
               <div v-if="postVideoDropdownVisible && postVideoResults.length"
                 style="position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
                   background: #0f172a; border: 1px solid #1e293b; border-radius: 6px;
@@ -444,7 +474,16 @@ onUnmounted(() => { pollStop() })
 
         <!-- Start / Stop -->
         <div style="display: flex; flex-direction: column; gap: 8px">
-          <button v-if="!botRunning" class="btn btn-primary" style="width: 100%; justify-content: center; display: flex; align-items: center; gap: 6px" @click="botStart">
+          <div v-if="selectedActivitySupportMessage"
+            style="font-size: 11px; line-height: 1.4; color: #fbbf24; background: #f59e0b0d; border: 1px solid #f59e0b33; border-radius: 6px; padding: 7px 9px">
+            {{ selectedActivitySupportMessage }}
+          </div>
+          <button v-if="!botRunning" class="btn btn-primary"
+            :disabled="!selectedActivitySupported"
+            :title="selectedActivitySupportMessage"
+            style="width: 100%; justify-content: center; display: flex; align-items: center; gap: 6px"
+            :style="{ opacity: selectedActivitySupported ? 1 : 0.5, cursor: selectedActivitySupported ? 'pointer' : 'not-allowed' }"
+            @click="botStart">
             {{ startButtonLabel }}
           </button>
           <button v-else style="width: 100%; justify-content: center; display: flex; align-items: center; gap: 6px;
@@ -460,7 +499,7 @@ onUnmounted(() => { pollStop() })
         <div class="bot-row">
           <label class="bot-label">Device</label>
           <select v-model="selectedDevice" class="bot-select" style="flex: 1">
-            <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ (d.nickname || d.model || d.label || d.serial) + ' (' + d.serial.slice(0, 4) + '\u2026)' }}</option>
+            <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ deviceLabel(d) }}</option>
           </select>
         </div>
 

@@ -20,6 +20,12 @@ import pytest
 # Without this, trace tests (which insert and DELETE trace rows) run against the
 # real data/gitd.db and wipe live rows. This module does NOT import gitd, so the
 # env var is set first.
+# ── iOS feature gate ──────────────────────────────────────────────────────────
+# iOS support ships gate-OFF by default; the test suite exercises the full iOS
+# surface, so enable it here. Gate-off behavior has its own dedicated tests
+# (tests/test_ios_feature_gate.py) that monkeypatch the gate closed.
+os.environ.setdefault("GITD_ENABLE_IOS", "1")
+
 if "DB_PATH" not in os.environ:
     # Per-worktree DB path. A fixed /tmp/gitd_pytest.db is shared by every
     # checkout, so pytest running concurrently in two per-agent worktrees would

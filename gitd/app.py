@@ -16,6 +16,7 @@ from gitd.routers.creator import router as creator_router
 from gitd.routers.emulators import pool_router as emulator_pool_router
 from gitd.routers.emulators import router as emulators_router
 from gitd.routers.explorer import router as explorer_router
+from gitd.routers.marketing_jobs import router as marketing_jobs_router
 from gitd.routers.misc import router as misc_router
 from gitd.routers.phone import router as phone_router
 from gitd.routers.scheduler import router as scheduler_router
@@ -52,8 +53,8 @@ async def lifespan(app: FastAPI):
 
 
 TAGS_METADATA = [
-    {"name": "phone", "description": "ADB device control, tap, swipe, screenshots"},
-    {"name": "streaming", "description": "MJPEG + WebRTC phone screen streaming"},
+    {"name": "phone", "description": "Android/iOS device control, tap, swipe, screenshots"},
+    {"name": "streaming", "description": "Android Portal/WebRTC and iOS WDA MJPEG phone screen streaming"},
     {"name": "skills", "description": "Installed skill packages, run actions/workflows"},
     {"name": "creator", "description": "LLM-assisted skill builder with device stream"},
     {"name": "explorer", "description": "Auto app explorer (BFS state discovery)"},
@@ -73,7 +74,7 @@ def create_app() -> FastAPI:
     """Build and return the FastAPI application."""
     app = FastAPI(
         title="Ghost in the Droid API",
-        description="Open-source Android automation — give any AI agent an Android body",
+        description="Open-source mobile automation for Android ADB and iOS Appium/WDA devices",
         version="1.0.0",
         lifespan=lifespan,
         openapi_tags=TAGS_METADATA,
@@ -111,6 +112,7 @@ def create_app() -> FastAPI:
     app.include_router(tools_hub_router)
     app.include_router(bot_router)
     app.include_router(scheduler_router)
+    app.include_router(marketing_jobs_router)
     app.include_router(tests_router)
     app.include_router(emulators_router)
     app.include_router(emulator_pool_router)

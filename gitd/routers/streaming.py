@@ -1,14 +1,18 @@
 """Streaming routes: MJPEG phone stream, WebRTC signaling."""
 
 import asyncio
+import base64
 import hashlib
 import json
 import subprocess
 import time
+import urllib.parse
 import urllib.request
 
 from fastapi import APIRouter, Body, HTTPException, Request
 from starlette.responses import StreamingResponse
+
+from gitd.bots.common.device import get_device, is_ios_ref
 
 router = APIRouter(tags=["streaming"])
 
@@ -31,7 +35,105 @@ def _stable_ws_port(serial: str) -> int:
     return 19000 + int(hashlib.md5(serial.encode()).hexdigest()[:3], 16) % 1000
 
 
+def _ios_unsupported(feature: str) -> dict:
+    return {"ok": False, "platform": "ios", "error": f"{feature} is Android-only and is not supported for iOS devices"}
+
+
+def _ios_stream_fallback(device: str, feature: str) -> dict:
+    health_endpoint = f"/api/phone/health/{device}"
+    fix_endpoint = f"{health_endpoint}/fix"
+    stream_url = f"/api/phone/stream?{urllib.parse.urlencode({'device': device, 'fps': 10, 'mode': 'wda-mjpeg'})}"
+    return {
+        "ok": False,
+        "platform": "ios",
+        "error": f"{feature} uses Android Portal/WebRTC and is not supported for iOS devices",
+        "stream_fallback": {
+            "endpoint": "/api/phone/stream",
+            "device": device,
+            "recommended_mode": "wda-mjpeg",
+            "fallback_mode": "screenshot-polling",
+            "stream_url": stream_url,
+            "url": stream_url,
+        },
+        "recovery": {
+            "health_endpoint": health_endpoint,
+            "fix_endpoint": fix_endpoint,
+            "fix_tool": "fix_device_health",
+            "common_fixes": ["reset_session", "restart_remote_xpc_tunnel"],
+            "message": "Use WDA MJPEG for iOS live view, or screenshot polling if Appium/WDA MJPEG is unavailable.",
+        },
+    }
+
+
 # ── MJPEG Stream ────────────────────────────────────────────────────────────
+
+
+def _phone_stream_url(device: str, *, fps: int, mode: str) -> str:
+    query = urllib.parse.urlencode({"device": device, "fps": fps, "mode": mode})
+    return f"/api/phone/stream?{query}"
+
+
+def _stream_health_links(device: str) -> dict:
+    health_endpoint = f"/api/phone/health/{device}"
+    return {
+        "health_endpoint": health_endpoint,
+        "fix_endpoint": f"{health_endpoint}/fix",
+        "fix_tool": "fix_device_health",
+    }
+
+
+@router.get("/api/phone/stream-info", summary="Describe Effective Phone Stream Mode")
+def phone_stream_info(device: str = "", fps: int = 30, quality: int = 8, mode: str = "screencap"):
+    """Return stream metadata without opening the streaming response."""
+    fps = max(1, min(fps, 60))
+    quality = max(1, min(quality, 31))
+    if is_ios_ref(device):
+        ios_dev = get_device(device)
+        requested_mode = mode or "mjpeg"
+        effective_mode = "wda-mjpeg" if requested_mode in {"mjpeg", "wda", "wda-mjpeg"} else "screenshot-polling"
+        stream_mode = "wda-mjpeg" if effective_mode == "wda-mjpeg" else "screencap"
+        return {
+            "ok": True,
+            "device": device,
+            "platform": "ios",
+            "requested_mode": requested_mode,
+            "effective_mode": effective_mode,
+            "recommended_mode": "wda-mjpeg",
+            "fallback_mode": "screenshot-polling",
+            "stream_url": _phone_stream_url(device, fps=min(fps, 10), mode=stream_mode),
+            "mjpeg_url": ios_dev.mjpeg_url,
+            "mjpeg_settings": getattr(ios_dev, "mjpeg_settings", {}) or {},
+            "fps": min(fps, 10),
+            "quality": quality,
+            "portal_supported": False,
+            "webrtc_supported": False,
+            "control_supported": True,
+            "unsupported_actions": ["portal", "webrtc", "wireless_adb", "overlay"],
+            "recovery": {
+                **_stream_health_links(device),
+                "common_fixes": ["start_appium", "reset_session", "restart_remote_xpc_tunnel"],
+            },
+        }
+
+    requested_mode = mode or "screencap"
+    effective_mode = "portal" if requested_mode == "portal" else ("h264" if requested_mode == "h264" else "screencap")
+    return {
+        "ok": True,
+        "device": device,
+        "platform": "android",
+        "requested_mode": requested_mode,
+        "effective_mode": effective_mode,
+        "recommended_mode": "portal",
+        "fallback_mode": "screencap",
+        "stream_url": _phone_stream_url(device, fps=fps, mode=effective_mode),
+        "fps": fps,
+        "quality": quality,
+        "portal_supported": True,
+        "webrtc_supported": True,
+        "control_supported": True,
+        "unsupported_actions": [],
+        "recovery": _stream_health_links(device),
+    }
 
 
 @router.get("/api/phone/stream", summary="Stream Phone Screen MJPEG")
@@ -39,6 +141,57 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
     """Stream phone screen via MJPEG."""
     fps = max(1, min(fps, 60))
     quality = max(1, min(quality, 31))
+    if is_ios_ref(device):
+        ios_dev = get_device(device)
+        frame_delay = max(0.05, 1.0 / min(fps, 10))
+        stream_url = ios_dev.mjpeg_url
+        stream_settings = getattr(ios_dev, "mjpeg_settings", {}) or {}
+
+        ios_stream_mode = "wda-mjpeg" if mode in {"mjpeg", "wda", "wda-mjpeg"} else "screenshot-polling"
+        boundary = "BoundaryString" if ios_stream_mode == "wda-mjpeg" else "frame"
+        boundary_bytes = boundary.encode("ascii")
+
+        def gen_ios_mjpeg():
+            try:
+                with urllib.request.urlopen(stream_url, timeout=10) as resp:
+                    while True:
+                        chunk = resp.read(16384)
+                        if not chunk:
+                            break
+                        yield chunk
+            except Exception:
+                yield from gen_ios_screencap()
+
+        def gen_ios_screencap():
+            from gitd.services.device_context import screenshot
+
+            while True:
+                try:
+                    result = screenshot(device, half_res=True, quality=45)
+                    frame = base64.b64decode(result["image"])
+                    yield (b"--" + boundary_bytes + b"\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
+                except Exception:
+                    time.sleep(0.5)
+                    continue
+                time.sleep(frame_delay)
+
+        gen = gen_ios_mjpeg if ios_stream_mode == "wda-mjpeg" else gen_ios_screencap
+        return StreamingResponse(
+            gen(),
+            media_type=f"multipart/x-mixed-replace; boundary={boundary}",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "X-Phone-Platform": "ios",
+                "X-Phone-Stream-Mode": ios_stream_mode,
+                "X-Phone-Stream-Fallback-Mode": "screenshot-polling",
+                "X-Phone-Health-URL": f"/api/phone/health/{device}",
+                "X-Phone-Health-Fix-URL": f"/api/phone/health/{device}/fix",
+                "X-Phone-MJPEG-URL": stream_url,
+                "X-Phone-MJPEG-Settings": json.dumps(stream_settings, sort_keys=True),
+            },
+        )
+
     dev_args = ["-s", device] if device else []
 
     def gen_h264():
@@ -181,11 +334,23 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
                 continue
             time.sleep(delay)
 
-    gen = gen_portal if mode == "portal" else (gen_h264 if mode == "h264" else gen_screencap)
+    android_stream_mode = "portal" if mode == "portal" else ("h264" if mode == "h264" else "screencap")
+    gen = (
+        gen_portal
+        if android_stream_mode == "portal"
+        else (gen_h264 if android_stream_mode == "h264" else gen_screencap)
+    )
     return StreamingResponse(
         gen(),
         media_type="multipart/x-mixed-replace; boundary=frame",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "X-Phone-Platform": "android",
+            "X-Phone-Stream-Mode": android_stream_mode,
+            "X-Phone-Health-URL": f"/api/phone/health/{device}",
+            "X-Phone-Health-Fix-URL": f"/api/phone/health/{device}/fix",
+        },
     )
 
 
@@ -195,6 +360,8 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
 @router.get("/api/phone/portal-status/{device}", summary="Check Portal Health")
 def portal_status(device: str):
     """Check Portal health on a device: process, accessibility service, HTTP API."""
+    if is_ios_ref(device):
+        return _ios_unsupported("Portal status")
     import urllib.error
 
     from gitd.bots.common.adb import Device
@@ -252,6 +419,8 @@ def portal_status(device: str):
 @router.post("/api/phone/portal-fix/{device}", summary="Auto-Fix Phone Portal")
 def portal_fix(device: str):
     """Auto-fix Portal: wake screen, enable accessibility service, restart."""
+    if is_ios_ref(device):
+        return _ios_unsupported("Portal fix")
     import urllib.error
 
     from gitd.bots.common.adb import _stable_port
@@ -333,6 +502,8 @@ async def webrtc_callback_handler(device: str, request: Request):
 @router.get("/api/phone/webrtc-poll-signals/{device}", summary="Poll WebRTC Signals")
 def webrtc_poll_signals(device: str):
     """Poll pending signaling messages from Portal for this device (legacy)."""
+    if is_ios_ref(device):
+        return _ios_stream_fallback(device, "WebRTC signal polling")
     msgs = _signaling_queues.pop(device, [])
     return {"ok": True, "messages": msgs}
 
@@ -340,6 +511,8 @@ def webrtc_poll_signals(device: str):
 @router.get("/api/phone/webrtc-signals-stream/{device}", summary="SSE Signal Stream")
 async def webrtc_signals_stream(device: str):
     """Server-Sent Events stream — pushes signaling messages instantly (no polling)."""
+    if is_ios_ref(device):
+        return _ios_stream_fallback(device, "WebRTC signal stream")
 
     async def generate():
         # Create per-device event for notifications
@@ -386,6 +559,8 @@ def _webrtc_signal_sync(data: dict):
 
     if not device or not method:
         raise HTTPException(status_code=400, detail="device and method required")
+    if is_ios_ref(device):
+        return _ios_stream_fallback(device, "WebRTC signaling")
 
     from gitd.bots.common.adb import Device
 
@@ -479,6 +654,8 @@ def webrtc_ws_send(data: dict = Body({})):
 
     if not device:
         raise HTTPException(status_code=400, detail="device required")
+    if is_ios_ref(device):
+        return _ios_stream_fallback(device, "Portal WebSocket")
 
     import websocket as ws_client
 
@@ -520,6 +697,8 @@ def webrtc_ws_send(data: dict = Body({})):
 def webrtc_ws_poll(data: dict = Body({})):
     """Poll for pending WebSocket messages from Portal."""
     device = data.get("device", "")
+    if is_ios_ref(device):
+        return _ios_stream_fallback(device, "Portal WebSocket polling")
     relay = _ws_relays.get(device)
     if not relay or not relay["ws"].connected:
         return {"ok": False, "responses": []}
