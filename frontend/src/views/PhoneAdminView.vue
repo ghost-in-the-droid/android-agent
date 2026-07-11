@@ -808,10 +808,11 @@ function stopMjpegWatchdog(serial: string) {
   if (mjpegWatchTimers.value[serial]) { clearInterval(mjpegWatchTimers.value[serial]); delete mjpegWatchTimers.value[serial] }
 }
 
-function mjpegImagePoint(img: HTMLImageElement, clientX: number, clientY: number): { x: number; y: number; width: number; height: number } | null {
+function mjpegImagePoint(img: HTMLImageElement | HTMLCanvasElement, clientX: number, clientY: number): { x: number; y: number; width: number; height: number } | null {
   const rect = img.getBoundingClientRect()
-  const sw = img.naturalWidth
-  const sh = img.naturalHeight
+  // <img> exposes naturalWidth/Height; <canvas> (H.264) exposes width/height.
+  const sw = (img as HTMLImageElement).naturalWidth || (img as HTMLCanvasElement).width
+  const sh = (img as HTMLImageElement).naturalHeight || (img as HTMLCanvasElement).height
   if (!sw || !sh || !rect.width || !rect.height) return null
   const sx = sw / rect.width
   const sy = sh / rect.height
@@ -1751,7 +1752,17 @@ onUnmounted(() => {
             @touchcancel="mjpegTouchCancel(selectedDevice)"
             @dragstart.prevent />
           <canvas v-show="streaming && singleStreamMode === 'h264'"
-            :id="`h264-canvas-${selectedDevice}`" class="stream-media" />
+            :id="`h264-canvas-${selectedDevice}`" class="stream-media"
+            style="cursor: pointer; touch-action: none"
+            @mousedown="mjpegMouseDown(selectedDevice, $event)"
+            @mousemove="mjpegMove(selectedDevice)"
+            @mouseup="mjpegMouseUp(selectedDevice, $event)"
+            @mouseleave="videoMouseLeave(selectedDevice)"
+            @touchstart="mjpegTouchStart(selectedDevice, $event)"
+            @touchmove="mjpegTouchMove(selectedDevice, $event)"
+            @touchend="mjpegTouchEnd(selectedDevice, $event)"
+            @touchcancel="mjpegTouchCancel(selectedDevice)"
+            @dragstart.prevent />
           <div v-if="streaming && singleStreamMode === 'h264'" class="h264-badge">
             <template v-if="h264M.renderFps || h264M.recvFps">
               recv {{ h264M.recvFps }} · render {{ h264M.renderFps }}fps · q{{ h264M.queue }} · {{ h264M.latencyMs }}ms · {{ h264M.kbps }}kbps<span v-if="h264M.dropped"> · drop {{ h264M.dropped }}</span>
