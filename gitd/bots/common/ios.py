@@ -804,6 +804,17 @@ def remote_xpc_tunnel_status(udid: str, *, platform_version: str = "", host: dic
         )
         return status
 
+    # The registry says OK with a live tunnel address — that IS the tunnel the
+    # stream/WDA use, so it's authoritative. Skip the devicectl cross-check: on
+    # iOS 17+ `devicectl device info details` frequently HANGS (~15s), which both
+    # made this health probe slow AND false-negatived a working tunnel (the
+    # "remote_xpc_tunnel_unavailable" widget popping up over a live stream). Only
+    # fall through to devicectl when the registry gave no address at all.
+    if str(registry.get("address") or ""):
+        status.update({"state": "available", "ok": True,
+                       "registry_address": str(registry.get("address"))})
+        return status
+
     devicectl = devicectl_device_details(udid)
     status["devicectl"] = devicectl
     registry_address = str(registry.get("address") or "")
