@@ -154,3 +154,74 @@ def platform_error(name: str, platform: str) -> dict[str, str | bool]:
 def platform_error_text(name: str, platform: str) -> str:
     error = platform_error(name, platform)
     return f"ERROR: {error['error']}"
+
+
+# ── Docs: generated platform-support matrix ──────────────────────────────────
+# Emits the per-tool Android/iOS support matrix as Markdown straight from the
+# classification above, so the public docs table never drifts from code. This is
+# the CLASSIFICATION only — docs overlay a "hardware-confirmed on iOS" badge on
+# top (some tools are classified cross-platform but not yet exercised on real WDA,
+# and several fall back to OCR on iOS due to the weaker accessibility tree).
+#   run:  python -m gitd.services.tool_platforms > tool-support.generated.md
+
+_BADGE = {
+    ("android_only", "android"): "✅",
+    ("android_only", "ios"): "⚠️ n/a",
+    ("cross_platform", "android"): "✅",
+    ("cross_platform", "ios"): "✅",
+    ("ios_supported", "android"): "⚠️ n/a",
+    ("ios_supported", "ios"): "✅",
+    ("ios_planned", "android"): "✅",
+    ("ios_planned", "ios"): "🔜",
+}
+
+_SUPPORT_HEADING = {
+    "cross_platform": "Cross-platform (Android + iOS)",
+    "ios_supported": "iOS-first",
+    "ios_planned": "Android now, iOS planned",
+    "android_only": "Android-only",
+}
+
+
+def _row(info: ToolPlatformInfo) -> str:
+    android = _BADGE[(info.support, "android")]
+    ios = _BADGE[(info.support, "ios")]
+    notes = (info.notes or "").replace("|", "\\|")
+    return f"| `{info.name}` | {android} | {ios} | {notes} |"
+
+
+def render_matrix_markdown() -> str:
+    """Render the full tool platform-support matrix as Markdown.
+
+    Grouped by support class, each group a table with an Android / iOS badge and
+    the per-tool note. Badges: ✅ supported · 🔜 iOS planned · ⚠️ n/a (not
+    applicable on that platform). Deterministic (sorted) so regenerating in CI
+    produces a stable diff.
+    """
+    lines = [
+        "<!-- GENERATED from gitd/services/tool_platforms.py — do not edit by hand.",
+        "     Regenerate: python -m gitd.services.tool_platforms -->",
+        "",
+        "Legend: ✅ supported · 🔜 iOS planned · ⚠️ n/a (platform can't support it).",
+        "Classification only — overlay a 'hardware-confirmed on iOS' badge separately;",
+        "several cross-platform tools fall back to OCR on iOS (weaker a11y tree).",
+    ]
+    for support in ("cross_platform", "ios_supported", "ios_planned", "android_only"):
+        names = tools_for_support(support)
+        if not names:
+            continue
+        lines += [
+            "",
+            f"### {_SUPPORT_HEADING[support]} ({len(names)})",
+            "",
+            "| Tool | Android | iOS | Notes |",
+            "| --- | :---: | :---: | --- |",
+        ]
+        lines += [_row(TOOL_PLATFORM_SUPPORT[name]) for name in names]
+    return "\n".join(lines) + "\n"
+
+
+if __name__ == "__main__":  # pragma: no cover — docs build entry point
+    import sys
+
+    sys.stdout.write(render_matrix_markdown())
