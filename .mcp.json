@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "android-agent": {
-      "command": "/Users/blah_mad/.local/bin/uv",
+      "command": "uv",
       "args": ["run", "python", "-m", "gitd.mcp_server"]
     }
   }
