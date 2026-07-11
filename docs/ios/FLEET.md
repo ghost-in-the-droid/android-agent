@@ -93,11 +93,39 @@ master relays through a WebSocket proxy without re-encoding. **This is why B is 
 transport layer for the whole fleet, not just a local jank fix.**
 
 Design notes:
-- Reuse WDA's embedded HTTP server for the WS upgrade (CocoaHTTPServer supports WS).
 - Keyframe on connect + periodic IDR so a late/relaying client can start decoding.
 - Config: fps, bitrate, keyframe interval, scale — mirror the `IOS_MJPEG_*` pattern
   as `IOS_STREAM_*`.
 - Fallback: if WebCodecs/route unavailable, fall back to the Step-1 MJPEG path.
+
+**Status: native encoder BUILT.** `patches/FBH264StreamServer.ghostagent.{h,m}` —
+a self-contained server that captures via `FBScreenshot`, hardware-encodes with
+`VTCompressionSession` (Baseline, real-time, ~2s keyframe interval), and speaks
+WebSocket (handshake + binary framing) directly over a `GCDAsyncSocket` listener.
+Emits Annex-B access units (SPS/PPS prepended on keyframes). Compiles clean;
+co-compiled via a textual include in `FBMjpegServer.m` + declared in
+`FBMjpegServer.h` (avoids a pbxproj entry — move to its own fork target file).
+Started by `FBWebServer.m` on `mjpegServerPort + 100` (e.g. 9200).
+
+**Open decision — reachability/transport.** Appium only forwards the *one*
+`mjpegServerPort` (`driver.js` `allocateMjpegServerPort`); a device port like 9200
+is NOT auto-forwarded, so the browser can't hit `localhost:9200` directly. Three
+ways to bridge, to pick + validate on-device:
+  1. **Dedicated forward** — establish a device:9200→localhost forward (usbmux/
+     tunnel) alongside Appium's. Simplest client (browser dials localhost:9200)
+     but needs a forward we manage.
+  2. **Backend/master WS proxy** (fleet-aligned) — Ghost proxies
+     `/api/phone/h264/<device>` ↔ the node's device stream. Browser talks same-
+     origin to the backend; the master relays across hosts. Best for the fleet,
+     but the node still needs to reach device:9200.
+  3. **Serve on WDA's :8100** (already forwarded) — integrate the WS into WDA's
+     RoutingHTTPServer/CocoaHTTPServer instead of a separate port. No new forward,
+     but requires CocoaHTTPServer WS integration (more vendored surgery).
+  Recommendation: **2 for the fleet endgame**, but **3 is the least-friction path
+  to a first working end-to-end** (no forward plumbing). Validate on-device.
+
+**Remaining for B:** pick transport (above) → frontend WebCodecs `VideoDecoder`
+→ canvas → WDA rebuild + on-device test (must be at the Mac console; codesign).
 
 ### Step 3 — Fleet relay
 Master exposes `/api/fleet/stream/<device>` (WebSocket). For a node-owned device it
