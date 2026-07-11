@@ -127,6 +127,36 @@ ways to bridge, to pick + validate on-device:
 **Remaining for B:** pick transport (above) → frontend WebCodecs `VideoDecoder`
 → canvas → WDA rebuild + on-device test (must be at the Mac console; codesign).
 
+### Latency notes (measured)
+
+Browser-side is not the bottleneck: with the scaled (50%) low-latency encoder,
+the WebCodecs client measured ~19fps steady, render matching receive, **zero
+decoder-queue backlog** — no lag accumulates in decode/draw. The stream client
+also **bounds latency**: if the decoder falls >4 frames behind it drops until the
+next keyframe, so it stays live instead of drifting seconds behind. Live metrics
+(recv/render fps, queue depth, decode→paint latency, kbps, dropped) are shown in
+the stream badge — use them to locate lag instead of guessing.
+
+The remaining perceived latency is the **capture-over-tunnel pipeline**, shared
+by MJPEG too. Removed the biggest avoidable chunk: the encoder now grabs the raw
+`CGImage` from `XCUIScreen.screenshot` instead of `FBScreenshot` (which
+JPEG-encodes on device only to be decoded right back). The hard floor is the
+screenshot capture round-trip itself (~50–100ms).
+
+**ReplayKit assessment (why we did NOT use it — yet):** ReplayKit's system
+compositor capture (~16ms/frame) is the only way below the screenshot floor, but
+both variants fight automation:
+- **Broadcast upload extension** (whole screen, what DeviceKit uses) — Apple
+  requires the *user* to manually start the broadcast (Control Center); there is
+  **no programmatic start**. For a fleet that streams any device on demand, a
+  human tapping "start broadcast" per phone is a dealbreaker. Plus a new signed
+  extension target, App Group IPC, and a 50MB memory cap.
+- **In-process `RPScreenRecorder.startCapture`** — starts programmatically but
+  captures only the *app's own* window; useless for a test-runner automating
+  other apps.
+If ReplayKit is pursued, the broadcast start would have to be automated by WDA
+tapping through Control Center (fragile, iOS-version-specific).
+
 ### Step 3 — Fleet relay
 Master exposes `/api/fleet/stream/<device>` (WebSocket). For a node-owned device it
 dials the node's `/wda/stream` and relays frames to the GUI client(s). Multiple GUI
