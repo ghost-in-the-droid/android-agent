@@ -210,8 +210,17 @@ static const long TAG_KEEPALIVE = 2;
   CFRelease(src);
   if (img == NULL) { return; }
 
-  int32_t w = (int32_t)CGImageGetWidth(img);
-  int32_t h = (int32_t)CGImageGetHeight(img);
+  // Encode at a SCALED resolution (reuses the mjpegScalingFactor knob, e.g. 50).
+  // Full-res 1178x2556 H.264 decode + full-canvas draw bottlenecks the browser
+  // to a few fps; half-res is ~4x less decode/draw work and bandwidth. The
+  // CGImage is drawn scaled into the smaller pixel buffer by CGContextDrawImage.
+  CGFloat scale = FBConfiguration.mjpegScalingFactor / 100.0;
+  if (scale <= 0.0 || scale > 1.0) { scale = 0.5; }
+  int32_t fullW = (int32_t)CGImageGetWidth(img);
+  int32_t fullH = (int32_t)CGImageGetHeight(img);
+  int32_t w = ((int32_t)(fullW * scale)) & ~1;   // keep even (H.264 requirement)
+  int32_t h = ((int32_t)(fullH * scale)) & ~1;
+  if (w < 2 || h < 2) { CGImageRelease(img); return; }
   if (![self ensureSessionForWidth:w height:h]) { CGImageRelease(img); return; }
 
   CVPixelBufferRef pb = [self pixelBufferFromImage:img width:w height:h];
@@ -235,9 +244,14 @@ static const long TAG_KEEPALIVE = 2;
     CFRelease(self.session);
     self.session = NULL;
   }
+  // Enable the low-latency H.264 encoder (WWDC21) — hardware, no frame reordering,
+  // tuned for real-time streaming.
+  NSDictionary *encSpec = @{
+    (__bridge NSString *)kVTVideoEncoderSpecification_EnableLowLatencyRateControl : @YES,
+  };
   VTCompressionSessionRef s = NULL;
   OSStatus st = VTCompressionSessionCreate(kCFAllocatorDefault, w, h, kCMVideoCodecType_H264,
-                                           NULL, NULL, NULL,
+                                           (__bridge CFDictionaryRef)encSpec, NULL, NULL,
                                            h264OutputCallback, (__bridge void *)self, &s);
   if (st != noErr || s == NULL) {
     [FBLogger logFmt:@"[GhostAgent] VTCompressionSessionCreate failed: %d", (int)st];
@@ -246,6 +260,11 @@ static const long TAG_KEEPALIVE = 2;
   VTSessionSetProperty(s, kVTCompressionPropertyKey_RealTime, kCFBooleanTrue);
   VTSessionSetProperty(s, kVTCompressionPropertyKey_AllowFrameReordering, kCFBooleanFalse);
   VTSessionSetProperty(s, kVTCompressionPropertyKey_ProfileLevel, kVTProfileLevel_H264_Baseline_AutoLevel);
+  // Cap the bitrate so keyframes don't spike over the tunnel (~6 Mbps).
+  int32_t bitrate = 6 * 1000 * 1000;
+  CFNumberRef brn = CFNumberCreate(NULL, kCFNumberSInt32Type, &bitrate);
+  VTSessionSetProperty(s, kVTCompressionPropertyKey_AverageBitRate, brn);
+  CFRelease(brn);
   int32_t kf = (int32_t)[self fps] * 2;   // keyframe every ~2s
   CFNumberRef kfn = CFNumberCreate(NULL, kCFNumberSInt32Type, &kf);
   VTSessionSetProperty(s, kVTCompressionPropertyKey_MaxKeyFrameInterval, kfn);
