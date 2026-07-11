@@ -30,6 +30,22 @@ def test_generated_header_and_legend_present():
     assert md.endswith("\n")
 
 
+def test_html_comment_header_by_default():
+    md = render_matrix_markdown()
+    assert md.startswith("<!--")
+    assert "{/*" not in md.splitlines()[0]
+
+
+def test_mdx_mode_uses_mdx_comment_not_html():
+    md = render_matrix_markdown(mdx=True)
+    # MDX chokes on HTML comments — the header must be a {/* */} comment
+    assert md.startswith("{/*") and md.splitlines()[0].endswith("*/}")
+    assert "<!--" not in md
+    assert "--mdx" in md.splitlines()[0]  # self-documenting regen command
+    # table body identical to the default render
+    assert "| `tap` | ✅ | ✅ |" in md
+
+
 def test_deterministic_output():
     assert render_matrix_markdown() == render_matrix_markdown()
 

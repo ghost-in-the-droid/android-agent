@@ -190,17 +190,25 @@ def _row(info: ToolPlatformInfo) -> str:
     return f"| `{info.name}` | {android} | {ios} | {notes} |"
 
 
-def render_matrix_markdown() -> str:
+def render_matrix_markdown(*, mdx: bool = False) -> str:
     """Render the full tool platform-support matrix as Markdown.
 
     Grouped by support class, each group a table with an Android / iOS badge and
     the per-tool note. Badges: ✅ supported · 🔜 iOS planned · ⚠️ n/a (not
     applicable on that platform). Deterministic (sorted) so regenerating in CI
     produces a stable diff.
+
+    ``mdx=True`` emits the generated-file header as an MDX comment (``{/* */}``)
+    instead of an HTML comment (``<!-- -->``), which is invalid in MDX. The table
+    body is identical (GitHub-flavored Markdown tables render in both).
     """
+    header = [
+        "GENERATED from gitd/services/tool_platforms.py — do not edit by hand.",
+        "Regenerate: python -m gitd.services.tool_platforms" + (" --mdx" if mdx else ""),
+    ]
+    comment = ["{/* " + " ".join(header) + " */}"] if mdx else ["<!-- " + header[0], "     " + header[1] + " -->"]
     lines = [
-        "<!-- GENERATED from gitd/services/tool_platforms.py — do not edit by hand.",
-        "     Regenerate: python -m gitd.services.tool_platforms -->",
+        *comment,
         "",
         "Legend: ✅ supported · 🔜 iOS planned · ⚠️ n/a (platform can't support it).",
         "Classification only — overlay a 'hardware-confirmed on iOS' badge separately;",
@@ -224,4 +232,4 @@ def render_matrix_markdown() -> str:
 if __name__ == "__main__":  # pragma: no cover — docs build entry point
     import sys
 
-    sys.stdout.write(render_matrix_markdown())
+    sys.stdout.write(render_matrix_markdown(mdx="--mdx" in sys.argv[1:]))
