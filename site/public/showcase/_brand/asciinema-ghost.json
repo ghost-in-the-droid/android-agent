@@ -1,0 +1,34 @@
+{
+  "name": "ghost",
+  "description": "Ghost in the Droid terminal theme for asciinema-agg. Palette mirrors site/src/styles/custom.css.",
+  "font_family": "JetBrains Mono",
+  "font_size": 16,
+  "line_height": 1.4,
+  "theme": {
+    "background": "#0d130e",
+    "foreground": "#e8ede9",
+    "palette": [
+      "#161e17",
+      "#ff6b6b",
+      "#00e5a0",
+      "#f0c674",
+      "#6ea8fe",
+      "#c792ea",
+      "#6efcd0",
+      "#bec8c0",
+      "#4a5c4e",
+      "#ff8f8f",
+      "#6efcd0",
+      "#ffe08a",
+      "#9ec5ff",
+      "#e2b8ff",
+      "#a8ffe4",
+      "#e8ede9"
+    ]
+  },
+  "agg": {
+    "comment": "agg --theme takes bg,fg,color0..color15 as 18 comma-separated hex values (no #).",
+    "theme_arg": "0d130e,e8ede9,161e17,ff6b6b,00e5a0,f0c674,6ea8fe,c792ea,6efcd0,bec8c0,4a5c4e,ff8f8f,6efcd0,ffe08a,9ec5ff,e2b8ff,a8ffe4,e8ede9",
+    "example": "agg --theme $(jq -r .agg.theme_arg asciinema-ghost.json) --font-family 'JetBrains Mono' --font-size 16 --line-height 1.4 demo.cast demo.gif"
+  }
+}

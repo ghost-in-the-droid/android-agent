@@ -1,0 +1,312 @@
+# Ghost in the Droid — Showcase Copy
+# 12 demos × title / hook / caption / CTAs / sizzle_order
+#
+# STATUS VALUES: live | shipping
+# FEATURED: first 5 gate the v1.3.0 showcase tag.
+
+demos:
+
+  # ─────────────────────────────────────────────────────
+  # FEATURED 5 — gate the showcase tag
+  # ─────────────────────────────────────────────────────
+
+  - id: on-device-gemma
+    title: "On-Device Gemma"
+    featured: true
+    status: live
+    sizzle_order: 1
+    hook: "The phone is the body. Now it's also the brain."
+    caption: |
+      The phone is the body. Now it's also the brain.
+
+      Ghost v1.3.0 runs Gemma directly inside the Ghost APK.
+      MediaPipe for 1B/2B models. llama.cpp via JNI for anything GGUF —
+      Gemma 4, Llama, Mistral, DeepSeek. The model executes in the
+      phone's own process. Nothing leaves the device. Works in airplane
+      mode. $0 inference cost, forever.
+
+      One phone. Zero cloud. Zero API key.
+
+      40+ MCP tools · MIT · pip install ghost-in-the-droid
+    ctas:
+      - label: "Get started"
+        url: "https://ghostinthedroid.com/docs/getting-started/introduction"
+      - label: "See the benchmark"
+        url: "https://ghostinthedroid.com/docs/features/ghost-bench"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  - id: mcp-claude-code
+    title: "Claude Code → Your Phone"
+    featured: true
+    status: live
+    sizzle_order: 2
+    hook: "40+ tools. One command. Your phone just became Claude's hands."
+    caption: |
+      Your LLM agent can think. Now it can touch.
+
+      Add Ghost to any MCP client — Claude Code, Cursor, Windsurf — with
+      one pip install. 40+ tools unlock instantly: screenshot, tap, swipe,
+      type, read the screen, install apps, run automation skills.
+
+      Tell Claude to order coffee on Starbucks. Watch it happen on your phone.
+
+      Direct ADB connection. No cloud relay. No middleman.
+
+      40+ MCP tools · MIT · pip install ghost-in-the-droid
+    ctas:
+      - label: "40+ MCP tools"
+        url: "https://ghostinthedroid.com/docs/features/mcp-server"
+      - label: "MCP quickstart"
+        url: "https://ghostinthedroid.com/docs/features/mcp-clients"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  - id: run-flow
+    title: "Run a Flow"
+    featured: true
+    status: live
+    sizzle_order: 3
+    hook: "One command. 15 steps. Done while you slept."
+    caption: |
+      You built the flow. The ghost runs it.
+
+      Ghost's agentic loop chains MCP tools into reusable workflows —
+      multi-step tasks that combine screenshots, taps, swipes, and OCR
+      into a single callable routine. Run it once. Schedule it. Fire it
+      from your own LLM agent.
+
+      No root. No companion app. No modification to the target app.
+      Just ADB and a ghost that never forgets a step.
+
+      Skill system · 40+ MCP tools · MIT · $0/device
+    ctas:
+      - label: "Browse skills"
+        url: "https://ghostinthedroid.com/skills"
+      - label: "Skill system docs"
+        url: "https://ghostinthedroid.com/docs/skills/overview"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  - id: langchain
+    title: "LangChain Integration"
+    featured: true
+    status: live
+    sizzle_order: 4
+    hook: "Your LangChain agent just grew hands."
+    caption: |
+      Your LangChain agent just grew hands.
+
+      Ghost exposes a full MCP server — any MCP-compatible framework
+      connects straight in. LangChain, LlamaIndex, AutoGen, Flowise.
+      Give your existing agent 40+ new tools: screenshot, tap, swipe,
+      OCR, UI explorer, skill runner.
+
+      The agent thinks. The ghost acts. The phone is the body.
+
+      Local-first · MIT · pip install ghost-in-the-droid
+    ctas:
+      - label: "Integration guide"
+        url: "https://ghostinthedroid.com/docs/features/integrations"
+      - label: "40+ MCP tools"
+        url: "https://ghostinthedroid.com/docs/features/mcp-server"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  - id: ios
+    title: "iPhone Support"
+    featured: true
+    status: shipping
+    sizzle_order: 5
+    hook: "Ghost speaks iPhone now."
+    caption: |
+      Ghost speaks iPhone now.
+
+      Same agent harness. Same skill system.
+      Real iPhone. Real apps. Via Appium WebDriverAgent — no jailbreak.
+      Growing MCP tool surface. Cross-platform architecture.
+
+      Android? Done. iPhone? Done.
+      Your AI agent runs both.
+
+      Ghost in the Droid v1.3.0 · MIT · pip install ghost-in-the-droid
+    ctas:
+      - label: "iOS setup guide"
+        url: "https://ghostinthedroid.com/docs/getting-started/ios"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  # ─────────────────────────────────────────────────────
+  # REMAINING 7 — supporting showcase content
+  # ─────────────────────────────────────────────────────
+
+  - id: llamaindex
+    title: "LlamaIndex Integration"
+    featured: false
+    status: live
+    sizzle_order: 6
+    hook: "Your LlamaIndex agent just got thumbs."
+    caption: |
+      Your LlamaIndex agent just got thumbs.
+
+      Ghost plugs into LlamaIndex via MCP — 40+ tools for any agent
+      that needs to act on a real Android or iPhone. Retrieve from your
+      index. Decide with your LLM. Act with Ghost.
+
+      Search the web, read the results, open the app, fill the form.
+      One agent loop, start to finish.
+
+      Local-first · MIT · pip install ghost-in-the-droid
+    ctas:
+      - label: "LlamaIndex integration"
+        url: "https://ghostinthedroid.com/docs/features/integrations"
+      - label: "40+ MCP tools"
+        url: "https://ghostinthedroid.com/docs/features/mcp-server"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  - id: login
+    title: "No API Key — Just Log In"
+    featured: false
+    status: live
+    sizzle_order: 7
+    hook: "You already pay for Claude. Now it drives your phone."
+    caption: |
+      You already pay for Claude. Now it drives your phone.
+
+      gitd login authenticates Ghost with your Claude Max or Pro
+      subscription via Anthropic's own OAuth flow — the same one
+      Claude Code uses. No API key to copy. No sk-ant-... to store.
+      No .env file to manage. Ghost never touches the token.
+
+      Just log in. Ghost handles the rest.
+
+      Works with Claude Max/Pro · MIT · pip install ghost-in-the-droid
+    ctas:
+      - label: "Login docs"
+        url: "https://ghostinthedroid.com/docs/features/llm-providers"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  - id: up-in-60s
+    title: "Up in 60 Seconds"
+    featured: false
+    status: live
+    sizzle_order: 8
+    hook: "Cold terminal to live phone stream. Under 60 seconds."
+    caption: |
+      Cold terminal to live phone stream. Under 60 seconds.
+
+      pip install ghost-in-the-droid
+      gitd up
+
+      That's the entire setup. Ghost boots the server, opens the
+      dashboard in your browser, and streams your connected phone
+      live. From "I want to try this" to "I'm controlling a phone"
+      in two commands.
+
+      40+ MCP tools · MIT · ghostinthedroid.com
+    ctas:
+      - label: "Quickstart"
+        url: "https://ghostinthedroid.com/docs/getting-started/installation"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  - id: doctor
+    title: "Ghost Doctor"
+    featured: false
+    status: live
+    sizzle_order: 9
+    hook: "Something not working? The ghost knows."
+    caption: |
+      Something not working? The ghost knows.
+
+      gitd doctor checks everything: Python version, ADB on PATH,
+      connected devices, MCP server status, provider connectivity.
+      Every check prints what's good, what's broken, and exactly
+      how to fix it.
+
+      No Googling. No Stack Overflow. One command, one output,
+      one action.
+
+      Ghost in the Droid · ghostinthedroid.com/docs
+    ctas:
+      - label: "Setup guide"
+        url: "https://ghostinthedroid.com/docs/getting-started/installation"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  - id: vllm-and-ollama
+    title: "vLLM + Ollama Providers"
+    featured: false
+    status: live
+    sizzle_order: 10
+    hook: "Your inference stack. Your rules."
+    caption: |
+      Your inference stack. Your rules.
+
+      Ghost v1.3.0 ships six LLM providers. vLLM for self-hosted GPU
+      clusters — high throughput, OpenAI-compatible endpoint, point Ghost
+      at it and go. Ollama for local inference — pull any model, run it
+      on your laptop, Ghost picks it up automatically.
+
+      No OpenAI account. No Anthropic key. No cloud dependency at all.
+      You own the device. You own the model. Ghost is the bridge.
+
+      Six providers · Local-first · MIT · pip install ghost-in-the-droid
+    ctas:
+      - label: "Provider docs"
+        url: "https://ghostinthedroid.com/docs/features/llm-providers"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  - id: emulator
+    title: "Docker Emulator Support"
+    featured: false
+    status: live
+    sizzle_order: 11
+    hook: "No phone? No problem."
+    caption: |
+      No phone? No problem.
+
+      Ghost v1.3.0 adds Docker + KVM emulator support. One emulator
+      per container — spin up as many containers as your RAM allows.
+      A 32GB host runs 4 comfortably. No USB cables. No hardware.
+      Same 40+ MCP tools. Same skills. Same agent loop.
+
+      N containers, N emulators, one host. The shelf is the fleet.
+
+      Ghost in the Droid · MIT · pip install ghost-in-the-droid
+    ctas:
+      - label: "Emulator setup"
+        url: "https://ghostinthedroid.com/docs/features/emulator"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"
+
+  - id: ghost-gemma-model
+    title: "Ghost-Gemma Model"
+    featured: false
+    status: live
+    sizzle_order: 12
+    hook: "We trained Gemma to use a phone. It got really good."
+    caption: |
+      We trained Gemma to use a phone. It got really good.
+
+      Ghost-Gemma is a Gemma 4 fine-tune trained on AndroidWorld task
+      trajectories — screenshots, accessibility trees, tap sequences, and
+      the decisions that connected them. It knows what app states look
+      like, what buttons mean, and how to navigate real-world Android UIs
+      without being told twice.
+
+      Competitive (~91% in internal runs, not yet submitted to the
+      official leaderboard). Base Gemma: ~60%. Same hardware.
+      The model is the difference.
+
+      Methodology: ghostinthedroid.com/docs/features/ghost-bench
+    ctas:
+      - label: "Model + weights"
+        url: "https://ghostinthedroid.com/docs/features/ghost-bench"
+      - label: "Benchmark methodology"
+        url: "https://ghostinthedroid.com/docs/features/ghost-bench"
+      - label: "GitHub"
+        url: "https://github.com/ghost-in-the-droid/android-agent"

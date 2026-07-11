@@ -1,0 +1,110 @@
+/* ══════════════════════════════════════════════════════════════
+   Ghost Showcase — category dividers + demo tile styling
+   Imported by /showcase and any page embedding <DemoTile />
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Category headers ── */
+.showcase-category {
+	margin: 3.5rem 0 1.5rem;
+}
+
+.showcase-category h2 {
+	display: inline-block;
+	font-size: 1.5rem;
+	letter-spacing: 0.01em;
+	padding-bottom: 0.4rem;
+	border-bottom: none;
+	background: linear-gradient(90deg, var(--sl-color-accent, #00e5a0) 0 3.5rem, var(--sl-color-gray-5, #2a3a2d) 3.5rem 100%) bottom left / 100% 3px no-repeat;
+}
+
+.showcase-category .category-count {
+	margin-left: 0.6rem;
+	font-size: 0.85rem;
+	color: var(--sl-color-gray-3, #8a9a8d);
+	font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Tile grid ── */
+.showcase-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 1.25rem;
+	margin: 1.5rem 0 2.5rem;
+}
+
+/* ── Demo tile ── */
+.demo-tile {
+	position: relative;
+	display: block;
+	aspect-ratio: 16 / 9;
+	border-radius: 0.75rem;
+	overflow: hidden;
+	border: 1px solid var(--sl-color-gray-5, #2a3a2d);
+	background: var(--sl-color-gray-6, #161e17);
+	cursor: pointer;
+	transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.demo-tile:hover,
+.demo-tile:focus-visible {
+	transform: scale(1.025);
+	border-color: var(--sl-color-accent, #00e5a0);
+	box-shadow: 0 4px 28px rgba(0, 229, 160, 0.18);
+	outline: none;
+}
+
+.demo-tile img,
+.demo-tile video {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.demo-tile .play-badge {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	background: rgba(7, 11, 8, 0.25);
+	transition: opacity 0.18s ease;
+}
+
+.demo-tile:hover .play-badge {
+	opacity: 0;
+}
+
+.demo-tile .play-badge svg {
+	width: 3rem;
+	height: 3rem;
+	filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.demo-tile .tile-label {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	padding: 0.5rem 0.75rem;
+	font-size: 0.85rem;
+	font-weight: 600;
+	color: var(--sl-color-gray-1, #e8ede9);
+	background: linear-gradient(transparent, rgba(7, 11, 8, 0.85));
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.demo-tile,
+	.demo-tile .play-badge {
+		transition: none;
+	}
+	.demo-tile:hover,
+	.demo-tile:focus-visible {
+		transform: none;
+	}
+}
+
+/* Light theme — tiles stay dark (video content), soften the glow */
+:root[data-theme='light'] .demo-tile:hover,
+:root[data-theme='light'] .demo-tile:focus-visible {
+	box-shadow: 0 4px 20px rgba(0, 138, 96, 0.25);
+}
