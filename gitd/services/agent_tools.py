@@ -858,7 +858,41 @@ def execute_tool(name: str, args: dict) -> str:
                 result += f"\n\n[Screen after action]\n{tree}"
         except Exception:
             pass
+        result += _a11y_diff_suffix(args["device"])
     return result
+
+
+# Per-device cache of the element list seen after the previous UI action, so the
+# next UI action can show a before/after diff. Read-only tools do not update it,
+# keeping the diff strictly action-to-action.
+_LAST_ELEMENTS: dict[str, list[dict]] = {}
+
+
+def _a11y_diff_suffix(device: str) -> str:
+    """Diff the current interactive elements against the ones cached after the
+    previous UI action on this device; return a text block to append (or "").
+
+    Fail-open: any error (or the kill-switch off) yields an empty string, so the
+    existing post-action screen-tree behaviour is never disturbed. Costs one
+    extra UI-tree dump per UI action — disable with A11Y_DIFF_ENABLED=false.
+    """
+    try:
+        from gitd.config import settings
+        from gitd.services.a11y_diff import diff_elements
+
+        if not settings.a11y_diff_enabled:
+            return ""
+        curr = ctx.get_interactive_elements(device)
+        prev = _LAST_ELEMENTS.get(device)
+        _LAST_ELEMENTS[device] = curr
+        diff = diff_elements(prev, curr)
+        # Suppress the "no change" line — only surface an actual delta (or the
+        # first-action empty string), to avoid nudging the model on a no-op.
+        if diff and diff != "A11y diff: no change.":
+            return f"\n\n[{diff}]"
+    except Exception:
+        pass
+    return ""
 
 
 def _execute_tool_inner(name: str, args: dict) -> str:
