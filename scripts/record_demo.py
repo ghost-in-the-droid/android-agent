@@ -98,9 +98,10 @@ BG_HEX = "070a08"                  # canvas darker than the terminal body
 TIMELINE_ACTIONS = {
     "terminal_type", "terminal_exec", "wait_for_phone", "phone_tap",
     "phone_swipe", "phone_key", "phone_screenshot_pause", "sleep",
+    "show_phone",  # phone_only: passive caption beat (the agent is driven out-of-band)
 }
 SETUP_STEPS = {"kill_all_apps", "wake_unlock", "launch_app", "clear_app",
-               "install_apk", "shell"}
+               "install_apk", "shell", "airplane_mode_on"}
 DEVICES = {"android", "ios", "both"}
 
 
@@ -356,6 +357,11 @@ def run_setup(dev, spec: dict) -> None:
             dev.adb_show("install", "-r", str(REPO_ROOT / args["path"]))
         elif step == "shell":
             dev.adb_soft("shell", *shlex.split(args["cmd"]))
+        elif step == "airplane_mode_on":
+            # USB adb (and thus the on-device daemon over `adb forward`) is
+            # unaffected by airplane mode, so we can still drive the phone.
+            dev.adb_soft("shell", "cmd", "connectivity", "airplane-mode", "enable")
+            time.sleep(1.5)
 
 
 class PhoneRecorder:
