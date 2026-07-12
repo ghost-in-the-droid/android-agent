@@ -1,0 +1,48 @@
+---
+title: "Differential A11y — What Changed On Screen"
+description: After each UI action, Ghost appends a compact diff of which accessibility elements appeared and disappeared — so the agent sees the effect of its last action without re-reading the whole tree.
+---
+import PlatformBadges from '../../../components/PlatformBadges.astro';
+
+<PlatformBadges android="yes" ios="yes" />
+
+After every UI action, Ghost appends a short **differential accessibility
+report** to the tool result — the elements that **appeared** and **disappeared**
+since the previous action. Instead of re-reading the entire screen tree to
+figure out what its tap did, the agent gets the delta for free.
+
+```
+A11y diff (since last action):
++ 'Wi-Fi' (android.widget.TextView)
++ 'Bluetooth' (android.widget.TextView)
+- 'Searching…' (android.widget.TextView)
+```
+
+Up to 6 added and 6 removed entries are listed; the rest collapse to
+`+ …N more new` / `- …N more gone`. Element identity is bucketed to a 40 px grid
+so sub-pixel jitter doesn't register as a change. The first action after launch
+has no prior state (empty diff), and an action that changes nothing is silent —
+only a real delta is appended.
+
+## Kill-switch
+
+Differential a11y is **on by default**. It's **fail-open**: any error, or the
+kill-switch being off, yields an empty string, so the normal post-action
+screen-tree behavior is never disturbed.
+
+```bash
+# Disable it (kill-switch)
+export A11Y_DIFF_ENABLED=false
+```
+
+## Cost
+
+One extra interactive-elements dump per UI action, cached per device. Read-only
+tools (screenshots, OCR) don't update the baseline, keeping the diff strictly
+action-to-action. Works on the normalized element shape shared by Android and
+iOS.
+
+## Related
+
+- [MCP Server](/features/mcp-server/) — the tools whose results this annotates
+- [Device Context](/features/device-context/) — the screen-reading layer

@@ -1,0 +1,41 @@
+---
+title: "ASCII Transliteration — Typing Non-ASCII Text"
+description: Ghost transliterates non-ASCII text to the closest ASCII before sending it through adb, so a single accented character no longer blanks the whole field.
+---
+import PlatformBadges from '../../../components/PlatformBadges.astro';
+
+<PlatformBadges android="yes" ios="no" />
+
+`adb shell input text` is **ASCII-only** — a single non-ASCII character makes the
+whole command fail and leaves the field blank. When the agent types text on
+Android, Ghost now transliterates it to the closest ASCII first, so
+`type_text` degrades to something usable instead of silently typing nothing.
+
+```
+Typed (transliterated non-ASCII): 'Sauté' -> 'Saute'
+```
+
+Transliteration is NFKD normalization with combining marks dropped:
+
+| Input | Typed |
+|-------|-------|
+| `Sauté` | `Saute` |
+| `café` | `cafe` |
+| `Zürich` | `Zurich` |
+| `日本語` | *(dropped)* |
+| `café 😀` | `cafe ` |
+
+Characters with no ASCII base (CJK, emoji) are dropped rather than erroring.
+Pure-ASCII text is passed through untouched (fast path).
+
+## When it applies
+
+This is the graceful fallback for the plain `input text` path — Android
+`type_text` only. There's **no config and no kill-switch**; it's always on.
+
+For full-fidelity emoji / CJK, use **`type_unicode`** (ADBKeyboard broadcast),
+which is unchanged. iOS has its own text-entry path and is unaffected.
+
+## Related
+
+- [MCP Server](/features/mcp-server/) — `type_text` vs `type_unicode`
