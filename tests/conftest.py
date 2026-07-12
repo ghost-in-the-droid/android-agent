@@ -72,3 +72,21 @@ def dev():
     if not serial:
         pytest.skip("DEVICE env var not set — skipping device tests")
     return Device(serial)
+
+
+@pytest.fixture(scope="session")
+def client():
+    """FastAPI test client — no real server needed.
+
+    Lives here (the top-level conftest) rather than tests/api/conftest.py so it
+    resolves reliably: when a run mixes ``tests/`` and ``tests/api/`` files (the CI
+    ios-parity job), a subdir conftest that only defines this fixture was not
+    getting collected, causing 'fixture client not found' setup errors. gitd is
+    imported inside the fixture (not at module import) to preserve DB isolation.
+    """
+    from fastapi.testclient import TestClient
+
+    from gitd.app import app
+
+    with TestClient(app) as c:
+        yield c
