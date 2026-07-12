@@ -6,7 +6,6 @@ Usage:
   HTTP:   python3 -m gitd.mcp_server  (port 8002)
 """
 
-import base64
 import importlib
 import json
 import re
@@ -130,12 +129,17 @@ def list_devices() -> str:
 
 @mcp.tool()
 def screenshot(device: str) -> str:
-    """Take a screenshot of the device screen. Returns base64-encoded PNG.
-    Use this to SEE what's on screen before deciding what to tap."""
-    if is_ios_ref(device):
-        return base64.b64encode(get_device(device).take_screenshot()).decode()
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
-    return base64.b64encode(raw).decode()
+    """Take a screenshot of the device screen. Returns a base64-encoded JPEG.
+    Use this to SEE what's on screen before deciding what to tap.
+
+    Routes through the shared compressed screenshot path (half-resolution JPEG,
+    cross-platform) instead of a raw full-res PNG: a raw PNG base64 string
+    overflows the MCP tool-result token cap on content-heavy screens, so the
+    client falls back to text/OCR and never sees the pixels. The downscale cuts
+    the payload ~4-8x so most screens stay under the cap. (The lasting fix is
+    returning an MCP image-content block; tracked as feature #8.)"""
+    from gitd.services.device_context import screenshot as _screenshot
+    return _screenshot(device)["image"]
 
 
 @mcp.tool()
