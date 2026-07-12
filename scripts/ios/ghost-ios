@@ -107,17 +107,37 @@ cmd_up(){
   fi
   say "[ghost-ios] supervising — Ctrl-C stops everything."
   say "[ghost-ios] dashboard: http://localhost:${VITE_PORT}/"
-  local last="" miss=0
+  local last="" miss=0 restarts=0 onusb
   while true; do
     sleep 3
     if tunnel_up; then
       [ "$last" != up ] && say "[$(ts)] tunnel UP   device reachable"
-      last=up; miss=0
+      last=up; miss=0; restarts=0
     else
       miss=$((miss+1))
-      [ "$last" != down ] && say "[$(ts)] tunnel DOWN  (phone locked/asleep or USB blip) — recovering"
+      ioreg -p IOUSB 2>/dev/null | grep -qi iPhone && onusb=1 || onusb=0
+      if [ "$last" != down ]; then
+        [ "$onusb" = 1 ] && say "[$(ts)] tunnel DOWN  (USB present — recovering)" \
+                          || say "[$(ts)] tunnel DOWN  (iPhone OFF USB — reseat/clean the port)"
+      fi
       last=down
-      [ "$miss" -ge 3 ] && { say "[$(ts)] no auto-recovery — restarting tunnel daemon"; start_tunnel; miss=0; }
+      if [ "$miss" -ge 3 ]; then
+        if [ "$onusb" = 0 ]; then
+          # physical disconnect — restarting the tunnel is pointless until it's back
+          say "[$(ts)] waiting for iPhone to re-appear on USB (physical — check cable/port)"
+          miss=0
+        else
+          restarts=$((restarts+1))
+          if [ "$restarts" -ge 3 ]; then
+            # tunnel daemon restarts aren't recovering => CoreDevice/usbmux wedged.
+            # Reset the device-connection stack (auto-restarts) — what a manual
+            # ghost-ios restart was clearing by hand.
+            say "[$(ts)] tunnel wedged after $restarts restarts — resetting usbmuxd/remoted/CoreDeviceService"
+            reset_coredevice; restarts=0; sleep 3
+          fi
+          say "[$(ts)] restarting tunnel daemon"; start_tunnel; miss=0
+        fi
+      fi
     fi
   done
 }
