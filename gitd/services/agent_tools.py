@@ -964,9 +964,17 @@ def _execute_tool_inner(name: str, args: dict) -> str:
         elif name == "type_text":
             if is_ios_ref(device):
                 get_device(device).type_text(args["text"])
-            else:
-                Device(device).adb("shell", "input", "text", args["text"].replace(" ", "%s"))
-            return f"Typed: {args['text']}"
+                return f"Typed: {args['text']}"
+            # `adb input text` is ASCII-only — one non-ASCII char blanks the whole
+            # field. Transliterate to the closest ASCII so accented input still
+            # lands (use type_unicode for full-fidelity emoji/CJK).
+            from gitd.bots.common.adb import ascii_typeable
+
+            typed = ascii_typeable(args["text"])
+            Device(device).adb("shell", "input", "text", typed.replace(" ", "%s"))
+            if typed != args["text"]:
+                return f"Typed (transliterated non-ASCII): {args['text']!r} -> {typed!r}"
+            return f"Typed: {typed}"
         elif name == "type_unicode":
             if is_ios_ref(device):
                 get_device(device).type_text(args["text"])

@@ -6,7 +6,24 @@ Single Device class providing tap, swipe, type, screenshot, XML dump,
 and other low-level ADB operations used by skills and bot scripts.
 """
 import hashlib, html, json, re, subprocess, time
+import unicodedata
 from typing import NamedTuple
+
+
+def ascii_typeable(text: str) -> str:
+    """Transliterate text to the closest ASCII `adb shell input text` can send.
+
+    `adb shell input text` is ASCII-only: a single non-ASCII char (e.g. the é in
+    "Sauté") makes the WHOLE command fail and leaves the field blank. NFKD-decompose
+    then drop combining marks so accented letters land as their base letter
+    ("Sauté" -> "Saute", "café" -> "cafe"), which fuzzy-matches the intended value
+    and is the best the device can physically type. For full-fidelity emoji/CJK the
+    caller should use `type_unicode` (ADBKeyboard) instead — this is the graceful
+    degradation for the plain `input text` path only.
+    """
+    if text.isascii():
+        return text
+    return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
 
 
 class ADBError(RuntimeError):
