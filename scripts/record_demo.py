@@ -591,7 +591,10 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
             f"color=c=0x{BG_HEX}:s={CANVAS_W}x{CANVAS_H}:d={content_s}:r={FPS}[bgc];"
             f"[3:v]format=rgba[bgp];[bgc][bgp]overlay=0:0[bg];"
             f"[4:v]format=rgba[mascot];[bg][mascot]overlay=0:0[m0];"
-            f"[2:v]trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS,"
+            # fps=30 (CFR) BEFORE trim: adb screenrecord is sparse VFR (a static
+            # screen emits no frames), so normalize first or the overlay timing
+            # drifts and playback stutters.
+            f"[2:v]fps={FPS},trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS,"
             f"scale={po_rw}:{po_rh},setsar=1[phone];"
             f"[m0][phone]overlay={po_rx}:{po_ry}[c1];"
             f"[5:v]format=rgba[framepng];"
