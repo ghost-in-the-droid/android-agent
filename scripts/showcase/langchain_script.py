@@ -4,8 +4,7 @@ import json, os, sqlite3, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from integrations.langchain import ghost_langchain_tools
-from langchain_classic.agents import AgentExecutor, create_react_agent
-from langchain_core.prompts import PromptTemplate
+from langgraph.prebuilt import create_react_agent
 from langchain_openai import ChatOpenAI
 
 DB, DEVICE = Path(__file__).with_name("users.db"), os.environ.get("GHOST_DEVICE") or os.environ["ANDROID_SERIAL"]
@@ -36,12 +35,12 @@ def main():
     conn.commit(); print(f"✓ @{username}: {data.get('followers')} followers")
 
 def harvest(username):
-    llm    = ChatOpenAI(model="gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=_env["OPENROUTER_API_KEY"])
-    prompt = PromptTemplate.from_template("Tools: {tools} | {tool_names}\nTask: {input}\n{agent_scratchpad}")
-    tools  = ghost_langchain_tools(DEVICE)  # ← 40+ phone tools
-    agent  = AgentExecutor(agent=create_react_agent(llm, tools, prompt),
-                           tools=tools, max_iterations=12, handle_parsing_errors=True)  # ← any LLM
-    raw    = agent.invoke({"input": f"Open X, search @{username}. OCR follower count, bio, most recent post. Return JSON: {{followers, bio, top_post}}"})["output"]
-    return json.loads(raw.split("```json")[-1].split("```")[0].strip())
+    llm   = ChatOpenAI(model="gpt-4o-mini", base_url="https://openrouter.ai/api/v1",
+                       api_key=_env["OPENROUTER_API_KEY"], max_tokens=1024)
+    tools = ghost_langchain_tools(DEVICE)  # ← 40+ phone tools
+    agent = create_react_agent(llm, tools)  # ← any LLM
+    task  = f"Open X, search @{username}. OCR follower count, bio, most recent post. Return JSON: {{followers, bio, top_post}}"
+    out   = agent.invoke({"messages": [("user", task)]}, {"recursion_limit": 20})["messages"][-1].content
+    return json.loads(out.split("```json")[-1].split("```")[0].strip())
 
 if __name__ == "__main__": main()
