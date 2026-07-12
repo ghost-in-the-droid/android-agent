@@ -571,49 +571,64 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     intro_motion = BRAND_DIR / f"intro-{demo}-motion.mp4"
     use_motion_intro = spec.get("layout") == "three_window" and intro_motion.exists()
     outro = BRAND_DIR / "outro.png"
-    bgpng = BRAND_DIR / "cprime-bg.png"       # glow + kicker baked
-    mascot_l = BRAND_DIR / "cprime-mascot.png"  # peeks from BEHIND the window
-    # 3-pane motion layout: a short terminal window (term_rows) + a code pane
-    # overlay below it. Keyed on spec.code_pane; falls back to the standard
-    # single-window chrome. The code pane is a full-canvas RGBA asset owned by
-    # design-review (pixel-identical to the animated intro's final frame so the
-    # seam diff passes) — consumed verbatim, never redrawn here.
-    # 3-pane motion layout (spec: layout: three_window). The code pane is a
+    three_pane = spec.get("layout") == "three_window"
+    # Motion (three_pane) uses a per-demo background with kicker + headline +
+    # mascot BAKED in (bg-<demo>.png), so there is NO separate mascot overlay
+    # and NO ASS caption headline; the standard layout uses cprime-bg + a
+    # peeking mascot overlay + captions. bg falls back to cprime-bg if absent.
+    demo_bg = BRAND_DIR / f"bg-{demo}.png"
+    bgpng = demo_bg if (three_pane and demo_bg.exists()) else BRAND_DIR / "cprime-bg.png"
+    mascot_l = BRAND_DIR / "cprime-mascot.png"  # standard layout: peeks from behind window
+    # 3-pane motion layout (spec: layout: three_window): short terminal window
+    # (term_rows) fades in as it "pops" at the seam, code pane overlaid below,
+    # framed phone SLIDES in from off-canvas right. The code pane is a
     # pre-rendered RGBA asset owned by design-review (codepane-<demo>-v3.png),
     # NOT live-rendered from code_pane_source — that key names the truth the
     # asset must mirror, for the record + reviewers, not a render input.
-    three_pane = spec.get("layout") == "three_window"
     code_pane = spec.get("code_pane_asset",
                          f"codepane-{demo}-v3.png") if three_pane else None
     chrome = BRAND_DIR / (
         "terminal-frame-macos-small.png" if code_pane else "terminal-frame-macos.png")
 
+    # Phone entrance (motion only): quint-ease slide from +503px (off-canvas
+    # right) into rest, at content t≈0.8..1.5s = absolute 8.6..9.3s (seam=7.8).
+    # D is added to BOTH the phone screen and the bezel x so they move together.
+    slide = r"503*pow(1-clip((t-0.8)/0.7\,0\,1)\,5)" if three_pane else ""
+    phone_x = f"{rx}+{slide}" if three_pane else str(rx)
+    frame_x = f"{FRAME_X_OFFSET}+{slide}" if three_pane else str(FRAME_X_OFFSET)
+
     fc = (
-        # content background (static png with glow + kicker) + panels
+        # content background (kicker/headline/mascot or glow baked in the png)
         f"color=c=0x{BG_HEX}:s={CANVAS_W}x{CANVAS_H}:d={content_s}:r={FPS}[bgc];"
         f"[5:v]format=rgba[bgp];"
         f"[bgc][bgp]overlay=0:0[bg];"
-        # mascot UNDER the chrome (The Haunt), chrome UNDER the terminal
-        f"[7:v]format=rgba[mascot];"
-        f"[bg][mascot]overlay=0:0[m0];"
-        f"[6:v]format=rgba[chrome];"
-        f"[m0][chrome]overlay=0:0[c0];"
-        f"[2:v]null[term];"  # native render — zero rescale
-        f"[c0][term]overlay={TERM_X}:{TERM_Y}[c1];"
+        # mascot overlay only for standard layout (baked into bg for motion)
+        + (f"[bg]null[m0];" if three_pane else
+           f"[7:v]format=rgba[mascot];[bg][mascot]overlay=0:0[m0];")
+        # chrome UNDER the terminal; motion fades the whole window in at the seam
+        + (f"[6:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1[chrome];" if three_pane else
+           f"[6:v]format=rgba[chrome];")
+        + f"[m0][chrome]overlay=0:0[c0];"
+        + (f"[2:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1[term];" if three_pane else
+           f"[2:v]null[term];")  # native render — zero rescale
+        + f"[c0][term]overlay={TERM_X}:{TERM_Y}[c1];"
         f"[3:v]trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS,"
         f"scale={rw}:{rh},setsar=1[phone];"
-        f"[c1][phone]overlay={rx}:{ry}[c2];"
+        f"[c1][phone]overlay=x='{phone_x}':y={ry}[c2];"
         f"[4:v]format=rgba[framepng];"
-        f"[c2][framepng]overlay={FRAME_X_OFFSET}:0:format=auto[c3];"
+        f"[c2][framepng]overlay=x='{frame_x}':y=0:format=auto[c3];"
         # code pane (3-pane only): full-canvas overlay above the phone/frame
         + (f"[8:v]format=rgba[codepane];"
            f"[c3][codepane]overlay=0:0[c4];" if code_pane else
            f"[c3]null[c4];")
-        + f"[c4]subtitles='{captions}':fontsdir='{BRAND_DIR / 'fonts'}',"
-        f"trim=duration={content_s},"
-        f"setpts=PTS-STARTPTS,fps={FPS},format=yuv420p[content];"
+        # captions only for standard layout (headline baked into motion bg)
+        + (f"[c4]trim=duration={content_s},setpts=PTS-STARTPTS,fps={FPS},"
+           f"format=yuv420p[content];" if three_pane else
+           f"[c4]subtitles='{captions}':fontsdir='{BRAND_DIR / 'fonts'}',"
+           f"trim=duration={content_s},setpts=PTS-STARTPTS,fps={FPS},"
+           f"format=yuv420p[content];")
         # cards
-        f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
+        + f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
         f"[1:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[outro];"
         f"[intro][content][outro]concat=n=3:v=1:a=0,"
         f"scale=1280:720[out]"
