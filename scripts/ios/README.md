@@ -93,6 +93,7 @@ readiness for "can I start a session" is `tunnel_up && appium_up`.
 | `ghost-ios` | the launcher / supervisor + all subcommands |
 | `doctor.sh` | preflight checks (invoked by `ghost-ios doctor`) |
 | `fix-wda-signing.sh` | clean WDA build + sign + install (fixes keychain-lock codesign failures) |
+| `record-av.sh` | transcode a QuickTime iPhone recording (screen + **audio**) into a demo MP4 |
 | `lib.sh` | shared config resolution + detection (sourced by the above) |
 | `ghost-ios.env.example` | config template — copy to `ghost-ios.env` |
 

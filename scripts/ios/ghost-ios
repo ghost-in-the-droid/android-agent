@@ -210,6 +210,35 @@ cmd_dashboard(){
   say "dashboard: http://localhost:${VITE_PORT}/"
 }
 
+cmd_record(){
+  # Silent screen capture from WDA MJPEG :9100 -> MP4 (H.264 yuv420p, portrait).
+  # This is the pipeline BASELINE (record_demo.py phone_mp4). For demos that need
+  # the phone's AUDIO (e.g. an app talking), use record-quicktime.sh instead —
+  # WDA MJPEG carries no audio. Usage: ghost-ios record [seconds] [--out PATH]
+  require_udid
+  local secs="" out="/tmp/ios_demo_rec.mp4"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --out) out="$2"; shift 2 ;;
+      *) secs="$1"; shift ;;
+    esac
+  done
+  local src="http://127.0.0.1:9100"
+  if ! curl -sf -o /dev/null -m3 "$src" 2>/dev/null; then
+    say "[record] MJPEG :9100 not up — warming a WDA session ..."
+    curl -s -m45 "http://127.0.0.1:${GHOST_PORT}/api/phone/screenshot?device=${DEV_REF}" >/dev/null 2>&1 &
+    for _ in $(seq 1 20); do curl -sf -o /dev/null -m2 "$src" 2>/dev/null && break; sleep 1; done
+  fi
+  curl -sf -o /dev/null -m3 "$src" 2>/dev/null || { say "[record] MJPEG :9100 unavailable — is the stack up (ghost-ios up)?"; exit 1; }
+  say "[record] $src -> $out ${secs:+(${secs}s)}  (silent; Ctrl-C to stop + finalize)"
+  # curl feeds ffmpeg's mpjpeg (multipart) demuxer; even-dimension scale for libx264.
+  local tflag=""; [ -n "$secs" ] && tflag="-t $secs"
+  # shellcheck disable=SC2086
+  curl -sN "$src" | ffmpeg -y -loglevel warning -f mpjpeg -i - -an \
+    -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -pix_fmt yuv420p $tflag "$out"
+  say "[record] saved $out ($([ -s "$out" ] && stat -f%z "$out" || echo 0) bytes)"
+}
+
 cmd_reset(){
   # Manual CoreDevice/usbmux reset for the "Device is busy (Connecting to)" wedge.
   require_udid
@@ -260,6 +289,7 @@ everything alive + self-healing until you Ctrl-C.
   ghost-ios keychain    one-time: grant CLI codesign access to your signing key
   ghost-ios rebuild-wda (re)build+install the patched WebDriverAgent onto the phone
   ghost-ios reset       reset usbmuxd/remoted (fixes "Device is busy (Connecting to)")
+  ghost-ios record [s]  capture the screen to an MP4 (silent; WDA MJPEG). audio -> record-av.sh
   ghost-ios config      show resolved configuration
   ghost-ios down        stop tunnel + appium + backend
 
@@ -280,6 +310,7 @@ case "${1:-help}" in
   rebuild-wda|wda) cmd_rebuild_wda ;;
   keychain)        cmd_keychain ;;
   reset)           cmd_reset ;;
+  record)          shift; cmd_record "$@" ;;
   down|stop)       teardown ;;
   *)               cmd_help ;;
 esac
