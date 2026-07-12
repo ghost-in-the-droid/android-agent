@@ -1,6 +1,7 @@
 """LangChain × Ghost — per-run subreddit harvester. Each run picks the next
 pending subreddit, reads the top-2 post stats via ReAct, writes to DB."""
-import json, os, sqlite3, subprocess, sys
+import json, os, sqlite3, subprocess, sys, warnings
+warnings.filterwarnings("ignore")
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from integrations.langchain import ghost_langchain_tools
