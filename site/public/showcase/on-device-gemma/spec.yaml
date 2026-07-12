@@ -1,31 +1,59 @@
-# Showcase demo spec — schema per task #782 (record_demo.py is the consumer).
-# placeholder: true until the pipeline records the real demo.
-placeholder: true
+# Showcase demo spec — on-device inference, airplane mode, phone-only layout.
+# Model in recording: Qwen3-4B-instruct (see NOTE below on demo ID vs model).
+# NOTE: demo ID stays 'on-device-gemma' (product supports Gemma/Qwen/Llama/Mistral);
+# the HUD shows Qwen3-4B. Copy updated to reflect any GGUF model, not Gemma-specific.
+# CKL to confirm title stays 'On-Device Gemma' or broadens to 'On-Device AI'.
+placeholder: false
 demo: on-device-gemma
-title: On-Device Gemma
+title: "On-Device AI"
 category: llm-providers
 featured: true
 docs: /features/on-device-llm/
-duration_target_s: 60
+duration_target_s: 45
 device: android
-platform_notes: "Gemma runs on the phone itself — no cloud round-trip."
+layout: phone_only
+
+platform_notes: "Qwen3-4B-instruct running in the Ghost APK via llama.cpp JNI. Airplane mode on camera throughout."
+
 setup:
-  - kill_all_apps
-  - unlock
+  - step: airplane_mode_on
+  - step: wake_unlock
+  - step: kill_all_apps
+  - step: shell
+    args: { cmd: "input keyevent KEYCODE_HOME" }
+
 timeline:
   - t: 0
-    caption: "Start the agent with the on-device Gemma provider"
-    action: terminal_type
-    args: { text: "android-agent up --provider gemma" }
-  - t: 10
-    caption: "Ask it to open the calculator and compute a tip"
-    action: terminal_type
-    args: { text: "android-agent run 'open the calculator and compute an 18% tip on 42'" }
-  - t: 20
-    caption: "The phone acts — no network involved"
-    action: wait_for_phone
-    args: { seconds: 30 }
+    caption: "Airplane mode. No cloud. No API key."
+    action: show_phone
+    notes: "HUD visible — model name + airplane icon prominent"
+
+  - t: 4
+    caption: "Qwen3-4B. Running inside the Ghost APK."
+    action: show_phone
+    notes: "model HUD animates in or is already visible"
+
+  - t: 8
+    caption: "Open Reddit. Summarize the top posts."
+    action: show_phone
+    notes: "agent receives the task, Reddit opens"
+
+  - t: 16
+    caption: "It reads the screen. Reasons about it. On the phone."
+    action: show_phone
+    notes: "Reddit posts visible, model processing"
+
+  - t: 28
+    caption: "Nothing left the device."
+    action: show_phone
+    notes: "summary appears on screen"
+
+  - t: 38
+    caption: "One phone. Zero cloud. Zero cost."
+    action: show_phone
+
 outro:
   cta_line: "pip install ghost-in-the-droid"
-  cta_link: /getting-started/installation/
-highlight_window: { start_s: 18, end_s: 26 }
+  cta_link: "https://ghostinthedroid.com/docs/getting-started/installation"
+
+highlight_window: { start_s: 28, end_s: 38 }
