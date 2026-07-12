@@ -651,6 +651,49 @@ TOOLS = [
         "description": "List local CRM contacts with unread messages, sorted by recency. Read-only.",
         "input_schema": {"type": "object", "properties": {}},
     },
+    # Frame capture + vision sub-agent (for image-heavy subtasks like reading a
+    # playing video). screenshot_sequence captures a burst; sub_agent reads it.
+    {
+        "name": "screenshot_sequence",
+        "description": (
+            "Capture a burst of screenshots over a window while something plays on "
+            "screen (e.g. a video), caching them for sub_agent — do NOT dump them into "
+            "your own context. Media usually autoplays when opened and a short clip can "
+            "finish during one turn, so open AND capture in ONE step: "
+            "chain[{open the item}, {screenshot_sequence}]. Then call sub_agent to read them."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "duration_seconds": {"type": "integer", "default": 4, "description": "Capture window (2-180)."},
+                "fps": {"type": "number", "default": 1.0, "description": "Frames per second (0.1-4.0)."},
+            },
+        },
+    },
+    {
+        "name": "sub_agent",
+        "description": (
+            "Hand the cached screenshot_sequence frames to a SEPARATE vision sub-agent "
+            "that returns ONLY its text answer, keeping your context lean on image-heavy "
+            "subtasks (e.g. transcribing frames of a video). Give a precise task. Requires "
+            "an Anthropic API key; unavailable under the claude-code subscription provider."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "Precise instruction for the sub-agent (e.g. what to transcribe).",
+                },
+                "max_frames": {
+                    "type": "integer",
+                    "default": 60,
+                    "description": "Cap on frames sent (subsampled, hard max 60).",
+                },
+            },
+            "required": ["task"],
+        },
+    },
     # System
     {
         "name": "wait",
@@ -726,6 +769,8 @@ SAFE_DEVICE_TOOLS = frozenset(
         # Screen recording (writes only to the vetted recordings dir)
         "start_screen_recording",
         "stop_screen_recording",
+        # Frame-burst capture (read-only screenshots; chainable so open+capture is one step)
+        "screenshot_sequence",
         # UI actions
         "tap",
         "tap_element",
@@ -783,6 +828,10 @@ SAFE_DEVICE_TOOLS = frozenset(
 #                      denied here. It still gates its OWN sub-actions to
 #                      SAFE_DEVICE_TOOLS, so even first-party callers can't
 #                      smuggle shell/run_skill through it.
+#   sub_agent        — spawns a fresh (paid) Anthropic vision call over cached
+#                      frames. Kept out of SAFE so it can't be smuggled into a
+#                      run_flow/chain batch (which would let an untrusted flow fan
+#                      out arbitrary billed LLM calls).
 EXEC_CAPABLE_TOOLS = frozenset(
     {
         "shell",
@@ -794,6 +843,7 @@ EXEC_CAPABLE_TOOLS = frozenset(
         "explore_app",
         "fix_device_health",
         "chain",
+        "sub_agent",
     }
 )
 
@@ -1619,6 +1669,10 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             from gitd.services.crm_lookup import crm_list_unread_messages
 
             return crm_list_unread_messages()
+        elif name == "screenshot_sequence":
+            return _capture_sequence(device, args)
+        elif name == "sub_agent":
+            return _run_sub_agent_tool(device, args)
         elif name == "wait":
             time.sleep(args.get("seconds", 2))
             return f"Waited {args.get('seconds', 2)}s"
@@ -1684,6 +1738,51 @@ def _execute_chain(device: str, args: dict) -> str:
             time.sleep(delay_s if settle == "delay" else _CHAIN_STABILIZE_S)
 
     return f"chain[{len(infos)}/{len(subs)}]: " + " > ".join(infos)
+
+
+# Per-device burst of frames captured by screenshot_sequence, read by sub_agent.
+# Module-level so it survives across tool calls (and works inside a chain step).
+_SEQ_FRAMES: dict[str, list[str]] = {}
+
+_SEQ_MAX_DURATION_S = 180
+_SEQ_MAX_FPS = 4.0
+
+
+def _capture_sequence(device: str, args: dict) -> str:
+    """Poll per-frame screenshots over a window, caching them for sub_agent.
+
+    Uses the normal screenshot path (screencap on Android / WDA on iOS) rather than
+    a video recorder: a recorder can freeze on a playing SurfaceView, but per-frame
+    screenshots capture playing content fine. Frames are cached (NOT returned) so
+    they never bloat the master agent's context — sub_agent reads them.
+    """
+    import time as _t
+
+    dur = max(2, min(int(args.get("duration_seconds", args.get("seconds", 4))), _SEQ_MAX_DURATION_S))
+    fps = max(0.1, min(float(args.get("fps", 1.0)), _SEQ_MAX_FPS))
+    interval = 1.0 / fps
+    n = max(1, int(dur * fps))
+    frames: list[str] = []
+    for i in range(n):
+        shot = get_screenshot_b64(device)
+        if shot:
+            frames.append(shot)
+        if i < n - 1:
+            _t.sleep(interval)
+    _SEQ_FRAMES[device] = frames
+    return f"screenshot_sequence: captured {len(frames)} frames over {dur}s @ {fps}fps (cached for sub_agent)"
+
+
+def _run_sub_agent_tool(device: str, args: dict) -> str:
+    """Hand the cached frames for this device to the vision sub-agent; return its text."""
+    from gitd.services.sub_agent import run_sub_agent
+
+    task = args.get("task", "") or args.get("prompt", "")
+    frames = _SEQ_FRAMES.get(device) or []
+    result = run_sub_agent(task, frames, max_frames=int(args.get("max_frames", 60)))
+    if frames and not result.startswith(("sub_agent", "SUB_AGENT")):
+        return f"SUB_AGENT RESULT ({len(frames)} frames): {result}"
+    return result
 
 
 def get_screenshot_b64(device: str) -> str | None:

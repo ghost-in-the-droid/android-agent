@@ -93,6 +93,8 @@ _CROSS_PLATFORM = {
     "crm_lookup_contact": "Device-neutral local CRM contact lookup.",
     "crm_list_unread_messages": "Device-neutral local CRM unread-message listing.",
     "chain": "Runs a sequence of sub-actions; each sub-action routes to its own platform backend.",
+    "screenshot_sequence": "Captures a screenshot burst via the per-platform screenshot path.",
+    "sub_agent": "Device-neutral vision sub-call over cached frames.",
     "wait": "Device-neutral delay.",
 }
 
