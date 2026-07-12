@@ -39,7 +39,7 @@ def harvest(username):
                        api_key=_env["OPENROUTER_API_KEY"], max_tokens=3072)
     tools = ghost_langchain_tools(DEVICE)  # ← 40+ phone tools
     agent = create_react_agent(llm, tools)  # ← any LLM
-    task  = f"Open the X app and find the public profile of @{username}. Steps: (1) use launch_app to open com.twitter.android, (2) take a screenshot to see what's on screen — if you see a compose/reply box or draft dialog, tap BACK immediately and do NOT type anything, (3) tap the Search icon (magnifying glass), (4) type '@{username}' and search, (5) tap 'People' filter tab, (6) tap the account named '{username}' with the most followers to open their profile, (7) screenshot and OCR the profile page to read their follower count, bio, and first post. Reply with ONLY a JSON object in a ```json fenced block: {{followers, bio, top_post}}"
+    task  = f"1. Open the X app and visit the profile of @{username}\n2. Report the current followers and following count for that account\nReply with ONLY a JSON object in a ```json fenced block: {{followers, bio, top_post}}"
     out   = agent.invoke({"messages": [("user", task)]}, {"recursion_limit": 45})["messages"][-1].content
     try:    return json.loads(out.split("```json")[-1].split("```")[0].strip())
     except: return json.loads(out)
