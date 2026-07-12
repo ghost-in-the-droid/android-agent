@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from gitd.bots.common.device import is_ios_ref
 from gitd.services.agent_tools import execute_tool, get_screenshot_b64, tool_prompt_list, tools_for_device
 from gitd.services.device_context import get_phone_state, get_screen_tree
+from gitd.services.llm_backoff import backoff_stream, effort_timeout
 
 log = logging.getLogger(__name__)
 
@@ -448,13 +449,21 @@ def _chat_anthropic(session: ChatSession, user_message: str):
 
     for turn in range(MAX_TURNS):
         try:
-            resp = client.messages.create(
-                model=session.model,
-                max_tokens=4096,
-                system=system_prompt_for_device(session.device),
-                messages=session.api_messages,
-                tools=available_tools,
-            )
+            resp = None
+            for ev in backoff_stream(
+                lambda: client.messages.create(
+                    model=session.model,
+                    max_tokens=4096,
+                    system=system_prompt_for_device(session.device),
+                    messages=session.api_messages,
+                    tools=available_tools,
+                    timeout=effort_timeout(session.model),
+                )
+            ):
+                if "__result__" in ev:
+                    resp = ev["__result__"]
+                else:
+                    yield ev
         except Exception as e:
             yield {"type": "error", "content": str(e)}
             return
@@ -545,12 +554,20 @@ def _chat_openrouter(session: ChatSession, user_message: str):
     ]
 
     try:
-        resp = client.chat.completions.create(
-            model=session.model or "anthropic/claude-sonnet-4",
-            messages=messages,
-            tools=oai_tools,
-            max_tokens=4096,
-        )
+        resp = None
+        for ev in backoff_stream(
+            lambda: client.chat.completions.create(
+                model=session.model or "anthropic/claude-sonnet-4",
+                messages=messages,
+                tools=oai_tools,
+                max_tokens=4096,
+                timeout=effort_timeout(session.model),
+            )
+        ):
+            if "__result__" in ev:
+                resp = ev["__result__"]
+            else:
+                yield ev
         msg = resp.choices[0].message
 
         if msg.content:
@@ -623,12 +640,20 @@ def _chat_vllm(session: ChatSession, user_message: str):
         yield {"type": "activity", "content": f"🧠 Inferring (turn {turn + 1})..."}
 
         try:
-            resp = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                tools=oai_tools,
-                max_tokens=2048,
-            )
+            resp = None
+            for ev in backoff_stream(
+                lambda: client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    tools=oai_tools,
+                    max_tokens=2048,
+                    timeout=effort_timeout(model),
+                )
+            ):
+                if "__result__" in ev:
+                    resp = ev["__result__"]
+                else:
+                    yield ev
         except Exception as e:
             yield {
                 "type": "error",
