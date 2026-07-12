@@ -83,15 +83,21 @@ CANVAS_W, CANVAS_H = 1920, 1080
 FPS = 30
 INTRO_S = 1.0
 OUTRO_S = 1.0
-TERM_COLS, TERM_ROWS = 100, 28
-TERM_X, TERM_W = 60, 1000          # terminal panel placement on the canvas
-FRAME_X_OFFSET = 380               # shift device frame right so terminal fits left
-TYPE_DELAY_S = 0.035               # simulated keystroke interval
-BG_HEX = "0d130e"                  # Ghost background (matches asciinema theme)
+TERM_COLS, TERM_ROWS = 100, 24
+TERM_X, TERM_W = 40, 1346          # 1346 = native agg width @ font 22 — the
+                                   # terminal video is NEVER rescaled (sharpness)
+TERM_Y = 256                       # video top; window chrome spans y 208-1034;
+                                   # headline block lives at y 36-160 (C-prime-4)
+FRAME_X_OFFSET = 689               # phone bezel right edge lands at x=1880 →
+                                   # 40px right margin, matching the left margin
+TYPE_DELAY_S = 0.005               # simulated keystroke interval — fast; long
+                                   # CLI commands must not eat demo runtime
+BG_HEX = "070a08"                  # canvas darker than the terminal body
+                                   # (#0d130e) so the window separates
 
 TIMELINE_ACTIONS = {
-    "terminal_type", "wait_for_phone", "phone_tap", "phone_swipe",
-    "phone_key", "phone_screenshot_pause", "sleep",
+    "terminal_type", "terminal_exec", "wait_for_phone", "phone_tap",
+    "phone_swipe", "phone_key", "phone_screenshot_pause", "sleep",
 }
 SETUP_STEPS = {"kill_all_apps", "wake_unlock", "launch_app", "clear_app",
                "install_apk", "shell"}
@@ -188,8 +194,8 @@ def validate_spec(spec: dict) -> list[str]:
         if not isinstance(args, dict):
             errs.append(f"{where}: args must be a mapping")
             args = {}
-        if action == "terminal_type" and not args.get("cmd"):
-            errs.append(f"{where}: terminal_type needs args.cmd")
+        if action in ("terminal_type", "terminal_exec") and not args.get("cmd"):
+            errs.append(f"{where}: {action} needs args.cmd")
         if action in ("wait_for_phone", "phone_screenshot_pause", "sleep") \
                 and not isinstance(args.get("seconds"), (int, float)):
             errs.append(f"{where}: {action} needs numeric args.seconds")
@@ -390,7 +396,7 @@ class PhoneRecorder:
 
 # ── Inner mode: executes the timeline inside the asciinema pty ────────────────
 
-def type_and_run(cmd: str, env: dict) -> None:
+def type_and_run(cmd: str, env: dict, exec_cmd: str | None = None) -> None:
     prompt = "\x1b[1;32mghost@demo\x1b[0m \x1b[1;34m~\x1b[0m $ "
     sys.stdout.write(prompt)
     sys.stdout.flush()
@@ -400,7 +406,7 @@ def type_and_run(cmd: str, env: dict) -> None:
         time.sleep(TYPE_DELAY_S)
     sys.stdout.write("\n")
     sys.stdout.flush()
-    subprocess.run(cmd, shell=True, env=env, cwd=str(REPO_ROOT))
+    subprocess.run(exec_cmd or cmd, shell=True, env=env, cwd=str(REPO_ROOT))
 
 
 def run_inner(plan_path: Path) -> int:
@@ -432,7 +438,13 @@ def run_inner(plan_path: Path) -> int:
             time.sleep(lag)
         action, args = step["action"], step.get("args") or {}
         if action == "terminal_type":
-            type_and_run(args["cmd"], env)
+            # exec_cmd: run this instead of the displayed cmd (e.g. hide a
+            # demo-only pacing pipe from the typed one-liner)
+            type_and_run(args["cmd"], env, exec_cmd=args.get("exec_cmd"))
+        elif action == "terminal_exec":
+            # run without typing the command — the command draws its own
+            # terminal visuals (e.g. the Claude Code TUI driver)
+            subprocess.run(args["cmd"], shell=True, env=env, cwd=str(REPO_ROOT))
         elif action in ("wait_for_phone", "phone_screenshot_pause", "sleep"):
             time.sleep(float(args["seconds"]))
         elif action == "phone_tap":
@@ -457,10 +469,29 @@ def ocr_png(png: Path) -> str:
 def render_terminal(cast: Path, out_mp4: Path, workdir: Path) -> None:
     theme = json.loads((BRAND_DIR / "asciinema-ghost.json").read_text())
     gif = workdir / "terminal.gif"
-    run(["agg",
+    # agg >= 1.9 renders Noto Color Emoji (CBDT bitmap) in color; 1.4.x leaves
+    # emoji as blank gaps regardless of renderer/font flags
+    agg_bin = shutil.which("agg-1.9") or "agg"
+    # the font stack lacks U+276F (Claude Code's ❯ input prompt) and renders
+    # it as mojibake — substitute a plain '>' before rendering (visual only)
+    glyphfix = workdir / (cast.stem + "_glyphfix.cast")
+    txt = cast.read_text()
+    # casts may store specials as literal UTF-8 OR as \uXXXX JSON escapes —
+    # substitute BOTH forms (missing either resurfaces the mojibake)
+    for lit, esc, repl in ((chr(0x276F), r"\\u276[fF]", ">"),
+                           (chr(0x00A0), r"\\u00[aA]0", " ")):
+        txt = txt.replace(lit, repl)
+        txt = re.sub(esc, repl, txt)
+    txt = re.sub(r"[\u2800-\u28ff]", "·", txt)
+    txt = re.sub(r"\\u28[0-9a-fA-F]{2}", "·", txt)
+    glyphfix.write_text(txt)
+    cast = glyphfix
+    run([agg_bin,
          "--theme", theme["agg"]["theme_arg"],
          "--font-dir", str(BRAND_DIR / "fonts"),
-         "--font-family", theme.get("font_family", "JetBrains Mono"),
+         "--font-dir", "/usr/share/fonts/truetype/noto",
+         "--font-family",
+         theme.get("font_family", "JetBrains Mono") + ",Noto Color Emoji",
          "--font-size", str(theme.get("font_size", 16)),
          "--line-height", str(theme.get("line_height", 1.4)),
          "--fps-cap", str(FPS),
@@ -488,7 +519,7 @@ PlayResY: {CANVAS_H}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Ghost,JetBrains Mono,40,&H00A0E500,&H00FFFFFF,&H00171E16,&H80101010,-1,0,0,0,100,100,0,0,1,2,1,2,60,60,44,1
+Style: Ghost,Outfit,54,&H00E9EDE8,&H00FFFFFF,&H00000000,&H00000000,700,0,0,0,100,100,0,0,1,0,0,7,42,40,88,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -500,8 +531,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         start = float(s["t"])
         end = float(captioned[i + 1]["t"]) if i + 1 < len(captioned) else min(start + 5, end_all)
         end = min(end, start + 6)
-        text = s["caption"].replace("\n", r"\N")
-        lines.append(f"Dialogue: 0,{ass_time(start)},{ass_time(end)},Ghost,,0,0,0,,{text}")
+        text = s["caption"].replace("\n", " ").strip()
+        # C-prime-4 editorial headline: two-tone — last sentence in Ghost
+        # green (ASS colors are BGR: &HA0E500& == #00e5a0). Long copy drops
+        # to 44px so it clears the window top (y=208).
+        parts = text.rstrip(".").split(". ")
+        if len(parts) > 1:
+            head, tail = ". ".join(parts[:-1]) + ". ", parts[-1] + "."
+        else:
+            head, tail = text, ""
+        size_tag = r"{\fs44}" if len(text) > 44 else ""
+        two_tone = head + (r"{\c&HA0E500&}" + tail if tail else "")
+        lines.append(
+            f"Dialogue: 0,{ass_time(start)},{ass_time(end)},Ghost,,0,0,0,,"
+            r"{\fad(200,200)}" + size_tag + two_tone)
     path.write_text(header + "\n".join(lines) + "\n")
 
 
@@ -511,8 +554,9 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     + outro card → 720p VP9 WebM."""
     demo = spec["demo"]
     frames = json.loads((BRAND_DIR / "frames.json").read_text())
-    fr = frames["pixel8"]  # android; ios demos use iphone15pro when they land
-    frame_png = BRAND_DIR / "frame-pixel8.png"
+    device_frame = "iphone15pro" if spec.get("device") == "ios" else "pixel8"
+    fr = frames[device_frame]
+    frame_png = BRAND_DIR / f"frame-{device_frame}.png"
     rx, ry, rw, rh = fr["screen_rect"]
     rx += FRAME_X_OFFSET
     content_s = timeline_end(spec)
@@ -520,19 +564,53 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     build_captions(spec, captions)
 
     intro = BRAND_DIR / f"intro-{demo}.png"
+    # Motion layouts open with an animated intro (design-review's mp4 whose
+    # final frame is pixel-matched to the code pane at the seam) instead of the
+    # 1s static card. Input [0] becomes a real video decode of its natural
+    # length; the concat is unchanged.
+    intro_motion = BRAND_DIR / f"intro-{demo}-motion.mp4"
+    use_motion_intro = spec.get("layout") == "three_window" and intro_motion.exists()
     outro = BRAND_DIR / "outro.png"
+    bgpng = BRAND_DIR / "cprime-bg.png"       # glow + kicker baked
+    mascot_l = BRAND_DIR / "cprime-mascot.png"  # peeks from BEHIND the window
+    # 3-pane motion layout: a short terminal window (term_rows) + a code pane
+    # overlay below it. Keyed on spec.code_pane; falls back to the standard
+    # single-window chrome. The code pane is a full-canvas RGBA asset owned by
+    # design-review (pixel-identical to the animated intro's final frame so the
+    # seam diff passes) — consumed verbatim, never redrawn here.
+    # 3-pane motion layout (spec: layout: three_window). The code pane is a
+    # pre-rendered RGBA asset owned by design-review (codepane-<demo>-v3.png),
+    # NOT live-rendered from code_pane_source — that key names the truth the
+    # asset must mirror, for the record + reviewers, not a render input.
+    three_pane = spec.get("layout") == "three_window"
+    code_pane = spec.get("code_pane_asset",
+                         f"codepane-{demo}-v3.png") if three_pane else None
+    chrome = BRAND_DIR / (
+        "terminal-frame-macos-small.png" if code_pane else "terminal-frame-macos.png")
 
     fc = (
-        # content background + panels
-        f"color=c=0x{BG_HEX}:s={CANVAS_W}x{CANVAS_H}:d={content_s}:r={FPS}[bg];"
-        f"[2:v]scale={TERM_W}:-2[term];"
-        f"[bg][term]overlay={TERM_X}:(H-h)/2[c1];"
+        # content background (static png with glow + kicker) + panels
+        f"color=c=0x{BG_HEX}:s={CANVAS_W}x{CANVAS_H}:d={content_s}:r={FPS}[bgc];"
+        f"[5:v]format=rgba[bgp];"
+        f"[bgc][bgp]overlay=0:0[bg];"
+        # mascot UNDER the chrome (The Haunt), chrome UNDER the terminal
+        f"[7:v]format=rgba[mascot];"
+        f"[bg][mascot]overlay=0:0[m0];"
+        f"[6:v]format=rgba[chrome];"
+        f"[m0][chrome]overlay=0:0[c0];"
+        f"[2:v]null[term];"  # native render — zero rescale
+        f"[c0][term]overlay={TERM_X}:{TERM_Y}[c1];"
         f"[3:v]trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS,"
         f"scale={rw}:{rh},setsar=1[phone];"
         f"[c1][phone]overlay={rx}:{ry}[c2];"
         f"[4:v]format=rgba[framepng];"
         f"[c2][framepng]overlay={FRAME_X_OFFSET}:0:format=auto[c3];"
-        f"[c3]subtitles='{captions}',trim=duration={content_s},"
+        # code pane (3-pane only): full-canvas overlay above the phone/frame
+        + (f"[8:v]format=rgba[codepane];"
+           f"[c3][codepane]overlay=0:0[c4];" if code_pane else
+           f"[c3]null[c4];")
+        + f"[c4]subtitles='{captions}':fontsdir='{BRAND_DIR / 'fonts'}',"
+        f"trim=duration={content_s},"
         f"setpts=PTS-STARTPTS,fps={FPS},format=yuv420p[content];"
         # cards
         f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
@@ -540,12 +618,20 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
         f"[intro][content][outro]concat=n=3:v=1:a=0,"
         f"scale=1280:720[out]"
     )
-    run(["ffmpeg", "-y",
-         "-loop", "1", "-t", str(INTRO_S), "-i", str(intro),
-         "-loop", "1", "-t", str(OUTRO_S), "-i", str(outro),
-         "-i", str(term_mp4),
-         "-i", str(phone_mp4),
-         "-i", str(frame_png),
+    inputs = [
+        *(["-i", str(intro_motion)] if use_motion_intro
+          else ["-loop", "1", "-t", str(INTRO_S), "-i", str(intro)]),
+        "-loop", "1", "-t", str(OUTRO_S), "-i", str(outro),
+        "-i", str(term_mp4),
+        "-i", str(phone_mp4),
+        "-i", str(frame_png),
+        "-i", str(bgpng),
+        "-i", str(chrome),
+        "-i", str(mascot_l),
+    ]
+    if code_pane:
+        inputs += ["-i", str(BRAND_DIR / code_pane)]  # input [8]
+    run(["ffmpeg", "-y", *inputs,
          "-filter_complex", fc, "-map", "[out]",
          "-c:v", "libvpx-vp9", "-crf", "41", "-b:v", "0",
          "-deadline", "good", "-cpu-used", "2", "-row-mt", "1", "-an",
@@ -668,13 +754,17 @@ def do_record(demo: str, serial: str | None, skip_phone_prep: bool,
 
         cast = workdir / "terminal.cast"
         phone_offset = time.monotonic() - rec.started_at
+        # per-demo terminal height (motion 3-pane demos record a short window,
+        # e.g. LINES=14); defaults to the global TERM_ROWS
+        term_rows = int(spec.get(
+            "term_rows", 14 if spec.get("layout") == "three_window" else TERM_ROWS))
         env = dict(os.environ)
-        env.update({"COLUMNS": str(TERM_COLS), "LINES": str(TERM_ROWS),
+        env.update({"COLUMNS": str(TERM_COLS), "LINES": str(term_rows),
                     "PYTHONUNBUFFERED": "1"})
         inner_cmd = f"{shlex.quote(sys.executable)} {shlex.quote(str(Path(__file__).resolve()))} --_inner {shlex.quote(str(plan_path))}"
         r = subprocess.run(
             ["asciinema", "rec", "--overwrite", "--cols", str(TERM_COLS),
-             "--rows", str(TERM_ROWS), "-c", inner_cmd, str(cast)],
+             "--rows", str(term_rows), "-c", inner_cmd, str(cast)],
             env=env)
         if r.returncode != 0 or not (workdir / "inner_done").exists():
             die("timeline execution failed (see output above)")
@@ -705,7 +795,8 @@ def do_record(demo: str, serial: str | None, skip_phone_prep: bool,
 
     cast_scrubbed = workdir / "terminal_scrubbed.cast"
     scrub_cast(workdir / "terminal.cast", cast_scrubbed, extra=extra,
-               cols=TERM_COLS, rows=TERM_ROWS)
+               cols=TERM_COLS, rows=int(spec.get(
+                   "term_rows", 14 if spec.get("layout") == "three_window" else TERM_ROWS)))
     hits = scan_text(cast_scrubbed.read_text(), patterns)
     if hits:
         for src, m in hits:
@@ -735,7 +826,19 @@ def do_record(demo: str, serial: str | None, skip_phone_prep: bool,
     out_dir = SHOWCASE_DIR / demo
     out_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(out_webm, out_dir / "demo.webm")
-    run(["ffmpeg", "-y", "-ss", "3", "-i", str(out_dir / "demo.webm"),
+    hw = spec.get("highlight_window") or {}
+    # Skip past the intro before grabbing the poster. Motion layouts open with
+    # an animated intro whose real length (≈7.8s) replaces the 1s static card.
+    intro_motion = BRAND_DIR / f"intro-{demo}-motion.mp4"
+    intro_dur = INTRO_S
+    if spec.get("layout") == "three_window" and intro_motion.exists():
+        probe = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=nw=1:nk=1", str(intro_motion)],
+            capture_output=True, text=True)
+        intro_dur = float(probe.stdout.strip() or INTRO_S)
+    poster_ss = intro_dur + float(hw.get("start_s", 2)) + 1.0
+    run(["ffmpeg", "-y", "-ss", str(poster_ss), "-i", str(out_dir / "demo.webm"),
          "-frames:v", "1", str(out_dir / "poster.png")], "poster extraction")
     write_snippet(spec, out_dir / "snippet.py")
 
