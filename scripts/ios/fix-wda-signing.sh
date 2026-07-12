@@ -34,9 +34,12 @@ read -rs -p "Mac login password: " PW; echo; echo
 say "== 1/4 unlock login keychain + (re)grant codesign access =="
 security unlock-keychain -p "$PW" "$KEYCHAIN" || { say "unlock failed — wrong password?"; exit 1; }
 security set-key-partition-list -S apple-tool:,apple: -s -k "$PW" "$KEYCHAIN" >/dev/null 2>&1
+# One prompt for everything: the login password is also the sudo password, so
+# prime sudo now with it (used only if a CoreDevice reset is needed below). If
+# they differ (rare), this no-ops and sudo prompts later only if actually used.
+sudo -S -v <<<"$PW" 2>/dev/null || true
 unset PW
 say "keychain status:"; security show-keychain-info "$KEYCHAIN" 2>&1 | sed 's/^/   /'
-sudo -v 2>/dev/null || true   # cache sudo so an auto CoreDevice reset (below) is seamless
 
 APP="$IOS_DERIVED_DATA_PATH/Build/Products/Debug-iphoneos/WebDriverAgentRunner-Runner.app"
 BLOG="$LOG_DIR/wda-build.log"
