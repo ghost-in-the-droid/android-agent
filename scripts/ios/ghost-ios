@@ -89,8 +89,11 @@ cmd_up(){
   require_udid
   say "== ghost-ios up :: $DEV_REF =="
   [ -n "$APPIUM_BIN" ] || { say "ERROR: appium not found (npm i -g appium; appium driver install xcuitest)"; exit 1; }
-  xcrun devicectl device info details --device "$IOS_DEVICE_UDID" >/dev/null 2>&1 \
-    || say "[warn ] iPhone not visible — plug in via USB and unlock it"
+  # `devicectl device info details` HANGS indefinitely (esp. right after an iPhone
+  # reboot while CoreDevice re-pairs) — never gate startup on it. Use xctrace
+  # (reliable) for presence, bounded by timeout.
+  timeout 12 xcrun xctrace list devices 2>/dev/null | grep -qF "$IOS_DEVICE_UDID" \
+    || say "[warn ] iPhone not visible yet — plug in via USB + unlock (continuing anyway)"
   say "[tip  ] prevent tunnel drops: iPhone > Settings > Display & Brightness > Auto-Lock > Never"
   sudo -v || { say "sudo is required (the tunnel needs root)"; exit 1; }
   reap_orphans
