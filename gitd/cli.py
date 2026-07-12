@@ -806,8 +806,19 @@ def cmd_login(args):
     return 1
 
 
-def main():
+def main(argv=None):
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    # Deprecation notice when invoked via a legacy bin name. `ghost` is primary;
+    # these aliases keep working for one release cycle. (No warning when `ghost`
+    # delegates here — the invoked bin is still `ghost`.)
+    _bin = os.path.basename(sys.argv[0]) if sys.argv and sys.argv[0] else ""
+    if _bin in ("gitd", "android-agent", "ghost-in-the-droid"):
+        print(
+            f"⚠  '{_bin}' is deprecated — use 'ghost' instead "
+            "(this alias will be removed in a future release).",
+            file=sys.stderr,
+        )
 
     parser = argparse.ArgumentParser(
         prog="android-agent",
@@ -856,7 +867,7 @@ def main():
     login_p = sub.add_parser("login", help="Sign in via your Claude subscription (no API key needed)")
     login_p.add_argument("--relogin", action="store_true", help="Force re-authentication even if already signed in")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.command is None:
         parser.print_help()

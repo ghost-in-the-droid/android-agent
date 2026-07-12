@@ -51,6 +51,7 @@ test = ["playwright>=1.40", "pytest>=7.0", "langchain-core>=0.3", "llama-index-c
 all = ["ghost-in-the-droid[llm,analytics,ocr,test]"]
 
 [project.scripts]
+ghost = "gitd.ghost_cli:main"
 android-agent = "gitd.cli:main"
 gitd = "gitd.cli:main"
 ghost-in-the-droid = "gitd.cli:main"
