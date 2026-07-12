@@ -41,11 +41,15 @@ if [ -z "$IN" ]; then
 fi
 [ -f "$IN" ] || { echo "ERROR: no input .mov. Record one in QuickTime (see --help) or pass a path."; exit 1; }
 
-# even dimensions for libx264; optional half-scale. fps=30 to match the pipeline.
+# fps=30 to match the pipeline. Default keeps NATIVE resolution (1179x2556 for
+# iPhone 15 Pro — matches the video-editor bezel calibration, no frames.json
+# retune): PAD to even rather than scale, so native pixels stay crisp (yuv420p
+# needs even dims; the ≤1px pad lands under the bezel frame). --half resamples
+# to ~half for a smaller file.
 if [ -n "$HALF" ]; then
   VF="scale=trunc(iw/4)*2:trunc(ih/4)*2,fps=30"
 else
-  VF="scale=trunc(iw/2)*2:trunc(ih/2)*2,fps=30"
+  VF="pad=ceil(iw/2)*2:ceil(ih/2)*2,fps=30"
 fi
 
 echo "[record-av] transcoding $IN -> $OUT  (crisp H.264 High + AAC audio, 30fps${HALF:+, half-res})"
