@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from integrations.langchain import ghost_langchain_tools
 from langgraph.prebuilt import create_react_agent
-from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
 
 DB, DEVICE = Path(__file__).with_name("users.db"), os.environ.get("GHOST_DEVICE") or os.environ["ANDROID_SERIAL"]
 SEED = ["karpathy", "ylecun", "sama", "emostaque", "hwchung16"]
@@ -35,8 +35,8 @@ def main():
     conn.commit(); print(f"✓ @{username}: {data.get('followers')} followers")
 
 def harvest(username):
-    llm   = ChatOpenAI(model="gpt-4o-mini", base_url="https://openrouter.ai/api/v1",
-                       api_key=_env["OPENROUTER_API_KEY"], max_tokens=3072)
+    llm   = ChatAnthropic(model="claude-haiku-4-5-20251001",
+                          api_key=_env["ANTHROPIC_API_KEY"], max_tokens=3072)
     tools = ghost_langchain_tools(DEVICE)  # ← 40+ phone tools
     agent = create_react_agent(llm, tools)  # ← any LLM
     task  = f"Open X, search @{username}. OCR follower count, bio, most recent post. Reply with ONLY a JSON object in a ```json fenced block: {{followers, bio, top_post}}"
