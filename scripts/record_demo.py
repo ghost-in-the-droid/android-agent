@@ -314,6 +314,13 @@ def phone_privacy_prep(dev, workdir: Path, patterns) -> dict:
     soft("clear recents", "am", "kill-all")
     # Time freeze needs root on production builds — try, warn on failure.
     soft("disable auto time", "settings", "put", "global", "auto_time", "0")
+    # Keep the screen awake for the whole take: a long on-device / agent run
+    # (e.g. langchain harvest, on-device inference) can outlast the display
+    # timeout, and a slept screen returns BLACK screencaps → empty OCR → the
+    # agent reads nothing ('Not found'). svc power stayon holds it on.
+    restore["stay_on"] = dev.adb_soft(
+        "shell", "settings", "get", "global", "stay_on_while_plugged_in").stdout or "0"
+    soft("keep screen awake", "svc", "power", "stayon", "true")
 
     # Pre-record screenshot → OCR gate: refuse to record a dirty screen.
     shot = workdir / "prep_check.png"
@@ -335,6 +342,8 @@ def phone_privacy_restore(dev, restore: dict) -> None:
     dev.adb_soft("shell", "settings", "put", "global", "zen_mode", restore.get("zen_mode", "0"))
     pc = restore.get("policy_control") or "null"
     dev.adb_soft("shell", "settings", "put", "global", "policy_control", pc)
+    dev.adb_soft("shell", "settings", "put", "global", "stay_on_while_plugged_in",
+                 (restore.get("stay_on") or "0").strip())
 
 
 def run_setup(dev, spec: dict) -> None:
