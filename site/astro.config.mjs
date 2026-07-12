@@ -173,6 +173,17 @@ document.addEventListener('DOMContentLoaded', function() {
 				},
 				{ label: '⚠️ Troubleshooting', slug: 'troubleshooting' },
 				{
+					label: '📦 Releases',
+					collapsed: true,
+					items: [
+						{ label: 'All releases', slug: 'release-notes' },
+						{ label: 'v1.3.0', slug: 'release-notes/v1-3-0' },
+						{ label: 'v1.2.0', slug: 'release-notes/v1-2-0' },
+						{ label: 'v1.1.0', slug: 'release-notes/v1-1-0' },
+						{ label: 'v1.0.0', slug: 'release-notes/v1-0-0' },
+					],
+				},
+				{
 					label: 'Legal',
 					items: [
 						{ label: 'Privacy Policy', slug: 'privacy' },
