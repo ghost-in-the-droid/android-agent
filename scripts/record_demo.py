@@ -512,6 +512,13 @@ def ass_time(s: float) -> str:
 
 def build_captions(spec: dict, path: Path) -> None:
     """ASS subtitles from timeline captions, bottom-center, Ghost palette."""
+    # phone_only puts a centered phone mid-canvas, so captions live in the LEFT
+    # whitespace column (Alignment=4 middle-left, margins clear the bezel);
+    # every other layout uses the C-prime top-left editorial headline.
+    if spec.get("layout") == "phone_only":
+        style = "Style: Ghost,Outfit,50,&H00E9EDE8,&H00FFFFFF,&H00000000,&H00000000,700,0,0,0,100,100,0,0,1,0,0,4,60,1290,0,1"
+    else:
+        style = "Style: Ghost,Outfit,54,&H00E9EDE8,&H00FFFFFF,&H00000000,&H00000000,700,0,0,0,100,100,0,0,1,0,0,7,42,40,88,1"
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {CANVAS_W}
@@ -519,7 +526,7 @@ PlayResY: {CANVAS_H}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Ghost,Outfit,54,&H00E9EDE8,&H00FFFFFF,&H00000000,&H00000000,700,0,0,0,100,100,0,0,1,0,0,7,42,40,88,1
+{style}
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -562,6 +569,47 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     content_s = timeline_end(spec)
     captions = workdir / "captions.ass"
     build_captions(spec, captions)
+
+    if spec.get("layout") == "phone_only":
+        # On-device / airplane-mode demos: the phone is the star and there is
+        # NO terminal pane (a PC terminal would contradict "nothing leaves the
+        # device"). Centered framed phone over the C-prime bg + mascot, captions
+        # bottom-center. Phone sits at the frame png's native (centered) x —
+        # FRAME_X_OFFSET is NOT applied — since nothing competes for the canvas.
+        po_rx, po_ry, po_rw, po_rh = fr["screen_rect"]  # native, un-offset
+        po_bg = BRAND_DIR / "cprime-bg.png"
+        po_mascot = BRAND_DIR / "cprime-mascot.png"
+        po_intro = BRAND_DIR / f"intro-{demo}.png"
+        po_outro = BRAND_DIR / "outro.png"
+        fc = (
+            f"color=c=0x{BG_HEX}:s={CANVAS_W}x{CANVAS_H}:d={content_s}:r={FPS}[bgc];"
+            f"[3:v]format=rgba[bgp];[bgc][bgp]overlay=0:0[bg];"
+            f"[4:v]format=rgba[mascot];[bg][mascot]overlay=0:0[m0];"
+            f"[2:v]trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS,"
+            f"scale={po_rw}:{po_rh},setsar=1[phone];"
+            f"[m0][phone]overlay={po_rx}:{po_ry}[c1];"
+            f"[5:v]format=rgba[framepng];"
+            f"[c1][framepng]overlay=0:0:format=auto[c2];"
+            f"[c2]subtitles='{captions}':fontsdir='{BRAND_DIR / 'fonts'}',"
+            f"trim=duration={content_s},setpts=PTS-STARTPTS,fps={FPS},"
+            f"format=yuv420p[content];"
+            f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
+            f"[1:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[outro];"
+            f"[intro][content][outro]concat=n=3:v=1:a=0,scale=1280:720[out]"
+        )
+        inputs = [
+            "-loop", "1", "-t", str(INTRO_S), "-i", str(po_intro),   # [0]
+            "-loop", "1", "-t", str(OUTRO_S), "-i", str(po_outro),   # [1]
+            "-i", str(phone_mp4),                                     # [2]
+            "-i", str(po_bg),                                         # [3]
+            "-i", str(po_mascot),                                     # [4]
+            "-i", str(frame_png),                                     # [5]
+        ]
+        run(["ffmpeg", "-y", *inputs, "-filter_complex", fc, "-map", "[out]",
+             "-c:v", "libvpx-vp9", "-crf", "41", "-b:v", "0",
+             "-deadline", "good", "-cpu-used", "2", "-row-mt", "1", "-an",
+             str(out_webm)], "phone-only composite render", heavy=True)
+        return
 
     intro = BRAND_DIR / f"intro-{demo}.png"
     # Motion layouts open with an animated intro (design-review's mp4 whose
