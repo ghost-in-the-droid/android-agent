@@ -36,11 +36,12 @@ def main():
 
 def harvest(username):
     llm   = ChatOpenAI(model="gpt-4o-mini", base_url="https://openrouter.ai/api/v1",
-                       api_key=_env["OPENROUTER_API_KEY"], max_tokens=1024)
+                       api_key=_env["OPENROUTER_API_KEY"], max_tokens=3072)
     tools = ghost_langchain_tools(DEVICE)  # ← 40+ phone tools
     agent = create_react_agent(llm, tools)  # ← any LLM
-    task  = f"Open X, search @{username}. OCR follower count, bio, most recent post. Return JSON: {{followers, bio, top_post}}"
-    out   = agent.invoke({"messages": [("user", task)]}, {"recursion_limit": 20})["messages"][-1].content
-    return json.loads(out.split("```json")[-1].split("```")[0].strip())
+    task  = f"Open X, search @{username}. OCR follower count, bio, most recent post. Reply with ONLY a JSON object in a ```json fenced block: {{followers, bio, top_post}}"
+    out   = agent.invoke({"messages": [("user", task)]}, {"recursion_limit": 45})["messages"][-1].content
+    try:    return json.loads(out.split("```json")[-1].split("```")[0].strip())
+    except: return json.loads(out)
 
 if __name__ == "__main__": main()
