@@ -62,10 +62,18 @@ def load_config() -> dict:
 
 
 def load_devices() -> dict[str, str]:
-    """Return the ``{alias: serial}`` map from devices.toml."""
+    """Return the ``{alias: serial}`` map from devices.toml.
+
+    Accepts both the canonical ``[devices]`` section and a bare ``alias = "serial"``
+    file with no header (a common hand-edit) — the latter parses to top-level keys,
+    which would otherwise be silently ignored.
+    """
     data = _read_toml(devices_path())
-    devices = data.get("devices", {})
-    return {str(k): str(v) for k, v in devices.items()} if isinstance(devices, dict) else {}
+    section = data.get("devices")
+    if not isinstance(section, dict):
+        # No [devices] header: treat top-level string entries as aliases.
+        section = {k: v for k, v in data.items() if isinstance(v, str)}
+    return {str(k): str(v) for k, v in section.items()}
 
 
 def config_exists() -> bool:

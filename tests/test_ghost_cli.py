@@ -267,3 +267,16 @@ def test_ghost_delegation_does_not_warn(monkeypatch, capsys):
     monkeypatch.setattr(legacy, "cmd_doctor", lambda args: 0)
     legacy.main(["doctor"])
     assert "deprecated" not in capsys.readouterr().err
+
+
+def test_load_devices_accepts_bare_key_file(ghost_home):
+    # a hand-edited devices.toml WITHOUT the [devices] header must still parse
+    gcfg.devices_path().parent.mkdir(parents=True, exist_ok=True)
+    gcfg.devices_path().write_text('galaxy = "R58NX"\npixel = "1F2E3D"\n')
+    assert gcfg.load_devices() == {"galaxy": "R58NX", "pixel": "1F2E3D"}
+
+
+def test_load_devices_still_reads_sectioned_file(ghost_home):
+    gcfg.devices_path().parent.mkdir(parents=True, exist_ok=True)
+    gcfg.devices_path().write_text('[devices]\nasus = "L9ABC"\n')
+    assert gcfg.load_devices() == {"asus": "L9ABC"}
