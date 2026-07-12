@@ -38,8 +38,8 @@ def harvest(username):
     llm    = ChatOpenAI(model="gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.environ["OPENROUTER_API_KEY"])
     prompt = PromptTemplate.from_template("Tools: {tools} | {tool_names}\nTask: {input}\n{agent_scratchpad}")
     tools  = ghost_langchain_tools(DEVICE)  # ← 40+ phone tools
-    agent  = AgentExecutor(agent=create_react_agent(llm, tools, prompt),  # ← any LLM
-                           tools=tools, max_iterations=12, handle_parsing_errors=True)
+    agent  = AgentExecutor(agent=create_react_agent(llm, tools, prompt),
+                           tools=tools, max_iterations=12, handle_parsing_errors=True)  # ← any LLM
     raw    = agent.invoke({"input": f"Open X, search @{username}. OCR follower count, bio, most recent post. Return JSON: {{followers, bio, top_post}}"})["output"]
     return json.loads(raw.split("```json")[-1].split("```")[0].strip())
 
