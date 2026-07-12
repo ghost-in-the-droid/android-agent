@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import base64
 import html
+import contextlib
+import fcntl
 import json
 import os
 import re
@@ -1231,6 +1233,48 @@ def ios_xml_to_elements(xml: str, interactive_only: bool = True) -> list[dict]:
     return elements
 
 
+_WDA_LAUNCH_LOCK_PATH = "/tmp/ghost-ios/wda-launch.lock"
+
+
+def _reap_stale_wda_builds() -> None:
+    """Kill leftover WDA xcodebuild launch processes. Only safe to call when WDA
+    is NOT up — a live session's xcodebuild hosts the running WebDriverAgent, so
+    these are hung/dead attempts from a flaky device."""
+    with contextlib.suppress(Exception):
+        subprocess.run(
+            ["pkill", "-9", "-f", "xcodebuild.*WebDriverAgent"],
+            timeout=5, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+
+
+@contextlib.contextmanager
+def _wda_launch_guard(wda_up):
+    """Serialize WDA session launches across ALL processes (backend, MCP, agent).
+
+    Appium spawns one `xcodebuild test-without-building` per POST /session to host
+    WebDriverAgent. On a flaky device those hang (~1-2 min each) and, without a
+    lock, every caller/retry spawns its own -> a pile-up of stacked xcodebuilds
+    that jams the device so none ever succeed. A cross-process file lock lets only
+    ONE launch run at a time; others block until it finishes (then reuse the live
+    WDA). If WDA isn't up when we take the lock, reap any hung/stale build first so
+    we never stack (the "kill the old guy if a new one spawns" behaviour)."""
+    fh = None
+    try:
+        with contextlib.suppress(Exception):
+            os.makedirs(os.path.dirname(_WDA_LAUNCH_LOCK_PATH), exist_ok=True)
+            fh = open(_WDA_LAUNCH_LOCK_PATH, "w")  # noqa: SIM115
+            fcntl.flock(fh, fcntl.LOCK_EX)  # released on POST timeout, so no forever-block
+        with contextlib.suppress(Exception):
+            if not wda_up():
+                _reap_stale_wda_builds()
+        yield
+    finally:
+        if fh is not None:
+            with contextlib.suppress(Exception):
+                fcntl.flock(fh, fcntl.LOCK_UN)
+                fh.close()
+
+
 class IOSDevice:
     """One iOS device/simulator controlled through Appium XCUITest."""
 
@@ -1395,6 +1439,15 @@ class IOSDevice:
             return False
         return resp.status_code < 400
 
+    def _wda_is_up(self) -> bool:
+        """True if WebDriverAgent already has a live session (Appium forwards it to
+        localhost:8100). When up, the launch guard must NOT reap xcodebuilds — the
+        running WDA is hosted by one."""
+        try:
+            return requests.get("http://127.0.0.1:8100/status", timeout=2).ok
+        except requests.RequestException:
+            return False
+
     def _ensure_session(self) -> str:
         with IOSDevice._sessions_lock:
             if self._session_id:
@@ -1442,12 +1495,15 @@ class IOSDevice:
             always_match.update(self.appium_capabilities)
 
             try:
-                resp = requests.request(
-                    "POST",
-                    self._url("/session"),
-                    json={"capabilities": {"alwaysMatch": always_match, "firstMatch": [{}]}},
-                    timeout=self.timeout,
-                )
+                # Serialize the WDA launch across all processes so hung launches
+                # on a flaky device can't pile up into a stack of xcodebuilds.
+                with _wda_launch_guard(self._wda_is_up):
+                    resp = requests.request(
+                        "POST",
+                        self._url("/session"),
+                        json={"capabilities": {"alwaysMatch": always_match, "firstMatch": [{}]}},
+                        timeout=self.timeout,
+                    )
             except requests.RequestException as e:
                 raise IOSBackendError(f"Could not create Appium iOS session: {e}") from e
             try:
