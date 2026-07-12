@@ -661,6 +661,37 @@ TOOLS = [
             "required": ["seconds"],
         },
     },
+    {
+        "name": "chain",
+        "description": (
+            "Run several device actions in ONE step, settling between each — e.g. fill a form's "
+            "fields, or tap→type→tap a submit. Saves turns on known sequences. Each sub-action is "
+            '{"tool": "<name>", "args": {...}} using the same tool names; only read/UI tools are '
+            "allowed inside a chain (no shell/run_skill/nested chain). Returns each sub-action's result."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "description": 'Ordered sub-actions, e.g. [{"tool":"tap_element","args":{"idx":3}},{"tool":"type_text","args":{"text":"hi"}}].',
+                    "items": {"type": "object"},
+                },
+                "settle": {
+                    "type": "string",
+                    "enum": ["stabilize", "delay"],
+                    "default": "stabilize",
+                    "description": "How to wait between sub-actions: 'stabilize' (short fixed settle) or 'delay' (delay_ms).",
+                },
+                "delay_ms": {
+                    "type": "integer",
+                    "default": 600,
+                    "description": "Settle time when settle='delay' (capped 3000).",
+                },
+            },
+            "required": ["actions"],
+        },
+    },
 ]
 
 
@@ -746,6 +777,12 @@ SAFE_DEVICE_TOOLS = frozenset(
 #   launch_intent    — arbitrary Android intent incl. component + extras
 #   explore_app      — spawns the BFS explorer subprocess, drives UI for minutes
 #   fix_device_health — device-admin recovery actions (can install the Portal APK)
+#   chain            — meta-executor: runs N sub-actions. Like run_flow it must
+#                      not be reachable from run_flow / framework adapters (an
+#                      untrusted batch shouldn't nest another batch), so it's
+#                      denied here. It still gates its OWN sub-actions to
+#                      SAFE_DEVICE_TOOLS, so even first-party callers can't
+#                      smuggle shell/run_skill through it.
 EXEC_CAPABLE_TOOLS = frozenset(
     {
         "shell",
@@ -756,6 +793,7 @@ EXEC_CAPABLE_TOOLS = frozenset(
         "launch_intent",
         "explore_app",
         "fix_device_health",
+        "chain",
     }
 )
 
@@ -1550,10 +1588,68 @@ def _execute_tool_inner(name: str, args: dict) -> str:
         elif name == "wait":
             time.sleep(args.get("seconds", 2))
             return f"Waited {args.get('seconds', 2)}s"
+        elif name == "chain":
+            return _execute_chain(device, args)
         else:
             return f"Unknown tool: {name}"
     except Exception as e:
         return f"Error: {e}"
+
+
+# Cap on sub-actions per chain — a batch that big is almost certainly a
+# runaway; bound it so one chain call can't monopolise the device.
+_CHAIN_MAX_ACTIONS = 15
+_CHAIN_MAX_DELAY_S = 3.0
+_CHAIN_STABILIZE_S = 0.6
+
+
+def _execute_chain(device: str, args: dict) -> str:
+    """Run a sequence of sub-actions in one step, settling between each.
+
+    Fail-closed like run_flow: every sub-action's tool must be on
+    SAFE_DEVICE_TOOLS, and a chain may not nest another chain — a batch is
+    exactly where an injected instruction would try to smuggle an exec tool, so
+    the whole chain is refused before any sub-action runs if any step names a
+    non-allowed tool. Sub-actions dispatch via _execute_tool_inner (no
+    per-action screen-tree append); we settle between them instead.
+    """
+    import time
+
+    subs = args.get("actions")
+    if not isinstance(subs, list) or not subs:
+        return "chain: 'actions' must be a non-empty list of {tool, args}"
+    if len(subs) > _CHAIN_MAX_ACTIONS:
+        return f"chain: too many actions ({len(subs)} > {_CHAIN_MAX_ACTIONS})"
+
+    # Validate the WHOLE batch before running ANY of it, so a chain that hides a
+    # disallowed action after some benign steps executes nothing.
+    for i, sub in enumerate(subs):
+        if not isinstance(sub, dict) or "tool" not in sub:
+            return f"chain: step {i} must be an object with a 'tool' field"
+        tool = sub["tool"]
+        if tool == "chain":
+            return f"chain: step {i} may not nest another chain"
+        if tool not in SAFE_DEVICE_TOOLS:
+            return f"chain: step {i} tool '{tool}' is not allowed inside a chain (only read/UI tools)"
+
+    settle = args.get("settle", "stabilize")
+    delay_s = min(max(int(args.get("delay_ms", 600)), 0) / 1000, _CHAIN_MAX_DELAY_S)
+
+    infos: list[str] = []
+    for i, sub in enumerate(subs):
+        tool = sub["tool"]
+        sub_args = dict(sub.get("args") or {})
+        sub_args.setdefault("device", device)
+        try:
+            out = _execute_tool_inner(tool, sub_args)
+            infos.append(f"{tool}: {str(out)[:80]}")
+        except Exception as e:
+            infos.append(f"{tool}: err:{e}")
+            break  # abort the rest of the chain on the first hard failure
+        if i < len(subs) - 1:
+            time.sleep(delay_s if settle == "delay" else _CHAIN_STABILIZE_S)
+
+    return f"chain[{len(infos)}/{len(subs)}]: " + " > ".join(infos)
 
 
 def get_screenshot_b64(device: str) -> str | None:

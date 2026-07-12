@@ -92,6 +92,7 @@ _CROSS_PLATFORM = {
     "run_flow": "Batched execution of allow-listed tools; each step routes per-platform.",
     "crm_lookup_contact": "Device-neutral local CRM contact lookup.",
     "crm_list_unread_messages": "Device-neutral local CRM unread-message listing.",
+    "chain": "Runs a sequence of sub-actions; each sub-action routes to its own platform backend.",
     "wait": "Device-neutral delay.",
 }
 
