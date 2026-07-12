@@ -210,6 +210,13 @@ cmd_dashboard(){
   say "dashboard: http://localhost:${VITE_PORT}/"
 }
 
+cmd_reset(){
+  # Manual CoreDevice/usbmux reset for the "Device is busy (Connecting to)" wedge.
+  require_udid
+  reset_coredevice
+  say "Done. Unlock the iPhone and give it ~5s to re-handshake, then retry."
+}
+
 cmd_keychain(){
   say "One-time: grant command-line codesign access to your Apple Development key."
   read -rs -p "Mac login password: " PW; echo
@@ -252,6 +259,7 @@ everything alive + self-healing until you Ctrl-C.
   ghost-ios speak TEXT  speak TEXT aloud on the phone (native WDA TTS)
   ghost-ios keychain    one-time: grant CLI codesign access to your signing key
   ghost-ios rebuild-wda (re)build+install the patched WebDriverAgent onto the phone
+  ghost-ios reset       reset usbmuxd/remoted (fixes "Device is busy (Connecting to)")
   ghost-ios config      show resolved configuration
   ghost-ios down        stop tunnel + appium + backend
 
@@ -271,6 +279,7 @@ case "${1:-help}" in
   doctor|dr)       cmd_doctor ;;
   rebuild-wda|wda) cmd_rebuild_wda ;;
   keychain)        cmd_keychain ;;
+  reset)           cmd_reset ;;
   down|stop)       teardown ;;
   *)               cmd_help ;;
 esac

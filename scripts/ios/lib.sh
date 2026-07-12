@@ -104,6 +104,17 @@ require_udid(){
   exit 1
 }
 
+reset_coredevice(){
+  # Clear a stale CoreDevice/usbmux connection — the cause of xcodebuild's
+  # "Device is busy (Connecting to ...)" / "Timed out waiting for all
+  # destinations". Bounces the whole device-connection stack (usbmux + remoted
+  # + CoreDeviceService); all auto-restart via launchd. Briefly drops USB
+  # devices. Needs sudo (caller should `sudo -v` first for a seamless prompt).
+  say "[reset ] bouncing usbmuxd + remoted + CoreDeviceService (they auto-restart) ..."
+  sudo killall -9 usbmuxd remoted 2>/dev/null || true
+  sudo pkill -9 -f CoreDeviceService 2>/dev/null || true
+}
+
 export_backend_env(){
   # Hand the backend the same iOS knobs the tuned setup uses. Only non-empty
   # identity vars are exported so an unset value falls through to app defaults.
