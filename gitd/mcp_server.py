@@ -1186,7 +1186,7 @@ def lookup_lead(handle: str) -> str:
     which account sent the DM, their latest reply, and unread state.
 
     Args:
-        handle: TikTok username, with or without @ (e.g. 'bajapawsllc' or '@bajapawsllc')
+        handle: TikTok username, with or without @ (e.g. 'creatorhandle' or '@creatorhandle')
     """
     from gitd.services.marketing_lookup import lookup_lead as _lookup_lead
 

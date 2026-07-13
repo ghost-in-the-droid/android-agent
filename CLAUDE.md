@@ -24,34 +24,6 @@ To make the phone speak text aloud:
 
 Works from PC and on-device — always emits audio from the phone.
 
-## MCP Tools: lead lookup (marketing agent)
-
-**Do not ask another agent / the user for lead info — query the DB directly.**
-
-To look up everything about an influencer (followers, niche, our outreach
-history, their reply, conversation state):
-
-1. `ToolSearch({"query": "select:mcp__android-agent__lookup_lead"})`
-2. `mcp__android-agent__lookup_lead(handle="bajapawsllc")` — with or without `@`
-
-To get the daily priority list (all influencers with unread replies):
-
-1. `ToolSearch({"query": "select:mcp__android-agent__list_unread_leads"})`
-2. `mcp__android-agent__list_unread_leads()` — no args
-
-Output is plain text formatted for the LLM to read directly. Includes profile
-URL, follower counts, engagement ratio, source hashtag, outreach status,
-strategy used, and the latest message exchanged.
-
-## Reply detection cadence
-
-The phone's TikTok inbox is scanned automatically every hour at :30
-(8:30–22:30) on the primary device. Data lives in:
-- `inbox_snapshots` — one row per scan with rollup counts
-- `inbox_replies`  — one row per conversation, updated each scan
-
-Use `list_unread_leads` to query that data through MCP instead of writing SQL.
-
 ## General rule
 
 All `mcp__android-agent__*` tools are already loaded by the MCP server. To use any of them:
