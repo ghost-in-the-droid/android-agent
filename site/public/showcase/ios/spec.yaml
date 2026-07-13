@@ -10,20 +10,22 @@ duration_target_s: 60
 device: ios
 platform_notes: "Appium + WebDriverAgent; QuickTime mirror for recording."
 setup:
-  - unlock
+  - step: wake_unlock
+# Timeline is CAPTIONS/timing only for --compose (the terminal comes from an
+# external cast; these action cmds are not executed). ios-tester/adb-marketing
+# to finalize captions to match the real hero cast.
 timeline:
   - t: 0
     caption: "Same agent, now with an iPhone attached"
-    action: terminal_type
-    args: { text: "android-agent devices" }
+    action: terminal_exec
+    args: { cmd: "true" }
   - t: 10
     caption: "Drive iOS with the same tool calls"
-    action: terminal_type
-    args: { text: "android-agent run 'open Settings and enable Do Not Disturb'" }
+    action: terminal_exec
+    args: { cmd: "true" }
   - t: 20
     caption: "Real phones. Any AI. Zero cloud."
-    action: wait_for_phone
-    args: { seconds: 30 }
+    action: show_phone
 outro:
   cta_line: "pip install ghost-in-the-droid"
   cta_link: /getting-started/installation/

@@ -930,6 +930,108 @@ def do_record(demo: str, serial: str | None, skip_phone_prep: bool,
     return 0
 
 
+def do_compose(demo: str, phone_video: str, terminal_cast: str | None,
+               phone_offset: float, keep_workdir: bool,
+               no_local_patterns: bool = False) -> int:
+    """Compose a demo from EXTERNAL sources — no ADB recording. Takes a phone
+    video from ANY source (iOS WDA/Tailscale MJPEG, QuickTime, or a plain mp4)
+    plus an optional terminal.cast, and reuses the standard render→composite→
+    OCR-gate→deploy post-process. This is how iOS demos ship (ADB can't capture
+    an iPhone); device:ios in the spec already selects the iphone15pro bezel."""
+    spec = load_spec(demo)
+    errs = validate_spec(spec)
+    if errs:
+        for e in errs:
+            print(f"  ✗ {e}")
+        die("spec invalid — fix before composing (or run --dry-run)")
+    missing = [t for t in ("agg", "ffmpeg", "tesseract") if not shutil.which(t)]
+    if missing:
+        die(f"missing tools: {', '.join(missing)} — compose needs the render + gate toolchain")
+    patterns = load_forbidden()
+    if not (Path(__file__).parent / "privacy" / "FORBIDDEN.local.txt").exists() \
+            and not no_local_patterns:
+        die("scripts/privacy/FORBIDDEN.local.txt missing (see RECORDING_CHECKLIST.md §3) "
+            "— or pass --no-local-patterns.")
+
+    layout = spec.get("layout")
+    if layout != "phone_only" and not terminal_cast:
+        die(f"layout '{layout}' needs a terminal — pass --terminal-cast (only phone_only omits it)")
+    pv = Path(phone_video)
+    if not pv.exists():
+        die(f"--phone-video not found: {pv}")
+
+    demo_v = spec["demo"]
+    workdir = REPO_ROOT / ".recordings" / demo_v
+    if workdir.exists():
+        shutil.rmtree(workdir)
+    workdir.mkdir(parents=True)
+    log(f"compose workdir {workdir} (external sources; no ADB)")
+
+    # Normalize the external phone video to CFR (MJPEG / WDA / QuickTime streams
+    # are often VFR — a static screen emits sparse frames → overlay timing drifts).
+    phone_mp4 = workdir / "phone.mp4"
+    run(["ffmpeg", "-y", "-i", str(pv), "-r", str(FPS), "-an",
+         "-pix_fmt", "yuv420p", str(phone_mp4)], "normalize phone video", heavy=True)
+
+    host = socket.gethostname()
+    user = os.environ.get("USER", "")
+    extra: list[tuple[str, str]] = []
+    if host:
+        extra.append((host, "ghost-dev-linux"))
+    if user and user != "ghost":
+        extra.append((f"/home/{user}", "~"))
+        extra.append((f"{user}@", "ghost@"))
+
+    term_mp4 = None
+    if terminal_cast:
+        tc = Path(terminal_cast)
+        if not tc.exists():
+            die(f"--terminal-cast not found: {tc}")
+        shutil.copy2(tc, workdir / "terminal.cast")
+        cast_scrubbed = workdir / "terminal_scrubbed.cast"
+        rows = int(spec.get("term_rows",
+                            14 if layout == "three_window" else TERM_ROWS))
+        scrub_cast(workdir / "terminal.cast", cast_scrubbed, extra=extra,
+                   cols=TERM_COLS, rows=rows)
+        hits = scan_text(cast_scrubbed.read_text(), patterns)
+        if hits:
+            for src, m in hits:
+                log(f"  FORBIDDEN in scrubbed terminal cast: {src!r} matched {m[:3]}…")
+            die("terminal cast still contains forbidden content after scrubbing "
+                "(UDID/keys/hostnames?) — clean the source cast and retry")
+        log("rendering terminal (agg)")
+        term_mp4 = workdir / "terminal.mp4"
+        render_terminal(cast_scrubbed, term_mp4, workdir)
+
+    log("compositing final video (ffmpeg)")
+    out_webm = workdir / "demo.webm"
+    composite(spec, workdir, term_mp4, phone_mp4,
+              phone_offset_s=phone_offset, out_webm=out_webm)
+
+    log("privacy OCR gate: extracting frames + tesseract scan")
+    violations = ocr_gate(out_webm, workdir, patterns)
+    if violations:
+        for v in violations:
+            log(f"  FORBIDDEN {v}")
+        die(f"OCR gate FAILED ({len(violations)} hit(s)) — output quarantined in "
+            f"{workdir}, nothing copied to site/public/. Inspect + fix the leak.")
+    log("privacy OCR gate: clean")
+
+    out_dir = SHOWCASE_DIR / demo_v
+    out_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(out_webm, out_dir / "demo.webm")
+    hw = spec.get("highlight_window") or {}
+    poster_ss = INTRO_S + float(hw.get("start_s", 2)) + 1.0
+    run(["ffmpeg", "-y", "-ss", str(poster_ss), "-i", str(out_dir / "demo.webm"),
+         "-frames:v", "1", str(out_dir / "poster.png")], "poster extraction")
+    write_snippet(spec, out_dir / "snippet.py")
+    size_mb = (out_dir / "demo.webm").stat().st_size / 1e6
+    log(f"DONE → {out_dir / 'demo.webm'} ({size_mb:.1f} MB), poster.png, snippet.py")
+    if not keep_workdir:
+        shutil.rmtree(workdir)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Ghost showcase demo recorder")
     ap.add_argument("--demo", help="demo id (must exist in copy.yaml + have spec.yaml)")
@@ -942,6 +1044,14 @@ def main() -> int:
     ap.add_argument("--no-local-patterns", action="store_true",
                     help="DEV ONLY: allow recording without FORBIDDEN.local.txt "
                          "(personal identifiers unenforced — never ship the result)")
+    ap.add_argument("--compose", action="store_true",
+                    help="compose from EXTERNAL sources (no ADB record; e.g. iOS)")
+    ap.add_argument("--phone-video",
+                    help="external phone video for --compose (iOS WDA/Tailscale MJPEG / mp4)")
+    ap.add_argument("--terminal-cast",
+                    help="terminal.cast to render for --compose (omit only for phone_only)")
+    ap.add_argument("--phone-offset", type=float, default=0.0,
+                    help="seconds trimmed off the phone video start (manual sync for --compose)")
     ap.add_argument("--_inner", metavar="PLAN", help=argparse.SUPPRESS)
     args = ap.parse_args()
 
@@ -953,6 +1063,11 @@ def main() -> int:
         ap.error("--demo is required (or --list)")
     if args.dry_run:
         return do_dry_run(args.demo)
+    if args.compose:
+        if not args.phone_video:
+            die("--compose needs --phone-video (and --demo)")
+        return do_compose(args.demo, args.phone_video, args.terminal_cast,
+                          args.phone_offset, args.keep_workdir, args.no_local_patterns)
     return do_record(args.demo, args.serial, args.skip_phone_prep, args.keep_workdir,
                      args.no_local_patterns)
 
