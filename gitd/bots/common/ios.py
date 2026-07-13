@@ -1095,6 +1095,32 @@ def _safe_attr(value: Any) -> str:
     return "" if value is None else str(value)
 
 
+def _looks_like_ios_identifier(s: str) -> bool:
+    """True for accessibility-identifier / type strings that are not human text.
+
+    WDA exposes the ``accessibilityIdentifier`` as a node's ``name``; on many apps
+    that is a developer string — module paths, generics, mangled Swift, snake_case
+    view ids (e.g. ``BaseCell<FeedStackSliceViewModel>``, ``_TtGC8SliceKit…``,
+    ``reddit_feed__content_view_home_loaded``, ``Home_Impl.HomeScreenView``) —
+    rather than the visible label. Such strings should never surface as extracted
+    page text. Applied only to the ``name`` fallback, so real ``label``/``value``
+    text is never filtered.
+    """
+    if not s or any(ch.isspace() for ch in s):
+        return False
+    if "<" in s or ">" in s:              # generics: BaseCell<...>
+        return True
+    if s.startswith("_Tt"):               # mangled Swift type
+        return True
+    if "__" in s:                         # snake view id: a__b__c
+        return True
+    if re.search(r"[a-z][A-Z]", s):       # camelCase/PascalCase hump: HomeScreenView
+        return True
+    if "." in s and any(c.isupper() for c in s) and any(c.islower() for c in s):
+        return True                       # mixed-case module path: Home_Impl.HomeScreenView
+    return False
+
+
 def _label_for_ios_node(node: ET.Element) -> tuple[str, str, str]:
     """Return Android-shaped text/content-desc/resource-id values."""
     value = _safe_attr(node.get("value")).strip()
@@ -1102,10 +1128,13 @@ def _label_for_ios_node(node: ET.Element) -> tuple[str, str, str]:
     name = _safe_attr(node.get("name")).strip()
     node_type = _safe_attr(node.get("type") or node.tag).strip()
 
-    text = value or label or name
+    # `name` is the accessibilityIdentifier: keep dev identifiers out of the
+    # human-readable text/desc, but resource-id still uses it for element location.
+    name_text = "" if _looks_like_ios_identifier(name) else name
+    text = value or label or name_text
     if node_type in _SCROLLABLE_TYPES and text == node_type:
         text = ""
-    desc = label or name
+    desc = label or name_text
     rid = name
     return text, desc, rid
 
@@ -1253,6 +1282,13 @@ class IOSDevice:
         self._scale: tuple[float, float] | None = None
         self._screen_size: tuple[int, int] | None = None
         self._window_rect_cache: dict | None = None
+        # Direct-WDA transport (IOS_WDA_DIRECT=1): talk to WebDriverAgent over its
+        # own HTTP API — resolving the tunnel address fresh from the RemoteXPC
+        # registry — and skip Appium (and its CoreDevice device-lookup, which
+        # wedges as "Could not find the expected device") entirely. Opt-in; the
+        # Appium path is left completely untouched when this is off.
+        self._direct = os.environ.get("IOS_WDA_DIRECT") == "1"
+        self._wda_base_cache: str | None = None
 
     @property
     def platform(self) -> str:
@@ -1271,8 +1307,46 @@ class IOSDevice:
             tuple(sorted(self.appium_capabilities.items())),
         )
 
+    def _wda_base(self) -> str:
+        """WebDriverAgent base URL for direct mode (cached per IOSDevice instance).
+
+        Prefers a fixed ``wda_url`` if configured; otherwise resolves the tunnel
+        address FRESH from the RemoteXPC registry. That address changes on every
+        tunnel restart, so it must never be cached across restarts — a new
+        IOSDevice re-resolves. IPv6 addresses are bracketed for the URL.
+
+        Durable wireless path (no USB): run WDA on the device, reach it over
+        Tailscale, and set ``IOS_WDA_URL=http://<tailscale-ip>:8100`` — that fixed
+        URL is preferred here and survives USB drops and LAN power-save. The
+        RemoteXPC registry is the USB-tunnel path; it does not apply over Tailscale.
+        """
+        if self._wda_base_cache:
+            return self._wda_base_cache
+        base = self.wda_url.rstrip("/") if self.wda_url else self._resolve_wda_base_from_registry()
+        if not base:
+            raise IOSBackendError(
+                "IOS_WDA_DIRECT=1 but no WDA base URL could be determined: set IOS_WDA_URL, "
+                "or ensure the RemoteXPC tunnel registry is reachable "
+                "(IOS_REMOTEXPC_REGISTRY, default http://127.0.0.1:42314)."
+            )
+        self._wda_base_cache = base
+        return base
+
+    def _resolve_wda_base_from_registry(self) -> str:
+        registry = os.environ.get("IOS_REMOTEXPC_REGISTRY", "http://127.0.0.1:42314").rstrip("/")
+        try:
+            resp = requests.get(f"{registry}/remotexpc/tunnels/{self.udid}", timeout=self.timeout)
+            addr = (resp.json() or {}).get("address", "") if resp.ok else ""
+        except (requests.RequestException, ValueError):
+            addr = ""
+        if not addr:
+            return ""
+        if ":" in addr and not addr.startswith("["):
+            addr = f"[{addr}]"  # bracket IPv6 (fdxx::1 → [fdxx::1])
+        return f"http://{addr}:8100"
+
     def _url(self, path: str) -> str:
-        return self.appium_url + path
+        return (self._wda_base() if self._direct else self.appium_url) + path
 
     @staticmethod
     def _invalid_session_message(status_code: int, value: Any, text: str = "") -> bool:
@@ -1363,10 +1437,14 @@ class IOSDevice:
         return value
 
     def _validate_session_id(self, session_id: str) -> bool:
+        # WDA implements /window/size, not /window/rect (Appium adds the latter);
+        # probe the endpoint each backend actually serves so a live session isn't
+        # thrown away and needlessly recreated.
+        probe = "/window/size" if self._direct else "/window/rect"
         try:
             resp = requests.request(
                 "GET",
-                self._url(f"/session/{session_id}/window/rect"),
+                self._url(f"/session/{session_id}{probe}"),
                 timeout=min(5, self.timeout),
             )
         except requests.RequestException:
@@ -1391,24 +1469,32 @@ class IOSDevice:
                     return cached
                 self._evict_session(cached)
 
-            always_match: dict[str, Any] = {
-                "platformName": "iOS",
-                "appium:automationName": "XCUITest",
-                "appium:udid": self.udid,
-                "appium:deviceName": self.device_name,
-                "appium:noReset": True,
-                "appium:newCommandTimeout": 300,
-            }
-            if self.platform_version:
-                always_match["appium:platformVersion"] = self.platform_version
-            if self.wda_url:
-                always_match["appium:webDriverAgentUrl"] = self.wda_url
-            if self.browser_name:
-                always_match["browserName"] = self.browser_name
-            elif self.bundle_id:
-                always_match["appium:bundleId"] = self.bundle_id
-            always_match.update(self.appium_capabilities)
+            if self._direct:
+                # Direct WDA: minimal W3C caps only. WDA ignores appium:* and does
+                # no device lookup (the tunnel address already targets one device),
+                # so appium_capabilities (all appium:*, e.g. mjpegServerPort) are
+                # deliberately not merged here — they belong to the Appium contract.
+                always_match: dict[str, Any] = {"platformName": "iOS"}
+            else:
+                always_match = {
+                    "platformName": "iOS",
+                    "appium:automationName": "XCUITest",
+                    "appium:udid": self.udid,
+                    "appium:deviceName": self.device_name,
+                    "appium:noReset": True,
+                    "appium:newCommandTimeout": 300,
+                }
+                if self.platform_version:
+                    always_match["appium:platformVersion"] = self.platform_version
+                if self.wda_url:
+                    always_match["appium:webDriverAgentUrl"] = self.wda_url
+                if self.browser_name:
+                    always_match["browserName"] = self.browser_name
+                elif self.bundle_id:
+                    always_match["appium:bundleId"] = self.bundle_id
+                always_match.update(self.appium_capabilities)
 
+            backend = "WDA" if self._direct else "Appium"
             try:
                 resp = requests.request(
                     "POST",
@@ -1417,37 +1503,89 @@ class IOSDevice:
                     timeout=self.timeout,
                 )
             except requests.RequestException as e:
-                raise IOSBackendError(f"Could not create Appium iOS session: {e}") from e
+                raise IOSBackendError(f"Could not create {backend} iOS session: {e}") from e
             try:
                 data = resp.json()
             except ValueError as e:
-                raise IOSBackendError(f"Appium did not return JSON for session creation: {resp.text[:200]}") from e
+                raise IOSBackendError(f"{backend} did not return JSON for session creation: {resp.text[:200]}") from e
             if resp.status_code >= 400:
                 value = data.get("value", {})
                 msg = value.get("message") if isinstance(value, dict) else resp.text
-                raise IOSBackendError(f"Could not create Appium iOS session ({resp.status_code}): {msg}")
+                raise IOSBackendError(f"Could not create {backend} iOS session ({resp.status_code}): {msg}")
 
             value = data.get("value", {})
             sid = data.get("sessionId") or value.get("sessionId")
             if not sid:
-                raise IOSBackendError(f"Appium session response did not include sessionId: {data}")
+                raise IOSBackendError(f"{backend} session response did not include sessionId: {data}")
             self._session_id = sid
             IOSDevice._sessions[self._config] = sid
+            if self._direct:
+                self._apply_wda_settings(sid)
             return sid
+
+    def _apply_wda_settings(self, sid: str) -> None:
+        """Zero WDA's idle/animation waits for snappy, deterministic control.
+
+        Best-effort: control still works with WDA defaults if this fails, so a
+        settings hiccup must not abort session creation.
+        """
+        try:
+            requests.request(
+                "POST",
+                self._url(f"/session/{sid}/appium/settings"),
+                json={"settings": {"animationCoolOffTimeout": 0, "waitForIdleTimeout": 0}},
+                timeout=self.timeout,
+            )
+        except requests.RequestException:
+            pass
 
     def _session_path(self, suffix: str) -> str:
         return f"/session/{self._ensure_session()}{suffix}"
 
     def _execute_mobile(self, command: str, args: dict | None = None) -> Any:
+        if self._direct:
+            return self._execute_mobile_direct(command, args or {})
         return self._request("POST", self._session_path("/execute/sync"), {"script": command, "args": [args or {}]})
+
+    def _execute_mobile_direct(self, command: str, args: dict) -> Any:
+        """WDA-native equivalents of the Appium ``mobile:`` execute-script commands.
+
+        Callers (launch_app/app_state/press_key/terminate_app/…) are unchanged —
+        this one override maps their ``mobile:`` verbs onto WDA's own endpoints so
+        the whole tool surface works with no Appium in the loop.
+        """
+        name = command.split(":", 1)[1].strip() if ":" in command else command.strip()
+        bundle = args.get("bundleId") or args.get("appId")
+        if name in ("launchApp", "activateApp"):
+            return self._request("POST", self._session_path("/wda/apps/launch"), {"bundleId": bundle})
+        if name == "terminateApp":
+            return self._request("POST", self._session_path("/wda/apps/terminate"), {"bundleId": bundle})
+        if name == "queryAppState":
+            return self._request("POST", self._session_path("/wda/apps/state"), {"bundleId": bundle})
+        if name == "activeAppInfo":
+            return self._request("GET", self._session_path("/wda/activeAppInfo"))
+        if name == "pressButton":
+            return self._request("POST", self._session_path("/wda/pressButton"), {"name": args.get("name")})
+        raise IOSBackendError(
+            f"mobile: {name} has no WDA-native equivalent in direct mode (IOS_WDA_DIRECT=1)"
+        )
 
     def _execute_script(self, script: str, args: list[Any] | None = None) -> Any:
         return self._request("POST", self._session_path("/execute/sync"), {"script": script, "args": args or []})
 
     def _set_context(self, name: str) -> None:
+        # WDA is native-only: /context (like /contexts) is an Appium endpoint that
+        # 404s on WDA. Native is the only context in direct mode, so this is a no-op.
+        if self._direct:
+            return
         self._request("POST", self._session_path("/context"), {"name": name})
 
     def get_contexts(self) -> list[str]:
+        # WDA has no webview-automation contexts and no /contexts endpoint (it 404s
+        # as "Unhandled endpoint"). Report the native context only so web-context
+        # probing skips cleanly and callers fall back to native /source parsing.
+        if self._direct:
+            return ["NATIVE_APP"]
         value = self._request("GET", self._session_path("/contexts"))
         return [str(v) for v in value] if isinstance(value, list) else []
 
@@ -1490,7 +1628,9 @@ class IOSDevice:
     def mjpeg_url(self) -> str:
         if self.mjpeg_screenshot_url:
             return self.mjpeg_screenshot_url
-        parsed = urllib.parse.urlparse(self.appium_url)
+        # Direct mode: MJPEG streams off the WDA host (tunnel address), not Appium.
+        base = self._wda_base() if self._direct else self.appium_url
+        parsed = urllib.parse.urlparse(base)
         scheme = parsed.scheme or "http"
         host = parsed.hostname or "127.0.0.1"
         if ":" in host and not host.startswith("["):
