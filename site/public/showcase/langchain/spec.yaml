@@ -1,16 +1,18 @@
 demo: langchain
 device: android
-duration_target_s: 420
+duration_target_s: 360
 
 # 3-window layout: phone (left) + code (top-right, langchain_script.py — the
 # high-level main() segment) + terminal (bottom-right, live Claude-Code tool
 # stream: ● list_devices / force_stop / launch_app / tap … then the DB table)
 layout: three_window
 code_pane_source: scripts/showcase/langchain_script.py
-# After the intro resize, time-lapse the harvest 7x (~7min → ~1min). The intro
-# opens with the tall code window + phone already on the side (phone_in_intro),
-# so the content must NOT re-slide the phone in.
-content_speedup: 1            # dedup already removes the dead air; no extra speedup (else too fast)
+# content_dedup drops the dead air (agent thinks on a static screen ~95% of the
+# run); that alone compresses 5 harvests (~260s) down to the ~40s of real action,
+# landing the demo in the 30-45s target with NO extra speedup (stacking speedup on
+# top of dedup makes it unwatchably fast). The intro opens with the tall code
+# window + phone already on the side (phone_in_intro), so content must NOT re-slide.
+content_speedup: 1
 content_dedup: true          # drop only frozen/duplicate frames (dead air), nothing else
 phone_in_intro: true
 
@@ -42,13 +44,14 @@ timeline:
     caption: "LangChain agent, driven by local Claude Code — no cloud API."
     action: terminal_type
     args:
-      cmd: "for i in 1 2; do python scripts/showcase/langchain_script.py; done"
-      exec_cmd: "rm -f scripts/showcase/posts.db; for i in 1 2; do ~/.ghost-cc-venv/bin/python scripts/showcase/langchain_script.py; done"
+      cmd: "for i in 1 2 3 4 5; do python scripts/showcase/langchain_script.py; done"
+      exec_cmd: "rm -f scripts/showcase/posts.db; for i in 1 2 3 4 5; do ~/.ghost-cc-venv/bin/python scripts/showcase/langchain_script.py; done"
 
   # Table payoff: a plain one-liner SQL against the DB the agent just wrote —
-  # no show() helper in the script for the viewer to wade through.
-  - t: 400
-    caption: "2 subreddits profiled. Ghost drove. Claude Code thought."
+  # no show() helper in the script for the viewer to wade through. t sized so all
+  # 5 harvests (~50s each ≈ 260s) finish first; dedup collapses any slack.
+  - t: 330
+    caption: "5 subreddits profiled. Ghost drove. Claude Code thought."
     action: terminal_type
     args:
       cmd: 'sqlite3 -header -column scripts/showcase/posts.db "SELECT subreddit, upvotes, comments, substr(title,1,38) title FROM posts"'
@@ -58,4 +61,4 @@ outro:
   cta_line: "pip install ghost-in-the-droid[langchain]"
   cta_link: "https://ghostinthedroid.com/features/integrations/"
 
-highlight_window: {start_s: 404, end_s: 412}
+highlight_window: {start_s: 330, end_s: 338}

@@ -71,18 +71,21 @@ def main():
         t = i / FPS
         canvas = Image.new("RGBA", CANVAS, BG + (255,))
 
-        # phone sits on the side for the whole intro (static)
-        if plate is not None:
-            canvas.alpha_composite(plate)
-
         if t <= SHRINK_START:
             prog = 0.0
         else:
             prog = ease_out(min(1.0, (t - SHRINK_START) / (DUR - SHRINK_START)))
 
-        # header/headline/mascot fade in as the window shrinks
+        # header/headline/mascot fade in as the window shrinks — composite it FIRST
+        # (it's the background), then the phone ON TOP, matching the content layer
+        # order. Otherwise the fading-in header covers the phone and it flickers
+        # away right before the content puts it back on top (the resize flicker).
         if prog > 0:
             canvas.alpha_composite(fade_alpha(header, prog))
+
+        # phone sits on the side for the whole intro (static), above the header
+        if plate is not None:
+            canvas.alpha_composite(plate)
 
         # window geometry interpolates FULL_WIN -> WIN
         x0 = lerp(FULL_WIN[0], WIN[0], prog)

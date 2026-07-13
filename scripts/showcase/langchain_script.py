@@ -8,7 +8,7 @@ from integrations.langchain import ghost_langchain_tools
 from langchain_claude_code import ChatClaudeCode
 
 DB, DEVICE = Path(__file__).with_name("posts.db"), os.environ.get("GHOST_DEVICE") or os.environ["ANDROID_SERIAL"]
-SEED = ["LocalLLaMA", "MachineLearning"]
+SEED = ["LocalLLaMA", "MachineLearning", "singularity", "OpenAI", "StableDiffusion"]
 
 
 def main():
