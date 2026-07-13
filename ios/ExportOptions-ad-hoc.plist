@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Shareable to registered UDIDs. Needs an ad-hoc provisioning profile
+         (Apple Developer portal) + the device UDIDs added to it. -->
+    <key>method</key>
+    <string>ad-hoc</string>
+    <key>teamID</key>
+    <string>WWD665FH95</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>compileBitcode</key>
+    <false/>
+    <key>thinning</key>
+    <string>&lt;none&gt;</string>
+</dict>
+</plist>
