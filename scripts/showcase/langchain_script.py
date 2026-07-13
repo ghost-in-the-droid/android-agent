@@ -41,8 +41,8 @@ def main():
 def harvest(subreddit):
     subprocess.run(["adb", "-s", DEVICE, "shell", "am", "force-stop",
                     "com.reddit.frontpage"], capture_output=True)
-    llm   = ChatOpenAI(model="anthropic/claude-sonnet-5", base_url="https://openrouter.ai/api/v1",
-                       api_key=_env["OPENROUTER_API_KEY"], max_tokens=3072)
+    llm   = ChatOpenAI(model="qwen3:8b", base_url="http://127.0.0.1:11434/v1",
+                       api_key="ollama", max_tokens=3072)
     tools = ghost_langchain_tools(DEVICE)  # ← 40+ phone tools
     agent = create_react_agent(llm, tools)  # ← any LLM
     task  = f"1. Open the Reddit app and navigate to r/{subreddit}\n2. Read the title, upvote count and comment count of the first 2 posts\nReply with ONLY a JSON array in a ```json fenced block: [{{\"title\": ..., \"upvotes\": ..., \"comments\": ...}}, {{\"title\": ..., \"upvotes\": ..., \"comments\": ...}}]"
