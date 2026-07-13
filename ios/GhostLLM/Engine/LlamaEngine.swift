@@ -111,9 +111,20 @@ actor LlamaEngine: InferenceEngine {
         llama_memory_clear(llama_get_memory(ctx), true)
         var batch = llama_batch_init(nBatch, 0, 1)
         defer { llama_batch_free(batch) }
-        fill(&batch, with: promptTokens, startPos: 0)
-        batch.logits[Int(batch.n_tokens) - 1] = 1
-        guard llama_decode(ctx, batch) == 0 else { throw InferenceError.contextFailed }
+        // Prefill in nBatch-sized chunks so a prompt longer than nBatch can't
+        // overflow the batch buffers (that overran → SIGSEGV). Logits only on the
+        // very last token.
+        let step = Int(nBatch)
+        var pos = 0
+        while pos < promptTokens.count {
+            let end = min(pos + step, promptTokens.count)
+            let chunk = Array(promptTokens[pos..<end])
+            fill(&batch, with: chunk, startPos: Int32(pos))
+            let isLast = end == promptTokens.count
+            if isLast { batch.logits[Int(batch.n_tokens) - 1] = 1 }
+            guard llama_decode(ctx, batch) == 0 else { throw InferenceError.contextFailed }
+            pos = end
+        }
 
         // --- Decode loop ---
         // Always sample via a chain: optional grammar → repetition penalty → greedy.

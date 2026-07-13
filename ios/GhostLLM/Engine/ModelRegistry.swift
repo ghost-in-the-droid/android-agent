@@ -37,6 +37,17 @@ enum ModelRegistry {
         bundled: false
     )
 
-    static let all: [ModelSpec] = [phase0, gemma4E2B]
+    /// Agent model: smaller than Gemma (~1.1 GB, fits alongside a WKWebView without
+    /// Metal OOM) and notably stronger at function-calling per param (ghost-multi-fleet-dev).
+    static let qwen15 = ModelSpec(
+        id: "qwen2.5-1.5b",
+        displayName: "Qwen2.5 1.5B (agent)",
+        filename: "Qwen2.5-1.5B-Instruct-Q4_K_M.gguf",
+        url: URL(string: "https://huggingface.co/bartowski/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf"),
+        sizeBytes: 1_120_238_688,
+        bundled: false
+    )
+
+    static let all: [ModelSpec] = [phase0, gemma4E2B, qwen15]
     static let defaultModel = phase0   // load instantly offline; user can pull Gemma
 }
