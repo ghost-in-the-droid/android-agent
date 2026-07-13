@@ -598,6 +598,11 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     rx, ry, rw, rh = fr["screen_rect"]
     rx += FRAME_X_OFFSET
     content_s = timeline_end(spec)
+    # Optional post-intro time-lapse: play the recorded content N× faster (the
+    # intro/outro cards stay real-time). content_speedup: 7 turns a ~7min harvest
+    # into ~1min. setpts divides timestamps; captions/fades scale with it.
+    speedup = float(spec.get("content_speedup", 1) or 1)
+    pts = "PTS-STARTPTS" if speedup == 1 else f"(PTS-STARTPTS)/{speedup}"
     captions = workdir / "captions.ass"
     build_captions(spec, captions)
 
@@ -649,7 +654,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
             f"[5:v]format=rgba[framepng];"
             f"[c1][framepng]overlay=0:0:format=auto[c2];"
             f"[c2]subtitles='{captions}':fontsdir='{BRAND_DIR / 'fonts'}',"
-            f"trim=duration={content_s},setpts=PTS-STARTPTS,fps={FPS},"
+            f"trim=duration={content_s},setpts={pts},fps={FPS},"
             f"format=yuv420p[content];"
             f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
             f"[1:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[outro];"
@@ -714,7 +719,12 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     # Phone entrance (motion only): quint-ease slide from +503px (off-canvas
     # right) into rest, at content t≈0.8..1.5s = absolute 8.6..9.3s (seam=7.8).
     # D is added to BOTH the phone screen and the bezel x so they move together.
-    slide = r"503*pow(1-clip((t-0.8)/0.7\,0\,1)\,5)" if three_pane else ""
+    # Phone normally slides in at the seam; but when the intro already shows the
+    # phone on the side (phone_in_intro), keep it static ("0" offset) so it
+    # doesn't jump. Non-3-pane layouts don't add a slide term at all.
+    slide = (r"503*pow(1-clip((t-0.8)/0.7\,0\,1)\,5)"
+             if three_pane and not spec.get("phone_in_intro")
+             else ("0" if three_pane else ""))
     phone_x = f"{rx}+{slide}" if three_pane else str(rx)
     frame_x = f"{FRAME_X_OFFSET}+{slide}" if three_pane else str(FRAME_X_OFFSET)
     mask_idx = 9 if code_pane else 8  # rounded phone-mask input (appended last)
@@ -745,10 +755,10 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
            f"[c3][codepane]overlay=0:0[c4];" if code_pane else
            f"[c3]null[c4];")
         # captions only for standard layout (headline baked into motion bg)
-        + (f"[c4]trim=duration={content_s},setpts=PTS-STARTPTS,fps={FPS},"
+        + (f"[c4]trim=duration={content_s},setpts={pts},fps={FPS},"
            f"format=yuv420p[content];" if three_pane else
            f"[c4]subtitles='{captions}':fontsdir='{BRAND_DIR / 'fonts'}',"
-           f"trim=duration={content_s},setpts=PTS-STARTPTS,fps={FPS},"
+           f"trim=duration={content_s},setpts={pts},fps={FPS},"
            f"format=yuv420p[content];")
         # cards
         + f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"

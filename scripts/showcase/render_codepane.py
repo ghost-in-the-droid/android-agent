@@ -33,7 +33,7 @@ LIGHTS  = [(255, 95, 86), (255, 189, 46), (39, 201, 63)]  # macOS traffic lights
 # Full 1920x1080 canvas; window box matches codepane-langchain-v3.png exactly.
 CANVAS  = (1920, 1080)
 WIN     = (32, 742, 1392, 1041)   # x0, y0, x1, y1  — small code pane (main segment)
-FULL_WIN = (44, 40, 1876, 1038)   # big window for the intro (whole file)
+FULL_WIN = (32, 175, 1392, 1041)   # tall left-column intro window (matches render_intro_motion)
 TITLE_H = 40
 RADIUS  = 14
 PAD_X   = 30      # left padding inside code area (before gutter)

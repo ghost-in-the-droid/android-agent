@@ -27,7 +27,9 @@ def main() -> None:
     workdir = R.REPO_ROOT / ".recordings" / demo
     if not (workdir / "plan.json").exists():
         R.die(f"no kept workdir at {workdir} (record with --keep-workdir first)")
-    spec = json.loads((workdir / "plan.json").read_text())["spec"]
+    # Use the CURRENT spec.yaml (not plan.json's snapshot) so composite/spec edits
+    # — content_speedup, phone_in_intro, layout tweaks — take effect on recompose.
+    spec = R.load_spec(demo)
     patterns = R.load_forbidden()
     term_mp4 = workdir / "terminal.mp4"
     out_webm = workdir / "demo.webm"

@@ -24,14 +24,17 @@ BRAND = REPO / "site" / "public" / "showcase" / "_brand"
 
 CANVAS = (1920, 1080)
 FPS = 30
-DUR = 7.8
-N = round(FPS * DUR)               # 234 frames — must match the recorder's sync
+DUR = 4.8                          # 3s hold + ~1.8s shrink (recorder syncs to this)
+N = round(FPS * DUR)
 BG = (7, 10, 8)                    # BG_HEX 070a08
-FULL_WIN = (44, 40, 1876, 1038)    # big intro window
+# Startup: the code window is FULL HEIGHT but only the left column wide, so the
+# phone sits on the side and all code stays visible. It then shrinks (top edge
+# down) into the small code-pane slot as the terminal takes the top.
+FULL_WIN = (32, 175, 1392, 1041)   # tall left-column intro window
 WIN = (32, 742, 1392, 1041)        # code-pane slot in the content layout
 
-FADE_IN = 1.0                      # window fades up over the first second
-SHRINK_START = 5.4                 # hold the full script until here
+FADE_IN = 0.8                      # window fades up over the first 0.8s
+SHRINK_START = 3.0                 # hold the code for 3s, then shrink
 XFADE_AT = 0.30                    # begin full->main crossfade at 30% of the shrink
 
 
@@ -53,9 +56,13 @@ def fade_alpha(img, a):
 
 def main():
     demo, full_path, pane_path, out_path = sys.argv[1:5]
+    # optional 5th arg: a pre-composited phone plate (phone + bezel) shown on the
+    # side from the start, so the seam into the (static) content phone is invisible
+    plate_path = sys.argv[5] if len(sys.argv) > 5 else None
     full = Image.open(full_path).convert("RGBA")
     pane = Image.open(pane_path).convert("RGBA")
     header = Image.open(BRAND / f"bg-{demo}.png").convert("RGBA")
+    plate = Image.open(plate_path).convert("RGBA") if plate_path else None
     full_win = full.crop(FULL_WIN)      # full-script window (with chrome)
     pane_win = pane.crop(WIN)           # main() window (with chrome)
 
@@ -63,6 +70,10 @@ def main():
     for i in range(N):
         t = i / FPS
         canvas = Image.new("RGBA", CANVAS, BG + (255,))
+
+        # phone sits on the side for the whole intro (static)
+        if plate is not None:
+            canvas.alpha_composite(plate)
 
         if t <= SHRINK_START:
             prog = 0.0
