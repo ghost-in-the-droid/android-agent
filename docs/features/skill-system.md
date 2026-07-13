@@ -68,12 +68,10 @@ skills/tiktok/
 ├── __init__.py          # load() function — registers all actions + workflows
 ├── actions/
 │   ├── __init__.py      # re-exports all action classes
-│   ├── core.py          # OpenApp, NavigateToProfile, TapSearch, TypeAndSearch, DismissPopup
-│   └── engagement.py    # LikePost, CommentOnPost, FollowUser, ScrollFeed, TapUser, TapMessageButton, TypeMessage, TapSend
+│   └── core.py          # OpenApp, NavigateToProfile, TapSearch, TypeAndSearch, DismissPopup
 └── workflows/
     ├── __init__.py
     ├── upload_video.py
-    ├── crawl_users.py
     └── publish_draft.py
 ```
 
@@ -113,21 +111,12 @@ error before starting device automation.
 | `tap_search` | core.py | Open search screen | Yes (checks search box RID) |
 | `type_and_search` | core.py | Type query + press Enter | No |
 | `dismiss_popup` | core.py | Dismiss known TikTok popups | No |
-| `like_post` | engagement.py | Double-tap center to like | No |
-| `comment_on_post` | engagement.py | Open comments → type → send | No |
-| `follow_user` | engagement.py | Tap Follow button | No |
-| `scroll_feed` | engagement.py | Swipe up to next video | No |
-| `tap_user` | engagement.py | Tap user row in search results | No |
-| `tap_message_button` | engagement.py | Tap Message on profile | No |
-| `type_message` | engagement.py | Type text in DM input | No |
-| `tap_send` | engagement.py | Send the DM | No |
 
-## TikTok Workflows (3)
+## TikTok Workflows (2)
 
 | Workflow | File | Wraps Script |
 |----------|------|-------------|
 | `upload_video` | upload_video.py | `bots/tiktok/upload.py` (43-step upload flow) |
-| `crawl_users` | crawl_users.py | `bots/tiktok/scraper.py --tab users` |
 | `publish_draft` | publish_draft.py | `bots/tiktok/upload.py --publish-draft` |
 
 ## Files
@@ -135,12 +124,11 @@ error before starting device automation.
 | File | Purpose |
 |------|---------|
 | `gitd/skills/base.py` | Base classes: Skill, Action, Workflow, Element, ActionResult (262 lines) |
-| `gitd/skills/tiktok/` | TikTok skill (13 actions, 3 workflows, 41 elements) |
+| `gitd/skills/tiktok/` | TikTok skill (5 actions, 2 workflows, 41 elements) |
 | `gitd/skills/tiktok/skill.yaml` | Metadata: name, version, app_package, exports |
 | `gitd/skills/tiktok/elements.yaml` | 41 UI elements with fallback locator chains |
 | `gitd/skills/tiktok/actions/core.py` | 5 core actions (open, navigate, search, dismiss) |
-| `gitd/skills/tiktok/actions/engagement.py` | 8 engagement actions (like, comment, follow, scroll, DM) |
-| `gitd/skills/tiktok/workflows/` | 3 workflow files |
+| `gitd/skills/tiktok/workflows/` | 2 workflow files (upload_video, publish_draft) |
 | `gitd/skills/_base/` | Base skill (9 shared actions for any app) |
 | `gitd/skills/_base/skill.yaml` | Base skill metadata |
 | `gitd/skills/instagram/` | Instagram skeleton (skill.yaml only) |
@@ -155,7 +143,7 @@ skill = load()
 print(skill.name)              # 'tiktok'
 print(skill.app_package)       # 'com.zhiliaoapp.musically'
 print(skill.list_actions())    # ['open_app', 'navigate_to_profile', ...]
-print(skill.list_workflows())  # ['upload_video', 'crawl_users', 'publish_draft']
+print(skill.list_workflows())  # ['upload_video', 'publish_draft']
 
 # Run an action
 from gitd.bots.common.adb import Device
@@ -179,7 +167,7 @@ print(result.data)  # {'completed_steps': 5}
 - [ ] LLM-generated skills from Auto Explorer state graphs
 - [ ] Skill versioning and dependency management
 - [ ] Only tiktok and _base skills have runtime loading — need generic plugin loader
-- [ ] Most TikTok engagement actions lack postconditions (no verification after tap)
+- [ ] Most TikTok actions lack postconditions (no verification after tap)
 - [ ] Workflows wrap existing bot scripts (subprocess) rather than composing Actions directly
 - [ ] No parameterized workflows (params passed via kwargs, not validated against schema)
 - [ ] Element fallback to class_name uses `find_bounds(resource_id=class_name)` which is incorrect

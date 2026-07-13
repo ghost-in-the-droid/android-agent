@@ -32,6 +32,22 @@ def _error_text(exc: Exception) -> str:
     return str(exc) or exc.__class__.__name__
 
 
+def _ios_unsupported(feature: str) -> dict:
+    return {"ok": False, "platform": "ios", "error": f"{feature} is Android-only and is not supported for iOS devices"}
+
+
+def _platform(device: str) -> str:
+    return "ios" if is_ios_ref(device) else "android"
+
+
+def _phone_error(device: str, error: str) -> dict:
+    return {"ok": False, "device": device, "platform": _platform(device), "error": error}
+
+
+def _error_text(exc: Exception) -> str:
+    return str(exc) or exc.__class__.__name__
+
+
 def _try_wifi_reconnect(db: Session):
     """Try reconnecting known WiFi devices that aren't currently connected (max once per 30s)."""
     global _last_wifi_reconnect

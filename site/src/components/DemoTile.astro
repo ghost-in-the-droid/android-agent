@@ -1,0 +1,221 @@
+---
+/**
+ * DemoTile — 16:9 poster tile that plays the demo on hover and opens a modal
+ * with the full video, the code snippet, and a docs link on click.
+ * All data resolves at build time from public/showcase/<feature>/spec.yaml.
+ */
+import { Code } from 'astro:components';
+import { loadSpec, loadSnippet, demoAssets } from '../lib/showcase';
+import '../styles/showcase.css';
+
+interface Props {
+	feature: string;
+}
+
+const { feature } = Astro.props;
+const spec = loadSpec(feature);
+if (!spec) throw new Error(`DemoTile: no spec.yaml for showcase feature "${feature}"`);
+const snippet = loadSnippet(feature);
+const { poster, video } = demoAssets(feature);
+const modalId = `demo-modal-${feature}`;
+---
+
+<button
+	class="demo-tile"
+	type="button"
+	aria-haspopup="dialog"
+	aria-label={`Play demo: ${spec.title}`}
+	data-demo-tile
+	data-modal={modalId}
+	data-video={video}
+>
+	<img src={poster} alt="" width="240" height="135" loading="lazy" />
+	<video muted loop playsinline preload="none" poster={poster} aria-hidden="true" hidden>
+		<source src={video} type="video/webm" />
+	</video>
+	<span class="play-badge" aria-hidden="true">
+		<svg viewBox="0 0 48 48" fill="none">
+			<circle cx="24" cy="24" r="22" fill="rgba(7, 11, 8, 0.7)" stroke="#00e5a0" stroke-width="2"></circle>
+			<path d="M19 15.5v17l14-8.5z" fill="#00e5a0"></path>
+		</svg>
+	</span>
+	<span class="tile-label">{spec.title}</span>
+</button>
+
+<dialog id={modalId} class="demo-modal" aria-label={`Demo: ${spec.title}`}>
+	<div class="demo-modal-inner">
+		<header>
+			<h3>{spec.title}</h3>
+			<button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
+		</header>
+		<video controls muted playsinline preload="none" poster={poster}>
+			<source src={video} type="video/webm" />
+		</video>
+		{
+			snippet && (
+				<div class="snippet-block">
+					<div class="snippet-toolbar">
+						<span>snippet.py</span>
+						<button type="button" class="copy-btn" data-copy aria-label="Copy code snippet">
+							Copy
+						</button>
+					</div>
+					<Code code={snippet} lang="python" theme="github-dark" />
+					<template data-snippet-source>{snippet}</template>
+				</div>
+			)
+		}
+		{
+			spec.docs && (
+				<a class="docs-link" href={spec.docs}>
+					Read the {spec.title} docs →
+				</a>
+			)
+		}
+	</div>
+</dialog>
+
+<style>
+	.demo-modal {
+		border: 1px solid var(--sl-color-gray-5, #2a3a2d);
+		border-radius: 1rem;
+		background: var(--sl-color-gray-7, #0d130e);
+		color: var(--sl-color-gray-1, #e8ede9);
+		padding: 0;
+		max-width: min(860px, 92vw);
+		width: 100%;
+	}
+	.demo-modal::backdrop {
+		background: rgba(4, 7, 5, 0.75);
+		backdrop-filter: blur(4px);
+	}
+	.demo-modal-inner {
+		padding: 1.25rem 1.5rem 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+	.demo-modal header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.demo-modal h3 {
+		margin: 0;
+		font-size: 1.25rem;
+	}
+	.modal-close {
+		background: none;
+		border: 1px solid var(--sl-color-gray-5, #2a3a2d);
+		border-radius: 0.5rem;
+		color: var(--sl-color-gray-3, #8a9a8d);
+		font-size: 1.25rem;
+		line-height: 1;
+		padding: 0.25rem 0.6rem;
+		cursor: pointer;
+	}
+	.modal-close:hover {
+		border-color: var(--sl-color-accent, #00e5a0);
+		color: var(--sl-color-gray-1, #e8ede9);
+	}
+	.demo-modal video {
+		width: 100%;
+		border-radius: 0.6rem;
+		background: #000;
+	}
+	.snippet-block {
+		border: 1px solid var(--sl-color-gray-5, #2a3a2d);
+		border-radius: 0.6rem;
+		overflow: hidden;
+	}
+	.snippet-toolbar {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0.4rem 0.85rem;
+		font-family: 'JetBrains Mono', monospace;
+		font-size: 0.8rem;
+		color: var(--sl-color-gray-3, #8a9a8d);
+		background: var(--sl-color-gray-6, #161e17);
+		border-bottom: 1px solid var(--sl-color-gray-5, #2a3a2d);
+	}
+	.snippet-block :global(pre) {
+		margin: 0;
+		border-radius: 0;
+		border: none;
+		padding: 0.85rem;
+		overflow-x: auto;
+	}
+	.copy-btn {
+		background: none;
+		border: 1px solid var(--sl-color-gray-5, #2a3a2d);
+		border-radius: 0.4rem;
+		color: var(--sl-color-gray-2, #bec8c0);
+		font-size: 0.75rem;
+		padding: 0.2rem 0.6rem;
+		cursor: pointer;
+	}
+	.copy-btn:hover {
+		border-color: var(--sl-color-accent, #00e5a0);
+	}
+	.docs-link {
+		color: var(--sl-color-accent, #00e5a0);
+		text-decoration: none;
+		font-weight: 600;
+	}
+	.docs-link:hover {
+		text-decoration: underline;
+	}
+</style>
+
+<script>
+	// One hoisted script for all tiles on the page.
+	const canHover = window.matchMedia('(hover: hover)').matches;
+	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	document.querySelectorAll<HTMLButtonElement>('[data-demo-tile]').forEach((tile) => {
+		const vid = tile.querySelector<HTMLVideoElement>('video');
+		const img = tile.querySelector<HTMLImageElement>('img');
+		const modal = document.getElementById(tile.dataset.modal!) as HTMLDialogElement | null;
+
+		if (canHover && !reducedMotion && vid && img) {
+			tile.addEventListener('mouseenter', () => {
+				vid.hidden = false;
+				img.hidden = true;
+				vid.play().catch(() => {});
+			});
+			tile.addEventListener('mouseleave', () => {
+				vid.pause();
+				vid.hidden = true;
+				img.hidden = false;
+			});
+		}
+
+		tile.addEventListener('click', () => {
+			if (!modal) return;
+			modal.showModal(); // native focus trap + Esc handling
+			const mv = modal.querySelector('video');
+			// If the modal is closed before play() resolves (fast backdrop/Esc),
+			// pause on resolve — otherwise the pending promise resumes playback.
+			mv?.play().then(() => {
+				if (!modal.open) mv.pause();
+			}).catch(() => {});
+		});
+
+		if (modal) {
+			modal.querySelector('[data-close]')?.addEventListener('click', () => modal.close());
+			modal.addEventListener('click', (e) => {
+				if (e.target === modal) modal.close(); // backdrop click
+			});
+			modal.addEventListener('close', () => modal.querySelector('video')?.pause());
+
+			const copyBtn = modal.querySelector<HTMLButtonElement>('[data-copy]');
+			const source = modal.querySelector<HTMLTemplateElement>('[data-snippet-source]');
+			copyBtn?.addEventListener('click', async () => {
+				await navigator.clipboard.writeText(source?.content.textContent?.trim() ?? '');
+				copyBtn.textContent = 'Copied!';
+				setTimeout(() => (copyBtn.textContent = 'Copy'), 1500);
+			});
+		}
+	});
+</script>

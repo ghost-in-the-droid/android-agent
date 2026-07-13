@@ -2,7 +2,7 @@
 
 ## What It Does
 
-Per-phone job queue with priority-based scheduling, preemption, timeout enforcement, and orphan recovery. Runs as a daemon thread inside the Flask server, ticking every 30 seconds to enqueue due scheduled jobs, launch pending work, and detect finished processes. All automation jobs (crawl, post, skill execution, app exploration) flow through this single scheduler.
+Per-phone job queue with priority-based scheduling, preemption, timeout enforcement, and orphan recovery. Runs as a daemon thread inside the Flask server, ticking every 30 seconds to enqueue due scheduled jobs, launch pending work, and detect finished processes. All automation jobs (post, skill execution, app exploration) flow through this single scheduler.
 
 ## Current State
 
@@ -59,7 +59,6 @@ State machine per job:
 
 | Type | Script | Default Timeout | Purpose |
 |------|--------|----------------|---------|
-| `crawl` | `bots/tiktok/scraper.py` | 900s | Hashtag/user crawling |
 | `post` | `bots/tiktok/upload.py` | 900s | Video upload (draft/post) |
 | `publish_draft` | `bots/tiktok/upload.py` | 900s | Publish existing draft |
 | `skill_workflow` | `skills/_run_skill.py` | 900s | Run a skill workflow |
@@ -178,12 +177,12 @@ job_runs         -- Archived history (completed/failed/killed with duration, exi
 ## Dashboard Integration
 
 - **Scheduler tab:** 24h visual timeline (color-coded bars per job type), schedule CRUD form, recent runs table with filters, per-phone queue status indicators
-- **Bot tab:** Quick-launch buttons for crawl/post that enqueue to the same job queue
+- **Bot tab:** Quick-launch buttons for post jobs that enqueue to the same job queue
 - **Skill Hub tab:** Run workflow/action buttons enqueue `skill_workflow`/`skill_action` jobs
 
 ## Known Issues & TODOs
 
-- [ ] No retry-on-failure (a failed crawl stays failed — must manually re-enqueue)
+- [ ] No retry-on-failure (a failed job stays failed — must manually re-enqueue)
 - [ ] No cron-style scheduling (e.g., "every Monday at 9am")
 - [ ] Preemption kills subprocess hard — no graceful pause/resume mechanism
 - [ ] Log files accumulate in `/tmp/` — no automatic cleanup

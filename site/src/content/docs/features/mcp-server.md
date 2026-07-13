@@ -1,9 +1,9 @@
 ---
 title: "MCP Server"
-description: 38 Android automation tools for any LLM agent — Claude Code, Cursor, Codex, ChatGPT.
+description: 41 Android automation tools for any LLM agent — Claude Code, Cursor, Codex, ChatGPT.
 ---
 
-The MCP server exposes the entire Android automation system as 38 tools any LLM agent can call. Supports MCP (Model Context Protocol) for Claude Code, Cursor, Codex CLI, and OpenClaw via stdio or HTTP, plus an OpenAPI-compatible REST layer for ChatGPT/GPT Actions.
+The MCP server exposes the entire Android automation system as 41 tools any LLM agent can call. Supports MCP (Model Context Protocol) for Claude Code, Cursor, Codex CLI, and OpenClaw via stdio or HTTP, plus an OpenAPI-compatible REST layer for ChatGPT/GPT Actions.
 
 ## Architecture
 
@@ -15,25 +15,25 @@ LLM Agent Platforms
         v                    v
   mcp_server.py         FastAPI server
   port 8002             port 5055
-  38 tools              /api/* endpoints
+  41 tools              /api/* endpoints
         |                    |
         +--------+-----------+
                  v
        Physical Android phones via ADB
 ```
 
-**File:** `gitd/mcp_server.py` — single file, 38 tools.
+**File:** `gitd/mcp_server.py` — single file, 41 tools.
 
 ## Ghost Skills vs MCP Tools
 
 These are two separate things:
 
-- **MCP Tools** — 38 primitive actions the agent calls directly (`tap`, `screenshot`, `launch_app`, etc.). This is what LLM agents interact with.
+- **MCP Tools** — 41 tools the agent calls directly (`tap`, `screenshot`, `launch_app`, etc.). This is what LLM agents interact with.
 - **Ghost Skills** — high-level reusable automations recorded in `registry/` (TikTok upload, Instagram crawl, Gmail send). Think macros.
 
-Four MCP tools bridge the two: `list_skills`, `run_workflow`, `run_action`, `create_skill`. They let an agent discover and run pre-built skills, or record new ones.
+Five MCP tools bridge the two: `list_skills`, `run_workflow`, `run_action`, `create_skill`, `explore_app`. They let an agent discover and run pre-built skills, or record new ones.
 
-## All 38 Tools
+## All 41 Tools
 
 ### Screen Reading (11 tools)
 
@@ -66,7 +66,7 @@ Four MCP tools bridge the two: `list_skills`, `run_workflow`, `run_action`, `cre
 | `press_home` | Android Home button |
 | `press_key` | Any key event: ENTER, POWER, VOLUME_UP, KEYCODE_* |
 
-### App Management (4 tools)
+### App Management (5 tools)
 
 | Tool | Description |
 |------|-------------|
@@ -84,7 +84,7 @@ Four MCP tools bridge the two: `list_skills`, `run_workflow`, `run_action`, `cre
 | `clipboard_set` | Write to clipboard via Ghost portal |
 | `paste_text` | Write clipboard + paste in one shot (preferred) |
 
-### System & Utility (5 tools)
+### System & Utility (6 tools)
 
 | Tool | Description |
 |------|-------------|
@@ -95,7 +95,7 @@ Four MCP tools bridge the two: `list_skills`, `run_workflow`, `run_action`, `cre
 | `list_devices` | All connected ADB devices with model names |
 | `toggle_overlay` | Toggle numbered element overlay for visual debugging |
 
-### Skill Bridge (4 tools)
+### Skill Bridge (5 tools)
 
 Connect MCP to the Ghost Skills system in `registry/`.
 
@@ -107,7 +107,14 @@ Connect MCP to the Ghost Skills system in `registry/`.
 | `create_skill` | Record a new reusable skill from a JSON step list |
 | `explore_app` | BFS crawl an app's UI and return a state graph |
 
-## Platform Setup
+## Connecting a client
+
+Ghost speaks MCP over two transports:
+
+- **stdio** — run `android-agent-mcp` (or `python3 -m gitd.mcp_server`)
+- **streamable HTTP** — `http://localhost:8002/mcp` (start the server with `python3 -m gitd.mcp_server`)
+
+The fastest start is Claude Code:
 
 ### Claude Code (recommended)
 
@@ -159,6 +166,12 @@ Start the server first: `python3 -m gitd.mcp_server`
 ### ChatGPT / GPT Actions
 
 ChatGPT uses OpenAPI, not MCP. Expose port 5055 via ngrok or Cloudflare Tunnel, then import the OpenAPI spec as a Custom GPT Action.
+
+### Other clients
+
+Every other client — Cursor, Windsurf, Zed, Continue, Cline, Codex CLI, Claude Desktop, Cherry Studio, OpenClaw, and ChatGPT / GPT Actions (via the OpenAPI REST layer) — has its own config format. The **[MCP Clients compatibility matrix](/features/mcp-clients/)** lists the transport each one supports and the exact snippet to wire Ghost in.
+
+Prefer to drive Ghost from **LangChain or LlamaIndex** directly? Skip MCP entirely and use the native framework adapters — see [LangChain & LlamaIndex](/features/integrations/).
 
 ## Typical Agent Loop
 

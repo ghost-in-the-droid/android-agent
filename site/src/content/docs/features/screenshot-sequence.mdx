@@ -1,0 +1,48 @@
+---
+title: "Screenshot Sequence — Frame Burst"
+description: Capture a burst of screenshots into a per-device cache for a vision sub-agent to analyze — without flooding the main agent's context with images.
+---
+import PlatformBadges from '../../../components/PlatformBadges.astro';
+
+<PlatformBadges android="yes" ios="yes" />
+
+`screenshot_sequence` captures a **burst of screenshots** over a short window and
+caches them per device — for a later [`sub_agent`](/features/sub-agent/) vision
+call to analyze. The frames are **not** returned into the main agent's context,
+so you can grab 30 frames of an animation without spending 30 images of tokens.
+
+It uses the normal screenshot path (screencap on Android, WDA on iOS) frame by
+frame — deliberately not a video recorder, which can freeze on a playing
+`SurfaceView`.
+
+```
+screenshot_sequence: captured 8 frames over 4.0s @ 2.0fps (cached for sub_agent)
+```
+
+## Parameters
+
+- `duration_seconds` — default 4, clamped **2–180**.
+- `fps` — default 1.0, clamped **0.1–4.0**.
+
+Frame count is `duration × fps`.
+
+## Safe and chainable
+
+`screenshot_sequence` is read-only, so it's in the safe-tool allow-list and is
+**chainable**. The idiomatic use is to open something and capture it in one
+turn:
+
+```json
+chain({"actions": [
+  {"tool": "launch_app", "args": {"package": "com.google.android.youtube"}},
+  {"tool": "screenshot_sequence", "args": {"duration_seconds": 6, "fps": 2}}
+]})
+```
+
+The frame cache survives across tool calls, so the follow-up `sub_agent` step
+reads exactly these frames.
+
+## Related
+
+- [Sub-Agent](/features/sub-agent/) — analyzes the cached frames
+- [Chain](/features/chain/) — open + capture in one step

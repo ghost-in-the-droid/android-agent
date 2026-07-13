@@ -369,9 +369,7 @@ def _article_text_has_body(text: str, *, source_headline: str = "") -> bool:
     if source_headline:
         title_like.add(re.sub(r"\s+", " ", source_headline).strip().lower())
     body_lines = [
-        line
-        for line in lines
-        if line.lower() not in title_like and line.lower() not in _NON_ARTICLE_BODY_LINES
+        line for line in lines if line.lower() not in title_like and line.lower() not in _NON_ARTICLE_BODY_LINES
     ]
     if not body_lines:
         return False
@@ -762,7 +760,9 @@ def _open_article_candidate(dev, article: dict[str, Any], *, delay: float = 1.5)
         raise
 
 
-def _return_to_front_page_after_article(dev, front_page_url: str, source_headline: str, *, delay: float) -> dict[str, Any]:
+def _return_to_front_page_after_article(
+    dev, front_page_url: str, source_headline: str, *, delay: float
+) -> dict[str, Any]:
     result: dict[str, Any] = {"method": "back", "reopened_front_page": False}
     try:
         dev.browser_back(delay=1.0)
@@ -907,7 +907,9 @@ def read_news(
                     article_result["current_url"] = article_current_url
                 except Exception as exc:
                     article_result["current_url_error"] = str(exc)
-                same_url_as_front_page = bool(article_current_url) and _urls_equivalent(article_current_url, front_page_url)
+                same_url_as_front_page = bool(article_current_url) and _urls_equivalent(
+                    article_current_url, front_page_url
+                )
                 visible_text, text_evidence = _extract_visible_text_with_retry(
                     device,
                     dev,

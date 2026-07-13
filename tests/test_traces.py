@@ -3,8 +3,10 @@
 Run:
     .venv/bin/pytest tests/test_traces.py -v
 
-These tests use a fresh in-memory SQLite per test so they don't touch the dev
-DB. They cover:
+These tests run against a throwaway SQLite file (redirected via DB_PATH in
+tests/conftest.py, verified by the _verify_db_isolated guard) — NOT the real
+data/gitd.db. Each test truncates the trace tables via the ``fresh_db`` fixture
+for a clean slate. They cover:
 
 - The observability helpers (`trace_chat_turn`, `record_generation`, …) write
   the right rows with the right values.
@@ -26,9 +28,11 @@ import pytest
 
 @pytest.fixture
 def fresh_db() -> Iterator[None]:
-    """Truncate the trace tables before each test. The engine is module-level
-    and initialized at first import — swapping it per-test via env vars
-    doesn't work because the modules cache it. So we just clean what we own.
+    """Truncate the trace tables before (and after) each test for a clean slate.
+
+    Safe because tests/conftest.py has redirected DB_PATH to a throwaway file
+    before gitd was imported, so these deletes hit the temp test DB, never the
+    real data/gitd.db.
     """
     from gitd.models.base import engine
     from gitd.models import Base

@@ -5,6 +5,27 @@ description: Docker+KVM Android emulators — create, start, stop, and scale hea
 
 Full Android emulator lifecycle management via Docker containers with KVM hardware acceleration. Create, start, stop, and delete emulators from the dashboard or REST API, and scale to multiple concurrent headless instances for testing.
 
+## ⭐ New in 1.3: Docker+KVM replaces native AVD
+
+Through v1.2, Ghost drove emulators through the native Android SDK (`avdmanager` + `emulator`). That backend was **removed in 1.3** and replaced wholesale with Docker containers ([`budtmo/docker-android`](https://github.com/budtmo/docker-android)) accelerated by KVM.
+
+**Why the switch:** the SDK emulator is fiddly to install and did not run reliably on AMD Linux hosts — its host-acceleration path carries Intel/HAXM-era assumptions. A container that only needs `/dev/kvm` runs the same way on any Linux box: no SDK install, no AVD config, no per-machine GPU tuning. Emulators became reproducible and disposable.
+
+Every old SDK entry point is now a no-op stub, so the rest of Ghost (skills, agent loop, MCP tools) treats an emulator as just another ADB serial and needed no changes.
+
+### What this changes for you
+
+- **`create` now means create + start.** Posting to `/api/emulators` launches the container *and* boots it in one call — there's no separate "define AVD, then boot" step.
+- **The image is fixed to Android 11 (API 30).** Only `budtmo/docker-android:emulator_11.0` ships. Fields like `api_level`, `gpu`, `ram_mb`, `cores`, and `resolution` are still accepted by the API/create form **for compatibility, but are ignored** — the container uses its built-in profile (the one knob that applies is the device profile, passed as `EMULATOR_DEVICE`). So a request with `"api_level": 35` still boots Android 11.
+- **`start` flags are cosmetic.** `headless`, `gpu`, and `extra_args` on the start endpoint are accepted but no-ops — Docker emulators are always headless and use SwiftShader internally.
+
+### Known issues after the migration
+
+The dashboard still carries a few SDK-era checks that now always fail — cosmetic, not fatal:
+
+- An **"Android SDK Not Found"** warning can appear on the Emulators tab even when Docker works fine — it keys off legacy `emulator_binary` / `sdk_root` prerequisite fields that are hardcoded false in Docker mode.
+- The **Create form may render disabled** ("cmdline-tools not installed") for the same reason. Creating via the API (`POST /api/emulators`) works regardless. Re-gating the UI on Docker/KVM instead of SDK tooling is tracked as a follow-up.
+
 ## Architecture
 
 ### Docker+KVM backend
@@ -117,7 +138,7 @@ adb connect localhost:5555
 
 ## Emulators = Phones
 
-Both emulators and physical phones are ADB serials. `Device("localhost:5555")` works identically to `Device("L9AIB7603188953")`. All 38 MCP tools, all skills, all agent workflows run unchanged on emulators.
+Both emulators and physical phones are ADB serials. `Device("localhost:5555")` works identically to `Device("YOUR_DEVICE_SERIAL")`. Every MCP tool, skill, and agent workflow runs unchanged on emulators.
 
 ## API Reference
 
@@ -167,4 +188,4 @@ docker commit <container_id> my-emulator-state:v1
 
 - [ADB Device](/features/adb-device/) — Device class works identically with emulators
 - [Scheduler](/features/scheduler/) — assign automated jobs to emulators
-- [Ghost Bench](/features/benchmarks/) — run benchmark suites across emulator pools
+- [Ghost Bench](/features/ghost-bench/) — run benchmark suites across emulator pools

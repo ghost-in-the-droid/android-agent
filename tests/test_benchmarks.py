@@ -1,12 +1,12 @@
 """Tests for benchmark infrastructure."""
 
+from gitd.benchmarks.base import Task, TaskResult, load_tasks_from_dir
+from gitd.benchmarks.ghost_bench.tasks import TASK_DATA_DIR, get_task, list_task_ids, load_tasks
 import pytest
 from fastapi.testclient import TestClient
 
 from gitd.app import app
-from gitd.benchmarks.base import Task, TaskResult, load_tasks_from_dir
 from gitd.benchmarks.ghost_bench import evaluators
-from gitd.benchmarks.ghost_bench.tasks import TASK_DATA_DIR, get_task, list_task_ids, load_tasks
 
 
 def test_load_tasks():

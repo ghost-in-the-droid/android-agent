@@ -219,11 +219,7 @@ def schedules_update(sid: int, data: dict = Body({}), db: Session = Depends(get_
     """Update an existing scheduled job's configuration."""
     from gitd.services.db_helpers import update_scheduled_job
 
-    existing = (
-        db.execute(text("SELECT * FROM scheduled_jobs WHERE id = :sid"), {"sid": sid})
-        .mappings()
-        .first()
-    )
+    existing = db.execute(text("SELECT * FROM scheduled_jobs WHERE id = :sid"), {"sid": sid}).mappings().first()
     if not existing:
         raise HTTPException(status_code=404, detail="not found")
     merged = dict(existing)
@@ -587,10 +583,12 @@ def scheduler_timeline(db: Session = Depends(get_db)):
 
 # ── Account health endpoints ────────────────────────────────────────────────
 
+
 @router.get("/api/scheduler/account-health", summary="Account Health for All Devices")
 def account_health_all():
     """Probe every connected device for its TikTok account state."""
     from gitd.services.account_health import all_devices_health
+
     return all_devices_health()
 
 
@@ -598,6 +596,7 @@ def account_health_all():
 def account_health_one(device: str, fresh: bool = False):
     """Probe a single device. Pass ?fresh=true to bypass the 60s cache."""
     from gitd.services.account_health import device_account_health
+
     return device_account_health(device, fresh=fresh)
 
 
@@ -608,6 +607,7 @@ def account_switch(device: str, data: dict = Body(...)):
     if not handle:
         raise HTTPException(status_code=400, detail="handle required")
     from gitd.services.account_health import switch_active_account
+
     return switch_active_account(device, handle)
 
 
@@ -615,4 +615,5 @@ def account_switch(device: str, data: dict = Body(...)):
 def account_sync(device: str):
     """Update tiktok_accounts DB rows to match what's actually logged in on `device`."""
     from gitd.services.account_health import sync_tiktok_accounts_table
+
     return sync_tiktok_accounts_table(device)

@@ -1,0 +1,31 @@
+# Showcase demo spec — schema per task #782 (record_demo.py is the consumer).
+# placeholder: true until the pipeline records the real demo.
+placeholder: true
+demo: on-device-gemma
+title: On-Device Gemma
+category: llm-providers
+featured: true
+docs: /features/on-device-llm/
+duration_target_s: 60
+device: android
+platform_notes: "Gemma runs on the phone itself — no cloud round-trip."
+setup:
+  - kill_all_apps
+  - unlock
+timeline:
+  - t: 0
+    caption: "Start the agent with the on-device Gemma provider"
+    action: terminal_type
+    args: { text: "android-agent up --provider gemma" }
+  - t: 10
+    caption: "Ask it to open the calculator and compute a tip"
+    action: terminal_type
+    args: { text: "android-agent run 'open the calculator and compute an 18% tip on 42'" }
+  - t: 20
+    caption: "The phone acts — no network involved"
+    action: wait_for_phone
+    args: { seconds: 30 }
+outro:
+  cta_line: "pip install ghost-in-the-droid"
+  cta_link: /getting-started/installation/
+highlight_window: { start_s: 18, end_s: 26 }

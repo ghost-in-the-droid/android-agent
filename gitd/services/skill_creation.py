@@ -1,4 +1,5 @@
 """Shared helpers for creating recorded mobile automation skills."""
+
 from __future__ import annotations
 
 import json
@@ -8,7 +9,6 @@ from typing import Any
 import yaml
 
 from gitd.skills.platforms import normalize_platforms
-
 
 _MISSING = object()
 

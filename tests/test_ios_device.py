@@ -290,7 +290,7 @@ def test_parse_xctrace_devices_ignores_offline_devices():
     output = """
 == Devices ==
 Blah's MacBook Pro (15.5) (00006000-0000000000000000)
-blah_mad (26.5) (00008110-0016443101D0401E)
+test_owner (26.5) (00008110-0016443101D0401E)
 
 == Devices Offline ==
 iPhone von Tobias (18.5) (00008030-000134EA11C3402E)
@@ -303,7 +303,7 @@ iPhone 16 Pro (18.5) (11111111-2222-3333-4444-555555555555) (Booted)
     assert _parse_xctrace_devices(output) == [
         {
             "udid": "00008110-0016443101D0401E",
-            "name": "blah_mad",
+            "name": "test_owner",
             "platform_version": "26.5",
             "source": "host",
             "state": "connected",
@@ -325,7 +325,7 @@ Current device information:
 ▿ deviceProperties:
     • bootState: booted
     • developerModeStatus: enabled
-    • name: blah_mad
+    • name: test_owner
     • osVersionNumber: 26.5
 ▿ connectionProperties:
     • pairingState: paired
@@ -339,7 +339,7 @@ Current device information:
         "identifier": "12E9E87A-11C8-5607-B09B-B58265CE5D4E",
         "boot_state": "booted",
         "developer_mode": "enabled",
-        "name": "blah_mad",
+        "name": "test_owner",
         "os_version": "26.5",
         "pairing_state": "paired",
         "transport_type": "localNetwork",
@@ -658,7 +658,7 @@ def test_ios_config_infers_host_name_and_platform_version(monkeypatch):
         lambda include_simulators=True: [
             {
                 "udid": "00008110-0016443101D0401E",
-                "name": "blah_mad",
+                "name": "test_owner",
                 "platform_version": "26.5",
                 "source": "host",
                 "state": "connected",
@@ -668,7 +668,7 @@ def test_ios_config_infers_host_name_and_platform_version(monkeypatch):
 
     cfg = ios_config_for_udid("ios:00008110-0016443101D0401E")
 
-    assert cfg.device_name == "blah_mad"
+    assert cfg.device_name == "test_owner"
     assert cfg.platform_version == "26.5"
 
 
@@ -982,7 +982,7 @@ def test_session_creation_uses_host_discovered_platform_version(monkeypatch):
         lambda include_simulators=True: [
             {
                 "udid": "00008110-0016443101D0401E",
-                "name": "blah_mad",
+                "name": "test_owner",
                 "platform_version": "26.5",
                 "source": "host",
                 "state": "connected",
@@ -1002,7 +1002,7 @@ def test_session_creation_uses_host_discovered_platform_version(monkeypatch):
 
     assert dev._ensure_session() == "session-1"
     body = calls[0]["json"]["capabilities"]["alwaysMatch"]
-    assert body["appium:deviceName"] == "blah_mad"
+    assert body["appium:deviceName"] == "test_owner"
     assert body["appium:platformVersion"] == "26.5"
 
 
@@ -1092,7 +1092,7 @@ def test_probe_fails_fast_when_required_remote_xpc_tunnel_is_stale(monkeypatch):
         lambda include_simulators=True: [
             {
                 "udid": "00008110-0016443101D0401E",
-                "name": "blah_mad",
+                "name": "test_owner",
                 "platform_version": "26.5",
                 "source": "host",
                 "state": "connected",
@@ -1295,7 +1295,7 @@ def test_remote_xpc_manual_recovery_honors_appium_command_override(monkeypatch):
 
 def test_ios_error_classifier_promotes_real_device_readiness_failures():
     cases = [
-        "Unlock blah_mad to Continue",
+        "Unlock test_owner to Continue",
         "Device is passcode locked",
         "The device has not trusted this computer",
         "Developer Mode must be enabled before running WebDriverAgent",

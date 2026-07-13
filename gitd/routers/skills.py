@@ -522,7 +522,9 @@ def api_skill_update(name: str, data: dict = Body({})):
         elements_android = data.get("elements_android") if "elements_android" in data else data.get("elements")
         (skill_dir / "elements.yaml").write_text(yaml.dump(elements_android or {}, default_flow_style=False))
     if "elements_ios" in data:
-        (skill_dir / "elements_ios.yaml").write_text(yaml.dump(data.get("elements_ios") or {}, default_flow_style=False))
+        (skill_dir / "elements_ios.yaml").write_text(
+            yaml.dump(data.get("elements_ios") or {}, default_flow_style=False)
+        )
 
     return {"ok": True, "steps": len(data.get("steps", []))}
 

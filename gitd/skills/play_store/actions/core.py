@@ -97,10 +97,14 @@ class UninstallApp(Action):
 
     def execute(self) -> ActionResult:
         try:
-            out = self.device.adb('shell', 'pm', 'uninstall', self.package, timeout=30)
+            # pm uninstall reports "Failure [reason]" on its own errors and may
+            # exit nonzero — use adb_soft so we can surface that reason as data
+            # rather than losing it to an exception.
+            res = self.device.adb_soft('shell', 'pm', 'uninstall', self.package, timeout=30)
+            out = (res.stdout + (('\n' + res.stderr) if res.stderr else '')).strip()
             success = 'success' in out.lower()
             return ActionResult(success=success,
-                                data={'status': 'uninstalled' if success else 'failed', 'output': out.strip()})
+                                data={'status': 'uninstalled' if success else 'failed', 'output': out})
         except Exception as e:
             return ActionResult(success=False, error=str(e))
 

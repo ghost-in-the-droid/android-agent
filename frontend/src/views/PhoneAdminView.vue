@@ -56,6 +56,18 @@ interface RecordingResponse {
   error?: string
 }
 
+type NewsResult = {
+  ok?: boolean
+  error?: string
+  current_url?: string
+  headlines?: any[]
+  articles?: any[]
+  errors?: any[]
+  extraction?: any
+  completion?: any
+  screenshots?: Record<string, string>
+}
+
 type StreamInfo = {
   ok?: boolean
   platform?: string
@@ -514,6 +526,77 @@ async function toggleRecording(serial: string) {
     recordingStatus.value[serial] = recordingErrorText(error)
   } finally {
     recordingBusy.value[serial] = false
+  }
+}
+
+/* ── iOS browser/news smoke workflow ────────────────────────────────── */
+const newsUrl = ref('https://text.npr.org/')
+const newsBundleId = ref('com.google.chrome.ios')
+const newsMaxHeadlines = ref(5)
+const newsMaxArticles = ref(3)
+const newsWaitSeconds = ref(2)
+const newsSaveScreenshots = ref(true)
+const newsOutDir = ref('data/ios_chrome_news_smoke')
+const newsRunning = ref(false)
+const newsResult = ref<NewsResult | null>(null)
+const newsError = ref('')
+
+const newsHeadlines = computed(() => Array.isArray(newsResult.value?.headlines) ? newsResult.value!.headlines! : [])
+const newsArticles = computed(() => Array.isArray(newsResult.value?.articles) ? newsResult.value!.articles! : [])
+const newsErrors = computed(() => Array.isArray(newsResult.value?.errors) ? newsResult.value!.errors! : [])
+const newsExtraction = computed(() => newsResult.value?.extraction || {})
+const newsScreenshotEntries = computed(() =>
+  Object.entries(newsResult.value?.screenshots || {}).filter(([, path]) => !!path)
+)
+
+function compactEvidence(evidence: any): string {
+  if (!evidence) return ''
+  const source = evidence.source || 'unknown'
+  const attempts = evidence.attempts !== undefined ? `${evidence.attempts}x` : ''
+  if (evidence.returned !== undefined) return `${source} ${evidence.returned}/${evidence.target} ${attempts}`.trim()
+  if (evidence.returned_lines !== undefined) {
+    return `${source} ${evidence.returned_lines}/${evidence.target_lines} lines ${attempts}`.trim()
+  }
+  return source
+}
+
+function articleEvidence(index: number): any {
+  const items = newsExtraction.value?.articles
+  return Array.isArray(items) ? items[index] || {} : {}
+}
+
+function firstNewsError(): string {
+  if (newsResult.value?.error) return String(newsResult.value.error)
+  const first = newsErrors.value[0]
+  if (!first) return ''
+  return String(first.error || first.back_error || first.stage || first.article || JSON.stringify(first))
+}
+
+async function runNewsSmoke() {
+  if (!selectedDevice.value || newsRunning.value) return
+  newsRunning.value = true
+  newsError.value = ''
+  newsResult.value = null
+  try {
+    const result = await api<NewsResult>('/api/phone/browser/read-news', {
+      method: 'POST',
+      body: JSON.stringify({
+        device: selectedDevice.value,
+        url: newsUrl.value || 'https://text.npr.org/',
+        bundle_id: newsBundleId.value || undefined,
+        max_headlines: Math.max(1, Number(newsMaxHeadlines.value) || 5),
+        max_articles: Math.max(0, Number(newsMaxArticles.value) || 0),
+        wait_s: Math.max(0.5, Number(newsWaitSeconds.value) || 2),
+        save_screenshots: newsSaveScreenshots.value,
+        out_dir: newsOutDir.value || undefined,
+      })
+    })
+    newsResult.value = result
+    if (!result.ok) newsError.value = firstNewsError() || 'News workflow failed'
+  } catch (error) {
+    newsError.value = error instanceof Error ? error.message.replace(/^API \d+:\s*/, '') : 'News workflow failed'
+  } finally {
+    newsRunning.value = false
   }
 }
 
@@ -1727,6 +1810,69 @@ onUnmounted(() => {
                 <button class="ios-copy-btn" @click="copyIosRecoveryCommand(selectedDevice, command)">Copy</button>
               </div>
             </div>
+          </div>
+        </div>
+        <div v-if="selectedIsIos" class="news-panel">
+          <div class="news-panel-head">
+            <span class="news-title">Chrome News</span>
+            <button class="ctrl-btn ctrl-btn--mjpeg ctrl-btn--tiny" :disabled="newsRunning || !selectedDevice"
+              @click="runNewsSmoke">{{ newsRunning ? 'Reading...' : 'Read News' }}</button>
+          </div>
+          <div class="news-controls">
+            <input v-model="newsUrl" class="news-input news-input--url" title="URL" />
+            <input v-model="newsBundleId" class="news-input" title="iOS bundle id" />
+            <input v-model.number="newsMaxHeadlines" class="news-number" type="number" min="1" max="10" title="Headlines" />
+            <input v-model.number="newsMaxArticles" class="news-number" type="number" min="0" max="5" title="Articles" />
+            <label class="news-toggle" title="Save front-page and article screenshots">
+              <input v-model="newsSaveScreenshots" type="checkbox" />
+              shots
+            </label>
+            <input v-if="newsSaveScreenshots" v-model="newsOutDir" class="news-input news-input--out" title="Screenshot output directory" />
+          </div>
+          <div v-if="newsRunning" class="news-status">Running read_news...</div>
+          <div v-else-if="newsError" class="news-status news-status--error">{{ newsError }}</div>
+          <div v-if="newsResult" class="news-result">
+            <div class="news-summary">
+              <span class="news-pill" :class="newsResult.ok ? 'news-pill--ok' : 'news-pill--error'">
+                {{ newsResult.ok ? 'OK' : 'Fail' }}
+              </span>
+              <span>{{ newsHeadlines.length }} headlines</span>
+              <span>{{ newsArticles.length }} articles</span>
+              <span v-if="newsResult.completion">
+                {{ newsResult.completion.articles_with_body || 0 }}/{{ newsResult.completion.requested_articles || 0 }} bodies
+              </span>
+              <span v-if="newsResult.current_url" :title="newsResult.current_url">{{ newsResult.current_url }}</span>
+            </div>
+            <div class="news-evidence">
+              <span :title="JSON.stringify(newsExtraction.headlines || {})">
+                H {{ compactEvidence(newsExtraction.headlines) }}
+              </span>
+              <span :title="JSON.stringify(newsExtraction.front_page_text || {})">
+                Text {{ compactEvidence(newsExtraction.front_page_text) }}
+              </span>
+            </div>
+            <div v-if="newsScreenshotEntries.length" class="news-artifacts">
+              <span v-for="([name, path]) in newsScreenshotEntries" :key="name" :title="path">
+                {{ name }} {{ path }}
+              </span>
+            </div>
+            <div v-if="newsHeadlines.length" class="news-list">
+              <div v-for="(headline, i) in newsHeadlines.slice(0, 5)" :key="i" class="news-headline">
+                {{ headline.title || headline.text || headline.source_headline }}
+              </div>
+            </div>
+            <div v-if="newsArticles.length" class="news-articles">
+              <div v-for="(article, i) in newsArticles.slice(0, 3)" :key="i" class="news-article">
+                <div class="news-article-title">{{ article.page_title || article.source_headline || `Article ${i + 1}` }}</div>
+                <div class="news-article-meta">
+                  {{ article.open_method || articleEvidence(i).open_method || 'open' }}
+                  <span v-if="articleEvidence(i).text"> · {{ compactEvidence(articleEvidence(i).text) }}</span>
+                </div>
+                <div v-if="article.body_snippet" class="news-article-body">{{ article.body_snippet }}</div>
+                <div v-else-if="article.error" class="news-article-error">{{ article.error }}</div>
+              </div>
+            </div>
+            <div v-if="newsErrors.length" class="news-status news-status--error">{{ firstNewsError() }}</div>
           </div>
         </div>
         <!-- Stream -->

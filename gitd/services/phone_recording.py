@@ -1,4 +1,5 @@
 """Cross-platform phone screen recording helpers."""
+
 from __future__ import annotations
 
 import re
@@ -83,40 +84,23 @@ def start_recording(device: str, filename: str = "", recordings_dir: Path | str 
 
         if platform == "ios":
             mjpeg_url = get_device(device).mjpeg_url
-            log_path = local_path.with_suffix(".ffmpeg.log")
-            # WDA serves multipart HTTP MJPEG over HTTP/1.0. ffmpeg's own HTTP
-            # client can't read that ("Error reading HTTP response: End of file"),
-            # so curl fetches the stream and pipes it into ffmpeg's *mpjpeg*
-            # (multipart) demuxer — NOT the raw "mjpeg" demuxer. The scale filter
-            # forces even dimensions: the 50%-scaled MJPEG can be odd (e.g. 589px),
-            # which libx264 + yuv420p rejects ("width not divisible by 2").
-            curl_proc = subprocess.Popen(
-                ["curl", "-sN", mjpeg_url],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-            )
-            ff_log = open(log_path, "wb")  # noqa: SIM115 — closed in _stop_process
             cmd = [
                 "ffmpeg",
                 "-y",
                 "-loglevel",
-                "warning",
+                "error",
                 "-f",
-                "mpjpeg",
+                "mjpeg",
                 "-i",
-                "-",
+                mjpeg_url,
                 "-an",
-                "-vf",
-                "scale=trunc(iw/2)*2:trunc(ih/2)*2",
                 "-c:v",
                 "libx264",
                 "-pix_fmt",
                 "yuv420p",
                 str(local_path),
             ]
-            proc = subprocess.Popen(cmd, stdin=curl_proc.stdout, stdout=subprocess.DEVNULL, stderr=ff_log)
-            if curl_proc.stdout:
-                curl_proc.stdout.close()  # ffmpeg owns the read end; curl gets SIGPIPE when ffmpeg exits
+            proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             entry = {
                 "device": device,
                 "platform": platform,
@@ -126,8 +110,6 @@ def start_recording(device: str, filename: str = "", recordings_dir: Path | str 
                 "device_path": "",
                 "mjpeg_url": mjpeg_url,
                 "proc": proc,
-                "curl_proc": curl_proc,
-                "ff_log": ff_log,
                 "started_at": time.time(),
             }
         else:
@@ -154,9 +136,10 @@ def start_recording(device: str, filename: str = "", recordings_dir: Path | str 
 
 def _stop_process(entry: dict[str, Any]) -> None:
     proc = entry["proc"]
-    # SIGINT (not SIGTERM/kill) lets ffmpeg write the MP4 trailer and produce a
-    # playable file — a plain terminate() left iOS recordings unfinalized/0-byte.
-    proc.send_signal(signal.SIGINT)
+    if entry["platform"] == "ios":
+        proc.terminate()
+    else:
+        proc.send_signal(signal.SIGINT)
     try:
         proc.wait(timeout=15)
     except subprocess.TimeoutExpired:
@@ -164,20 +147,6 @@ def _stop_process(entry: dict[str, Any]) -> None:
         try:
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
-            pass
-    # iOS pipes curl -> ffmpeg; tear down the curl feeder and close the log.
-    curl_proc = entry.get("curl_proc")
-    if curl_proc is not None:
-        curl_proc.terminate()
-        try:
-            curl_proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            curl_proc.kill()
-    ff_log = entry.get("ff_log")
-    if ff_log is not None:
-        try:
-            ff_log.close()
-        except OSError:
             pass
 
 

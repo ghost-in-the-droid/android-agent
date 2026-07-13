@@ -1,6 +1,10 @@
 """Tests for Ollama tool parsing and provider config."""
 
-from gitd.services.agent_chat import PROVIDERS, _parse_tool_calls
+from gitd.services.agent_chat import (
+    PROVIDERS,
+    _parse_tool_calls,
+    normalize_tool_call,
+)
 
 
 def test_providers_ollama_has_models():
@@ -64,3 +68,45 @@ def test_parse_tool_calls_missing_tool_key():
     text = '```tool\n{"action": "screenshot", "args": {}}\n```'
     calls = _parse_tool_calls(text)
     assert len(calls) == 0
+
+
+def test_parse_tool_calls_flat_shape():
+    """Flat shape (ghost-gemma trained) — args are siblings of 'tool', no nested args."""
+    text = '```tool\n{"tool": "launch_app", "package": "com.android.settings"}\n```'
+    calls = _parse_tool_calls(text)
+    assert len(calls) == 1
+    assert calls[0]["tool"] == "launch_app"
+    assert calls[0]["package"] == "com.android.settings"
+
+
+def test_normalize_tool_call_nested():
+    """Canonical shape: {"tool": "X", "args": {...}} → args come from the nested dict."""
+    name, args = normalize_tool_call({"tool": "tap", "args": {"x": 540, "y": 1200}})
+    assert name == "tap"
+    assert args == {"x": 540, "y": 1200}
+
+
+def test_normalize_tool_call_flat():
+    """Flat shape (ghost-gemma trained): kwargs are siblings of 'tool'.
+
+    Regression guard for the on-device path silently dropping every flat arg
+    (only 'device' survived) — the exact model the feature was trained on.
+    """
+    name, args = normalize_tool_call({"tool": "launch_app", "package": "com.foo"})
+    assert name == "launch_app"
+    assert args == {"package": "com.foo"}
+
+
+def test_normalize_tool_call_does_not_mutate_input():
+    """Returned args must be a fresh dict — callers setdefault('device', ...) on it."""
+    call = {"tool": "tap", "args": {"x": 1}}
+    _, args = normalize_tool_call(call)
+    args["device"] = "emulator-5554"
+    assert "device" not in call["args"]
+
+
+def test_normalize_tool_call_empty():
+    """Missing 'tool' / no args → empty name, empty args (no crash)."""
+    name, args = normalize_tool_call({})
+    assert name == ""
+    assert args == {}

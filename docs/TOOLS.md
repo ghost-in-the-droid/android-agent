@@ -30,6 +30,8 @@ The dashboard Tools Hub displays Android/iOS support badges from the same
 platform registry. When testing a device-scoped tool, it blocks unsupported
 tool/device combinations before dispatching to `/api/tools/test`.
 
+> **iOS:** with `GITD_ENABLE_IOS=1`, `ios:<udid>` device refs route cross-platform tools (tap, swipe, type, screenshot, browser primitives) through Appium/WDA. Android-only tools (`shell`, `launch_intent`, Portal overlay, crash reports) return a platform error for iOS refs. See `gitd/services/tool_platforms.py` for the per-tool support matrix.
+
 ## App lifecycle
 
 ### `launch_app(device, package, fresh=false)`

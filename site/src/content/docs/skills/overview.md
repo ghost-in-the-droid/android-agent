@@ -73,21 +73,12 @@ Skill (skill.yaml + elements.yaml)
 | `tap_search` | Open search screen |
 | `type_and_search` | Type query + press Enter |
 | `dismiss_popup` | Dismiss known TikTok popups |
-| `like_post` | Double-tap center to like |
-| `comment_on_post` | Open comments, type, send |
-| `follow_user` | Tap Follow button |
-| `scroll_feed` | Swipe up to next video |
-| `tap_user` | Tap user row in search results |
-| `tap_message_button` | Tap Message on profile |
-| `type_message` | Type text in DM input |
-| `tap_send` | Send the DM |
 
 ### TikTok Workflows
 
 | Workflow | Description |
 |----------|-------------|
 | `upload_video` | 43-step video upload flow |
-| `crawl_users` | Search users tab, scrape profiles |
 | `publish_draft` | Find and publish a saved draft |
 
 ### Base Actions
@@ -107,7 +98,7 @@ skill = load()
 print(skill.name)              # 'tiktok'
 print(skill.app_package)       # 'com.zhiliaoapp.musically'
 print(skill.list_actions())    # ['open_app', 'navigate_to_profile', ...]
-print(skill.list_workflows())  # ['upload_video', 'crawl_users', 'publish_draft']
+print(skill.list_workflows())  # ['upload_video', 'publish_draft']
 
 # Run an action
 action = skill.get_action("open_app", dev)

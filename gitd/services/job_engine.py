@@ -333,6 +333,7 @@ def _account_preflight(phone: str | None, job_type: str, config: dict) -> str | 
         return None
     try:
         from gitd.services.account_health import expected_account_matches
+
         check = expected_account_matches(phone, expected)
     except Exception as e:
         logger.warning("preflight skipped (error): %s", e)

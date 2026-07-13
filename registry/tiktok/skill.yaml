@@ -1,6 +1,6 @@
 name: tiktok
 display_name: TikTok
-description: TikTok automation skill — upload, navigate, search, engage
+description: TikTok automation skill — open, navigate, search, upload your own drafts
 version: "1.0.0"
 app_package: com.zhiliaoapp.musically
 author: C-K-Loan
@@ -24,12 +24,6 @@ exports:
     - name: upload_video
       description: Upload a video with caption and hashtags
       steps: [open_app, upload_flow]
-    - name: crawl_hashtag
-      description: Crawl posts from a hashtag search
-      steps: [open_app, tap_search, type_and_search, scrape_loop]
-    - name: engage_fyp
-      description: Auto-engage with For You Page content (like, comment, follow)
-      steps: [open_app, scroll_fyp, engage_loop]
 
 popup_detectors:
   - detect: "Continue editing"
@@ -68,31 +62,12 @@ default_params:
   actions:
     type_and_search:
       query: "#cats"
-    comment_on_post:
-      text: "Great content!"
-    tap_user:
-      index: 0
-    type_message:
-      text: "Hey! Love your content"
   workflows:
-    crawl_hashtag:
-      query: "#fyp"
-      label: "general"
-      tab: "top"
-      passes: 5
-    crawl_users:
-      query: "#cats"
-      label: "general"
-      passes: 5
     upload_video:
       video_path: "/sdcard/DCIM/video.mp4"
       caption: "Check this out!"
       hashtags: "#fyp #viral"
       as_draft: false
-    engage_fyp:
-      like: true
-      comment: ""
-      follow: false
     publish_draft:
       draft_tag: ""
 

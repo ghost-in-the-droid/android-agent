@@ -335,7 +335,11 @@ def phone_stream(device: str = "", fps: int = 30, quality: int = 8, mode: str = 
             time.sleep(delay)
 
     android_stream_mode = "portal" if mode == "portal" else ("h264" if mode == "h264" else "screencap")
-    gen = gen_portal if android_stream_mode == "portal" else (gen_h264 if android_stream_mode == "h264" else gen_screencap)
+    gen = (
+        gen_portal
+        if android_stream_mode == "portal"
+        else (gen_h264 if android_stream_mode == "h264" else gen_screencap)
+    )
     return StreamingResponse(
         gen(),
         media_type="multipart/x-mixed-replace; boundary=frame",

@@ -142,6 +142,7 @@ def _premium_available() -> bool:
     """Whether the premium TikTok upload module is installed."""
     try:
         import ghost_premium.bots.tiktok.upload  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -196,6 +197,7 @@ def device_account_health(device: str, fresh: bool = False) -> dict:
 
     try:
         from ghost_premium.bots.tiktok.upload import get_logged_in_accounts
+
         accounts = get_logged_in_accounts(device=device)
     except Exception as e:
         result["error"] = str(e)[:200]
@@ -269,6 +271,7 @@ def switch_active_account(device: str, handle: str) -> dict:
 
     try:
         from ghost_premium.bots.tiktok.upload import switch_account
+
         switch_account(handle, device=device)
     except Exception as e:
         return {"ok": False, "device": device, "active": health["active"], "error": str(e)[:200]}
@@ -296,7 +299,7 @@ def _sync_detected_accounts(device: str, health: dict) -> dict:
             "error": health["error"],
         }
 
-    from gitd.db import DEFAULT_DB, get_connection, create_tables
+    from gitd.db import DEFAULT_DB, create_tables, get_connection
 
     conn = get_connection(DEFAULT_DB)
     create_tables(conn)
@@ -304,9 +307,7 @@ def _sync_detected_accounts(device: str, health: dict) -> dict:
     added, updated = [], []
     active_handle = health["active"]
     for handle in health["logged_in"]:
-        existing = conn.execute(
-            "SELECT handle, phone_serial FROM tiktok_accounts WHERE handle=?", (handle,)
-        ).fetchone()
+        existing = conn.execute("SELECT handle, phone_serial FROM tiktok_accounts WHERE handle=?", (handle,)).fetchone()
         if existing is None:
             conn.execute(
                 "INSERT INTO tiktok_accounts (handle, phone_serial, is_active) VALUES (?, ?, 1)",
@@ -436,4 +437,5 @@ def expected_account_matches(device: str, expected: Optional[str]) -> dict:
 
 def _now_iso() -> str:
     from datetime import datetime, timezone
+
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

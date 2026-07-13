@@ -130,4 +130,18 @@ class TestSkills:
 class TestCreator:
     def test_ollama_models(self, client):
         r = client.get("/api/creator/ollama-models")
-        assert r.status_code in (200, 500)
+        # The endpoint catches a missing Ollama and returns 200 with an empty
+        # list, so it should ALWAYS be 200 with a well-formed shape — asserting
+        # "200 or 500" passed even when the endpoint was broken.
+        assert r.status_code == 200
+        body = r.json()
+        assert isinstance(body.get("models"), list)
+
+    def test_openapi_metadata_is_ios_aware(self, client):
+        r = client.get("/openapi.json")
+        assert r.status_code == 200
+        schema = r.json()
+        assert "iOS Appium/WDA" in schema["info"]["description"]
+        tags = {tag["name"]: tag["description"] for tag in schema["tags"]}
+        assert tags["phone"] == "Android/iOS device control, tap, swipe, screenshots"
+        assert "iOS WDA MJPEG" in tags["streaming"]

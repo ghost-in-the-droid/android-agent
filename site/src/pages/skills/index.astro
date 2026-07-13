@@ -39,6 +39,7 @@ const totalElements = skills.reduce((s, k) => s + k.elements, 0)
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="google-site-verification" content="lCpzZZM3agcLw_H0vN9ek2NKHN3aRF5ijaIwX5Vsnyw" />
 	<title>Skill Hub — Ghost in the Droid</title>
 	<meta name="description" content="Browse, install, and share automation skills for any Android app." />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -141,6 +142,8 @@ const totalElements = skills.reduce((s, k) => s + k.elements, 0)
 			.nav-links a:not(.nav-cta) { display: none; }
 		}
 	</style>
+	<!-- Vercel Web Analytics (Starlight head-injection doesn't reach this standalone page) -->
+	<script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 	<nav>

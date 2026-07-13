@@ -2,8 +2,15 @@
 
 Bare device refs remain Android ADB serials.  Refs with the ``ios:`` prefix are
 handled by the Appium/WebDriverAgent iOS backend.
+
+iOS support is feature-gated (dev-only for one release cycle): when
+``settings.ios_platform_enabled`` is false and ``GITD_ENABLE_IOS`` is unset,
+``ios:`` refs raise NotImplementedError and iOS devices are excluded from
+discovery. The Android path is unaffected either way.
 """
 from __future__ import annotations
+
+import os
 
 from gitd.bots.common.adb import Device, list_connected
 from gitd.bots.common.ios import (
@@ -17,12 +24,30 @@ from gitd.bots.common.ios import (
 )
 
 
+def ios_enabled() -> bool:
+    """Whether the iOS backend is enabled for this process."""
+    if os.environ.get("GITD_ENABLE_IOS") == "1":
+        return True
+    from gitd.config import settings
+
+    return settings.ios_platform_enabled
+
+
+def _require_ios_enabled(device: str) -> None:
+    if not ios_enabled():
+        raise NotImplementedError(
+            f"iOS device refs are not supported ({device}): iOS support is disabled. "
+            "Set GITD_ENABLE_IOS=1 (or ios_platform_enabled=true in .env) to enable."
+        )
+
+
 def platform_for_device(device: str | None) -> str:
     return "ios" if is_ios_ref(device) else "android"
 
 
 def get_device(device: str):
     if is_ios_ref(device):
+        _require_ios_enabled(device)
         return IOSDevice(device)
     return Device(device)
 
@@ -33,10 +58,14 @@ def require_android_device(device: str, tool_name: str) -> None:
 
 
 def ios_refs_from_env() -> list[str]:
+    if not ios_enabled():
+        return []
     return [f"{IOS_PREFIX}{udid}" for udid in configured_ios_udids()]
 
 
 def ios_refs_from_host() -> list[str]:
+    if not ios_enabled():
+        return []
     values = configured_ios_udids()
     values.extend(item["udid"] for item in discover_host_ios_devices(include_simulators=True))
     refs: list[str] = []
@@ -50,6 +79,8 @@ def ios_refs_from_host() -> list[str]:
 
 
 def list_configured_ios_devices(*, deep_probe: bool = False) -> list[dict]:
+    if not ios_enabled():
+        return []
     devices: list[dict] = []
     discovered = {item["udid"]: item for item in discover_host_ios_devices(include_simulators=True)}
     for ref in ios_refs_from_host():

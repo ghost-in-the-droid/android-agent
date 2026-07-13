@@ -44,8 +44,20 @@ def test_every_agent_and_mcp_tool_has_platform_classification():
 def test_agent_and_mcp_tool_catalogs_match():
     agent_names = {tool["name"] for tool in TOOLS}
 
-    assert sorted(agent_names - _mcp_tool_names()) == []
-    assert sorted(_mcp_tool_names() - agent_names) == []
+    # Deliberately NOT exposed over MCP: raw exec vectors, plus the agent-loop
+    # frame tools (screenshot_sequence caches frames for the in-process sub_agent
+    # fan-out; neither is useful to a standalone MCP client). MCP clients get
+    # run_flow (fail-closed allow-list) + run_workflow/run_action instead.
+    # `chain` is the agent-chat batch primitive — the mirror image of run_flow
+    # (which is MCP-only): MCP clients batch via run_flow, so chain stays out of
+    # the MCP catalog.
+    mcp_excluded = {"shell", "run_skill", "chain", "screenshot_sequence", "sub_agent"}
+    # MCP-only: batched flow + crash reports have no in-process agent-tool
+    # equivalent (agents read crashes via their own transcript context).
+    mcp_only = {"run_flow", "list_crashes", "get_crash"}
+
+    assert sorted(agent_names - _mcp_tool_names() - mcp_excluded) == []
+    assert sorted(_mcp_tool_names() - agent_names - mcp_only) == []
 
 
 def test_platform_classifications_have_stable_ios_semantics():
@@ -263,34 +275,27 @@ def test_mcp_agent_parity_wrappers_delegate_to_agent_tools(monkeypatch):
 
     force_stopped = mcp_server.force_stop("ios:abc123", "com.google.chrome.ios")
     packages = mcp_server.list_packages("ios:abc123")
-    shell = mcp_server.shell("emulator-5554", "echo hello")
     waited = mcp_server.wait(0.25)
 
     assert force_stopped.startswith("force_stop:")
     assert packages.startswith("list_packages:")
-    assert shell.startswith("shell:")
     assert waited.startswith("wait:")
     assert calls == [
         ("force_stop", {"device": "ios:abc123", "package": "com.google.chrome.ios"}),
         ("list_packages", {"device": "ios:abc123"}),
-        ("shell", {"device": "emulator-5554", "command": "echo hello"}),
         ("wait", {"seconds": 0.25}),
     ]
+    # Raw exec vectors must NOT be MCP tools at all.
+    assert not hasattr(mcp_server, "shell")
+    assert not hasattr(mcp_server, "run_skill")
 
 
-def test_mcp_run_skill_alias_uses_run_workflow(monkeypatch):
+def test_mcp_has_no_run_skill_alias():
+    """run_skill is not exposed over MCP — run_workflow is the single entry point."""
     from gitd import mcp_server
 
-    calls = []
-
-    def fake_run_workflow(device: str, skill: str, workflow: str, params: str = "{}"):
-        calls.append((device, skill, workflow, params))
-        return "workflow ok"
-
-    monkeypatch.setattr(mcp_server, "run_workflow", fake_run_workflow)
-
-    assert mcp_server.run_skill("ios:abc123", "safari", "read_news", '{"url": "https://text.npr.org/"}') == "workflow ok"
-    assert calls == [("ios:abc123", "safari", "read_news", '{"url": "https://text.npr.org/"}')]
+    assert not hasattr(mcp_server, "run_skill")
+    assert callable(mcp_server.run_workflow)
 
 
 def test_agent_list_devices_returns_android_and_ios_metadata(monkeypatch):
@@ -330,6 +335,14 @@ def test_agent_marketing_lookup_tools_use_shared_service(monkeypatch):
 
     assert execute_tool("lookup_lead", {"handle": "demo"}) == "lead:demo"
     assert execute_tool("list_unread_leads", {}) == "2 unread"
+
+
+def test_agent_crm_lookup_tools_use_shared_service(monkeypatch):
+    monkeypatch.setattr("gitd.services.crm_lookup.crm_lookup_contact", lambda handle: f"contact:{handle}")
+    monkeypatch.setattr("gitd.services.crm_lookup.crm_list_unread_messages", lambda: "2 unread")
+
+    assert execute_tool("crm_lookup_contact", {"handle": "demo"}) == "contact:demo"
+    assert execute_tool("crm_list_unread_messages", {}) == "2 unread"
 
 
 def test_agent_run_skill_uses_current_interpreter(monkeypatch):
@@ -506,6 +519,8 @@ def test_tools_for_device_filters_by_platform():
     assert "create_skill" in ios_names
     assert "lookup_lead" in ios_names
     assert "list_unread_leads" in ios_names
+    assert "crm_lookup_contact" in ios_names
+    assert "crm_list_unread_messages" in ios_names
     assert "app_state" in ios_names
     assert "get_notifications" in ios_names
     assert "open_notifications" in ios_names
@@ -525,6 +540,8 @@ def test_tools_for_device_filters_by_platform():
     assert "create_skill" in android_names
     assert "lookup_lead" in android_names
     assert "list_unread_leads" in android_names
+    assert "crm_lookup_contact" in android_names
+    assert "crm_list_unread_messages" in android_names
     assert "start_screen_recording" in android_names
     assert "get_stream_info" in android_names
     assert "device_health" in android_names
@@ -715,6 +732,8 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "create_skill" in ios_names
     assert "lookup_lead" in ios_names
     assert "list_unread_leads" in ios_names
+    assert "crm_lookup_contact" in ios_names
+    assert "crm_list_unread_messages" in ios_names
     assert "get_current_url" in ios_names
     assert "read_news" in ios_names
     assert "shell" in android_names
@@ -730,5 +749,7 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "create_skill" in android_names
     assert "lookup_lead" in android_names
     assert "list_unread_leads" in android_names
+    assert "crm_lookup_contact" in android_names
+    assert "crm_list_unread_messages" in android_names
     assert "get_current_url" not in android_names
     assert "read_news" not in android_names

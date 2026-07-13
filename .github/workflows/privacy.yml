@@ -1,0 +1,52 @@
+name: privacy-guard
+
+# Defense-in-depth behind scripts/record_demo.py's OCR gates: grep every PR's
+# committed tree against the generic forbidden-pattern list so no private
+# path, hostname, key, or private-repo URL ships in public artifacts.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  forbidden-patterns:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan committed artifacts against FORBIDDEN.txt
+        run: |
+          python3 - <<'EOF'
+          import re, sys
+          from pathlib import Path
+
+          sys.path.insert(0, "scripts")
+          from privacy.scrub import load_forbidden, scan_text
+
+          # FORBIDDEN.local.txt never exists in CI (gitignored) — this scans
+          # the committed, generic list only.
+          patterns = load_forbidden()
+          scan_roots = ["site/public", "docs", "gitd", "tests", "scripts", "README.md"]
+          # the list itself + the scrubber (must name what it redacts)
+          skip = {Path("scripts/privacy/FORBIDDEN.txt"),
+                  Path("scripts/privacy/scrub.py")}
+          text_ext = {".md", ".txt", ".py", ".yaml", ".yml", ".json", ".ts",
+                      ".tsx", ".js", ".astro", ".html", ".css", ".cast", ".sh"}
+
+          bad = 0
+          for root in scan_roots:
+              p = Path(root)
+              files = [p] if p.is_file() else p.rglob("*") if p.exists() else []
+              for f in files:
+                  if not f.is_file() or f in skip or f.suffix not in text_ext:
+                      continue
+                  for src, m in scan_text(f.read_text(errors="replace"), patterns):
+                      shown = m if len(m) <= 6 else m[:3] + "…"
+                      print(f"::error file={f}::forbidden pattern {src!r} matched ({shown})")
+                      bad += 1
+          if bad:
+              print(f"\n{bad} forbidden hit(s) — see scripts/privacy/RECORDING_CHECKLIST.md")
+              sys.exit(1)
+          print("privacy-guard: clean")
+          EOF

@@ -1,4 +1,5 @@
 """Platform support metadata for agent and MCP tools."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -90,6 +91,12 @@ _CROSS_PLATFORM = {
     "create_skill": "Creates recorded skills with Android package or iOS bundle metadata and per-platform element files.",
     "lookup_lead": "Device-neutral marketing data lookup.",
     "list_unread_leads": "Device-neutral marketing inbox lookup.",
+    "run_flow": "Batched execution of allow-listed tools; each step routes per-platform.",
+    "crm_lookup_contact": "Device-neutral local CRM contact lookup.",
+    "crm_list_unread_messages": "Device-neutral local CRM unread-message listing.",
+    "chain": "Runs a sequence of sub-actions; each sub-action routes to its own platform backend.",
+    "screenshot_sequence": "Captures a screenshot burst via the per-platform screenshot path.",
+    "sub_agent": "Device-neutral vision sub-call over cached frames.",
     "wait": "Device-neutral delay.",
     "speak_text": "Android Portal-app TTS, or iOS WDA /wda/speak (AVSpeechSynthesizer) via GhostAgent-patched WebDriverAgent.",
 }
@@ -103,8 +110,12 @@ _IOS_PLANNED = {}
 
 _ANDROID_ONLY = {
     "shell": "ADB shell has no iOS equivalent.",
+    "list_crashes": "Reads the Android logcat crash buffer; iOS needs syslog/CrashReporter support.",
+    "get_crash": "Reads the Android logcat crash buffer; iOS needs syslog/CrashReporter support.",
     "launch_intent": "Android intents have no iOS equivalent.",
     "toggle_overlay": "Portal overlay is Android-only.",
+    # NOTE: speak_text is classified cross_platform above (iOS gained WDA
+    # /wda/speak on feat/ios-ondevice); intentionally not android_only here.
 }
 
 
@@ -147,3 +158,82 @@ def platform_error(name: str, platform: str) -> dict[str, str | bool]:
 def platform_error_text(name: str, platform: str) -> str:
     error = platform_error(name, platform)
     return f"ERROR: {error['error']}"
+
+
+# ── Docs: generated platform-support matrix ──────────────────────────────────
+# Emits the per-tool Android/iOS support matrix as Markdown straight from the
+# classification above, so the public docs table never drifts from code. This is
+# the CLASSIFICATION only — docs overlay a "hardware-confirmed on iOS" badge on
+# top (some tools are classified cross-platform but not yet exercised on real WDA,
+# and several fall back to OCR on iOS due to the weaker accessibility tree).
+#   run:  python -m gitd.services.tool_platforms > tool-support.generated.md
+
+_BADGE = {
+    ("android_only", "android"): "✅",
+    ("android_only", "ios"): "⚠️ n/a",
+    ("cross_platform", "android"): "✅",
+    ("cross_platform", "ios"): "✅",
+    ("ios_supported", "android"): "⚠️ n/a",
+    ("ios_supported", "ios"): "✅",
+    ("ios_planned", "android"): "✅",
+    ("ios_planned", "ios"): "🔜",
+}
+
+_SUPPORT_HEADING = {
+    "cross_platform": "Cross-platform (Android + iOS)",
+    "ios_supported": "iOS-first",
+    "ios_planned": "Android now, iOS planned",
+    "android_only": "Android-only",
+}
+
+
+def _row(info: ToolPlatformInfo) -> str:
+    android = _BADGE[(info.support, "android")]
+    ios = _BADGE[(info.support, "ios")]
+    notes = (info.notes or "").replace("|", "\\|")
+    return f"| `{info.name}` | {android} | {ios} | {notes} |"
+
+
+def render_matrix_markdown(*, mdx: bool = False) -> str:
+    """Render the full tool platform-support matrix as Markdown.
+
+    Grouped by support class, each group a table with an Android / iOS badge and
+    the per-tool note. Badges: ✅ supported · 🔜 iOS planned · ⚠️ n/a (not
+    applicable on that platform). Deterministic (sorted) so regenerating in CI
+    produces a stable diff.
+
+    ``mdx=True`` emits the generated-file header as an MDX comment (``{/* */}``)
+    instead of an HTML comment (``<!-- -->``), which is invalid in MDX. The table
+    body is identical (GitHub-flavored Markdown tables render in both).
+    """
+    header = [
+        "GENERATED from gitd/services/tool_platforms.py — do not edit by hand.",
+        "Regenerate: python -m gitd.services.tool_platforms" + (" --mdx" if mdx else ""),
+    ]
+    comment = ["{/* " + " ".join(header) + " */}"] if mdx else ["<!-- " + header[0], "     " + header[1] + " -->"]
+    lines = [
+        *comment,
+        "",
+        "Legend: ✅ supported · 🔜 iOS planned · ⚠️ n/a (platform can't support it).",
+        "Classification only — overlay a 'hardware-confirmed on iOS' badge separately;",
+        "several cross-platform tools fall back to OCR on iOS (weaker a11y tree).",
+    ]
+    for support in ("cross_platform", "ios_supported", "ios_planned", "android_only"):
+        names = tools_for_support(support)
+        if not names:
+            continue
+        lines += [
+            "",
+            f"### {_SUPPORT_HEADING[support]} ({len(names)})",
+            "",
+            "| Tool | Android | iOS | Notes |",
+            "| --- | :---: | :---: | --- |",
+        ]
+        lines += [_row(TOOL_PLATFORM_SUPPORT[name]) for name in names]
+    return "\n".join(lines) + "\n"
+
+
+if __name__ == "__main__":  # pragma: no cover — docs build entry point
+    import sys
+
+    sys.stdout.write(render_matrix_markdown(mdx="--mdx" in sys.argv[1:]))

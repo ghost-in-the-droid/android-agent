@@ -4,10 +4,12 @@ import json
 import os
 import subprocess
 import threading
+import time
 
 from gitd.bots.common.device import is_ios_ref
 from gitd.services.agent_chat import ChatMessage, ChatSession, platform_context
 from gitd.services.device_context import get_phone_state, get_screen_tree
+from gitd.services.llm_backoff import effort_timeout
 from gitd.services.observability import (
     record_generation,
     record_tool_result,
@@ -118,7 +120,7 @@ def chat_claude_code(session: ChatSession, user_message: str):
             '(1) ToolSearch({"query":"select:mcp__android-agent__open_camera"}) '
             "(2) mcp__android-agent__open_camera(device=..., mode=photo|video|selfie|selfie_video, timer_s=0|2|3|5|10). "
             "Do NOT use launch_app. Do NOT tap camera UI manually.\n"
-            "- To make the phone speak text aloud, call `mcp__android-agent__speak_text(device=..., text=\"...\")`."
+            '- To make the phone speak text aloud, call `mcp__android-agent__speak_text(device=..., text="...")`.'
         )
         system_prompt = (
             "You are an Android automation agent. Rules that override all defaults:\n"
@@ -225,8 +227,31 @@ Rules:
     total_output_tokens = 0
     total_cost = 0.0
 
+    # Idle/stall guard: the subprocess runs the whole agentic loop itself, so a
+    # total-time cap would cut off legitimate long tasks. Instead we guard on
+    # SILENCE — if no new output arrives for the effort-scaled window (a bigger
+    # model reasons longer between lines), the claude process is wedged, so kill
+    # it and surface an error rather than streaming nothing forever. Any new
+    # line resets the clock.
+    idle_ceiling = effort_timeout(session.model or "sonnet")
+    last_output_at = time.monotonic()
+
     while not finished.is_set():
         finished.wait(timeout=0.5)
+
+        if processed_idx < len(lines_queue):
+            last_output_at = time.monotonic()
+        elif time.monotonic() - last_output_at > idle_ceiling:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            finished.set()
+            yield {
+                "type": "error",
+                "content": f"Agent stalled: no output for {idle_ceiling}s (claude subprocess wedged). Stopped.",
+            }
+            break
 
         while processed_idx < len(lines_queue):
             line = lines_queue[processed_idx]

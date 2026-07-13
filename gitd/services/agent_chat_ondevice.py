@@ -17,6 +17,7 @@ from gitd.services.agent_chat import (
     ChatMessage,
     ChatSession,
     _parse_tool_calls,
+    normalize_tool_call,
     system_prompt_for_device,
 )
 from gitd.services.agent_tools import execute_tool, tool_prompt_list, tools_for_device
@@ -261,8 +262,7 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
 
             tool_results = []
             for call in tool_calls:
-                tool_name = call.get("tool", "")
-                tool_args = call.get("args", {})
+                tool_name, tool_args = normalize_tool_call(call)
                 tool_args.setdefault("device", session.device)
 
                 session.messages.append(

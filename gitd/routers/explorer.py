@@ -10,6 +10,7 @@ from pathlib import Path
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import FileResponse
 
+from gitd.bots.common.device import is_ios_ref
 from gitd.config import settings
 from gitd.bots.common.device import is_ios_ref
 

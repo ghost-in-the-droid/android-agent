@@ -1,0 +1,90 @@
+---
+/**
+ * PlatformBadges — per-feature platform support row for docs pages.
+ * Usage in an .mdx docs page:
+ *   import PlatformBadges from '../../../components/PlatformBadges.astro';
+ *   <PlatformBadges android="yes" ios="soon" />
+ *
+ * States: "yes" ✅ supported · "soon" 🔜 planned · "no" ✖ not supported.
+ * ios-tester populates per-feature values; this component owns the styling.
+ */
+interface Props {
+	android?: 'yes' | 'soon' | 'no';
+	ios?: 'yes' | 'soon' | 'no';
+}
+
+const { android = 'yes', ios = 'no' } = Astro.props;
+
+const LABEL: Record<string, { icon: string; text: string; cls: string }> = {
+	yes: { icon: '✅', text: 'Supported', cls: 'is-yes' },
+	soon: { icon: '🔜', text: 'Planned', cls: 'is-soon' },
+	no: { icon: '✖', text: 'Not supported', cls: 'is-no' },
+};
+
+const rows = [
+	{ os: 'Android', state: android },
+	{ os: 'iOS', state: ios },
+];
+---
+
+<div class="platform-badges" role="group" aria-label="Platform support">
+	{
+		rows.map(({ os, state }) => {
+			const l = LABEL[state] ?? LABEL.no;
+			return (
+				<span class={`platform-badge ${l.cls}`} title={`${os}: ${l.text}`}>
+					<span class="platform-badge__os">{os}</span>
+					<span class="platform-badge__state" aria-hidden="true">{l.icon}</span>
+					<span class="sr-only">{l.text}</span>
+				</span>
+			);
+		})
+	}
+</div>
+
+<style>
+	.platform-badges {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		margin: 0.25rem 0 1rem;
+	}
+	.platform-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.2rem 0.6rem;
+		border-radius: 999px;
+		font-size: 0.8rem;
+		font-weight: 600;
+		border: 1px solid var(--sl-color-gray-5);
+		background: var(--sl-color-gray-6);
+		color: var(--sl-color-gray-2);
+	}
+	.platform-badge__os {
+		letter-spacing: 0.01em;
+	}
+	.platform-badge.is-yes {
+		border-color: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
+		background: color-mix(in srgb, var(--sl-color-accent) 12%, transparent);
+		color: var(--sl-color-white);
+	}
+	.platform-badge.is-soon {
+		border-color: color-mix(in srgb, #f0c674 55%, transparent);
+		background: color-mix(in srgb, #f0c674 12%, transparent);
+	}
+	.platform-badge.is-no {
+		opacity: 0.65;
+	}
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+</style>

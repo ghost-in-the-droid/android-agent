@@ -1,9 +1,9 @@
 """Marketing-jobs router — single seam for external marketing agents to
 queue safe mobile jobs via Ghost's scheduler/job_queue.
 
-Lives in the public gitd/ namespace so the external social-media-agent
-(at ~/Agent/social-media-agent/) can call into Ghost without depending
-on the premium plugin.
+Lives in the public gitd/ namespace so external marketing agents — the
+social-media-agent (at ~/Agent/social-media-agent/) and content-planning
+agents — can call into Ghost without depending on the premium plugin.
 
 Safety: `action` is force-overridden to 'draft' regardless of input.
 The agent has no permission to live-publish from this seam — that's a

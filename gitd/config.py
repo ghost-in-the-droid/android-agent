@@ -26,6 +26,27 @@ class Settings(BaseSettings):
     # ── Devices ──────────────────────────────────────────────────────────────
     default_device: str = ""  # ADB serial of primary phone (auto-detected if empty)
 
+    # ── iOS (feature-gated) ──────────────────────────────────────────────────
+    # iOS support (Appium/WebDriverAgent) ships dev-only for one release cycle:
+    # OFF by default, so `ios:` device refs surface "not supported" errors and
+    # iOS devices are excluded from discovery. Enable with GITD_ENABLE_IOS=1
+    # (or ios_platform_enabled=true in .env). Flip the default once device
+    # testing passes.
+    ios_platform_enabled: bool = False
+
+    # ── Perception ───────────────────────────────────────────────────────────
+    # After a UI action, append a before/after accessibility-tree diff to the
+    # tool result so the model sees what its action changed (additive perception
+    # aid). ON by default; set A11Y_DIFF_ENABLED=false to disable (kill-switch) —
+    # the diff costs one extra UI-tree dump per UI action.
+    a11y_diff_enabled: bool = True
+
+    # ── LLM ──────────────────────────────────────────────────────────────────
+    # Provider used when a session is created without an explicit one. Defaults
+    # to claude-code (Claude subscription, no API key) — `android-agent login`
+    # records this in .env.
+    default_provider: str = "claude-code"
+
     # ── API keys (optional, loaded from env) ─────────────────────────────────
     openai_api_key: str = ""
     anthropic_api_key: str = ""

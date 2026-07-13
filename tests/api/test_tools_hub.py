@@ -10,6 +10,7 @@ def test_tools_hub_exposes_platform_support(client):
     clipboard = next(category for category in categories if category["category"] == "Clipboard & Notifications")
     skills = next(category for category in categories if category["category"] == "Skills")
     marketing = next(category for category in categories if category["category"] == "Marketing")
+    crm = next(category for category in categories if category["category"] == "CRM")
     device_tools = next(category for category in categories if category["category"] == "Device")
     open_url = next(tool for tool in web["tools"] if tool["name"] == "open_url")
     current_url = next(tool for tool in web["tools"] if tool["name"] == "get_current_url")
@@ -30,6 +31,8 @@ def test_tools_hub_exposes_platform_support(client):
     create_skill = next(tool for tool in skills["tools"] if tool["name"] == "create_skill")
     lookup_lead = next(tool for tool in marketing["tools"] if tool["name"] == "lookup_lead")
     list_unread_leads = next(tool for tool in marketing["tools"] if tool["name"] == "list_unread_leads")
+    crm_lookup_contact = next(tool for tool in crm["tools"] if tool["name"] == "crm_lookup_contact")
+    crm_list_unread_messages = next(tool for tool in crm["tools"] if tool["name"] == "crm_list_unread_messages")
     list_devices = next(tool for tool in device_tools["tools"] if tool["name"] == "list_devices")
     toggle_overlay = next(tool for tool in device_tools["tools"] if tool["name"] == "toggle_overlay")
     create_skill_params = {param["name"]: param for param in create_skill["params"]}
@@ -78,6 +81,10 @@ def test_tools_hub_exposes_platform_support(client):
     assert lookup_lead["platform_support"]["ios"] is True
     assert list_unread_leads["platform_support"]["support"] == "cross_platform"
     assert list_unread_leads["platform_support"]["ios"] is True
+    assert crm_lookup_contact["platform_support"]["support"] == "cross_platform"
+    assert crm_lookup_contact["platform_support"]["ios"] is True
+    assert crm_list_unread_messages["platform_support"]["support"] == "cross_platform"
+    assert crm_list_unread_messages["platform_support"]["ios"] is True
     assert list_devices["platform_support"]["support"] == "cross_platform"
     assert list_devices["platform_support"]["ios"] is True
     assert toggle_overlay["platform_support"]["support"] == "android_only"

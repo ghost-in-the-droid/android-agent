@@ -31,6 +31,20 @@ def _default_device(value: str) -> str:
     return known[0] if known else ""
 
 
+def verify_smoke(state: dict, tree: str, bundle_id: str) -> list[str]:
+    """Return a list of failure descriptions (empty = smoke passed)."""
+    failures: list[str] = []
+    fg = str(state.get("packageName") or state.get("bundle_id") or "")
+    if bundle_id and fg and fg != bundle_id:
+        failures.append(f"foreground app is {fg!r}, expected {bundle_id!r}")
+    if not fg:
+        failures.append("no foreground app reported in phone state")
+    content_lines = [ln for ln in (tree or "").splitlines() if ln.strip()]
+    if len(content_lines) < 3:
+        failures.append(f"screen tree looks empty ({len(content_lines)} lines) — page did not render")
+    return failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Launch an iOS browser/app using the iOS backend")
     parser.add_argument("--device", default=os.getenv("IOS_DEVICE_UDID", ""), help="iOS UDID or ios:<udid>")
@@ -65,8 +79,17 @@ def main() -> int:
 
         state = dev.get_phone_state()
         print(json.dumps(state, indent=2))
+        tree = get_screen_tree(device, max_nodes=40)
         print("\n[Screen tree]")
-        print(get_screen_tree(device, max_nodes=40))
+        print(tree)
+
+        # Real pass/fail checks — this script used to exit 0 no matter what,
+        # which made it pass-when-broken. A smoke test must be able to fail.
+        failures = verify_smoke(state, tree, args.bundle_id)
+        if failures:
+            for f in failures:
+                print(f"SMOKE FAIL: {f}", file=sys.stderr)
+            return 1
 
         if args.screenshot_out:
             out = Path(args.screenshot_out)

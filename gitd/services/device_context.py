@@ -577,7 +577,9 @@ def ocr_region(device: str, x1: int, y1: int, x2: int, y2: int) -> list[dict]:
 def speak_text(device: str, text: str, rate: float = 1.0) -> str:
     """Make the phone speak text aloud via its TTS engine.
 
-    Android: ADB forward → Ghost Portal app HTTP /speak.
+    Android: ADB forward → Ghost Portal app HTTP /speak. Works from PC (ADB
+    forward → portal HTTP) and on-device (same HTTP, loopback); requires the
+    Ghost portal app to be running on the phone.
     iOS: WDA /wda/speak (AVSpeechSynthesizer) via Appium, no companion app.
     Returns 'speaking' on success, or an error string.
     """
@@ -1025,7 +1027,9 @@ def ios_device_health(device: str, ios_dev=None) -> dict:
         recovery = _ios_recovery_for_state(state)
         if state == "remote_xpc_tunnel_unavailable":
             try:
-                recovery = remote_xpc_manual_recovery(status.get("udid") or device, checks.get("remote_xpc_tunnel") or {})
+                recovery = remote_xpc_manual_recovery(
+                    status.get("udid") or device, checks.get("remote_xpc_tunnel") or {}
+                )
             except Exception:
                 recovery = _ios_recovery_for_state(state)
         elif state == "appium_down":

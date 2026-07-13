@@ -78,30 +78,75 @@ Define **skills** for any app, run them from the dashboard or API, scale across 
 
 ---
 
+## iOS Support (Experimental)
+
+Ghost can also drive iPhones through Appium/WebDriverAgent with the same tool
+surface: `ios:<udid>` device refs route tap/swipe/type/screenshot to WDA, and
+iOS-aware browser primitives (`open_url`, `read_news`, `extract_visible_text`)
+cover web tasks. Android-only tools (`shell`, `launch_intent`, Portal overlay)
+return a clear platform error instead of failing silently.
+
+iOS support is **feature-gated and OFF by default** while device testing
+matures — enable it with `GITD_ENABLE_IOS=1` (or `ios_platform_enabled=true`
+in `.env`). See [docs/SETUP_IOS.md](docs/SETUP_IOS.md) for Appium/WDA setup.
+
+---
+
 ## Quick Start
 
+Zero-install with [`uvx`](https://docs.astral.sh/uv/) (or `pipx`):
+
 ```bash
-# 1. Clone the repo
+# Check your environment first — Python, adb on PATH, devices, ports, LLM keys
+uvx ghost-in-the-droid doctor
+
+# Sign in with your Claude subscription — no API key needed (see below)
+uvx ghost-in-the-droid login
+
+# Start the server + dashboard
+uvx ghost-in-the-droid up
+# → http://localhost:5055  (dashboard + API; docs at /docs)
+```
+
+`doctor` prints a green/red checklist with fix hints instead of a stack trace when
+something's missing (e.g. `adb` not on PATH). Prefer `pipx`? `pipx install
+ghost-in-the-droid` gives you the `ghost-in-the-droid` / `android-agent` commands.
+
+### Sign in with your Claude subscription (no API key)
+
+If you have a **Claude Max/Pro** subscription, you don't need an API key.
+`android-agent login` signs you in through the `claude` CLI's own Anthropic
+OAuth flow and points Ghost at the `claude-code` provider:
+
+```bash
+android-agent login       # opens Anthropic sign-in via the claude CLI
+```
+
+Ghost never handles or stores your token — the `claude` CLI owns it, including
+refresh. Under the hood this is the sanctioned subscription path (we don't touch
+Anthropic's private OAuth endpoints). `doctor` shows a green **Claude
+subscription** check once you're signed in. To use an API key instead, set
+`ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` / `OPENROUTER_API_KEY`) and pick that
+provider.
+
+<details>
+<summary>From a clone (for development)</summary>
+
+```bash
 git clone https://github.com/ghost-in-the-droid/android-agent.git
 cd android-agent
 
 # 2. Install Python dependencies
 pip install -e ".[all]"
 
-# 3. Verify ADB sees your device
-adb devices
+android-agent doctor        # preflight
+android-agent up            # start server + dashboard on :5055
 
-# 4. Start the backend
-python3 run.py
-# API running at http://localhost:5055
-# Interactive API docs at http://localhost:5055/docs
-
-# 5. Start the frontend (separate terminal)
-cd frontend
-npm install
-npx vite --host 0.0.0.0 --port 6175
+# Frontend (separate terminal)
+cd frontend && npm install && npx vite --host 0.0.0.0 --port 6175
 # Dashboard at http://localhost:6175
 ```
+</details>
 
 ### iOS Quick Start
 
@@ -151,6 +196,14 @@ Copy `.env.example` to `.env` (if provided) or create a `.env` file in the proje
 | `IOS_BUNDLE_ID` | Default iOS app/browser bundle, e.g. `com.google.chrome.ios` or `com.apple.mobilesafari` |
 | `IOS_DEVICES_JSON` | Per-device iOS config for multiple phones/simulators, WDA ports, bundle IDs, and MJPEG ports |
 | `IOS_MJPEG_SERVER_PORT` | WDA MJPEG stream port; use one unique port per iOS device |
+
+**No API keys needed for local models:** Select Ollama in the Phone Agent tab — runs entirely on your machine with [Ollama](https://ollama.com). Install, pull a model, go:
+
+```bash
+brew install ollama       # or curl -fsSL https://ollama.com/install.sh | sh
+ollama serve &
+ollama pull llama3.2:3b   # 2GB, fast, good tool-use
+```
 
 **No API keys needed for local models:** Select Ollama in the Phone Agent tab — runs entirely on your machine with [Ollama](https://ollama.com). Install, pull a model, go:
 
@@ -236,7 +289,7 @@ API domains: phone, streaming, skills, creator, explorer, agent-chat, bot, sched
 
 ## MCP Server — Give Any AI Agent a Mobile Body
 
-The project ships an [MCP](https://modelcontextprotocol.io) server with mobile control tools. Any MCP-compatible AI client (Claude Code, Claude Desktop, Cursor, VS Code Copilot, Windsurf) can use them. Android serials receive the Android implementation; `ios:<udid>` refs route to the iOS backend where supported and return stable unsupported-platform errors for Android-only tools.
+The project ships an [MCP](https://modelcontextprotocol.io) server with 35 tools for mobile control. Any MCP-compatible AI client (Claude Code, Claude Desktop, Cursor, VS Code Copilot, Windsurf) can use them. Android serials receive the Android implementation; `ios:<udid>` refs route to the iOS backend where supported and return stable unsupported-platform errors for Android-only tools.
 
 ### Install
 
@@ -291,7 +344,7 @@ codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
 }
 ```
 
-**For contributors** who clone the repo: the `.mcp.json` is already there — mobile tools are available on first `claude` launch.
+**For contributors** who clone the repo: the `.mcp.json` is already there — the 35 mobile tools are available on first `claude` launch.
 
 ### Available tools
 
