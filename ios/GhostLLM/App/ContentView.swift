@@ -16,6 +16,8 @@ struct ContentView: View {
         }
         .task {
             let env = ProcessInfo.processInfo.environment
+            // Optional boot-into-a-specific-model (e.g. GHOST_MODEL=gemma for the demo).
+            if env["GHOST_MODEL"] == "gemma" { vm.currentModel = ModelRegistry.gemma4E2B }
             // Perf tests do their own single load; skip the default to avoid two engines.
             if env["GHOST_PERF"] == nil {
                 await vm.loadDefaultModel()

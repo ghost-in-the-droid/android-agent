@@ -105,6 +105,10 @@ actor LlamaEngine: InferenceEngine {
         let promptTokens = Array(tokens.prefix(Int(n)))
 
         // --- Evaluate prompt ---
+        // Start every generation from a clean KV cache: we always feed positions
+        // from 0, so stale KV entries (e.g. a prior warmup) collide — fatal under
+        // Gemma's sliding-window attention. Makes generate() self-contained.
+        llama_memory_clear(llama_get_memory(ctx), true)
         var batch = llama_batch_init(nBatch, 0, 1)
         defer { llama_batch_free(batch) }
         fill(&batch, with: promptTokens, startPos: 0)
