@@ -1,7 +1,8 @@
 # On-Device LLM for iOS — runtime decision + MVP plan
 
-**Status:** M0 complete (2026-07-13). Runtime picked, SwiftUI app scaffolded,
-tokens generated fully on-device in the iOS simulator.
+**Status:** M0 + M1 complete (2026-07-13). Runtime picked, SwiftUI app
+scaffolded, full streaming chat turns generated fully on-device (simulator),
+with a model registry + download-on-first-run.
 
 The iOS mirror of Ghost's Android on-device story: an LLM that runs entirely on
 the iPhone (no cloud round-trip) and hooks into Ghost's agent loop to drive the
@@ -71,8 +72,11 @@ conversion); Ollama (requires a daemon — not App-Store-shippable).
 
 - **M0 ✅** runtime picked + Xcode project scaffolded + tokens generated
   on-device (simulator). First run: SmolLM2-360M, greedy decode, 19.6 tok/s CPU.
-- **M1** full prompt→response turn: chat template, sample-to-EOS, streaming into
-  the SwiftUI chat window; download-on-first-run for Gemma-4 E2B; model registry.
+- **M1 ✅** full prompt→response turn: model chat template
+  (`llama_chat_apply_template`), greedy sample-to-EOG, streaming into the SwiftUI
+  chat window; per-turn KV reset; model registry + download-on-first-run
+  (URLSession → Documents, verified). Gemma-4 E2B registered as the downloadable
+  production default; SmolLM2 bundled for instant offline use.
 - **M2** agent-loop hookup: on-device LLM drives WDA/phone via Ghost tools
   (needs an iPhone window from ios-tester; direct-WDA path from PR #52).
 - **M3** demo-able: works offline (airplane mode), real UI, shipped IPA.

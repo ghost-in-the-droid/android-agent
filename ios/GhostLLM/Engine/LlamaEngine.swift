@@ -12,6 +12,8 @@ actor LlamaEngine: InferenceEngine {
     private let nBatch: Int32
     private let loadMillis: Int
 
+    var backend: String { backendName }
+
     init(modelURL: URL, nCtx: UInt32 = 2048, nBatch: Int32 = 512) throws {
         let t0 = Date()
         llama_backend_init()
@@ -50,6 +52,40 @@ actor LlamaEngine: InferenceEngine {
         llama_backend_free()
     }
 
+    /// Format a chat history using the model's built-in chat template (falls back
+    /// to ChatML). `add_ass` appends the assistant-turn opening tokens.
+    func formatChat(_ messages: [ChatTurn]) -> String {
+        let tmpl = llama_model_chat_template(model, nil)  // model's default, or nil
+        // strdup role/content so the C pointers stay valid across the call.
+        var cStrings: [UnsafeMutablePointer<CChar>?] = []
+        var chat: [llama_chat_message] = messages.map { turn in
+            let r = strdup(turn.role)
+            let c = strdup(turn.content)
+            cStrings.append(r); cStrings.append(c)
+            return llama_chat_message(role: r, content: c)
+        }
+        defer { cStrings.forEach { free($0) } }
+
+        var buf = [CChar](repeating: 0, count: 8192)
+        var n = llama_chat_apply_template(tmpl, &chat, messages.count, true, &buf, Int32(buf.count))
+        if n > Int32(buf.count) {
+            buf = [CChar](repeating: 0, count: Int(n) + 1)
+            n = llama_chat_apply_template(tmpl, &chat, messages.count, true, &buf, Int32(buf.count))
+        }
+        guard n > 0 else {
+            // Fallback: raw concatenation if the model ships no supported template.
+            return messages.map { "\($0.role): \($0.content)" }.joined(separator: "\n") + "\nassistant:"
+        }
+        let bytes = buf.prefix(Int(n)).map { UInt8(bitPattern: $0) }
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
+    /// Clear the KV cache so the next prompt starts fresh (we re-feed the full
+    /// templated history each turn — simple + correct for MVP-length chats).
+    func resetContext() {
+        llama_memory_clear(llama_get_memory(ctx), true)
+    }
+
     func generate(
         prompt: String,
         maxTokens: Int,
@@ -72,7 +108,6 @@ actor LlamaEngine: InferenceEngine {
 
         // --- Greedy decode loop ---
         let vocabSize = Int(llama_vocab_n_tokens(vocab))
-        let eos = llama_vocab_eos(vocab)
         let genStart = Date()
         var nCur = batch.n_tokens
         var generated = 0
@@ -86,7 +121,7 @@ actor LlamaEngine: InferenceEngine {
                 best = logits[i]
                 next = llama_token(i)
             }
-            if next == eos { break }
+            if llama_vocab_is_eog(vocab, next) { break }
 
             let piece = detokenize(next)
             if generated == 0 { firstToken = piece }

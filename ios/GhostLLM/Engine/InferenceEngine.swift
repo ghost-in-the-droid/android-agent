@@ -13,6 +13,13 @@ protocol InferenceEngine: Actor {
     ) async throws -> GenerationInfo
 }
 
+/// A single chat turn fed to the template formatter. `role` is "system" |
+/// "user" | "assistant".
+struct ChatTurn {
+    let role: String
+    let content: String
+}
+
 struct GenerationInfo {
     var promptTokens: Int
     var generatedTokens: Int
