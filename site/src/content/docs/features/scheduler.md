@@ -31,7 +31,6 @@ Step 4: Detect externally finished processes -> archive
 
 | Type | Script | Default Timeout | Purpose |
 |------|--------|----------------|---------|
-| `crawl` | `bots/tiktok/scraper.py` | 900s (15min) | Hashtag/user crawling |
 | `post` | `bots/tiktok/upload.py` | 900s | Video upload |
 | `publish_draft` | `bots/tiktok/upload.py` | 900s | Publish existing draft |
 | `skill_workflow` | `skills/_run_skill.py` | 900s | Run a skill workflow |
@@ -46,8 +45,8 @@ Step 4: Detect externally finished processes -> archive
 curl -X POST http://localhost:5055/api/schedules \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Daily cat crawl",
-    "job_type": "crawl",
+    "name": "Daily draft publish",
+    "job_type": "publish_draft",
     "device": "YOUR_DEVICE_SERIAL",
     "interval_minutes": 1440,
     "params": {"query": "#Cat", "tab": "top", "passes": 5},
