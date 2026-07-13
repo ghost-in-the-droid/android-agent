@@ -67,6 +67,16 @@ all on your subscription, no cloud API call.
 
 - **`permission_mode="bypassPermissions"`** is required, or Claude Code stops and
   asks you to approve each device tool call.
+- **Ambient MCP servers shadow your bound tools.** If the working directory has a
+  `.mcp.json` (or you have global MCP servers) that expose similar tools, Claude
+  Code may call *those* instead of the ones you passed to `.bind_tools(...)`. Run
+  it strict so only your bound tools are visible — set `strict_mcp_config=True`
+  on the `ClaudeAgentOptions` the wrapper builds. Otherwise you'll see the agent
+  "work" but your tools never fire.
+- **Forbid the shortcuts.** With `Bash`/`WebFetch`/`WebSearch` available, a capable
+  model may shell out to `adb` or fetch the data off the web instead of driving
+  the device through your tools. Pass `disallowed_tools=["Bash","WebFetch","WebSearch"]`
+  to force it onto the real integration.
 - **Python 3.11+** only (the package won't install on 3.10).
 - Each LLM turn spawns the `claude` CLI, so it's a little slower than a hosted
   API — fine for demos and batch jobs.

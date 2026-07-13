@@ -1,15 +1,21 @@
 demo: langchain
 device: android
-duration_target_s: 300
+duration_target_s: 420
 
-# 3-window layout: phone (left) + code (top-right, langchain_script.py fully
-# visible ≤50 lines) + terminal (bottom-right, ReAct trace + DB writes)
+# 3-window layout: phone (left) + code (top-right, langchain_script.py — the
+# high-level main() segment) + terminal (bottom-right, live Claude-Code tool
+# stream: ● list_devices / force_stop / launch_app / tap … then the DB table)
 layout: three_window
 code_pane_source: scripts/showcase/langchain_script.py
 
 setup:
   - step: wake_unlock
   - step: kill_all_apps
+  # Reset Reddit ONCE before the demo so no accumulated state (recent searches,
+  # last-viewed subreddit) pollutes the first run. The loop's per-harvest
+  # force-stop keeps the rest clean.
+  - step: shell
+    args: {cmd: "am force-stop com.reddit.frontpage"}
   - step: shell
     args: {cmd: "input keyevent KEYCODE_HOME"}
   - step: shell
@@ -17,38 +23,31 @@ setup:
   - step: shell
     args: {cmd: "rm -f scripts/showcase/posts.db"}
 
-# 3 accounts (karpathy/ylecun/sama). Each terminal_type BLOCKS until the harvest
-# finishes (subprocess.run), so runs are sequential + self-pacing; t-values are
-# lower bounds spaced by a realistic Sonnet-5 harvest (~90s) so content_s (which
-# also caps the phone recording) never cuts a run mid-harvest. Captions are not
-# rendered in the three_window motion layout (headline baked into bg-langchain).
+# The code pane already shows the script (no `cat` needed). The terminal just
+# RUNS it in a simple bash loop (2x for now — scale up later). The DISPLAYED cmd
+# is clean (`python …`); exec_cmd runs the 3.11 venv that has langchain-claude-
+# code. Each terminal_type BLOCKS until done, so t-values are lower bounds sized
+# so content_s (which caps the phone recording) covers 2 Claude-Code harvests
+# (~2-3min each) + --stats. Captions not rendered in three_window (baked headline).
 timeline:
-  - t: 0
-    caption: "A LangChain ReAct agent with a real phone body."
+  - t: 2
+    caption: "LangChain agent, driven by local Claude Code — no cloud API."
     action: terminal_type
     args:
-      cmd: "cat scripts/showcase/langchain_script.py"
+      cmd: "for i in 1 2; do python scripts/showcase/langchain_script.py; done"
+      exec_cmd: "for i in 1 2; do ~/.ghost-cc-venv/bin/python scripts/showcase/langchain_script.py; done"
 
-  - t: 8
-    caption: "Agent opens a subreddit, reads the top posts."
+  # Table payoff: a plain one-liner SQL against the DB the agent just wrote —
+  # no show() helper in the script for the viewer to wade through.
+  - t: 400
+    caption: "2 subreddits profiled. Ghost drove. Claude Code thought."
     action: terminal_type
     args:
-      cmd: "/home/ckl/.ghost-cc-venv/bin/python scripts/showcase/langchain_script.py"
-
-  - t: 140
-    caption: "Next subreddit."
-    action: terminal_type
-    args:
-      cmd: "/home/ckl/.ghost-cc-venv/bin/python scripts/showcase/langchain_script.py"
-
-  - t: 280
-    caption: "2 subreddits profiled. Ghost drove. LangChain thought."
-    action: terminal_type
-    args:
-      cmd: "/home/ckl/.ghost-cc-venv/bin/python scripts/showcase/langchain_script.py --stats"
+      cmd: 'sqlite3 -header -column scripts/showcase/posts.db "SELECT subreddit, upvotes, comments, substr(title,1,38) title FROM posts"'
+      exec_cmd: 'sqlite3 -header -column scripts/showcase/posts.db "SELECT subreddit, upvotes, comments, substr(title,1,38) title FROM posts"'
 
 outro:
   cta_line: "pip install ghost-in-the-droid[langchain]"
   cta_link: "https://ghostinthedroid.com/features/integrations/"
 
-highlight_window: {start_s: 284, end_s: 292}
+highlight_window: {start_s: 404, end_s: 412}
