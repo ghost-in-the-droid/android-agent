@@ -14,9 +14,13 @@ actor LlamaEngine: InferenceEngine {
 
     var backend: String { backendName }
 
+    // llama backend is process-global — init exactly once, never free it (freeing
+    // it while another/future engine exists breaks model switching + perf).
+    private static let backendInit: Void = { llama_backend_init() }()
+
     init(modelURL: URL, nCtx: UInt32 = 2048, nBatch: Int32 = 512) throws {
         let t0 = Date()
-        llama_backend_init()
+        _ = LlamaEngine.backendInit
 
         var mparams = llama_model_default_params()
         #if targetEnvironment(simulator)
@@ -47,9 +51,9 @@ actor LlamaEngine: InferenceEngine {
     }
 
     deinit {
+        // Free this engine's model/context; leave the process-global backend alone.
         llama_free(ctx)
         llama_model_free(model)
-        llama_backend_free()
     }
 
     /// Format a chat history using the model's built-in chat template (falls back

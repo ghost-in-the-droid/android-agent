@@ -51,7 +51,10 @@ final class ChatViewModel: ObservableObject {
             } else {
                 status = "downloading \(spec.displayName) (\(spec.sizeLabel))…"
                 downloadProgress = 0
+                var lastDecile = -1
                 url = try await downloader.ensure(spec) { [weak self] p in
+                    let d = Int(p * 10)
+                    if d != lastDecile { lastDecile = d; print("DL_PROGRESS \(spec.id) \(d * 10)%") }
                     Task { @MainActor in self?.downloadProgress = p }
                 }
                 downloadProgress = nil
@@ -139,6 +142,26 @@ final class ChatViewModel: ObservableObject {
             print("AGENT_LLM_RESULT result=<\(result)> calls=\(calls) transcript=\(transcript)")
         } catch {
             print("AGENT_LLM_ERROR \(error)")
+        }
+    }
+
+    /// Load a model (downloading if needed) and time a fixed generation — the
+    /// on-device performance proof. On the phone the backend is Metal.
+    func runPerf(_ which: String) async {
+        let spec = which == "gemma" ? ModelRegistry.gemma4E2B : ModelRegistry.phase0
+        print("PERF_START model=\(spec.displayName)")
+        await load(spec)
+        guard ready, let engine else { print("PERF_ERROR status=\(status)"); return }
+        do {
+            // warm-up (kernels/graph), then a timed run
+            _ = try await engine.generate(prompt: "Hi", maxTokens: 4) { _ in }
+            let info = try await engine.generate(
+                prompt: "Explain what an iPhone is in two short sentences.",
+                maxTokens: 80
+            ) { _ in }
+            print("PERF_RESULT model=\(spec.displayName) \(info.summary)")
+        } catch {
+            print("PERF_ERROR \(error)")
         }
     }
 

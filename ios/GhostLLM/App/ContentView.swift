@@ -15,7 +15,11 @@ struct ContentView: View {
             composer
         }
         .task {
-            await vm.loadDefaultModel()
+            let env = ProcessInfo.processInfo.environment
+            // Perf tests do their own single load; skip the default to avoid two engines.
+            if env["GHOST_PERF"] == nil {
+                await vm.loadDefaultModel()
+            }
             // Headless verification: `SIMCTL_CHILD_GHOST_AUTORUN=1` auto-sends a prompt.
             if ProcessInfo.processInfo.environment["GHOST_AUTORUN"] == "1", vm.ready {
                 await vm.send("Say hello in one short sentence.")
@@ -28,6 +32,9 @@ struct ContentView: View {
             }
             if ProcessInfo.processInfo.environment["GHOST_AGENT_LLM_TEST"] == "1" {
                 await vm.runAgentLLMTest()
+            }
+            if let perf = ProcessInfo.processInfo.environment["GHOST_PERF"] {
+                await vm.runPerf(perf)   // "smol" | "gemma"
             }
         }
     }
