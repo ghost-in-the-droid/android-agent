@@ -130,11 +130,11 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         {"tool":"done","summary":"..."} — do NOT read the same page again.
         Reply with ONE JSON tool call:
         """
-        // Instruct+parse: lets the model reason (one-line ReAct) so it selects the
-        // right tool, then robust-parses the JSON. (Pure grammar-constrained decoding
-        // now WORKS — engine `grammar:` param — but constraining from token 0 removes
-        // reasoning space and the 2B loops on `read`; grammar is better for a
-        // separate action head after a free-form thought — future refinement.)
+        // Single-phase instruct+parse — empirically the best for Qwen-1.5B here.
+        // Its free generation is self-consistent (reasons AND acts together: leads
+        // with `open`, then `done`); the robust parser extracts the JSON. A two-phase
+        // thought→grammar-action split loops (the constrained action head ignores the
+        // thought and defaults to `read`). Grammar stays available engine-wide.
         let valid = ["open", "read", "click", "done"]
         for attempt in 0..<3 {
             var out = ""
