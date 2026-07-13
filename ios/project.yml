@@ -30,6 +30,7 @@ targets:
         # git) — see ios/README.md. Local override: IOS_XCODE_ORG_ID.
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Ghost publishes this device's on-device demo status to the fleet dashboard."
         INFOPLIST_KEY_CFBundleDisplayName: Ghost LLM
         TARGETED_DEVICE_FAMILY: "1,2"
         ENABLE_USER_SCRIPT_SANDBOXING: NO

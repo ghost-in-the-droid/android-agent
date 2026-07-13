@@ -17,14 +17,24 @@ final class DemoViewModel: ObservableObject {
     private var engine: LlamaEngine?
     private let downloader = ModelDownloadManager()
 
+    private var modelName = ""
+
+    /// Set the narration line and push a status snapshot for fleet tiles (:8088).
+    private func narrate(_ line: String, phase: String, tokS: Double = 0) {
+        narration = line
+        StatusServer.shared.update(phase: phase, tokS: tokS, model: modelName, line: line)
+    }
+
     func run() async {
+        StatusServer.shared.start()   // best-effort status endpoint for fleet tiles
         do {
             // 1) Load the best available on-device model (Gemma if present;
             //    else the bundled model; download Gemma only if nothing is local).
             let spec = ModelStore.isAvailable(ModelRegistry.gemma4E2B) ? ModelRegistry.gemma4E2B
                      : ModelStore.isAvailable(ModelRegistry.phase0) ? ModelRegistry.phase0
                      : ModelRegistry.gemma4E2B
-            narration = "🧠 Loading \(spec.displayName) on-device…"
+            modelName = spec.displayName
+            narrate("🧠 Loading \(spec.displayName) on-device…", phase: "loading")
             let url: URL
             if ModelStore.isAvailable(spec) {
                 url = try ModelStore.resolvedURL(for: spec)
@@ -38,15 +48,15 @@ final class DemoViewModel: ObservableObject {
             backend = await engine.backend
 
             // 2) Fetch the thread (the app itself — no UI driving)
-            narration = "🌐 Opening r/LocalLLaMA…"
+            narrate("🌐 Opening r/LocalLLaMA…", phase: "fetching")
             let thread = await RedditFetcher.topThread()
             subreddit = thread.subreddit
             postTitle = thread.title
             sourceLabel = thread.live ? "live" : "cached"
-            narration = "📖 Reading the top post (\(thread.comments.count) comments)…"
+            narrate("📖 Reading the top post (\(thread.comments.count) comments)…", phase: "reading")
 
             // 3) Summarize on-device, streaming (short prompt; digest passed programmatically)
-            narration = "✍️ Summarizing 100% on-device — offline-capable…"
+            narrate("✍️ Summarizing 100% on-device — offline-capable…", phase: "summarizing")
             let digest = thread.comments.prefix(8).joined(separator: "\n- ")
             let prompt = """
             Summarize the top comments on this r/LocalLLaMA post in 3 sentences — \
@@ -59,10 +69,11 @@ final class DemoViewModel: ObservableObject {
             }
             stats = String(format: "%d→%d tok · %.1f tok/s · %@",
                            info.promptTokens, info.generatedTokens, info.tokensPerSecond, info.backend)
-            narration = "✅ Summarized on-device — no cloud, no network needed"
+            narrate("✅ Summarized on-device — no cloud, no network needed",
+                    phase: "done", tokS: info.tokensPerSecond)
             done = true
         } catch {
-            narration = "⚠️ \(error)"
+            narrate("⚠️ \(error)", phase: "error")
         }
     }
 }
