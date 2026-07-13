@@ -1,6 +1,13 @@
 import Foundation
 import SwiftUI
 
+/// Tiny step counter for the scripted agent self-test (safe across the loop's
+/// @Sendable decider closure).
+actor Counter {
+    private var n = 0
+    func next() -> Int { defer { n += 1 }; return n }
+}
+
 struct ChatMessage: Identifiable, Equatable {
     enum Role { case user, assistant, system }
     let id = UUID()
@@ -85,6 +92,28 @@ final class ChatViewModel: ObservableObject {
         } catch {
             print("DL_TEST_ERROR \(error)")
         }
+    }
+
+    /// Phone-free proof of the agent loop: a scripted decider drives MockWDAClient
+    /// (getUI → tap → done); asserts the loop issues the right WDA calls in order
+    /// and terminates. The real loop swaps the mock for HTTPWDAClient + the LLM.
+    func runAgentSelfTest() async {
+        let mock = MockWDAClient()
+        let loop = AgentLoop(engine: nil, wda: mock)
+        let script: [ToolCall] = [
+            ToolCall(tool: "getUI"),
+            ToolCall(tool: "tap", x: 100, y: 200),
+            ToolCall(tool: "done", summary: "tapped Settings"),
+        ]
+        let counter = Counter()
+        let result = await loop.run(goal: "Open Settings", maxSteps: 6) { _ in
+            let i = await counter.next()
+            return i < script.count ? script[i] : nil
+        }
+        let calls = await mock.calls
+        let transcript = await loop.transcript
+        let ok = calls == ["createSession", "source", "tap(100,200)"] && result == "tapped Settings"
+        print("AGENT_TEST_RESULT ok=\(ok) result=<\(result)> calls=\(calls) transcript=\(transcript)")
     }
 
     func send(_ text: String) async {

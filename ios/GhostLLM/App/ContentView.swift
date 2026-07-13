@@ -23,6 +23,9 @@ struct ContentView: View {
             if ProcessInfo.processInfo.environment["GHOST_DL_TEST"] == "1" {
                 await vm.runDownloadSelfTest()
             }
+            if ProcessInfo.processInfo.environment["GHOST_AGENT_TEST"] == "1" {
+                await vm.runAgentSelfTest()
+            }
         }
     }
 

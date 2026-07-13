@@ -25,6 +25,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ghostinthedroid.ghostllm
+        CODE_SIGN_STYLE: Automatic
+        # DEVELOPMENT_TEAM is passed on the xcodebuild command line (kept out of
+        # git) — see ios/README.md. Local override: IOS_XCODE_ORG_ID.
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Ghost LLM
