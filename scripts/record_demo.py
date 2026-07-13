@@ -689,12 +689,25 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     mascot_l = BRAND_DIR / "cprime-mascot.png"  # standard layout: peeks from behind window
     # 3-pane motion layout (spec: layout: three_window): short terminal window
     # (term_rows) fades in as it "pops" at the seam, code pane overlaid below,
-    # framed phone SLIDES in from off-canvas right. The code pane is a
-    # pre-rendered RGBA asset owned by design-review (codepane-<demo>-v3.png),
-    # NOT live-rendered from code_pane_source — that key names the truth the
-    # asset must mirror, for the record + reviewers, not a render input.
-    code_pane = spec.get("code_pane_asset",
-                         f"codepane-{demo}-v3.png") if three_pane else None
+    # framed phone SLIDES in from off-canvas right.
+    #
+    # The code pane is LIVE-RENDERED from code_pane_source every record, so it can
+    # never drift out of sync with the code it mirrors (a baked asset once shipped
+    # a stale OpenRouter version of the script long after the code had moved on).
+    # If no code_pane_source is given, fall back to a baked code_pane_asset.
+    code_pane_path = None
+    if three_pane:
+        src = spec.get("code_pane_source")
+        if src:
+            code_pane_path = workdir / "codepane.png"
+            run([sys.executable,
+                 str(Path(__file__).parent / "showcase" / "render_codepane.py"),
+                 str(REPO_ROOT / src), str(code_pane_path),
+                 f"--title={Path(src).name}"], "live-render code pane")
+        else:
+            code_pane_path = BRAND_DIR / spec.get("code_pane_asset",
+                                                  f"codepane-{demo}-v3.png")
+    code_pane = code_pane_path  # truthy iff 3-pane (drives chrome + input [8])
     chrome = BRAND_DIR / (
         "terminal-frame-macos-small.png" if code_pane else "terminal-frame-macos.png")
 
@@ -755,7 +768,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
         "-i", str(mascot_l),
     ]
     if code_pane:
-        inputs += ["-i", str(BRAND_DIR / code_pane)]  # input [8]
+        inputs += ["-i", str(code_pane_path)]  # input [8] (live-rendered or baked)
     if radius > 0:
         inputs += ["-loop", "1", "-t", str(content_s), "-i", str(phone_mask)]  # [8]/[9]
     run(["ffmpeg", "-y", *inputs,

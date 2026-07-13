@@ -20,22 +20,24 @@ setup:
     args: {cmd: "input keyevent KEYCODE_HOME"}
   - step: shell
     args: {cmd: "input keyevent KEYCODE_HOME"}
-  - step: shell
-    args: {cmd: "rm -f scripts/showcase/posts.db"}
+  # NOTE: setup `shell` steps run via adb ON THE PHONE, so the HOST posts.db is
+  # reset in the loop's exec_cmd below (not here) — it must start empty so run 1
+  # picks LocalLLaMA and run 2 picks MachineLearning.
 
 # The code pane already shows the script (no `cat` needed). The terminal just
 # RUNS it in a simple bash loop (2x for now — scale up later). The DISPLAYED cmd
-# is clean (`python …`); exec_cmd runs the 3.11 venv that has langchain-claude-
-# code. Each terminal_type BLOCKS until done, so t-values are lower bounds sized
-# so content_s (which caps the phone recording) covers 2 Claude-Code harvests
-# (~2-3min each) + --stats. Captions not rendered in three_window (baked headline).
+# is clean (`python …`); exec_cmd resets the host DB, then runs the 3.11 venv
+# that has langchain-claude-code. Each terminal_type BLOCKS until done, so
+# t-values are lower bounds sized so content_s (which caps the phone recording)
+# covers 2 Claude-Code harvests (~2-3min each) + the SQL table. Captions not
+# rendered in three_window (baked headline).
 timeline:
   - t: 2
     caption: "LangChain agent, driven by local Claude Code — no cloud API."
     action: terminal_type
     args:
       cmd: "for i in 1 2; do python scripts/showcase/langchain_script.py; done"
-      exec_cmd: "for i in 1 2; do ~/.ghost-cc-venv/bin/python scripts/showcase/langchain_script.py; done"
+      exec_cmd: "rm -f scripts/showcase/posts.db; for i in 1 2; do ~/.ghost-cc-venv/bin/python scripts/showcase/langchain_script.py; done"
 
   # Table payoff: a plain one-liner SQL against the DB the agent just wrote —
   # no show() helper in the script for the viewer to wade through.

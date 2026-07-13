@@ -43,7 +43,8 @@ def parse(out):
     for cand in (out.split("```json")[-1].split("```")[0].strip(), out.strip()):
         try:    return json.loads(cand)
         except: pass
-    return json.loads(re.search(r"\[.*\]", out, re.DOTALL).group(0))
+    m = re.search(r"\[.*\]", out, re.DOTALL)   # any JSON array anywhere
+    return json.loads(m.group(0)) if m else []
 
 def _db():
     conn = sqlite3.connect(DB)
