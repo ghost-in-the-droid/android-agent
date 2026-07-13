@@ -39,12 +39,22 @@ actor HTTPWDAClient: WDAClient {
 
     @discardableResult
     func createSession() async throws -> String {
-        let body: [String: Any] = ["capabilities": ["alwaysMatch": [:], "firstMatch": [[:]]]]
+        if let sid = sessionId { return sid }   // reuse — a second session evicts the first
+        // Enable WDA's MJPEG server on THIS session so a screen recorder can read
+        // :9100 without needing its own (competing) session — one session drives AND
+        // streams, avoiding the eviction that killed capture mid-run.
+        let body: [String: Any] = ["capabilities": ["alwaysMatch": [
+            "appium:mjpegServerPort": 9100,
+        ], "firstMatch": [[:]]]]
         let v = try await postJSON("/session", body)
         // sessionId can be top-level or under value
-        if let sid = v["sessionId"] as? String { sessionId = sid; return sid }
-        if let val = v["value"] as? [String: Any], let sid = val["sessionId"] as? String { sessionId = sid; return sid }
-        throw WDAError.decode("no sessionId in /session response")
+        if let sid = v["sessionId"] as? String { sessionId = sid }
+        else if let val = v["value"] as? [String: Any], let sid = val["sessionId"] as? String { sessionId = sid }
+        guard let sid = sessionId else { throw WDAError.decode("no sessionId in /session response") }
+        // Tune the stream (best-effort).
+        _ = try? await postJSON("/session/\(sid)/appium/settings",
+            ["settings": ["mjpegServerFramerate": 24, "mjpegServerScreenshotQuality": 60, "mjpegScalingFactor": 100]])
+        return sid
     }
 
     func windowSize() async throws -> (w: Int, h: Int) {

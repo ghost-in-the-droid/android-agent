@@ -28,8 +28,21 @@ struct AgentChatView: View {
         .background(GhostTheme.bgBase.ignoresSafeArea())
         .task {
             await vm.prepare()
-            // Test/record hook: GHOST_GOAL auto-submits one prompt after load.
-            if let g = ProcessInfo.processInfo.environment["GHOST_GOAL"], !g.isEmpty {
+            let env = ProcessInfo.processInfo.environment
+            // Record hook: GHOST_AUTOTYPE animates the prompt into the field (so a
+            // screen recording shows a user typing), then submits. Opens the WDA
+            // session first so the recorder's MJPEG stream is live before typing.
+            if let g = env["GHOST_GOAL"], !g.isEmpty, env["GHOST_AUTOTYPE"] == "1" {
+                await vm.startCaptureSession()
+                try? await Task.sleep(nanoseconds: 1_800_000_000)  // let the recorder attach
+                inputFocused = true
+                for ch in g {                                       // "type" it out
+                    draft.append(ch)
+                    try? await Task.sleep(nanoseconds: 45_000_000)
+                }
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                send()
+            } else if let g = env["GHOST_GOAL"], !g.isEmpty {
                 await vm.submit(goal: g)
             }
         }

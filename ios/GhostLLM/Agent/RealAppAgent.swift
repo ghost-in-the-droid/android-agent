@@ -25,7 +25,7 @@ final class RealAppAgent {
     /// The tool steps (open, read) are executed directly; the on-device LLM's job is
     /// the summary — and we keep it as the engine's FIRST generate, which is reliable
     /// (repeated generate() calls on one context degrade to a single token on CPU).
-    func run(goal: String, emit: @escaping @Sendable (ChatRole, String) -> Void) async -> String {
+    func run(goal: String, emit: @escaping (ChatRole, String) -> Void) async -> String {
         func log(_ s: String) { print("XAGENT_\(s)") }
         do { _ = try await wda.createSession() } catch { log("WDA_FAIL \(error)") }
 
@@ -35,7 +35,7 @@ final class RealAppAgent {
         emit(.tool, "🚀 open \(name.uppercased())")
         log("OPEN \(name) -> \(bundle)")
         try? await wda.launchApp(bundleId: bundle)
-        try? await Task.sleep(nanoseconds: 3_000_000_000)  // let the feed load
+        try? await Task.sleep(nanoseconds: 6_000_000_000)  // dwell so X is visibly on screen
 
         // ── Step 2: read the screen (WDA only — no LLM, works backgrounded) ──
         emit(.tool, "📄 read the feed")

@@ -19,7 +19,23 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
     @Published var running = false
 
     private func say(_ role: ChatRole, _ text: String) { chat.append(ChatMsg(role: role, text: text)) }
+
+    /// True when the goal is about a native app (drive the real phone via WDA)
+    /// rather than a web page (in-app browser).
+    private func isRealAppTask(_ goal: String) -> Bool {
+        let g = goal.lowercased()
+        let apps = ["x app", " x ", "twitter", "my feed", "the x ", "open x"]
+        return apps.contains { g.contains($0) } || g.hasSuffix(" x")
+    }
     private(set) var modelName = "Qwen2.5 1.5B"
+
+    /// Shared WDA client (one session drives the phone AND serves the MJPEG stream a
+    /// screen recorder reads). RealAppAgent reuses it, so no session eviction.
+    let wda = HTTPWDAClient(base: URL(string: "http://127.0.0.1:8100")!)
+
+    /// Open the WDA session early (enables the MJPEG server) so a recorder can start
+    /// capturing before the user's prompt is even typed.
+    func startCaptureSession() async { _ = try? await wda.createSession() }
 
     /// Friendly chip label for a tool call (what the phone is doing, in plain words).
     private func toolLabel(_ c: ToolCall) -> String {
@@ -116,6 +132,21 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         say(.user, goal)
         running = true; answer = ""; lastCallKey = ""; callCounts.removeAll()
         defer { running = false; thinking = false; activityLine = "" }
+
+        // Real-app tasks (open the actual X app etc.) → drive the phone over WDA.
+        // Web tasks stay on the in-app browser below.
+        if isRealAppTask(goal) {
+            KeepAlive.shared.start()
+            let agent = RealAppAgent(engine: engine!, wda: wda)
+            answer = await agent.run(goal: goal) { [weak self] role, text in
+                guard let self else { return }
+                if role == .tool { self.activityLine = text }
+                self.say(role, text)
+            }
+            activityLine = ""; status = "✅ done"
+            KeepAlive.shared.stop()
+            return
+        }
         do {
             let spec = ModelRegistry.qwen15
             status = "🤖 working…"
