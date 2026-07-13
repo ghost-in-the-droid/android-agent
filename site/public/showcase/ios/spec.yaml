@@ -8,6 +8,9 @@ featured: true
 docs: /features/ios/
 duration_target_s: 60
 device: ios
+# Persistent brand tagline held for the whole demo (build_captions headline field);
+# overrides the per-beat captions below when present.
+headline: "Real iPhone. Any AI. Zero cloud."
 platform_notes: "Appium + WebDriverAgent; QuickTime mirror for recording."
 setup:
   - step: wake_unlock

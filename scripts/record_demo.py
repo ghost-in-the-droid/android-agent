@@ -549,6 +549,22 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     captioned = [s for s in spec["timeline"] if s.get("caption")]
     end_all = timeline_end(spec)
     lines = []
+    # Optional persistent brand tagline: one Dialogue HELD for the whole demo
+    # (fade-in only, no 6s beat cap), same two-tone split. Skips the per-beat
+    # loop. Absence of `headline` leaves every existing demo's behavior intact.
+    headline = spec.get("headline")
+    if headline:
+        text = headline.replace("\n", " ").strip()
+        parts = text.rstrip(".").split(". ")
+        head, tail = ((". ".join(parts[:-1]) + ". ", parts[-1] + ".")
+                      if len(parts) > 1 else (text, ""))
+        size_tag = r"{\fs44}" if len(text) > 44 else ""
+        two_tone = head + (r"{\c&HA0E500&}" + tail if tail else "")
+        lines.append(
+            f"Dialogue: 0,{ass_time(0)},{ass_time(end_all)},Ghost,,0,0,0,,"
+            r"{\fad(300,0)}" + size_tag + two_tone)
+        path.write_text(header + "\n".join(lines) + "\n")
+        return
     for i, s in enumerate(captioned):
         start = float(s["t"])
         end = float(captioned[i + 1]["t"]) if i + 1 < len(captioned) else min(start + 5, end_all)
