@@ -169,6 +169,24 @@ Or use HTTP transport:
 url = "http://localhost:8002/mcp"
 ```
 
+### Google Antigravity CLI (`agy`, stdio) — Ready
+
+One step: `ghost mcp install --client agy`
+
+Or add manually to the global `~/.gemini/config/mcp_config.json`:
+```json
+{
+  "mcpServers": {
+    "android-agent": {
+      "command": "android-agent-mcp"
+    }
+  }
+}
+```
+
+Tools are discovered on the next `agy` session; inspect them with `/mcp` inside
+the CLI. Existing entries in the file are preserved (merge, not clobber).
+
 ### OpenClaw — Ready (3 options)
 
 OpenClaw (https://github.com/openclaw/openclaw) supports MCP, native plugins, and Skills.

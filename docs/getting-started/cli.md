@@ -89,10 +89,12 @@ ghost mcp install --client claude-code
 ghost mcp install --client cursor
 ghost mcp install --client codex
 ghost mcp install --client opencode
+ghost mcp install --client agy
 ```
 
 Each writes (or merges into) that client's config — for example OpenCode's
-`~/.config/opencode/opencode.json` gains an `mcp` entry running `android-agent-mcp`.
+`~/.config/opencode/opencode.json` gains an `mcp` entry running `android-agent-mcp`,
+and Antigravity (`agy`) gains an `mcpServers` entry in `~/.gemini/config/mcp_config.json`.
 Existing entries are preserved.
 
 ## Config & files
