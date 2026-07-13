@@ -5,7 +5,7 @@ adb_core.py — Shared ADB + XML primitives for Android automation.
 Single Device class providing tap, swipe, type, screenshot, XML dump,
 and other low-level ADB operations used by skills and bot scripts.
 """
-import hashlib, html, json, re, subprocess, time
+import hashlib, html, json, re, shlex, subprocess, time
 import unicodedata
 from typing import NamedTuple
 
@@ -24,6 +24,38 @@ def ascii_typeable(text: str) -> str:
     if text.isascii():
         return text
     return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
+
+
+_KEYCODE_RE = re.compile(r"^KEYCODE_[A-Z0-9_]+$")
+
+
+def normalize_keycode(key: str) -> str:
+    """Return a validated Android keycode, adding the ``KEYCODE_`` prefix if absent.
+
+    ``adb shell input keyevent <key>`` re-parses its argument through the *device*
+    shell, so an agent/attacker-controlled value like ``KEYCODE_HOME; reboot`` would
+    otherwise run ``reboot`` on the device. Keycodes are always bare
+    ``KEYCODE_[A-Z0-9_]+`` names, so anything else is rejected outright.
+    """
+    if not key.startswith("KEYCODE_"):
+        key = "KEYCODE_" + key
+    if not _KEYCODE_RE.match(key):
+        raise ValueError(f"invalid keycode {key!r}: expected KEYCODE_[A-Z0-9_]+")
+    return key
+
+
+def input_text_arg(text: str) -> str:
+    """Shell-quote text for ``adb shell input text`` so it types literally.
+
+    ``adb shell`` re-parses its argv through the device shell, so metacharacters
+    (``; & | $ ` ( ) < > \\n`` — including ones NFKD transliteration folds in from
+    fullwidth punctuation) would break out of the ``input text`` call and run on
+    the device. Quoting the whole argument neutralizes that; spaces stay encoded
+    as ``%s`` (input's own space escape) inside the quotes. Pass already-ASCII
+    (``ascii_typeable``) text; the caller keeps the transliterated string for its
+    own reporting.
+    """
+    return shlex.quote(text.replace(" ", "%s"))
 
 
 class ADBError(RuntimeError):

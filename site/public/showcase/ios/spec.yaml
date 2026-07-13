@@ -10,16 +10,16 @@ duration_target_s: 60
 device: ios
 platform_notes: "Appium + WebDriverAgent; QuickTime mirror for recording."
 setup:
-  - unlock
+  - step: wake_unlock
 timeline:
   - t: 0
     caption: "Same agent, now with an iPhone attached"
     action: terminal_type
-    args: { text: "android-agent devices" }
+    args: { cmd: "android-agent devices" }
   - t: 10
     caption: "Drive iOS with the same tool calls"
     action: terminal_type
-    args: { text: "android-agent run 'open Settings and enable Do Not Disturb'" }
+    args: { cmd: "android-agent run 'open Settings and enable Do Not Disturb'" }
   - t: 20
     caption: "Real phones. Any AI. Zero cloud."
     action: wait_for_phone

@@ -240,6 +240,48 @@ def test_mcp_codex_toml(ghost_home):
     assert "[mcp_servers.android-agent]" in text and "android-agent-mcp" in text
 
 
+def test_mcp_agy_emits_correct_config(ghost_home):
+    gmcp.install("agy")
+    path = ghost_home / ".gemini" / "config" / "mcp_config.json"
+    data = json.loads(path.read_text())
+    assert data["mcpServers"]["android-agent"] == {"command": "android-agent-mcp"}
+
+
+def test_mcp_agy_merges_without_clobber(ghost_home):
+    path = ghost_home / ".gemini" / "config" / "mcp_config.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"mcpServers": {"other": {"command": "x"}}}))
+    gmcp.install("agy")
+    data = json.loads(path.read_text())
+    assert "other" in data["mcpServers"]  # existing kept
+    assert data["mcpServers"]["android-agent"]["command"] == "android-agent-mcp"
+
+
+def test_mcp_agy_tolerates_empty_config_file(ghost_home):
+    # agy's own installer creates a 0-byte mcp_config.json; must not error
+    path = ghost_home / ".gemini" / "config" / "mcp_config.json"
+    path.parent.mkdir(parents=True)
+    path.write_text("")
+    gmcp.install("agy")
+    data = json.loads(path.read_text())
+    assert data["mcpServers"]["android-agent"]["command"] == "android-agent-mcp"
+
+
+def test_mcp_antigravity_alias(ghost_home):
+    gmcp.install("antigravity")
+    path = ghost_home / ".gemini" / "config" / "mcp_config.json"
+    data = json.loads(path.read_text())
+    assert data["mcpServers"]["android-agent"]["command"] == "android-agent-mcp"
+
+
+def test_mcp_agy_idempotent(ghost_home):
+    gmcp.install("agy")
+    path = ghost_home / ".gemini" / "config" / "mcp_config.json"
+    first = path.read_text()
+    gmcp.install("agy")
+    assert path.read_text() == first
+
+
 def test_mcp_unknown_client_raises(ghost_home):
     with pytest.raises(gmcp.McpInstallError):
         gmcp.install("notaclient")

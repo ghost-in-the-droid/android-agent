@@ -16,7 +16,7 @@ from pathlib import Path
 SERVER_NAME = "android-agent"
 SERVER_CMD = "android-agent-mcp"  # console-script from pyproject; == `python3 -m gitd.mcp_server`
 
-SUPPORTED_CLIENTS = ("claude-code", "cursor", "codex", "opencode")
+SUPPORTED_CLIENTS = ("claude-code", "cursor", "codex", "opencode", "agy", "antigravity")
 
 
 class McpInstallError(Exception):
@@ -32,10 +32,12 @@ def _merge_json(path: Path, mutate) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     data: dict = {}
     if path.exists():
-        try:
-            data = json.loads(path.read_text(encoding="utf-8")) or {}
-        except json.JSONDecodeError as e:
-            raise McpInstallError(f"{path} is not valid JSON ({e}); fix or remove it first.") from e
+        text = path.read_text(encoding="utf-8")
+        if text.strip():  # agy ships a 0-byte mcp_config.json on first run
+            try:
+                data = json.loads(text) or {}
+            except json.JSONDecodeError as e:
+                raise McpInstallError(f"{path} is not valid JSON ({e}); fix or remove it first.") from e
     mutate(data)
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     return path
@@ -78,6 +80,18 @@ def _install_codex() -> str:
     return f"Registered '{SERVER_NAME}' in {path} (Codex)."
 
 
+def _install_agy() -> str:
+    # Antigravity CLI (agy) reads ~/.gemini/config/mcp_config.json — a global
+    # {"mcpServers": {<name>: {command, args?, env?}}} map (stdio transport).
+    path = _home() / ".gemini" / "config" / "mcp_config.json"
+
+    def mutate(data: dict) -> None:
+        data.setdefault("mcpServers", {})[SERVER_NAME] = {"command": SERVER_CMD}
+
+    _merge_json(path, mutate)
+    return f"Registered '{SERVER_NAME}' in {path} (Antigravity/agy)."
+
+
 def _install_claude_code() -> str:
     # Prefer the official CLI; fall back to a project-local .mcp.json.
     if shutil.which("claude"):
@@ -106,6 +120,8 @@ _INSTALLERS = {
     "cursor": _install_cursor,
     "codex": _install_codex,
     "opencode": _install_opencode,
+    "agy": _install_agy,
+    "antigravity": _install_agy,  # alias — early docs used this spelling
 }
 
 

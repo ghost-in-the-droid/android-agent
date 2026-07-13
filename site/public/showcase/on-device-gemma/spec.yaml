@@ -10,17 +10,17 @@ duration_target_s: 60
 device: android
 platform_notes: "Gemma runs on the phone itself — no cloud round-trip."
 setup:
-  - kill_all_apps
-  - unlock
+  - step: kill_all_apps
+  - step: wake_unlock
 timeline:
   - t: 0
     caption: "Start the agent with the on-device Gemma provider"
     action: terminal_type
-    args: { text: "android-agent up --provider gemma" }
+    args: { cmd: "android-agent up --provider gemma" }
   - t: 10
     caption: "Ask it to open the calculator and compute a tip"
     action: terminal_type
-    args: { text: "android-agent run 'open the calculator and compute an 18% tip on 42'" }
+    args: { cmd: "android-agent run 'open the calculator and compute an 18% tip on 42'" }
   - t: 20
     caption: "The phone acts — no network involved"
     action: wait_for_phone

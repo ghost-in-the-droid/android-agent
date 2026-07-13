@@ -192,10 +192,10 @@ def type_text(device: str, text: str) -> str:
     if is_ios_ref(device):
         get_device(device).type_text(text)
         return f"Typed: {text}"
-    from gitd.bots.common.adb import ascii_typeable
+    from gitd.bots.common.adb import ascii_typeable, input_text_arg
 
     typed = ascii_typeable(text)
-    Device(device).adb("shell", "input", "text", typed.replace(" ", "%s"))
+    Device(device).adb("shell", "input", "text", input_text_arg(typed))
     if typed != text:
         return f"Typed (transliterated non-ASCII): {text!r} -> {typed!r}"
     return f"Typed: {typed}"
@@ -238,8 +238,9 @@ def press_key(device: str, key: str) -> str:
     if is_ios_ref(device):
         get_device(device).press_key(key)
         return f"Sent {key}"
-    if not key.startswith("KEYCODE_"):
-        key = "KEYCODE_" + key
+    from gitd.bots.common.adb import normalize_keycode
+
+    key = normalize_keycode(key)
     Device(device).adb("shell", "input", "keyevent", key)
     return f"Sent {key}"
 

@@ -1107,10 +1107,10 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             # `adb input text` is ASCII-only — one non-ASCII char blanks the whole
             # field. Transliterate to the closest ASCII so accented input still
             # lands (use type_unicode for full-fidelity emoji/CJK).
-            from gitd.bots.common.adb import ascii_typeable
+            from gitd.bots.common.adb import ascii_typeable, input_text_arg
 
             typed = ascii_typeable(args["text"])
-            Device(device).adb("shell", "input", "text", typed.replace(" ", "%s"))
+            Device(device).adb("shell", "input", "text", input_text_arg(typed))
             if typed != args["text"]:
                 return f"Typed (transliterated non-ASCII): {args['text']!r} -> {typed!r}"
             return f"Typed: {typed}"
@@ -1133,10 +1133,10 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             key = args["key"]
             if is_ios_ref(device):
                 get_device(device).press_key(key)
-            elif not key.startswith("KEYCODE_"):
-                key = "KEYCODE_" + key
-                Device(device).adb("shell", "input", "keyevent", key)
             else:
+                from gitd.bots.common.adb import normalize_keycode
+
+                key = normalize_keycode(key)
                 Device(device).adb("shell", "input", "keyevent", key)
             return f"Pressed {key}"
         elif name == "long_press":

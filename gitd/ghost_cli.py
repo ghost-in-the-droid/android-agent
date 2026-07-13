@@ -168,7 +168,7 @@ _HELP = """ghost — give any AI agent an Android/iOS body.
   ghost devices                 List connected devices + aliases
   ghost setup                   First-run wizard (or --backend for non-interactive)
   ghost config get|set|path     Read/write ~/.ghost/config.toml
-  ghost mcp install --client claude-code|cursor|codex|opencode
+  ghost mcp install --client claude-code|cursor|codex|opencode|agy
   ghost up | doctor | login | skill …    (existing commands)
 """
 
