@@ -2,11 +2,15 @@ name: Publish to PyPI
 
 on:
   push:
-    tags: ["v*"]
+    # Stable releases only — pre-release tags (v1.3.0-rc*) must not publish to PyPI.
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Only the public repo publishes; the private mirror has no PyPI credentials
+    # (empty PYPI_PROJECT_TOKEN there falls back to a failing OIDC exchange).
+    if: github.repository == 'ghost-in-the-droid/android-agent'
     steps:
       - uses: actions/checkout@v4
 
