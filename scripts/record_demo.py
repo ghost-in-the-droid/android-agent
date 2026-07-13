@@ -585,6 +585,29 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     captions = workdir / "captions.ass"
     build_captions(spec, captions)
 
+    # Rounded-corner mask for the phone video. Overlaying the phone as a SQUARE
+    # rect bleeds past the bezel's rounded screen cutout — invisible on pixel8
+    # (screen_radius 56) but obvious on iphone15pro (100). Mask the phone to the
+    # frame's screen_radius so its corners match the bezel hole (CKL bug). The
+    # phone chain becomes: scale → alphamerge(mask) → overlay; harmless on any
+    # frame, essential on high-radius ones.
+    radius = int(fr.get("screen_radius", 0))
+    phone_mask = workdir / "phone_mask.png"
+    if radius > 0:
+        from PIL import Image, ImageDraw
+        _m = Image.new("L", (rw, rh), 0)
+        ImageDraw.Draw(_m).rounded_rectangle([0, 0, rw - 1, rh - 1],
+                                             radius=radius, fill=255)
+        _m.save(phone_mask)
+
+    def _round(phone_label: str, mask_idx: int) -> str:
+        """Filter snippet: apply the rounded mask to a scaled phone stream."""
+        if radius <= 0:
+            return f"{phone_label}null[phone];"
+        return (f"{phone_label}format=rgba[ph0];"
+                f"[{mask_idx}:v]format=gray[phmask];"
+                f"[ph0][phmask]alphamerge[phone];")
+
     if spec.get("layout") == "phone_only":
         # On-device / airplane-mode demos: the phone is the star and there is
         # NO terminal pane (a PC terminal would contradict "nothing leaves the
@@ -604,7 +627,8 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
             # screen emits no frames), so normalize first or the overlay timing
             # drifts and playback stutters.
             f"[2:v]fps={FPS},trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS,"
-            f"scale={po_rw}:{po_rh},setsar=1[phone];"
+            f"scale={po_rw}:{po_rh},setsar=1[phscaled];"
+            + _round("[phscaled]", 6) +
             f"[m0][phone]overlay={po_rx}:{po_ry}[c1];"
             f"[5:v]format=rgba[framepng];"
             f"[c1][framepng]overlay=0:0:format=auto[c2];"
@@ -623,6 +647,8 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
             "-i", str(po_mascot),                                     # [4]
             "-i", str(frame_png),                                     # [5]
         ]
+        if radius > 0:
+            inputs += ["-loop", "1", "-t", str(content_s), "-i", str(phone_mask)]  # [6]
         run(["ffmpeg", "-y", *inputs, "-filter_complex", fc, "-map", "[out]",
              "-c:v", "libvpx-vp9", "-crf", "41", "-b:v", "0",
              "-deadline", "good", "-cpu-used", "2", "-row-mt", "1", "-an",
@@ -662,6 +688,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     slide = r"503*pow(1-clip((t-0.8)/0.7\,0\,1)\,5)" if three_pane else ""
     phone_x = f"{rx}+{slide}" if three_pane else str(rx)
     frame_x = f"{FRAME_X_OFFSET}+{slide}" if three_pane else str(FRAME_X_OFFSET)
+    mask_idx = 9 if code_pane else 8  # rounded phone-mask input (appended last)
 
     fc = (
         # content background (kicker/headline/mascot or glow baked in the png)
@@ -679,7 +706,8 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
            f"[2:v]null[term];")  # native render — zero rescale
         + f"[c0][term]overlay={TERM_X}:{TERM_Y}[c1];"
         f"[3:v]trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS,"
-        f"scale={rw}:{rh},setsar=1[phone];"
+        f"scale={rw}:{rh},setsar=1[phscaled];"
+        + _round("[phscaled]", mask_idx) +
         f"[c1][phone]overlay=x='{phone_x}':y={ry}[c2];"
         f"[4:v]format=rgba[framepng];"
         f"[c2][framepng]overlay=x='{frame_x}':y=0:format=auto[c3];"
@@ -712,6 +740,8 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     ]
     if code_pane:
         inputs += ["-i", str(BRAND_DIR / code_pane)]  # input [8]
+    if radius > 0:
+        inputs += ["-loop", "1", "-t", str(content_s), "-i", str(phone_mask)]  # [8]/[9]
     run(["ffmpeg", "-y", *inputs,
          "-filter_complex", fc, "-map", "[out]",
          "-c:v", "libvpx-vp9", "-crf", "41", "-b:v", "0",
