@@ -49,6 +49,21 @@ struct ToolCall: Codable, Equatable {
     }
 }
 
+/// GBNF grammar constraining the model to emit exactly one tool-call JSON object
+/// (llama.cpp `llama_sampler_init_grammar`, root = "root"). Guarantees the output
+/// is parseable by `ToolCall.parse` regardless of model size.
+let toolCallGrammar = #"""
+root  ::= "{" sp "\"tool\"" sp ":" sp tool args sp "}"
+tool  ::= "\"tap\"" | "\"swipe\"" | "\"type\"" | "\"pressButton\"" | "\"launchApp\"" | "\"openURL\"" | "\"getUI\"" | "\"done\""
+args  ::= ( sp "," sp pair )*
+pair  ::= key sp ":" sp val
+key   ::= "\"" [a-zA-Z0-9]+ "\""
+val   ::= str | int
+str   ::= "\"" [^"\\]* "\""
+int   ::= "-"? [0-9]+
+sp    ::= [ \t\n]*
+"""#
+
 enum AgentToolResult {
     case observation(String)   // fed back to the model
     case finished(String)      // `done` summary — ends the loop

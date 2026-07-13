@@ -6,11 +6,13 @@ import Foundation
 actor AgentLoop {
     private let engine: LlamaEngine?
     private let wda: WDAClient
+    private let useGrammar: Bool
     private(set) var transcript: [String] = []
 
-    init(engine: LlamaEngine?, wda: WDAClient) {
+    init(engine: LlamaEngine?, wda: WDAClient, useGrammar: Bool = false) {
         self.engine = engine
         self.wda = wda
+        self.useGrammar = useGrammar
     }
 
     /// `decider` maps the running context to the next ToolCall. Defaults to the LLM.
@@ -68,7 +70,11 @@ actor AgentLoop {
         Next tool call:
         """
         var out = ""
-        _ = try? await engine.generate(prompt: prompt, maxTokens: 96) { out += $0 }
+        // Instruct-and-parse. Grammar-constrained decoding (toolCallGrammar) is
+        // available but OFF by default: the GBNF needs validation against llama.cpp
+        // on-device (a malformed grammar throws an uncatchable C++ exception), and
+        // Gemma-4 E2B follows the JSON schema well without it. Enable once verified.
+        _ = try? await engine.generate(prompt: prompt, maxTokens: 96, grammar: useGrammar ? toolCallGrammar : nil) { out += $0 }
         return ToolCall.parse(from: out)
     }
 }

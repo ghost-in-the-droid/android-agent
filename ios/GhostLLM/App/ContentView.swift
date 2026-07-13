@@ -26,6 +26,9 @@ struct ContentView: View {
             if ProcessInfo.processInfo.environment["GHOST_AGENT_TEST"] == "1" {
                 await vm.runAgentSelfTest()
             }
+            if ProcessInfo.processInfo.environment["GHOST_AGENT_LLM_TEST"] == "1" {
+                await vm.runAgentLLMTest()
+            }
         }
     }
 

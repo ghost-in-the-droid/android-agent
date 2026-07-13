@@ -116,6 +116,32 @@ final class ChatViewModel: ObservableObject {
         print("AGENT_TEST_RESULT ok=\(ok) result=<\(result)> calls=\(calls) transcript=\(transcript)")
     }
 
+    /// Proof that the on-device LLM emits grammar-valid tool calls that drive the
+    /// loop (mock WDA, no phone). Grammar guarantees parseable JSON even from the
+    /// tiny model; the real device swaps MockWDAClient → HTTPWDAClient.
+    func runAgentLLMTest() async {
+        do {
+            let url = try ModelStore.bundledPhase0ModelURL()
+            let engine = try LlamaEngine(modelURL: url)
+            var raw = ""
+            _ = try await engine.generate(
+                prompt: "You control an iPhone. Emit ONE JSON tool call like {\"tool\":\"getUI\"}.\nGOAL: open Settings\nNext tool call:",
+                maxTokens: 64, grammar: nil
+            ) { raw += $0 }
+            let parsed = ToolCall.parse(from: raw)
+            print("AGENT_LLM_RAW=<\(raw)> parsed_tool=\(parsed?.tool ?? "nil") valid_json=\(parsed != nil)")
+
+            let mock = MockWDAClient()
+            let loop = AgentLoop(engine: engine, wda: mock)
+            let result = await loop.run(goal: "Open the Settings app", maxSteps: 3)
+            let calls = await mock.calls
+            let transcript = await loop.transcript
+            print("AGENT_LLM_RESULT result=<\(result)> calls=\(calls) transcript=\(transcript)")
+        } catch {
+            print("AGENT_LLM_ERROR \(error)")
+        }
+    }
+
     func send(_ text: String) async {
         let prompt = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty, !generating, let engine else { return }

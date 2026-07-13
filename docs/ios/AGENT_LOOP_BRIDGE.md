@@ -82,8 +82,21 @@ scheduling the phone window.
 3. Assert the loop executes the right WDA calls in order and terminates.
 Then swap `MockWDAClient` → `HTTPWDAClient` against the real device.
 
-## Status
+## Status & findings (2026-07-13)
 
-Design only (M1 complete). Next heartbeat: build `WDAClient` + `MockWDAClient` +
-`AgentLoop` + the mock-driven test (all phone-free), then wire the
-grammar-constrained sampler. Real-device bring-up when the iPhone frees up.
+- ✅ `WDAClient` (+ `HTTPWDAClient`, `MockWDAClient`), `AgentLoop`, tool vocab +
+  JSON parser built and committed. Scripted-decider test passes (correct WDA call
+  order + clean termination).
+- ✅ Loop is LLM-driven and **crash-safe**: with the tiny SmolLM2 pipeline-model
+  it emits valid JSON shape (`{"tool":"getAppInfo"}`) but hallucinates tool names
+  → loop safely reports "no valid tool call". Reliable tool selection needs the
+  capable **Gemma-4 E2B** (on-device) — validated as expected.
+- ⚠️ **Grammar-constrained decoding** (`toolCallGrammar` + `llama_sampler_init_grammar`)
+  is implemented but **gated off** (`AgentLoop(useGrammar:)` defaults false): the
+  current GBNF fails llama.cpp's parser, which then throws an *uncatchable* C++
+  exception on the first token. TODO: validate/fix the GBNF against llama.cpp
+  on-device, then enable — it's the right fix for tool-name reliability.
+
+Remaining for M2/M3 (external-blocked): deploy to device (needs keychain unlock)
+to run Gemma on Metal, and point `HTTPWDAClient` at the live phone (needs
+ios-tester's phone window — they're mid-v1.3.0-demo).

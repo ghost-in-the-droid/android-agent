@@ -89,6 +89,7 @@ actor LlamaEngine: InferenceEngine {
     func generate(
         prompt: String,
         maxTokens: Int,
+        grammar: String? = nil,
         onToken: @Sendable @escaping (String) -> Void
     ) async throws -> GenerationInfo {
         // --- Tokenize prompt ---
@@ -106,27 +107,58 @@ actor LlamaEngine: InferenceEngine {
         batch.logits[Int(batch.n_tokens) - 1] = 1
         guard llama_decode(ctx, batch) == 0 else { throw InferenceError.contextFailed }
 
-        // --- Greedy decode loop ---
+        // --- Decode loop ---
+        // With a grammar, use a sampler chain (grammar → greedy) so output is
+        // constrained to valid tool-call JSON. Otherwise plain greedy argmax.
         let vocabSize = Int(llama_vocab_n_tokens(vocab))
+        var chain: UnsafeMutablePointer<llama_sampler>? = nil
+        if let grammar {
+            chain = llama_sampler_chain_init(llama_sampler_chain_default_params())
+            if let g = llama_sampler_init_grammar(vocab, grammar, "root") {
+                llama_sampler_chain_add(chain, g)
+            }
+            llama_sampler_chain_add(chain, llama_sampler_init_greedy())
+        }
+        defer { if let chain { llama_sampler_free(chain) } }
+
         let genStart = Date()
         var nCur = batch.n_tokens
         var generated = 0
         var firstToken = ""
+        // In grammar mode, stop after one balanced JSON object: accepting a token
+        // past a completed grammar throws an (uncatchable) C++ exception.
+        var braceDepth = 0
+        var sawOpenBrace = false
 
         for _ in 0..<maxTokens {
-            guard let logits = llama_get_logits_ith(ctx, batch.n_tokens - 1) else { break }
-            var best = logits[0]
-            var next: llama_token = 0
-            for i in 1..<vocabSize where logits[i] > best {
-                best = logits[i]
-                next = llama_token(i)
+            let next: llama_token
+            if let chain {
+                next = llama_sampler_sample(chain, ctx, -1)
+            } else {
+                guard let logits = llama_get_logits_ith(ctx, batch.n_tokens - 1) else { break }
+                var best = logits[0]
+                var argmax: llama_token = 0
+                for i in 1..<vocabSize where logits[i] > best {
+                    best = logits[i]
+                    argmax = llama_token(i)
+                }
+                next = argmax
             }
             if llama_vocab_is_eog(vocab, next) { break }
+            if let chain { llama_sampler_accept(chain, next) }
 
             let piece = detokenize(next)
             if generated == 0 { firstToken = piece }
             generated += 1
             onToken(piece)
+
+            if chain != nil {
+                for ch in piece {
+                    if ch == "{" { braceDepth += 1; sawOpenBrace = true }
+                    else if ch == "}" { braceDepth -= 1 }
+                }
+                if sawOpenBrace && braceDepth <= 0 { break }   // one complete object
+            }
 
             // feed the sampled token back in
             batch.n_tokens = 1

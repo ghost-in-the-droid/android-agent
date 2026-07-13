@@ -9,6 +9,7 @@ protocol InferenceEngine: Actor {
     func generate(
         prompt: String,
         maxTokens: Int,
+        grammar: String?,
         onToken: @Sendable @escaping (String) -> Void
     ) async throws -> GenerationInfo
 }
