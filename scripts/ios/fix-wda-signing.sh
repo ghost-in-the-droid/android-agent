@@ -30,7 +30,7 @@ say "Team / bundle : $IOS_XCODE_ORG_ID / $IOS_UPDATED_WDA_BUNDLE_ID"
 say "DerivedData   : $IOS_DERIVED_DATA_PATH"
 say ""
 
-read -rs -p "Mac login password: " PW; echo; echo
+read -rs -p "Mac login password> " PW; echo; echo
 say "== 1/4 unlock login keychain + (re)grant codesign access =="
 security unlock-keychain -p "$PW" "$KEYCHAIN" || { say "unlock failed — wrong password?"; exit 1; }
 security set-key-partition-list -S apple-tool:,apple: -s -k "$PW" "$KEYCHAIN" >/dev/null 2>&1

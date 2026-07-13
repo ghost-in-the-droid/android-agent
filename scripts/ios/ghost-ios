@@ -271,7 +271,7 @@ cmd_reset(){
 
 cmd_keychain(){
   say "One-time: grant command-line codesign access to your Apple Development key."
-  read -rs -p "Mac login password: " PW; echo
+  read -rs -p "Mac login password> " PW; echo
   security unlock-keychain -p "$PW" "$KEYCHAIN"
   security set-key-partition-list -S apple-tool:,apple: -s -k "$PW" "$KEYCHAIN" >/dev/null
   unset PW

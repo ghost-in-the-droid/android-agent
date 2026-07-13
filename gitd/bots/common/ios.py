@@ -850,20 +850,22 @@ def remote_xpc_tunnel_status(udid: str, *, platform_version: str = "", host: dic
             }
         )
         return status
-    if registry_address and current_address and registry_address != current_address:
-        status.update(
-            {
-                "ok": False,
-                "state": "stale",
-                "message": "RemoteXPC tunnel registry points at a stale tunnel address.",
-                "registry_address": registry_address,
-                "current_address": current_address,
-                "devicectl_connected": devicectl.get("tunnel_state") == "connected",
-                "stale_reason": "registry_address_mismatch",
-            }
-        )
-        return status
-    status.update({"state": "available", "ok": True})
+    # The registry (pymobiledevice3 RemoteXPC tunnel) and devicectl (Apple
+    # CoreDevice tunnel) are INDEPENDENT tunnels to the same device and normally
+    # report different addresses, so an address mismatch is NOT a staleness signal
+    # — matching them false-flags a healthy dual-tunnel setup as stale and breaks
+    # iOS streaming. Genuine staleness (devicectl error / not-connected / missing
+    # address) is handled above; a connected tunnel is available regardless of the
+    # address match. Ratified lenient by core-dev for v1.3.0.
+    status.update(
+        {
+            "state": "available",
+            "ok": True,
+            "registry_address": registry_address,
+            "current_address": current_address,
+            "devicectl_connected": tunnel_state == "connected",
+        }
+    )
     return status
 
 

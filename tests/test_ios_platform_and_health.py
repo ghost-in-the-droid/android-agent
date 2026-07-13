@@ -7,11 +7,9 @@ Covers two behaviour changes from this work:
     CoreDevice tunnel address (two independent tunnels that never match — the
     original false-'stale' bug that blocked the smoke test / stream).
 """
-import pytest
 
-from gitd.services.tool_platforms import supports_platform
 from gitd.bots.common import ios
-
+from gitd.services.tool_platforms import supports_platform
 
 # ── platform matrix ──────────────────────────────────────────────────────────
 
@@ -31,23 +29,6 @@ def _host():
     return {"source": "host", "platform_version": "26.4.2"}
 
 
-@pytest.mark.xfail(
-    reason=(
-        "v1.3.0 MERGE DECISION — needs core-dev ratification. This on-device test "
-        "asserts LENIENT tunnel-status (connected + registry/devicectl address "
-        "mismatch => available), on the premise that Appium's remotexpc tunnel and "
-        "devicectl's CoreDevice tunnel are independent and never share an address, "
-        "so main's strict check false-'stale's the iOS smoke test / stream. But "
-        "main's v1.3.0 contract (test_ios_device.py::"
-        "test_remote_xpc_tunnel_status_detects_stale_registry_address) asserts the "
-        "SEMANTICALLY IDENTICAL input => stale. The two are mutually exclusive; a "
-        "pure function cannot satisfy both. Merge kept main's STRICT behavior "
-        "(source of truth + fails-closed). If on-device iOS streaming actually needs "
-        "the lenient check, flip remote_xpc_tunnel_status (drop the "
-        "registry_address!=current_address 'stale' branch) and remove this xfail."
-    ),
-    strict=False,
-)
 def test_tunnel_available_when_devicectl_connected(monkeypatch):
     # Registry (Appium's remotexpc tunnel) and devicectl (Apple's CoreDevice
     # tunnel) report DIFFERENT addresses — as they always do. The fixed check
