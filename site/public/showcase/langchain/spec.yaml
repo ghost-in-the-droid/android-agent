@@ -10,7 +10,8 @@ code_pane_source: scripts/showcase/langchain_script.py
 # After the intro resize, time-lapse the harvest 7x (~7min → ~1min). The intro
 # opens with the tall code window + phone already on the side (phone_in_intro),
 # so the content must NOT re-slide the phone in.
-content_speedup: 7
+content_speedup: 1            # dedup already removes the dead air; no extra speedup (else too fast)
+content_dedup: true          # drop only frozen/duplicate frames (dead air), nothing else
 phone_in_intro: true
 
 setup:

@@ -602,6 +602,15 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     # intro/outro cards stay real-time). content_speedup: 7 turns a ~7min harvest
     # into ~1min. setpts divides timestamps; captions/fades scale with it.
     speedup = float(spec.get("content_speedup", 1) or 1)
+    # content_dedup: drop near-static frames (mpdecimate) so 10-20s stretches where
+    # nothing moves collapse to nothing, THEN re-index the survivors to a continuous
+    # stream — combined with content_speedup this turns dead air into a tight cut.
+    # Value: True for defaults, or an mpdecimate arg string ("hi=..:lo=..:frac=..").
+    dedup = spec.get("content_dedup")
+    dedup_f = ""
+    if dedup:
+        dedup_f = ("mpdecimate" + (f"={dedup}" if isinstance(dedup, str) else "")
+                   + f",setpts=N/{FPS}/TB,")
     pts = "PTS-STARTPTS" if speedup == 1 else f"(PTS-STARTPTS)/{speedup}"
     captions = workdir / "captions.ass"
     build_captions(spec, captions)
@@ -654,7 +663,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
             f"[5:v]format=rgba[framepng];"
             f"[c1][framepng]overlay=0:0:format=auto[c2];"
             f"[c2]subtitles='{captions}':fontsdir='{BRAND_DIR / 'fonts'}',"
-            f"trim=duration={content_s},setpts={pts},fps={FPS},"
+            f"trim=duration={content_s},{dedup_f}setpts={pts},fps={FPS},"
             f"format=yuv420p[content];"
             f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
             f"[1:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[outro];"
@@ -755,10 +764,10 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
            f"[c3][codepane]overlay=0:0[c4];" if code_pane else
            f"[c3]null[c4];")
         # captions only for standard layout (headline baked into motion bg)
-        + (f"[c4]trim=duration={content_s},setpts={pts},fps={FPS},"
+        + (f"[c4]trim=duration={content_s},{dedup_f}setpts={pts},fps={FPS},"
            f"format=yuv420p[content];" if three_pane else
            f"[c4]subtitles='{captions}':fontsdir='{BRAND_DIR / 'fonts'}',"
-           f"trim=duration={content_s},setpts={pts},fps={FPS},"
+           f"trim=duration={content_s},{dedup_f}setpts={pts},fps={FPS},"
            f"format=yuv420p[content];")
         # cards
         + f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
