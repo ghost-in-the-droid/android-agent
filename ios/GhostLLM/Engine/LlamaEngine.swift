@@ -127,14 +127,15 @@ actor LlamaEngine: InferenceEngine {
         }
 
         // --- Decode loop ---
-        // Always sample via a chain: optional grammar → repetition penalty → greedy.
-        // The penalty keeps decode deterministic while preventing degenerate loops.
+        // Chain order matters: penalties → grammar → greedy. The grammar mask must
+        // be applied LAST before the selector, or the selector picks an unmasked
+        // token and llama_sampler_accept crashes ('empty grammar stack').
         let usingGrammar = grammar != nil
         let chain = llama_sampler_chain_init(llama_sampler_chain_default_params())
+        llama_sampler_chain_add(chain, llama_sampler_init_penalties(256, 1.2, 0.0, 0.0))
         if let grammar, let g = llama_sampler_init_grammar(vocab, grammar, "root") {
             llama_sampler_chain_add(chain, g)
         }
-        llama_sampler_chain_add(chain, llama_sampler_init_penalties(256, 1.2, 0.0, 0.0))
         llama_sampler_chain_add(chain, llama_sampler_init_greedy())
         defer { llama_sampler_free(chain) }
 
@@ -148,9 +149,10 @@ actor LlamaEngine: InferenceEngine {
         var sawOpenBrace = false
 
         for _ in 0..<maxTokens {
+            // llama_sampler_sample already calls accept internally — a second accept
+            // double-advances the grammar and crashes ('empty grammar stack').
             let next = llama_sampler_sample(chain, ctx, -1)
             if llama_vocab_is_eog(vocab, next) { break }
-            llama_sampler_accept(chain, next)
 
             let piece = detokenize(next)
             if generated == 0 { firstToken = piece }

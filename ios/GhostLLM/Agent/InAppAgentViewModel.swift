@@ -25,9 +25,8 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
     // NOTE: this llama.cpp build's GBNF parser mishandles \" inside string literals
     // (crashes with 'empty grammar stack'). So we NEVER use \" — the literal quote
     // comes from a char-class rule q ::= ["], and all other literals are quote-free.
-    // Assembled to dodge two GBNF-parser bugs in this llama.cpp build: (1) \" inside
-    // string literals crashes → literal quote comes from q ::= ["]; (2) negated class
-    // [^"\\] crashes → txt uses a POSITIVE class (excludes " and \).
+    // Hard-restricts output to exactly one valid tool call — a 2B model literally
+    // cannot emit invalid JSON or a bad tool name. Quote via q ::= ["] (avoids \").
     private let webToolGrammar = [
         #"root  ::= open | read | click | done"#,
         #"open  ::= "{" q "tool" q ":" q "open" q "," q "url" q ":" q url q "}""#,
@@ -36,8 +35,7 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         #"done  ::= "{" q "tool" q ":" q "done" q "," q "summary" q ":" q txt q "}""#,
         #"q     ::= ["]"#,
         #"url   ::= [a-zA-Z0-9:/._?=&%~#@+-]+"#,
-        #"txt   ::= tchar+"#,
-        #"tchar ::= [a-zA-Z0-9] | " " | "." | "," | "!" | "?" | ":" | ";" | "'" | "(" | ")" | "-""#, "",
+        #"txt   ::= [a-zA-Z0-9 .,!?;:'()/_-]+"#, "",
     ].joined(separator: "\n")
 
     override init() {
@@ -55,8 +53,11 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         StatusServer.shared.start()
         do {
             // Qwen2.5-1.5B: small enough to run beside a WKWebView (Gemma+WebKit OOMs)
-            // and stronger at tool-calling. Download-on-first-run (~1.1 GB).
-            let spec = ModelRegistry.qwen15
+            // and stronger at tool-calling. Prefer it; fall back to the bundled model
+            // (e.g. on the simulator, which lacks Qwen); else download Qwen (~1.1 GB).
+            let spec = ModelStore.isAvailable(ModelRegistry.qwen15) ? ModelRegistry.qwen15
+                     : ModelStore.isAvailable(ModelRegistry.phase0) ? ModelRegistry.phase0
+                     : ModelRegistry.qwen15
             status = "🧠 loading \(spec.displayName)…"
             let url: URL
             if ModelStore.isAvailable(spec) {
@@ -129,8 +130,11 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         {"tool":"done","summary":"..."} — do NOT read the same page again.
         Reply with ONE JSON tool call:
         """
-        // Instruct + parse with retries + whitelist validation (grammar path in this
-        // llama.cpp build crashes — see webToolGrammar note; tracked as follow-up).
+        // Instruct+parse: lets the model reason (one-line ReAct) so it selects the
+        // right tool, then robust-parses the JSON. (Pure grammar-constrained decoding
+        // now WORKS — engine `grammar:` param — but constraining from token 0 removes
+        // reasoning space and the 2B loops on `read`; grammar is better for a
+        // separate action head after a free-form thought — future refinement.)
         let valid = ["open", "read", "click", "done"]
         for attempt in 0..<3 {
             var out = ""
