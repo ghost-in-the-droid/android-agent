@@ -10,6 +10,7 @@ protocol InferenceEngine: Actor {
         prompt: String,
         maxTokens: Int,
         grammar: String?,
+        repeatPenalty: Float,
         onToken: @Sendable @escaping (String) -> Void
     ) async throws -> GenerationInfo
 }

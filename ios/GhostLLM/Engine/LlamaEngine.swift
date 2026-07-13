@@ -11,6 +11,7 @@ actor LlamaEngine: InferenceEngine {
     private let backendName: String
     private let nBatch: Int32
     private let loadMillis: Int
+    private(set) var lastStopReason = ""   // diagnostic: why the last generate() stopped
 
     var backend: String { backendName }
 
@@ -93,10 +94,15 @@ actor LlamaEngine: InferenceEngine {
         llama_memory_clear(llama_get_memory(ctx), true)
     }
 
+    /// `repeatPenalty` > 1 discourages repeating recent tokens. Leave the default
+    /// for tool-call decoding, but pass 1.0 for SUMMARIZATION — there the prompt
+    /// holds the source text, and penalizing its tokens makes the model bail to EOS
+    /// after one word (it can't reuse the very words it must summarize).
     func generate(
         prompt: String,
         maxTokens: Int,
         grammar: String? = nil,
+        repeatPenalty: Float = 1.2,
         onToken: @Sendable @escaping (String) -> Void
     ) async throws -> GenerationInfo {
         // --- Tokenize prompt ---
@@ -135,7 +141,9 @@ actor LlamaEngine: InferenceEngine {
         // token and llama_sampler_accept crashes ('empty grammar stack').
         let usingGrammar = grammar != nil
         let chain = llama_sampler_chain_init(llama_sampler_chain_default_params())
-        llama_sampler_chain_add(chain, llama_sampler_init_penalties(256, 1.2, 0.0, 0.0))
+        if repeatPenalty > 1.0 {
+            llama_sampler_chain_add(chain, llama_sampler_init_penalties(256, repeatPenalty, 0.0, 0.0))
+        }
         if let grammar, let g = llama_sampler_init_grammar(vocab, grammar, "root") {
             llama_sampler_chain_add(chain, g)
         }
@@ -143,7 +151,11 @@ actor LlamaEngine: InferenceEngine {
         defer { llama_sampler_free(chain) }
 
         let genStart = Date()
-        var nCur = batch.n_tokens
+        // Next-token position = TOTAL prompt length. (Not batch.n_tokens: after a
+        // chunked prefill that's only the LAST chunk's size, so a prompt longer than
+        // nBatch would place the first generated token at a colliding KV position →
+        // corrupted context → the model emits EOS after one token.)
+        var nCur = Int32(promptTokens.count)
         var generated = 0
         var firstToken = ""
         // In grammar mode, stop after one balanced JSON object: accepting a token
@@ -151,11 +163,12 @@ actor LlamaEngine: InferenceEngine {
         var braceDepth = 0
         var sawOpenBrace = false
 
+        var stopReason = "maxTokens"
         for _ in 0..<maxTokens {
             // llama_sampler_sample already calls accept internally — a second accept
             // double-advances the grammar and crashes ('empty grammar stack').
             let next = llama_sampler_sample(chain, ctx, -1)
-            if llama_vocab_is_eog(vocab, next) { break }
+            if llama_vocab_is_eog(vocab, next) { stopReason = "eog@\(generated)"; break }
 
             let piece = detokenize(next)
             if generated == 0 { firstToken = piece }
@@ -167,7 +180,7 @@ actor LlamaEngine: InferenceEngine {
                     if ch == "{" { braceDepth += 1; sawOpenBrace = true }
                     else if ch == "}" { braceDepth -= 1 }
                 }
-                if sawOpenBrace && braceDepth <= 0 { break }   // one complete object
+                if sawOpenBrace && braceDepth <= 0 { stopReason = "grammarDone"; break }
             }
 
             // feed the sampled token back in
@@ -178,8 +191,10 @@ actor LlamaEngine: InferenceEngine {
             if let seqIds = batch.seq_id, let seq0 = seqIds[0] { seq0[0] = 0 }
             batch.logits[0] = 1
             nCur += 1
-            guard llama_decode(ctx, batch) == 0 else { break }
+            guard llama_decode(ctx, batch) == 0 else { stopReason = "decodeFail@\(generated)"; break }
         }
+        print("GEN_STOP \(stopReason) promptTok=\(promptTokens.count) gen=\(generated)")
+        lastStopReason = stopReason
 
         let genMillis = Int(Date().timeIntervalSince(genStart) * 1000)
         return GenerationInfo(
