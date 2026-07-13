@@ -653,7 +653,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
             f"format=yuv420p[content];"
             f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
             f"[1:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[outro];"
-            f"[intro][content][outro]concat=n=3:v=1:a=0,scale=1280:720[out]"
+            f"[intro][content][outro]concat=n=3:v=1:a=0,scale=1920:1080[out]"
         )
         inputs = [
             "-loop", "1", "-t", str(INTRO_S), "-i", str(po_intro),   # [0]
@@ -666,7 +666,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
         if radius > 0:
             inputs += ["-loop", "1", "-t", str(content_s), "-i", str(phone_mask)]  # [6]
         run(["ffmpeg", "-y", *inputs, "-filter_complex", fc, "-map", "[out]",
-             "-c:v", "libvpx-vp9", "-crf", "41", "-b:v", "0",
+             "-c:v", "libvpx-vp9", "-crf", "32", "-b:v", "0",
              "-deadline", "good", "-cpu-used", "2", "-row-mt", "1", "-an",
              str(out_webm)], "phone-only composite render", heavy=True)
         return
@@ -754,7 +754,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
         + f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
         f"[1:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[outro];"
         f"[intro][content][outro]concat=n=3:v=1:a=0,"
-        f"scale=1280:720[out]"
+        f"scale=1920:1080[out]"
     )
     inputs = [
         *(["-i", str(intro_motion)] if use_motion_intro
@@ -764,7 +764,10 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
         "-i", str(phone_mp4),
         "-i", str(frame_png),
         "-i", str(bgpng),
-        "-i", str(chrome),
+        # chrome is a STILL frame but gets a fade=t=in filter; without -loop it is
+        # a single frame that the fade collapses to alpha 0 (invisible whole video).
+        # Loop it across the content so the fade-in actually renders.
+        "-loop", "1", "-t", str(content_s), "-i", str(chrome),
         "-i", str(mascot_l),
     ]
     if code_pane:
@@ -773,7 +776,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
         inputs += ["-loop", "1", "-t", str(content_s), "-i", str(phone_mask)]  # [8]/[9]
     run(["ffmpeg", "-y", *inputs,
          "-filter_complex", fc, "-map", "[out]",
-         "-c:v", "libvpx-vp9", "-crf", "41", "-b:v", "0",
+         "-c:v", "libvpx-vp9", "-crf", "32", "-b:v", "0",
          "-deadline", "good", "-cpu-used", "2", "-row-mt", "1", "-an",
          str(out_webm)], "composite render", heavy=True)
 
