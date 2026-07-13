@@ -130,20 +130,47 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         {"tool":"done","summary":"..."} — do NOT read the same page again.
         Reply with ONE JSON tool call:
         """
-        // Single-phase instruct+parse — empirically the best for Qwen-1.5B here.
-        // Its free generation is self-consistent (reasons AND acts together: leads
-        // with `open`, then `done`); the robust parser extracts the JSON. A two-phase
-        // thought→grammar-action split loops (the constrained action head ignores the
-        // thought and defaults to `read`). Grammar stays available engine-wide.
         let valid = ["open", "read", "click", "done"]
-        for attempt in 0..<3 {
+
+        // GRAMMAR-NARROWING (per ghost-multi-fleet-dev): free THOUGHT reasons + picks
+        // the tool; we parse that choice, then constrain the action grammar to JUST
+        // that tool + its args. The model never picks the branch (that was the loop
+        // failure) — grammar only guarantees valid args.
+        var thought = ""
+        _ = try? await engine.generate(prompt: base + "\nReason in one short sentence, then give the tool call:", maxTokens: 80) { thought += $0 }
+        print("AGENT_THOUGHT<\(thought.prefix(140))>")
+        if let picked = ToolCall.parse(from: thought), valid.contains(picked.tool),
+           let g = narrowGrammar(for: picked.tool) {
+            var action = ""
+            _ = try? await engine.generate(prompt: base + "\nThought: \(thought.prefix(220))\nOutput the \(picked.tool) tool call:", maxTokens: 96, grammar: g) { action += $0 }
+            print("AGENT_ACTION<\(action.prefix(120))>")
+            if let c = ToolCall.parse(from: action), c.tool == picked.tool { return c }
+            return picked   // grammar hiccup → use the thought's own parse
+        }
+
+        // fallback: plain instruct+parse
+        for attempt in 0..<2 {
             var out = ""
-            let p = attempt == 0 ? base : base + "\nOutput ONLY one JSON object like {\"tool\":\"read\"} — no prose.\nJSON:"
-            _ = try? await engine.generate(prompt: p, maxTokens: 80) { out += $0 }
-            print("AGENT_RAW[\(attempt)]<\(out.prefix(140))>")
+            _ = try? await engine.generate(prompt: base + (attempt == 0 ? "" : "\nOutput ONLY one JSON tool call.\nJSON:"), maxTokens: 80) { out += $0 }
             if let call = ToolCall.parse(from: out), valid.contains(call.tool) { return call }
         }
         return nil
+    }
+
+    /// Grammar constrained to exactly ONE tool (+ its args). The tool is fixed, so a
+    /// 2B can't mis-commit the branch; only the arg values are model-chosen.
+    private func narrowGrammar(for tool: String) -> String? {
+        let common = [#"q   ::= ["]"#, #"url ::= [a-zA-Z0-9:/._?=&%~#@+-]+"#,
+                      #"txt ::= [a-zA-Z0-9 .,!?;:'()/_-]+"#, ""]
+        let root: String
+        switch tool {
+        case "open":  root = #"root ::= "{" q "tool" q ":" q "open" q "," q "url" q ":" q url q "}""#
+        case "read":  root = #"root ::= "{" q "tool" q ":" q "read" q "}""#
+        case "click": root = #"root ::= "{" q "tool" q ":" q "click" q "," q "text" q ":" q txt q "}""#
+        case "done":  root = #"root ::= "{" q "tool" q ":" q "done" q "," q "summary" q ":" q txt q "}""#
+        default: return nil
+        }
+        return ([root] + common).joined(separator: "\n")
     }
 
     // MARK: - Execute a tool against the WebView
