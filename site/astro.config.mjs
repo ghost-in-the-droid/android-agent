@@ -34,6 +34,13 @@ export default defineConfig({
 				},
 				{
 					tag: 'script',
+					attrs: {
+						defer: true,
+						src: '/_vercel/insights/script.js',
+					},
+				},
+				{
+					tag: 'script',
 					content: `
 document.addEventListener('DOMContentLoaded', function() {
 	var nav = document.querySelector('header nav .right-group, header nav');

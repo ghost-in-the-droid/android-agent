@@ -8,6 +8,7 @@ import SkillHubView from '@/views/SkillHubView.vue'
 import SkillCreatorView from '@/views/SkillCreatorView.vue'
 import ExplorerView from '@/views/ExplorerView.vue'
 import ToolsHubView from '@/views/ToolsHubView.vue'
+import DeviceHealthView from '@/views/DeviceHealthView.vue'
 import EmulatorTab from '@/components/emulator/EmulatorTab.vue'
 import BenchmarkTab from '@/components/benchmark/BenchmarkTab.vue'
 
@@ -20,6 +21,7 @@ const coreTabs = [
   { id: 'tools', label: '🔧 Tools' },
   { id: 'bot', label: '▶️ Manual Run' },
   { id: 'tests', label: '🧪 Tests' },
+  { id: 'health', label: '🩺 Device Health' },
   { id: 'emulators', label: '🖥️ Emulators' },
   { id: 'benchmarks', label: '📊 Benchmarks' },
 ]
@@ -142,6 +144,7 @@ async function restartServer() {
       <ToolsHubView v-else-if="activeTab === 'tools'" />
       <BotView v-else-if="activeTab === 'bot'" />
       <TestsView v-else-if="activeTab === 'tests'" />
+      <DeviceHealthView v-else-if="activeTab === 'health'" />
       <EmulatorTab v-else-if="activeTab === 'emulators'" />
       <BenchmarkTab v-else-if="activeTab === 'benchmarks'" />
       <!-- Premium tabs: rendered as iframes from premium frontend server -->

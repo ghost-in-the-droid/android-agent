@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import base64
 import html
+import contextlib
+import fcntl
 import json
 import os
 import re
@@ -121,6 +123,7 @@ class IOSDeviceConfig:
     allow_provisioning_device_registration: bool | None = None
     show_xcode_log: bool | None = None
     use_prebuilt_wda: bool | None = None
+    use_preinstalled_wda: bool | None = None
     wda_launch_timeout: int = 0
     wda_connection_timeout: int = 0
     wda_startup_retries: int = 0
@@ -148,6 +151,7 @@ class IOSDeviceConfig:
             "allow_provisioning_device_registration": "appium:allowProvisioningDeviceRegistration",
             "show_xcode_log": "appium:showXcodeLog",
             "use_prebuilt_wda": "appium:usePrebuiltWDA",
+            "use_preinstalled_wda": "appium:usePreinstalledWDA",
         }
         for field_name, cap_name in string_caps.items():
             value = getattr(self, field_name)
@@ -219,6 +223,7 @@ _CONFIG_ENV_FIELDS = {
     "IOS_ALLOW_PROVISIONING_DEVICE_REGISTRATION": "allow_provisioning_device_registration",
     "IOS_SHOW_XCODE_LOG": "show_xcode_log",
     "IOS_USE_PREBUILT_WDA": "use_prebuilt_wda",
+    "IOS_USE_PREINSTALLED_WDA": "use_preinstalled_wda",
     "IOS_WDA_LAUNCH_TIMEOUT": "wda_launch_timeout",
     "IOS_WDA_CONNECTION_TIMEOUT": "wda_connection_timeout",
     "IOS_WDA_STARTUP_RETRIES": "wda_startup_retries",
@@ -242,6 +247,7 @@ _BOOL_CONFIG_FIELDS = {
     "allow_provisioning_device_registration",
     "show_xcode_log",
     "use_prebuilt_wda",
+    "use_preinstalled_wda",
     "mjpeg_fix_orientation",
 }
 
@@ -844,21 +850,22 @@ def remote_xpc_tunnel_status(udid: str, *, platform_version: str = "", host: dic
             }
         )
         return status
-    if registry_address and current_address and registry_address != current_address:
-        status.update(
-            {
-                "ok": False,
-                "state": "stale",
-                "message": "RemoteXPC tunnel registry points at a stale tunnel address.",
-                "registry_address": registry_address,
-                "current_address": current_address,
-                "devicectl_connected": devicectl.get("tunnel_state") == "connected",
-                "stale_reason": "registry_address_mismatch",
-            }
-        )
-        return status
-
-    status.update({"state": "available", "ok": True})
+    # The registry (pymobiledevice3 RemoteXPC tunnel) and devicectl (Apple
+    # CoreDevice tunnel) are INDEPENDENT tunnels to the same device and normally
+    # report different addresses, so an address mismatch is NOT a staleness signal
+    # — matching them false-flags a healthy dual-tunnel setup as stale and breaks
+    # iOS streaming. Genuine staleness (devicectl error / not-connected / missing
+    # address) is handled above; a connected tunnel is available regardless of the
+    # address match. Ratified lenient by core-dev for v1.3.0.
+    status.update(
+        {
+            "state": "available",
+            "ok": True,
+            "registry_address": registry_address,
+            "current_address": current_address,
+            "devicectl_connected": tunnel_state == "connected",
+        }
+    )
     return status
 
 
@@ -1245,6 +1252,48 @@ def ios_xml_to_elements(xml: str, interactive_only: bool = True) -> list[dict]:
     return elements
 
 
+_WDA_LAUNCH_LOCK_PATH = "/tmp/ghost-ios/wda-launch.lock"
+
+
+def _reap_stale_wda_builds() -> None:
+    """Kill leftover WDA xcodebuild launch processes. Only safe to call when WDA
+    is NOT up — a live session's xcodebuild hosts the running WebDriverAgent, so
+    these are hung/dead attempts from a flaky device."""
+    with contextlib.suppress(Exception):
+        subprocess.run(
+            ["pkill", "-9", "-f", "xcodebuild.*WebDriverAgent"],
+            timeout=5, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+
+
+@contextlib.contextmanager
+def _wda_launch_guard(wda_up):
+    """Serialize WDA session launches across ALL processes (backend, MCP, agent).
+
+    Appium spawns one `xcodebuild test-without-building` per POST /session to host
+    WebDriverAgent. On a flaky device those hang (~1-2 min each) and, without a
+    lock, every caller/retry spawns its own -> a pile-up of stacked xcodebuilds
+    that jams the device so none ever succeed. A cross-process file lock lets only
+    ONE launch run at a time; others block until it finishes (then reuse the live
+    WDA). If WDA isn't up when we take the lock, reap any hung/stale build first so
+    we never stack (the "kill the old guy if a new one spawns" behaviour)."""
+    fh = None
+    try:
+        with contextlib.suppress(Exception):
+            os.makedirs(os.path.dirname(_WDA_LAUNCH_LOCK_PATH), exist_ok=True)
+            fh = open(_WDA_LAUNCH_LOCK_PATH, "w")  # noqa: SIM115
+            fcntl.flock(fh, fcntl.LOCK_EX)  # released on POST timeout, so no forever-block
+        with contextlib.suppress(Exception):
+            if not wda_up():
+                _reap_stale_wda_builds()
+        yield
+    finally:
+        if fh is not None:
+            with contextlib.suppress(Exception):
+                fcntl.flock(fh, fcntl.LOCK_UN)
+                fh.close()
+
+
 class IOSDevice:
     """One iOS device/simulator controlled through Appium XCUITest."""
 
@@ -1458,6 +1507,15 @@ class IOSDevice:
             return False
         return resp.status_code < 400
 
+    def _wda_is_up(self) -> bool:
+        """True if WebDriverAgent already has a live session (Appium forwards it to
+        localhost:8100). When up, the launch guard must NOT reap xcodebuilds — the
+        running WDA is hosted by one."""
+        try:
+            return requests.get("http://127.0.0.1:8100/status", timeout=2).ok
+        except requests.RequestException:
+            return False
+
     def _ensure_session(self) -> str:
         with IOSDevice._sessions_lock:
             if self._session_id:
@@ -1483,6 +1541,13 @@ class IOSDevice:
                     "appium:deviceName": self.device_name,
                     "appium:noReset": True,
                     "appium:newCommandTimeout": 300,
+                    # WDA waits for the app to be "idle" after every interaction and
+                    # times out at ~2.7s/tap when the app never quiesces (animations,
+                    # a live screen stream, etc.). That dominates iOS tap latency and
+                    # makes tap-to-control feel frozen. Disable it for responsiveness;
+                    # the per-action delays already provide settle. Override via
+                    # IOS_WAIT_FOR_QUIESCENCE=1 if a flow needs idle-waiting.
+                    "appium:shouldWaitForQuiescence": os.getenv("IOS_WAIT_FOR_QUIESCENCE", "").strip().lower() in ("1", "true", "yes"),
                 }
                 if self.platform_version:
                     always_match["appium:platformVersion"] = self.platform_version
@@ -1490,18 +1555,38 @@ class IOSDevice:
                     always_match["appium:webDriverAgentUrl"] = self.wda_url
                 if self.browser_name:
                     always_match["browserName"] = self.browser_name
-                elif self.bundle_id:
+                elif self.bundle_id and os.getenv("IOS_LAUNCH_BUNDLE_ON_SESSION", "").strip().lower() not in ("0", "false", "no"):
+                    # main's contract: appium:bundleId is present in the session
+                    # caps by default, which makes Appium FOREGROUND that app on
+                    # session (re)creation. On-device, that auto-launch can yank a
+                    # live-streamed phone to another app mid-interaction, so set
+                    # IOS_LAUNCH_BUNDLE_ON_SESSION=0 (explicit opt-out) to suppress
+                    # bundleId and just attach to whatever is on screen. Default
+                    # (flag unset) keeps main's behavior.
                     always_match["appium:bundleId"] = self.bundle_id
                 always_match.update(self.appium_capabilities)
 
             backend = "WDA" if self._direct else "Appium"
             try:
-                resp = requests.request(
-                    "POST",
-                    self._url("/session"),
-                    json={"capabilities": {"alwaysMatch": always_match, "firstMatch": [{}]}},
-                    timeout=self.timeout,
-                )
+                if self._direct:
+                    # Direct WDA is already running (no Appium xcodebuild spawn), so
+                    # the launch guard's xcodebuild reaping does not apply here.
+                    resp = requests.request(
+                        "POST",
+                        self._url("/session"),
+                        json={"capabilities": {"alwaysMatch": always_match, "firstMatch": [{}]}},
+                        timeout=self.timeout,
+                    )
+                else:
+                    # Serialize the WDA launch across all processes so hung launches
+                    # on a flaky device can't pile up into a stack of xcodebuilds.
+                    with _wda_launch_guard(self._wda_is_up):
+                        resp = requests.request(
+                            "POST",
+                            self._url("/session"),
+                            json={"capabilities": {"alwaysMatch": always_match, "firstMatch": [{}]}},
+                            timeout=self.timeout,
+                        )
             except requests.RequestException as e:
                 raise IOSBackendError(f"Could not create {backend} iOS session: {e}") from e
             try:
@@ -1519,7 +1604,17 @@ class IOSDevice:
                 raise IOSBackendError(f"{backend} session response did not include sessionId: {data}")
             self._session_id = sid
             IOSDevice._sessions[self._config] = sid
+            # WDA *settings* (not session caps) that zero WDA's idle/animation
+            # waits — measured ~2733ms -> ~713ms per tap. main sends this
+            # appium/settings POST ONLY on the direct-WDA path; the Appium path
+            # sends no such POST during session creation. Preserve that contract:
+            # apply on direct-WDA (honoring the IOS_WAIT_FOR_QUIESCENCE opt-out),
+            # and on the Appium path only when explicitly opted in via
+            # IOS_APPLY_WDA_SETTINGS so the default matches main.
             if self._direct:
+                if os.getenv("IOS_WAIT_FOR_QUIESCENCE", "").strip().lower() not in ("1", "true", "yes"):
+                    self._apply_wda_settings(sid)
+            elif os.getenv("IOS_APPLY_WDA_SETTINGS", "").strip().lower() in ("1", "true", "yes"):
                 self._apply_wda_settings(sid)
             return sid
 
@@ -1537,7 +1632,7 @@ class IOSDevice:
                 timeout=self.timeout,
             )
         except requests.RequestException:
-            pass
+            pass  # non-fatal — session still usable, just slower taps
 
     def _session_path(self, suffix: str) -> str:
         return f"/session/{self._ensure_session()}{suffix}"
@@ -1642,6 +1737,55 @@ class IOSDevice:
         return self.config.mjpeg_settings()
 
     # -- Device operations -------------------------------------------------
+
+    def _wda_base_url(self) -> str:
+        """Base URL of the WebDriverAgent HTTP server (device :8100 forwarded local)."""
+        if self.wda_url:
+            return self.wda_url.rstrip("/")
+        parsed = urllib.parse.urlparse(self.appium_url)
+        scheme = parsed.scheme or "http"
+        host = parsed.hostname or "127.0.0.1"
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"
+        return f"{scheme}://{host}:8100"
+
+    def speak(self, text: str, rate: float = 1.0, language: str = "") -> str:
+        """Speak text aloud on-device via WDA's /wda/speak (AVSpeechSynthesizer).
+
+        Requires a GhostAgent-patched WebDriverAgent. Posts directly to WDA's
+        HTTP server (the `.withoutSession` route) because Appium's command
+        router does not proxy custom /wda/* paths. Ensures a session first so
+        WDA is running and its :8100 port is forwarded — but WITHOUT foregrounding
+        an app (so it does not launch Chrome/the default bundle).
+        """
+        prev_bundle, prev_browser = self.bundle_id, self.browser_name
+        self.bundle_id, self.browser_name = "", ""
+        try:
+            self._ensure_session()
+        finally:
+            self.bundle_id, self.browser_name = prev_bundle, prev_browser
+        payload: dict[str, Any] = {"text": text, "rate": rate}
+        if language:
+            payload["language"] = language
+        url = f"{self._wda_base_url()}/wda/speak"
+        try:
+            resp = requests.request("POST", url, json=payload, timeout=max(self.timeout, 15))
+        except requests.RequestException as e:
+            raise IOSBackendError(f"WDA /wda/speak request failed: {e}") from e
+        if resp.status_code == 404:
+            raise IOSBackendError(
+                "WDA has no /wda/speak route — rebuild the GhostAgent-patched WebDriverAgent on the device"
+            )
+        if resp.status_code >= 400:
+            raise IOSBackendError(f"WDA /wda/speak failed ({resp.status_code}): {resp.text[:200]}")
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {}
+        value = body.get("value") if isinstance(body, dict) else None
+        if isinstance(value, dict) and value.get("status"):
+            return str(value["status"])
+        return "speaking"
 
     def take_screenshot(self) -> bytes:
         value = self._request("GET", self._session_path("/screenshot"), timeout=max(self.timeout, 60))

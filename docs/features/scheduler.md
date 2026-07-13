@@ -67,7 +67,7 @@ State machine per job:
 
 ## iOS Scheduling
 
-iOS schedules use the same queue and schedule tables, but `ios:<udid>` devices are limited to supported skill workflows and app exploration for now. Android TikTok jobs such as `post` and `publish_draft` return `unsupported_platform` for iOS because the iOS upload flow is not ported yet.
+iOS schedules use the same queue and schedule tables, but `ios:<udid>` devices are limited to supported skill workflows and app exploration for now. Android TikTok jobs such as `post`, `publish_draft`, and `crawl` return `unsupported_platform` for iOS because the iOS upload/crawl flows are not ported yet.
 
 TikTok account preflight is partially supported on iOS. The scheduler can launch
 TikTok, read visible WDA text, detect the active handle, and block an observed
@@ -120,7 +120,7 @@ The same form also exposes TikTok smoke workflows and `app_explore` for iOS:
 Real iPhone execution still depends on Appium/WebDriverAgent being healthy for the target UDID.
 
 Completed skill jobs that emit structured `Data: {...}` output can be queried
-without parsing raw logs:
+without scraping logs:
 
 ```bash
 curl http://localhost:5055/api/scheduler/history/<run_id>/result | python3 -m json.tool

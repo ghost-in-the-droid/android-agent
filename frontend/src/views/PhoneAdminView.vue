@@ -714,14 +714,17 @@ async function startMultiStream(serial: string, mode: 'rtc' | 'mjpeg' = 'rtc') {
     rtcStart(serial)
   } else {
     streamFrozen.value[serial] = false
+    mjpegReconnects.value[serial] = 0
     streamInfoStatus.value[serial] = isIosDevice(serial) ? 'Loading WDA MJPEG...' : ''
     mjpegUrls.value[serial] = mjpegStreamUrl(serial)
     mjpegUrls.value[serial] = await resolveMjpegStreamUrl(serial, actualMode)
+    startMjpegWatchdog(serial)
   }
 }
 function stopMultiStream(serial: string) {
   multiStreaming.value[serial] = false
   if (multiStreamMode.value[serial] === 'rtc') rtcStop(serial)
+  stopMjpegWatchdog(serial)
   mjpegUrls.value[serial] = ''
   streamInfoStatus.value[serial] = ''
   multiStreamMode.value[serial] = 'rtc'
@@ -732,15 +735,45 @@ function startAllStreams(mode: 'rtc' | 'mjpeg' = 'rtc') {
 function stopAllStreams() { for (const d of devices.value) stopMultiStream(d.serial) }
 
 /* ── single device ───────────────────────────────────────────────────── */
-const singleStreamMode = ref<'rtc' | 'mjpeg'>('rtc')
+const singleStreamMode = ref<'rtc' | 'mjpeg' | 'h264'>('rtc')
 const singleMjpegUrl = ref('')
+
+/* ── H.264 (GhostAgent WebSocket stream, iOS) ─────────────────────────── */
+const h264Status = ref('')
+const h264ShowMetrics = ref(true)
+const h264M = ref({ recvFps: 0, renderFps: 0, queue: 0, latencyMs: 0, kbps: 0, dropped: 0 })
+let h264Handle: { status: any; recvFps: any; renderFps: any; queue: any; latencyMs: any; kbps: any; dropped: any; stop: () => void } | null = null
+function h264StreamWsUrl(serial: string): string {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+  return `${proto}://${location.host}/api/phone/h264/${encodeURIComponent(serial)}`
+}
+async function startH264(serial: string) {
+  stopH264()
+  await nextTick()
+  const canvas = document.getElementById(`h264-canvas-${serial}`) as HTMLCanvasElement | null
+  if (!canvas) return
+  const { startH264Stream, h264Supported } = await import('@/composables/useH264Stream')
+  if (!h264Supported()) { h264Status.value = 'WebCodecs unavailable — use MJPEG'; return }
+  h264Handle = startH264Stream(h264StreamWsUrl(serial), canvas)
+  const h = h264Handle
+  watch(h.status, (v: string) => { h264Status.value = v })
+  const sync = () => { h264M.value = { recvFps: h.recvFps.value, renderFps: h.renderFps.value, queue: h.queue.value, latencyMs: h.latencyMs.value, kbps: h.kbps.value, dropped: h.dropped.value } }
+  watch([h.recvFps, h.renderFps, h.queue, h.latencyMs, h.kbps, h.dropped], sync)
+}
+function stopH264() {
+  if (h264Handle) { h264Handle.stop(); h264Handle = null }
+  h264Status.value = ''
+  h264M.value = { recvFps: 0, renderFps: 0, queue: 0, latencyMs: 0, kbps: 0, dropped: 0 }
+}
 
 async function startStream() {
   if (!selectedDevice.value) return
   const serial = selectedDevice.value
-  singleStreamMode.value = effectiveStreamMode(serial, singleStreamMode.value)
+  if (singleStreamMode.value !== 'h264') singleStreamMode.value = effectiveStreamMode(serial, singleStreamMode.value)
   streaming.value = true
-  if (singleStreamMode.value === 'rtc') {
+  if (singleStreamMode.value === 'h264') {
+    await startH264(serial)
+  } else if (singleStreamMode.value === 'rtc') {
     rtcStart(serial)
     // Auto-fallback: if RTC doesn't connect within 5s, switch to MJPEG
     setTimeout(() => {
@@ -751,17 +784,21 @@ async function startStream() {
         void resolveMjpegStreamUrl(serial, 'mjpeg').then(url => {
           if (streaming.value && selectedDevice.value === serial && singleStreamMode.value === 'mjpeg') singleMjpegUrl.value = url
         })
+        startMjpegWatchdog(serial)
       }
     }, 5000)
   } else {
     streamFrozen.value[serial] = false
+    mjpegReconnects.value[serial] = 0
     streamInfoStatus.value[serial] = isIosDevice(serial) ? 'Loading WDA MJPEG...' : ''
     singleMjpegUrl.value = mjpegStreamUrl(serial)
     singleMjpegUrl.value = await resolveMjpegStreamUrl(serial, singleStreamMode.value)
+    startMjpegWatchdog(serial)
   }
 }
 function stopStream() {
-  if (selectedDevice.value) rtcStop(selectedDevice.value)
+  if (selectedDevice.value) { rtcStop(selectedDevice.value); stopMjpegWatchdog(selectedDevice.value) }
+  stopH264()
   singleMjpegUrl.value = ''
   if (selectedDevice.value) streamInfoStatus.value[selectedDevice.value] = ''
   streaming.value = false
@@ -778,14 +815,88 @@ function mjpegImageLoaded(serial: string) {
 function mjpegImageError(serial: string) {
   streamFrozen.value[serial] = true
   streamInfoStatus.value[serial] = isIosDevice(serial)
-    ? 'WDA MJPEG failed — tap stream to reconnect or check iOS health'
-    : 'MJPEG stream failed — tap stream to reconnect'
+    ? 'WDA MJPEG failed — reconnecting…'
+    : 'MJPEG stream failed — reconnecting…'
+  // Hard error → reconnect right away (backoff-limited by the watchdog).
+  reconnectMjpeg(serial)
 }
 
-function mjpegImagePoint(img: HTMLImageElement, clientX: number, clientY: number): { x: number; y: number; width: number; height: number } | null {
+/* ── MJPEG stall watchdog ─────────────────────────────────────────────────
+ * An <img> streaming multipart-JPEG holds its LAST frame forever if the
+ * connection silently stalls — no 'error' event fires, so health stays green
+ * while the picture is frozen. Sample the frame to a tiny canvas every few
+ * seconds; if it hasn't changed for a while, force a reconnect (cache-busted
+ * src reload). Reconnecting a genuinely-static screen is harmless. */
+const mjpegWatchTimers = ref<Record<string, number>>({})
+const mjpegLastHash = ref<Record<string, string>>({})
+const mjpegStaleCount = ref<Record<string, number>>({})
+const mjpegReconnects = ref<Record<string, number>>({})
+const MJPEG_STALL_CHECKS = 3          // ~3 * 2.5s = ~7.5s frozen → reconnect
+const MJPEG_MAX_RECONNECTS = 20       // safety cap; reset on any fresh frame
+
+function mjpegFrameHash(serial: string): string | null {
+  const img = document.getElementById(`mjpeg-img-${serial}`) as HTMLImageElement | null
+  if (!img || !img.naturalWidth) return null
+  try {
+    const c = document.createElement('canvas')
+    c.width = 16; c.height = 16
+    const ctx = c.getContext('2d')!
+    ctx.drawImage(img, 0, 0, 16, 16)
+    const d = ctx.getImageData(0, 0, 16, 16).data
+    let h = 0
+    for (let i = 0; i < d.length; i += 4) h = (h * 31 + (d[i]! + d[i+1]! * 3 + d[i+2]! * 7)) | 0
+    return String(h)
+  } catch { return null }  // tainted canvas etc. → skip (don't false-reconnect)
+}
+
+function reconnectMjpeg(serial: string) {
+  if ((mjpegReconnects.value[serial] || 0) >= MJPEG_MAX_RECONNECTS) return
+  mjpegReconnects.value[serial] = (mjpegReconnects.value[serial] || 0) + 1
+  mjpegStaleCount.value[serial] = 0
+  const base = mjpegStreamUrl(serial)
+  const sep = base.includes('?') ? '&' : '?'
+  // New URL forces the <img> to drop the dead connection and open a fresh one.
+  const url = `${base}${sep}_r=${mjpegReconnects.value[serial]}`
+  // Route to whichever view is showing this device (multi grid vs single panel).
+  if (multiStreaming.value[serial]) mjpegUrls.value[serial] = url
+  else singleMjpegUrl.value = url
+}
+
+function startMjpegWatchdog(serial: string) {
+  stopMjpegWatchdog(serial)
+  mjpegLastHash.value[serial] = ''
+  mjpegStaleCount.value[serial] = 0
+  mjpegWatchTimers.value[serial] = window.setInterval(() => {
+    // Active if this device is streaming MJPEG in either the single panel or the grid.
+    const singleActive = streaming.value && selectedDevice.value === serial && singleStreamMode.value === 'mjpeg'
+    const multiActive = multiStreaming.value[serial] && multiStreamMode.value[serial] === 'mjpeg'
+    if (!singleActive && !multiActive) return
+    const hash = mjpegFrameHash(serial)
+    if (hash == null) return
+    if (hash === mjpegLastHash.value[serial]) {
+      mjpegStaleCount.value[serial] = (mjpegStaleCount.value[serial] || 0) + 1
+      if (mjpegStaleCount.value[serial] >= MJPEG_STALL_CHECKS) {
+        streamInfoStatus.value[serial] = 'Stream stalled — reconnecting…'
+        reconnectMjpeg(serial)
+      }
+    } else {
+      mjpegLastHash.value[serial] = hash
+      mjpegStaleCount.value[serial] = 0
+      mjpegReconnects.value[serial] = 0   // healthy frames → reset backoff
+      streamFrozen.value[serial] = false
+    }
+  }, 2500)
+}
+
+function stopMjpegWatchdog(serial: string) {
+  if (mjpegWatchTimers.value[serial]) { clearInterval(mjpegWatchTimers.value[serial]); delete mjpegWatchTimers.value[serial] }
+}
+
+function mjpegImagePoint(img: HTMLImageElement | HTMLCanvasElement, clientX: number, clientY: number): { x: number; y: number; width: number; height: number } | null {
   const rect = img.getBoundingClientRect()
-  const sw = img.naturalWidth
-  const sh = img.naturalHeight
+  // <img> exposes naturalWidth/Height; <canvas> (H.264) exposes width/height.
+  const sw = (img as HTMLImageElement).naturalWidth || (img as HTMLCanvasElement).width
+  const sh = (img as HTMLImageElement).naturalHeight || (img as HTMLCanvasElement).height
   if (!sw || !sh || !rect.width || !rect.height) return null
   const sx = sw / rect.width
   const sy = sh / rect.height
@@ -876,6 +987,10 @@ async function pollMultiLogs() {
 const healthData = ref<Record<string, any>>({})
 const healthLoading = ref<Record<string, boolean>>({})
 const healthFixStatus = ref<Record<string, string>>({})
+const showRecoveryDetails = ref<Record<string, boolean>>({})
+function toggleRecoveryDetails(serial: string) {
+  showRecoveryDetails.value[serial] = !showRecoveryDetails.value[serial]
+}
 const showWirelessModal = ref(false)
 const wirelessIp = ref('')
 const wirelessPort = ref('5555')
@@ -883,12 +998,40 @@ const wirelessCode = ref('')
 const wirelessResult = ref('')
 const IOS_AUTO_FIXES = new Set(['start_appium', 'reset_session', 'appium_session', 'wda_session', 'restart_remote_xpc_tunnel'])
 
+// Auto-reset a stale WDA session without the user clicking. Only for session
+// resets (not the heavier tunnel restart), one attempt per distinct dead
+// session, capped so a persistently broken device can't loop (Reset WDA stays
+// available manually). The guard clears once the device is healthy again.
+const AUTO_RESET_ACTIONS = new Set(['reset_session', 'appium_session', 'wda_session'])
+const autoResetGuard = ref<Record<string, { key: string; attempts: number }>>({})
+
+function maybeAutoReset(serial: string) {
+  const h = healthData.value[serial]
+  if (!h) return
+  const state = String(h?.connection?.status || h?.appium?.state || '')
+  if (['available', 'ready', 'connected', 'online'].includes(state)) {
+    delete autoResetGuard.value[serial]
+    return
+  }
+  const action = iosRecoveryAction(serial)
+  if (!AUTO_RESET_ACTIONS.has(action) || !iosRecoveryCanApplyFix(serial) || iosRecoveryFixBusy(serial)) return
+  const key = String(h?.wda?.session || h?.appium?.session_id || state)
+  const g = autoResetGuard.value[serial]
+  if (g && g.key === key) return
+  const attempts = (g?.attempts || 0) + 1
+  if (attempts > 2) return
+  autoResetGuard.value[serial] = { key, attempts }
+  healthFixStatus.value[serial] = 'Auto-resetting WDA…'
+  fixIssue(serial, action)
+}
+
 async function loadHealth(serial: string) {
   healthLoading.value[serial] = true
   try {
     healthData.value[serial] = await api(`/api/phone/health/${serial}`)
   } catch { healthData.value[serial] = null }
   healthLoading.value[serial] = false
+  maybeAutoReset(serial)
 }
 
 async function loadAllHealth() {
@@ -959,8 +1102,14 @@ function iosRecovery(serial: string): any | null {
 }
 
 function iosRecoveryVisible(serial: string): boolean {
-  const recovery = iosRecovery(serial)
-  return !!(recovery?.code || recovery?.steps?.length)
+  // The tunnel/WDA health probe is synchronous and slow (often >10s), so the
+  // dashboard poll times out and the card flashes "remote_xpc_tunnel_unavailable"
+  // even while a live stream is flowing over that exact tunnel — pure noise. The
+  // stream itself is proof the tunnel works. Suppress this recovery card on the
+  // Phone Agent tab entirely; full, honest diagnostics live in the 🩺 Device
+  // Health tab where a stale reading isn't sitting on top of a working stream.
+  void serial
+  return false
 }
 
 function iosRecoveryState(serial: string): string {
@@ -1587,6 +1736,10 @@ onUnmounted(() => {
             style="font-size:9px;padding:3px 8px"
             :title="selectedIsIos ? 'Start iOS WDA MJPEG stream' : 'Start Android WebRTC stream'"
             @click="singleStreamMode = selectedIsIos ? 'mjpeg' : 'rtc'; startStream()">Stream</button>
+          <button v-if="!streaming && selectedIsIos" class="ctrl-btn ctrl-btn--webrtc"
+            style="font-size:9px;padding:3px 8px"
+            title="Start GhostAgent H.264 stream (beta — needs the patched WDA)"
+            @click="singleStreamMode = 'h264'; startStream()">H.264</button>
           <span v-if="streaming" style="font-size:8px;padding:1px 6px;border-radius:10px;white-space:nowrap"
             :title="streamInfoTitle(selectedDevice)"
             :style="singleStreamMode === 'rtc'
@@ -1627,25 +1780,35 @@ onUnmounted(() => {
         <div v-if="iosRecoveryVisible(selectedDevice)" class="ios-recovery-panel">
           <div class="ios-recovery-head">
             <span class="ios-recovery-state">{{ iosRecoveryState(selectedDevice) }}</span>
-            <span v-if="iosRecoveryCode(selectedDevice)" class="ios-recovery-code">{{ iosRecoveryCode(selectedDevice) }}</span>
+            <span class="ios-recovery-summary-inline" :title="iosRecoverySummary(selectedDevice)">{{ iosRecoverySummary(selectedDevice) }}</span>
+            <button v-if="iosRecoveryCanApplyFix(selectedDevice)" class="ios-recovery-link ios-recovery-link--fix"
+              :disabled="iosRecoveryFixBusy(selectedDevice)"
+              @click="fixIssue(selectedDevice, iosRecoveryAction(selectedDevice))"
+              :title="iosRecoveryActionTitle(selectedDevice)">
+              {{ iosRecoveryFixBusy(selectedDevice) ? 'Fixing…' : iosRecoveryActionLabel(selectedDevice) }}
+            </button>
             <button class="ios-recovery-link" @click="loadHealth(selectedDevice)">Refresh</button>
+            <button class="ios-recovery-link" @click="toggleRecoveryDetails(selectedDevice)">
+              {{ showRecoveryDetails[selectedDevice] ? 'Hide' : 'Details' }}
+            </button>
           </div>
-          <div class="ios-recovery-summary">{{ iosRecoverySummary(selectedDevice) }}</div>
           <div v-if="healthFixStatus[selectedDevice]" class="ios-recovery-status">{{ healthFixStatus[selectedDevice] }}</div>
-          <div v-if="iosHealthDetails(selectedDevice).length" class="ios-health-details">
-            <span v-for="row in iosHealthDetails(selectedDevice)" :key="row.label"
-              class="ios-health-chip" :class="{ 'ios-health-chip--ok': row.ok }"
-              :title="`${row.label}: ${row.value}`">
-              {{ row.label }} {{ row.value }}
-            </span>
-          </div>
-          <ol v-if="iosRecoverySteps(selectedDevice).length" class="ios-recovery-steps">
-            <li v-for="(step, i) in iosRecoverySteps(selectedDevice)" :key="i">{{ step }}</li>
-          </ol>
-          <div v-if="iosRecoveryCommands(selectedDevice).length" class="ios-recovery-commands">
-            <div v-for="command in iosRecoveryCommands(selectedDevice)" :key="command" class="ios-recovery-command">
-              <code>{{ command }}</code>
-              <button class="ios-copy-btn" @click="copyIosRecoveryCommand(selectedDevice, command)">Copy</button>
+          <div v-if="showRecoveryDetails[selectedDevice]" class="ios-recovery-details">
+            <div v-if="iosHealthDetails(selectedDevice).length" class="ios-health-details">
+              <span v-for="row in iosHealthDetails(selectedDevice)" :key="row.label"
+                class="ios-health-chip" :class="{ 'ios-health-chip--ok': row.ok }"
+                :title="`${row.label}: ${row.value}`">
+                {{ row.label }} {{ row.value }}
+              </span>
+            </div>
+            <ol v-if="iosRecoverySteps(selectedDevice).length" class="ios-recovery-steps">
+              <li v-for="(step, i) in iosRecoverySteps(selectedDevice)" :key="i">{{ step }}</li>
+            </ol>
+            <div v-if="iosRecoveryCommands(selectedDevice).length" class="ios-recovery-commands">
+              <div v-for="command in iosRecoveryCommands(selectedDevice)" :key="command" class="ios-recovery-command">
+                <code>{{ command }}</code>
+                <button class="ios-copy-btn" @click="copyIosRecoveryCommand(selectedDevice, command)">Copy</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1725,8 +1888,10 @@ onUnmounted(() => {
             @touchmove="videoTouchMove(selectedDevice)"
             @touchend="videoTouchEnd(selectedDevice, $event)" />
           <img v-else-if="streaming && singleStreamMode === 'mjpeg' && singleMjpegUrl"
+            :id="`mjpeg-img-${selectedDevice}`"
             :src="singleMjpegUrl"
             class="stream-media"
+            crossorigin="anonymous"
             draggable="false"
             @load="mjpegImageLoaded(selectedDevice)"
             @error="mjpegImageError(selectedDevice)"
@@ -1739,6 +1904,25 @@ onUnmounted(() => {
             @touchend="mjpegTouchEnd(selectedDevice, $event)"
             @touchcancel="mjpegTouchCancel(selectedDevice)"
             @dragstart.prevent />
+          <canvas v-show="streaming && singleStreamMode === 'h264'"
+            :id="`h264-canvas-${selectedDevice}`" class="stream-media"
+            style="cursor: pointer; touch-action: none"
+            @mousedown="mjpegMouseDown(selectedDevice, $event)"
+            @mousemove="mjpegMove(selectedDevice)"
+            @mouseup="mjpegMouseUp(selectedDevice, $event)"
+            @mouseleave="videoMouseLeave(selectedDevice)"
+            @touchstart="mjpegTouchStart(selectedDevice, $event)"
+            @touchmove="mjpegTouchMove(selectedDevice, $event)"
+            @touchend="mjpegTouchEnd(selectedDevice, $event)"
+            @touchcancel="mjpegTouchCancel(selectedDevice)"
+            @dragstart.prevent />
+          <div v-if="streaming && singleStreamMode === 'h264' && h264ShowMetrics" class="h264-badge" @click="h264ShowMetrics = false" title="Click to hide">
+            <template v-if="h264M.renderFps || h264M.recvFps">
+              recv {{ h264M.recvFps }} · render {{ h264M.renderFps }}fps · q{{ h264M.queue }} · {{ h264M.latencyMs }}ms · {{ h264M.kbps }}kbps<span v-if="h264M.dropped"> · drop {{ h264M.dropped }}</span>
+            </template>
+            <template v-else>H.264 {{ h264Status }}</template>
+          </div>
+          <button v-if="streaming && singleStreamMode === 'h264' && !h264ShowMetrics" class="h264-badge h264-badge--show" @click="h264ShowMetrics = true" title="Show metrics">ⓘ</button>
           <div v-if="!streaming" class="stream-placeholder">
             Select device &amp; start stream<br/>or chat — auto-starts
           </div>
@@ -1858,8 +2042,10 @@ onUnmounted(() => {
               @touchend="videoTouchEnd(d.serial, $event)" />
             <!-- MJPEG img -->
             <img v-else-if="multiStreaming[d.serial] && multiStreamMode[d.serial] === 'mjpeg' && mjpegUrls[d.serial]"
+              :id="`mjpeg-img-${d.serial}`"
               :src="mjpegUrls[d.serial]"
               class="multi-stream-media"
+              crossorigin="anonymous"
               draggable="false"
               @load="mjpegImageLoaded(d.serial)"
               @error="mjpegImageError(d.serial)"
@@ -2057,6 +2243,14 @@ onUnmounted(() => {
   user-select: none;
 }
 
+.h264-badge {
+  position: absolute; top: 6px; left: 6px; z-index: 3;
+  font-size: 9px; padding: 2px 7px; border-radius: 10px;
+  background: rgba(99,102,241,0.85); color: #fff; white-space: nowrap;
+  cursor: pointer; border: none;
+}
+.h264-badge--show { opacity: 0.5; padding: 2px 6px; }
+.h264-badge--show:hover { opacity: 1; }
 .stream-placeholder {
   color: var(--text-4);
   font-size: 13px;
@@ -2651,6 +2845,27 @@ onUnmounted(() => {
 .ios-recovery-summary {
   color: var(--text-3);
   line-height: 1.35;
+}
+
+.ios-recovery-summary-inline {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.ios-recovery-link--fix {
+  margin-left: 0;
+  color: #6ee7b7;
+  font-weight: 700;
+}
+
+.ios-recovery-details {
+  margin-top: 6px;
 }
 
 .ios-recovery-status {

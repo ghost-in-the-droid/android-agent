@@ -192,8 +192,13 @@ def stop_agent(session_id: str):
     except Exception:
         # pgid lookup failed (proc already reaped) — best-effort plain kill.
         try:
-            proc.kill()
-        except Exception:
+            pgid = _os.getpgid(proc.pid)
+            _os.killpg(pgid, _sig.SIGTERM)
+            try:
+                proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                _os.killpg(pgid, _sig.SIGKILL)
+        except (ProcessLookupError, PermissionError):
             pass
     log.info("Stopped agent for session %s", session_id)
 
@@ -766,7 +771,7 @@ def _chat_vllm(session: ChatSession, user_message: str):
     yield {"type": "done"}
 
 
-# ── Ollama ───────────────────────────────────────────────────────────────────
+# ── Tool-call parsing + Ollama ────────────────────────────────────────────────
 
 
 def _parse_tool_calls(text: str) -> list[dict]:

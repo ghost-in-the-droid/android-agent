@@ -64,6 +64,7 @@ def _get_all_tools() -> list[dict]:
             "clear_notifications",
         ],
         "Skills": ["list_skills", "run_skill", "run_workflow", "run_action", "create_skill"],
+        "Marketing": ["lookup_lead", "list_unread_leads"],
         "CRM": ["crm_lookup_contact", "crm_list_unread_messages"],
         "Device": ["list_devices", "toggle_overlay"],
         "System": ["wait"],

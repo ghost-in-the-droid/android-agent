@@ -89,6 +89,8 @@ _CROSS_PLATFORM = {
     "clear_notifications": "Android notification service clear or best-effort iOS Clear control tap.",
     "explore_app": "BFS explorer over Android uiautomator XML or normalized iOS WDA XML with iOS tree/screenshot state identity.",
     "create_skill": "Creates recorded skills with Android package or iOS bundle metadata and per-platform element files.",
+    "lookup_lead": "Device-neutral marketing data lookup.",
+    "list_unread_leads": "Device-neutral marketing inbox lookup.",
     "run_flow": "Batched execution of allow-listed tools; each step routes per-platform.",
     "crm_lookup_contact": "Device-neutral local CRM contact lookup.",
     "crm_list_unread_messages": "Device-neutral local CRM unread-message listing.",
@@ -96,6 +98,7 @@ _CROSS_PLATFORM = {
     "screenshot_sequence": "Captures a screenshot burst via the per-platform screenshot path.",
     "sub_agent": "Device-neutral vision sub-call over cached frames.",
     "wait": "Device-neutral delay.",
+    "speak_text": "Android Portal-app TTS, or iOS WDA /wda/speak (AVSpeechSynthesizer) via GhostAgent-patched WebDriverAgent.",
 }
 
 _IOS_SUPPORTED = {
@@ -111,7 +114,8 @@ _ANDROID_ONLY = {
     "get_crash": "Reads the Android logcat crash buffer; iOS needs syslog/CrashReporter support.",
     "launch_intent": "Android intents have no iOS equivalent.",
     "toggle_overlay": "Portal overlay is Android-only.",
-    "speak_text": "Uses the Android Portal app TTS path.",
+    # NOTE: speak_text is classified cross_platform above (iOS gained WDA
+    # /wda/speak on feat/ios-ondevice); intentionally not android_only here.
 }
 
 

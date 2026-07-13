@@ -1172,6 +1172,39 @@ def create_skill(
     return result["message"]
 
 
+# ── Lead / influencer lookups (for marketing agents) ────────────────────────
+
+
+@mcp.tool()
+def lookup_lead(handle: str) -> str:
+    """Get the full fact sheet for one influencer lead by handle.
+
+    Use this when you need to know everything about an influencer to draft
+    a personalised reply or decide next-step outreach: their follower count,
+    engagement, bio, niche, what hashtag we found them on, when we DMed them,
+    which account sent the DM, their latest reply, and unread state.
+
+    Args:
+        handle: TikTok username, with or without @ (e.g. 'bajapawsllc' or '@bajapawsllc')
+    """
+    from gitd.services.marketing_lookup import lookup_lead as _lookup_lead
+
+    return _lookup_lead(handle)
+
+
+@mcp.tool()
+def list_unread_leads() -> str:
+    """List every influencer with an unread reply in the inbox, sorted by recency.
+
+    Returns one row per unread conversation with the handle, unread count,
+    last message preview, and timestamp. Useful for daily prioritisation:
+    'which leads should I respond to right now?'
+    """
+    from gitd.services.marketing_lookup import list_unread_leads as _list_unread_leads
+
+    return _list_unread_leads()
+
+
 # ── Local CRM lookups ────────────────────────────────────────────────────────
 
 
