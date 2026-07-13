@@ -18,6 +18,9 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
     private var loadCont: CheckedContinuation<Void, Never>?
     private let maxSteps = 8
     private var lastCallKey = ""
+    // Counts every (tool+args) call this run — catches loops the consecutive check
+    // misses (e.g. open→read→open→read alternating on a contentless page).
+    private var callCounts: [String: Int] = [:]
 
     /// GBNF that hard-restricts output to EXACTLY one of the 4 tool shapes with the
     /// right keys — a 2B model literally cannot emit invalid JSON or a bad tool name
@@ -83,9 +86,12 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
                 }
                 thinking = false
                 let key = "\(call.tool)|\(argStr(call))"
-                if key == lastCallKey {
-                    // anti-loop: same call twice → nudge it to do something different
-                    context += "\n(note: \(call.tool) repeated with no new result — try a DIFFERENT tool or argument)"
+                callCounts[key, default: 0] += 1
+                // anti-loop: same call back-to-back, OR the identical call seen 2+
+                // times total (alternating loops re-fetch the same page for nothing)
+                // → nudge it toward a different tool/arg or done.
+                if key == lastCallKey || callCounts[key, default: 0] >= 2 {
+                    context += "\n(note: \(call.tool) already tried with no new result — use a DIFFERENT tool or argument, or emit done with your summary)"
                     push("agent", "↻ repeated \(call.tool); nudging")
                     lastCallKey = ""
                     continue
@@ -100,7 +106,28 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
                 // keep context bounded (long prompts are slow + memory-heavy)
                 context = String((context + "\n- \(call.tool)(\(argStr(call))) → \(obs.prefix(450))").suffix(1300))
             }
-            if answer.isEmpty { answer = "(no final answer — agent stopped)" ; status = "⏹ stopped" }
+            if answer.isEmpty {
+                // Ran out of steps without a `done`. Rather than give up, force one
+                // final summary from whatever the agent actually observed — a grounded
+                // answer beats "(stopped)", and the observations are the only source.
+                if !context.isEmpty, let engine {
+                    status = "📝 summarizing…"; thinking = true
+                    var summary = ""
+                    let prompt = """
+                    You are Ghost, an on-device agent. Goal: \(goal)
+                    Notes from what you observed while browsing:
+                    \(context.suffix(1200))
+                    Write the final answer to the goal in 2 sentences. Use ONLY facts, topics, and names that literally appear in the notes above; never invent model names, versions, or numbers.
+                    Answer:
+                    """
+                    _ = try? await engine.generate(prompt: prompt, maxTokens: 160) { summary += $0 }
+                    thinking = false
+                    answer = summary.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+                if answer.isEmpty { answer = "(no final answer — agent stopped)"; status = "⏹ stopped" }
+                else { status = "✅ done (forced summary)"; push("agent", "⏱ step budget reached — summarized from observations") }
+                print("AGENT_ANSWER \(answer)")
+            }
             StatusServer.shared.update(phase: "done", tokS: 0, model: spec.displayName, line: status)
         } catch {
             status = "⚠️ \(error)"
@@ -127,7 +154,9 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         Progress so far:\(context.isEmpty ? " nothing yet — open a page first." : context)
 
         IMPORTANT: As soon as the page text above contains what the goal needs, use
-        {"tool":"done","summary":"..."} — do NOT read the same page again.
+        {"tool":"done","summary":"..."} — do NOT read the same page again. In the
+        summary, use ONLY facts, topics, and names that literally appear in the page
+        text above; never invent model names, versions, or numbers.
         Reply with ONE JSON tool call:
         """
         let valid = ["open", "read", "click", "done"]
@@ -180,9 +209,9 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         case "open":
             guard let s = c.url, let u = normalizedURL(s) else { return "invalid url" }
             await load(u)
-            return "opened \(currentURL). Page text: \(await readText(700))"
+            return "opened \(currentURL). Page text: \(await readText(1600))"
         case "read":
-            return "Page text: \(await readText(900))"
+            return "Page text: \(await readText(1600))"
         case "click":
             let ok = await clickLink(containing: c.text ?? "")
             if ok { return "clicked '\(c.text ?? "")'. Now at \(currentURL). Page text: \(await readText(700))" }

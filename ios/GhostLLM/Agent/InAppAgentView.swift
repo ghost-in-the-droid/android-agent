@@ -12,7 +12,7 @@ struct WebViewContainer: UIViewRepresentable {
 struct InAppAgentView: View {
     @StateObject private var vm = InAppAgentViewModel()
     private let goal = ProcessInfo.processInfo.environment["GHOST_GOAL"]
-        ?? "Open https://old.reddit.com/r/LocalLLaMA/ and summarize what the community is discussing right now, in 2 sentences."
+        ?? "Open https://old.reddit.com/r/LocalLLaMA/ and summarize the main THEMES the community is discussing right now, in 2 sentences. Describe topics in general terms; do NOT invent specific model names, versions, or numbers."
 
     var body: some View {
         VStack(spacing: 0) {
