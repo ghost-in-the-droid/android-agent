@@ -4,12 +4,15 @@ import SwiftUI
 struct GhostLLMApp: App {
     var body: some Scene {
         WindowGroup {
-            if ProcessInfo.processInfo.environment["GHOST_AGENT"] == "1" {
-                InAppAgentView()   // real on-device agent: Gemma drives an in-app browser
+            // Agent is the DEFAULT experience (uses its built-in r/LocalLLaMA goal),
+            // so a bare launch — no env vars — runs the real on-device agent cleanly.
+            // Opt out with GHOST_CHAT=1 (plain chat) or GHOST_DEMO=1 (scripted demo).
+            if ProcessInfo.processInfo.environment["GHOST_CHAT"] == "1" {
+                ContentView()
             } else if ProcessInfo.processInfo.environment["GHOST_DEMO"] == "1" {
                 DemoView()         // scripted hero demo (fetch + summarize)
             } else {
-                ContentView()
+                InAppAgentView()   // real on-device agent: Gemma drives an in-app browser
             }
         }
     }

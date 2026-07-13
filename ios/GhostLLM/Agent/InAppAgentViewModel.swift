@@ -53,6 +53,7 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
     }
 
     func run(goal: String) async {
+        print("AGENT_GOAL \(goal)")
         StatusServer.shared.start()
         do {
             // Qwen2.5-1.5B: small enough to run beside a WKWebView (Gemma+WebKit OOMs)
@@ -99,7 +100,7 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
                 lastCallKey = key
                 print("AGENT_TOOL step=\(step) \(call.tool)(\(argStr(call)))")
                 let obs = await execute(call)
-                print("AGENT_OBS \(obs.prefix(140))")
+                print("AGENT_OBS \(obs.prefix(1200))")
                 push("tool", "\(call.tool) → \(obs.prefix(160))")
                 StatusServer.shared.update(phase: call.tool, tokS: 0, model: spec.displayName, line: "\(call.tool): \(obs.prefix(80))")
                 if call.tool == "done" { answer = call.summary ?? obs; status = "✅ done"; print("AGENT_ANSWER \(answer)"); break }
@@ -168,8 +169,12 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         var thought = ""
         _ = try? await engine.generate(prompt: base + "\nReason in one short sentence, then give the tool call:", maxTokens: 80) { thought += $0 }
         print("AGENT_THOUGHT<\(thought.prefix(140))>")
+        // URLs the model is ALLOWED to open = those literally present in the goal or
+        // what it has already seen. Without this the constrained fill lets a small
+        // model default the url to example.com (its training-prior "example URL").
+        let allowedURLs = urlsIn(goal + " " + context)
         if let picked = ToolCall.parse(from: thought), valid.contains(picked.tool),
-           let g = narrowGrammar(for: picked.tool) {
+           let g = narrowGrammar(for: picked.tool, allowedURLs: allowedURLs) {
             var action = ""
             _ = try? await engine.generate(prompt: base + "\nThought: \(thought.prefix(220))\nOutput the \(picked.tool) tool call:", maxTokens: 96, grammar: g) { action += $0 }
             print("AGENT_ACTION<\(action.prefix(120))>")
@@ -188,8 +193,17 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
 
     /// Grammar constrained to exactly ONE tool (+ its args). The tool is fixed, so a
     /// 2B can't mis-commit the branch; only the arg values are model-chosen.
-    private func narrowGrammar(for tool: String) -> String? {
-        let common = [#"q   ::= ["]"#, #"url ::= [a-zA-Z0-9:/._?=&%~#@+-]+"#,
+    private func narrowGrammar(for tool: String, allowedURLs: [String] = []) -> String? {
+        // If we know which URLs are legitimate (present in goal/context), pin the url
+        // rule to an alternation of those exact literals so the model can't fabricate
+        // one (e.g. example.com). Fall back to a free url charclass if we know none.
+        let urlRule: String
+        if tool == "open", !allowedURLs.isEmpty {
+            urlRule = "url ::= " + allowedURLs.map { "\"\($0)\"" }.joined(separator: " | ")
+        } else {
+            urlRule = #"url ::= [a-zA-Z0-9:/._?=&%~#@+-]+"#
+        }
+        let common = [#"q   ::= ["]"#, urlRule,
                       #"txt ::= [a-zA-Z0-9 .,!?;:'()/_-]+"#, ""]
         let root: String
         switch tool {
@@ -200,6 +214,20 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         default: return nil
         }
         return ([root] + common).joined(separator: "\n")
+    }
+
+    /// Extract distinct http(s) URLs appearing in `text` (trailing punctuation
+    /// stripped). Used to whitelist which pages the agent may open.
+    private func urlsIn(_ text: String) -> [String] {
+        guard let re = try? NSRegularExpression(pattern: #"https?://[^\s"'|}\\]+"#) else { return [] }
+        var seen: [String] = []
+        for m in re.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+            guard let r = Range(m.range, in: text) else { continue }
+            var u = String(text[r])
+            while let last = u.last, ".,;:)]".contains(last) { u.removeLast() }
+            if !u.isEmpty, !seen.contains(u) { seen.append(u) }
+        }
+        return seen
     }
 
     // MARK: - Execute a tool against the WebView
