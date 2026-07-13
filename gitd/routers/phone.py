@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/phone", tags=["phone"])
 
 _last_wifi_reconnect: float = 0
 
+
 def _ios_unsupported(feature: str) -> dict:
     return {"ok": False, "platform": "ios", "error": f"{feature} is Android-only and is not supported for iOS devices"}
 

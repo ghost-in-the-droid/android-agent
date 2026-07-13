@@ -15,6 +15,7 @@ Reachability strategies, in order (first that connects wins, remembered):
 
 Frontend decodes the Annex-B H.264 with WebCodecs. See docs/ios/FLEET.md.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -33,6 +34,7 @@ from gitd.bots.common.ios import (
 try:  # core-dev owns is_remote_ref (Ghost-side @host parsing); use it once it lands.
     from gitd.bots.common.device import is_remote_ref as _is_remote_ref
 except ImportError:  # safe interim signal: only remote refs carry "@" (Android serials never do)
+
     def _is_remote_ref(ref: str) -> bool:
         return "@" in (ref or "")
 
@@ -103,6 +105,7 @@ async def _ensure_session(device: str) -> None:
             get_device(device)._ensure_session()
         except Exception:
             pass
+
     await asyncio.to_thread(_ens)
 
 
@@ -113,11 +116,11 @@ async def _ensure_session_guarded(device: str, udid: str) -> None:
     loop = asyncio.get_event_loop()
     lock = _session_locks.setdefault(udid, asyncio.Lock())
     if lock.locked():
-        async with lock:      # someone is launching — just wait for it
+        async with lock:  # someone is launching — just wait for it
             return
     async with lock:
         if loop.time() - _last_ensure.get(udid, 0.0) < ENSURE_COOLDOWN:
-            return            # launched recently; don't relaunch
+            return  # launched recently; don't relaunch
         _last_ensure[udid] = loop.time()
         await _ensure_session(device)
 

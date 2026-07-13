@@ -1,4 +1,5 @@
 """Marketing lead lookup helpers shared by MCP and in-process agents."""
+
 from __future__ import annotations
 
 from pathlib import Path
