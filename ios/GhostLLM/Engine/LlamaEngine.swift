@@ -18,7 +18,10 @@ actor LlamaEngine: InferenceEngine {
     // it while another/future engine exists breaks model switching + perf).
     private static let backendInit: Void = { llama_backend_init() }()
 
-    init(modelURL: URL, nCtx: UInt32 = 2048, nBatch: Int32 = 512) throws {
+    /// `cpuOnly` forces CPU inference (n_gpu_layers=0). Needed when the app runs in
+    /// the BACKGROUND (driving another app): iOS kills Metal/GPU command buffers
+    /// submitted from the background, so we must fall back to the CPU there.
+    init(modelURL: URL, nCtx: UInt32 = 2048, nBatch: Int32 = 512, cpuOnly: Bool = false) throws {
         let t0 = Date()
         _ = LlamaEngine.backendInit
 
@@ -27,8 +30,8 @@ actor LlamaEngine: InferenceEngine {
         mparams.n_gpu_layers = 0
         self.backendName = "cpu (simulator)"
         #else
-        mparams.n_gpu_layers = 99
-        self.backendName = "metal"
+        mparams.n_gpu_layers = cpuOnly ? 0 : 99
+        self.backendName = cpuOnly ? "cpu" : "metal"
         #endif
 
         guard let m = llama_model_load_from_file(modelURL.path, mparams) else {
