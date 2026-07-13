@@ -1,16 +1,15 @@
-"""LangChain × Ghost — per-run subreddit harvester. Each run picks the next
-pending subreddit, reads the top-2 post stats via ReAct, writes to DB."""
-import json, os, sqlite3, subprocess, sys, warnings
+"""LangChain × Ghost — per-run subreddit harvester. Drives the phone via LOCAL
+Claude Code (no cloud API key — your own subscription) through LangChain tools,
+reads the top-2 post stats, writes to DB."""
+import json, os, re, sqlite3, subprocess, sys, warnings
 warnings.filterwarnings("ignore")
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from integrations.langchain import ghost_langchain_tools
-from langgraph.prebuilt import create_react_agent
-from langchain_openai import ChatOpenAI
+from langchain_claude_code import ChatClaudeCode
 
 DB, DEVICE = Path(__file__).with_name("posts.db"), os.environ.get("GHOST_DEVICE") or os.environ["ANDROID_SERIAL"]
 SEED = ["LocalLLaMA", "MachineLearning"]
-_env  = dict(l.split("=",1) for l in (Path(__file__).parents[2]/".env").read_text().splitlines() if "=" in l and not l.startswith("#"))
 
 def db():
     conn = sqlite3.connect(DB)
@@ -41,13 +40,15 @@ def main():
 def harvest(subreddit):
     subprocess.run(["adb", "-s", DEVICE, "shell", "am", "force-stop",
                     "com.reddit.frontpage"], capture_output=True)
-    llm   = ChatOpenAI(model="qwen3:8b", base_url="http://127.0.0.1:11434/v1",
-                       api_key="ollama", max_tokens=3072)
-    tools = ghost_langchain_tools(DEVICE)  # ← 40+ phone tools
-    agent = create_react_agent(llm, tools)  # ← any LLM
-    task  = f"1. Open the Reddit app and navigate to r/{subreddit}\n2. Read the title, upvote count and comment count of the first 2 posts\nReply with ONLY a JSON array in a ```json fenced block: [{{\"title\": ..., \"upvotes\": ..., \"comments\": ...}}, {{\"title\": ..., \"upvotes\": ..., \"comments\": ...}}]"
-    out   = agent.invoke({"messages": [("user", task)]}, {"recursion_limit": 45})["messages"][-1].content
-    try:    return json.loads(out.split("```json")[-1].split("```")[0].strip())
-    except: return json.loads(out)
+    llm  = ChatClaudeCode(model="sonnet", permission_mode="bypassPermissions")  # local Claude Code, no API key
+    tools = ghost_langchain_tools(DEVICE)  # 53 phone tools, exposed to Claude Code as an in-process MCP
+    task  = f"Open the Reddit app and navigate to r/{subreddit}. Read the title, upvote count and comment count of the first 2 posts. Reply with ONLY a JSON array in a ```json fenced block: [{{\"title\": ..., \"upvotes\": ..., \"comments\": ...}}, {{\"title\": ..., \"upvotes\": ..., \"comments\": ...}}]"
+    out  = llm.bind_tools(tools).invoke(task).content  # Claude Code IS the agent loop
+    txt = re.sub(r"<think>.*?</think>", "", out, flags=re.DOTALL)
+    for cand in (txt.split("```json")[-1].split("```")[0].strip(), txt.strip()):
+        try:    return json.loads(cand)
+        except: pass
+    m = re.search(r"\[.*\]", txt, re.DOTALL)  # first JSON array anywhere
+    return json.loads(m.group(0)) if m else json.loads(txt)
 
 if __name__ == "__main__": main()
