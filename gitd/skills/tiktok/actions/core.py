@@ -98,7 +98,9 @@ class TypeAndSearch(Action):
         if pos:
             self.device.tap(*pos, delay=0.3)
         # Clear and type
-        self.device.adb("shell", "input", "text", self.query.replace(' ', '%s'))
+        from gitd.bots.common.adb import input_text_arg
+
+        self.device.adb("shell", "input", "text", input_text_arg(str(self.query)))
         time.sleep(0.5)
         self.device.press_enter()
         time.sleep(2)

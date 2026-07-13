@@ -176,7 +176,9 @@ class MacroRecorder:
         if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "type_text"):
             self.dev.type_text(text)
         else:
-            self.dev.adb("shell", "input", "text", text.replace(" ", "%s"))
+            from gitd.bots.common.adb import input_text_arg
+
+            self.dev.adb("shell", "input", "text", input_text_arg(text))
         time.sleep(delay)
 
     def back(self, delay=1.0):
@@ -232,8 +234,9 @@ class MacroRecorder:
                 if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "type_text"):
                     self.dev.type_text(p["text"])
                 else:
-                    self.dev.adb("shell", "input", "text",
-                                p["text"].replace(" ", "%s"))
+                    from gitd.bots.common.adb import input_text_arg
+
+                    self.dev.adb("shell", "input", "text", input_text_arg(p["text"]))
             elif action == "back":
                 self._replay_back(delay=0)
             elif action == "home":
