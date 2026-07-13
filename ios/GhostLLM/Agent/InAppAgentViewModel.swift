@@ -11,6 +11,30 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
     @Published var answer = ""
     @Published var thinking = false
     @Published var currentURL = ""
+    // Chat-style surface (Android-matched UI). `chat` is the bubble transcript;
+    // `activityLine` is the amber "what it's doing right now" indicator.
+    @Published var chat: [ChatMsg] = []
+    @Published var activityLine = ""
+    @Published var ready = false      // engine loaded, waiting for a prompt
+    @Published var running = false
+
+    private func say(_ role: ChatRole, _ text: String) { chat.append(ChatMsg(role: role, text: text)) }
+    private(set) var modelName = "Qwen2.5 1.5B"
+
+    /// Friendly chip label for a tool call (what the phone is doing, in plain words).
+    private func toolLabel(_ c: ToolCall) -> String {
+        switch c.tool {
+        case "open":  return "🌐 open \(prettyHost(c.url ?? ""))"
+        case "read":  return "📄 read the page"
+        case "click": return "👆 tap “\(c.text ?? "")”"
+        case "done":  return "✅ summarize"
+        default:       return "🔧 \(c.tool)"
+        }
+    }
+    private func prettyHost(_ url: String) -> String {
+        guard let h = URLComponents(string: url)?.host else { return url }
+        return h.replacingOccurrences(of: "www.", with: "")
+    }
 
     let webView: WKWebView
     private var engine: LlamaEngine?
@@ -47,18 +71,20 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
         webView = WKWebView(frame: .zero, configuration: cfg)
         super.init()
         webView.navigationDelegate = self
+        // Dark background so the panel doesn't flash white against the dark theme.
+        webView.isOpaque = false
+        webView.backgroundColor = UIColor(red: 0x06/255, green: 0x0A/255, blue: 0x07/255, alpha: 1)
+        webView.scrollView.backgroundColor = webView.backgroundColor
         // Desktop UA so old.reddit serves the classic layout (a.title post links)
         // instead of a mobile/search redirect.
         webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
     }
 
-    func run(goal: String) async {
-        print("AGENT_GOAL \(goal)")
+    /// Load the model once, then idle — the chat UI waits for a typed prompt.
+    func prepare() async {
+        guard engine == nil else { ready = true; return }
         StatusServer.shared.start()
         do {
-            // Qwen2.5-1.5B: small enough to run beside a WKWebView (Gemma+WebKit OOMs)
-            // and stronger at tool-calling. Prefer it; fall back to the bundled model
-            // (e.g. on the simulator, which lacks Qwen); else download Qwen (~1.1 GB).
             let spec = ModelStore.isAvailable(ModelRegistry.qwen15) ? ModelRegistry.qwen15
                      : ModelStore.isAvailable(ModelRegistry.phase0) ? ModelRegistry.phase0
                      : ModelRegistry.qwen15
@@ -68,22 +94,38 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
                 url = try ModelStore.resolvedURL(for: spec)
             } else {
                 url = try await downloader.ensure(spec) { p in
-                    Task { @MainActor in self.status = "⬇️ downloading agent model \(Int(p * 100))%…" }
+                    Task { @MainActor in self.status = "⬇️ downloading model \(Int(p * 100))%…" }
                 }
             }
-            // nBatch must be >= the (long) agent prompt — generate() fills one batch.
-            // Smaller nCtx trims the KV cache to leave room for WebKit's rendered page.
             engine = try LlamaEngine(modelURL: url, nCtx: 1536, nBatch: 768)
+            modelName = spec.displayName
             let backend = await engine!.backend
-            push("agent", "goal: \(goal)")
-            status = "🤖 agent running · \(spec.displayName) · \(backend)"
+            status = "ready · \(spec.displayName) · \(backend)"
+            ready = true
+        } catch {
+            status = "⚠️ \(error)"
+        }
+    }
 
+    /// Run the agent for a user-typed prompt, emitting chat bubbles + tool chips.
+    func submit(goal: String) async {
+        let goal = goal.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !goal.isEmpty, !running else { return }
+        if engine == nil { await prepare() }
+        print("AGENT_GOAL \(goal)")
+        say(.user, goal)
+        running = true; answer = ""; lastCallKey = ""; callCounts.removeAll()
+        defer { running = false; thinking = false; activityLine = "" }
+        do {
+            let spec = ModelRegistry.qwen15
+            status = "🤖 working…"
             var context = ""
             for step in 0..<maxSteps {
                 thinking = true
+                activityLine = "🤔 thinking…"
                 StatusServer.shared.update(phase: "thinking(step \(step))", tokS: 0, model: spec.displayName, line: status)
                 guard let call = await decide(goal: goal, context: context) else {
-                    push("agent", "⚠️ couldn't parse a tool call; stopping"); break
+                    say(.error, "couldn't decide a next step — stopping"); break
                 }
                 thinking = false
                 let key = "\(call.tool)|\(argStr(call))"
@@ -99,11 +141,16 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
                 }
                 lastCallKey = key
                 print("AGENT_TOOL step=\(step) \(call.tool)(\(argStr(call)))")
+                say(.tool, toolLabel(call))
+                activityLine = toolLabel(call)
                 let obs = await execute(call)
                 print("AGENT_OBS \(obs.prefix(1200))")
                 push("tool", "\(call.tool) → \(obs.prefix(160))")
                 StatusServer.shared.update(phase: call.tool, tokS: 0, model: spec.displayName, line: "\(call.tool): \(obs.prefix(80))")
-                if call.tool == "done" { answer = call.summary ?? obs; status = "✅ done"; print("AGENT_ANSWER \(answer)"); break }
+                if call.tool == "done" {
+                    answer = call.summary ?? obs; status = "✅ done"; activityLine = ""
+                    say(.assistant, answer); print("AGENT_ANSWER \(answer)"); break
+                }
                 // keep context bounded (long prompts are slow + memory-heavy)
                 context = String((context + "\n- \(call.tool)(\(argStr(call))) → \(obs.prefix(450))").suffix(1300))
             }
@@ -125,13 +172,18 @@ final class InAppAgentViewModel: NSObject, ObservableObject, WKNavigationDelegat
                     thinking = false
                     answer = summary.trimmingCharacters(in: .whitespacesAndNewlines)
                 }
-                if answer.isEmpty { answer = "(no final answer — agent stopped)"; status = "⏹ stopped" }
-                else { status = "✅ done (forced summary)"; push("agent", "⏱ step budget reached — summarized from observations") }
+                if answer.isEmpty {
+                    answer = "I couldn't finish that one — the page didn't give me enough to summarize."
+                    status = "⏹ stopped"; say(.error, answer)
+                } else {
+                    status = "✅ done"; say(.assistant, answer)
+                }
                 print("AGENT_ANSWER \(answer)")
             }
+            activityLine = ""
             StatusServer.shared.update(phase: "done", tokS: 0, model: spec.displayName, line: status)
         } catch {
-            status = "⚠️ \(error)"
+            status = "⚠️ \(error)"; say(.error, "\(error)")
         }
     }
 

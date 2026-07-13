@@ -12,7 +12,7 @@ struct GhostLLMApp: App {
             } else if ProcessInfo.processInfo.environment["GHOST_DEMO"] == "1" {
                 DemoView()         // scripted hero demo (fetch + summarize)
             } else {
-                InAppAgentView()   // real on-device agent: Gemma drives an in-app browser
+                AgentChatView()    // real on-device agent, Android-style chat UI
             }
         }
     }
