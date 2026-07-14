@@ -29,6 +29,7 @@ struct ToolCall: Codable, Equatable {
     var bundleId: String? = nil
     var url: String? = nil
     var summary: String? = nil
+    var app: String? = nil
 
     /// Extract the first JSON object from arbitrary model text and decode it.
     static func parse(from raw: String) -> ToolCall? {
