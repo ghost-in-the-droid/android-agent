@@ -67,8 +67,9 @@ class TypeText(Action):
         if _device_is_ios(self.device) and hasattr(self.device, 'type_text'):
             self.device.type_text(self.text)
         elif all(ord(c) < 128 for c in self.text):
-            escaped = self.text.replace(' ', '%s').replace("'", "\\'").replace('"', '\\"')
-            self.device.adb("shell", "input", "text", escaped)
+            from gitd.bots.common.adb import input_text_arg
+
+            self.device.adb("shell", "input", "text", input_text_arg(self.text))
         else:
             self.device.type_unicode(self.text)
         time.sleep(0.3)

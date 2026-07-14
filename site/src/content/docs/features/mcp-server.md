@@ -116,9 +116,58 @@ Ghost speaks MCP over two transports:
 
 The fastest start is Claude Code:
 
+### Claude Code (recommended)
+
+Add `.mcp.json` to your project root:
+
+```json
+{
+  "mcpServers": {
+    "android-agent": {
+      "command": "android-agent-mcp"
+    }
+  }
+}
+```
+
+Or register globally:
+
 ```bash
 claude mcp add android-agent android-agent-mcp
 ```
+
+### Claude Desktop (HTTP)
+
+```json
+{
+  "mcpServers": {
+    "android-agent": {
+      "url": "http://localhost:8002/mcp"
+    }
+  }
+}
+```
+
+Start the server first: `python3 -m gitd.mcp_server`
+
+### Cursor / Codex CLI (stdio)
+
+```json
+{
+  "mcpServers": {
+    "android-agent": {
+      "command": "python3",
+      "args": ["-m", "gitd.mcp_server"]
+    }
+  }
+}
+```
+
+### ChatGPT / GPT Actions
+
+ChatGPT uses OpenAPI, not MCP. Expose port 5055 via ngrok or Cloudflare Tunnel, then import the OpenAPI spec as a Custom GPT Action.
+
+### Other clients
 
 Every other client — Cursor, Windsurf, Zed, Continue, Cline, Codex CLI, Claude Desktop, Cherry Studio, OpenClaw, and ChatGPT / GPT Actions (via the OpenAPI REST layer) — has its own config format. The **[MCP Clients compatibility matrix](/features/mcp-clients/)** lists the transport each one supports and the exact snippet to wire Ghost in.
 

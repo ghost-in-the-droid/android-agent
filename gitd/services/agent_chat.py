@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from gitd.bots.common.device import is_ios_ref
 from gitd.services.agent_tools import execute_tool, get_screenshot_b64, tool_prompt_list, tools_for_device
 from gitd.services.device_context import get_phone_state, get_screen_tree
+from gitd.services.llm_backoff import backoff_stream, effort_timeout
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ Guidelines:
 - Use only the tools exposed for the current device platform
 - Keep responses concise — show what you did and the result"""
 
-MAX_TURNS = 15
+MAX_TURNS = 24
 
 PROVIDERS = {
     "claude-code": {"label": "Claude Code (free)", "models": ["sonnet", "opus", "haiku"]},
@@ -191,8 +192,13 @@ def stop_agent(session_id: str):
     except Exception:
         # pgid lookup failed (proc already reaped) — best-effort plain kill.
         try:
-            proc.kill()
-        except Exception:
+            pgid = _os.getpgid(proc.pid)
+            _os.killpg(pgid, _sig.SIGTERM)
+            try:
+                proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                _os.killpg(pgid, _sig.SIGKILL)
+        except (ProcessLookupError, PermissionError):
             pass
     log.info("Stopped agent for session %s", session_id)
 
@@ -448,13 +454,21 @@ def _chat_anthropic(session: ChatSession, user_message: str):
 
     for turn in range(MAX_TURNS):
         try:
-            resp = client.messages.create(
-                model=session.model,
-                max_tokens=4096,
-                system=system_prompt_for_device(session.device),
-                messages=session.api_messages,
-                tools=available_tools,
-            )
+            resp = None
+            for ev in backoff_stream(
+                lambda: client.messages.create(
+                    model=session.model,
+                    max_tokens=4096,
+                    system=system_prompt_for_device(session.device),
+                    messages=session.api_messages,
+                    tools=available_tools,
+                    timeout=effort_timeout(session.model),
+                )
+            ):
+                if "__result__" in ev:
+                    resp = ev["__result__"]
+                else:
+                    yield ev
         except Exception as e:
             yield {"type": "error", "content": str(e)}
             return
@@ -517,20 +531,24 @@ def _chat_anthropic(session: ChatSession, user_message: str):
 
 
 def _chat_openrouter(session: ChatSession, user_message: str):
-    """Use OpenRouter with OpenAI-compatible tool calling."""
+    """Use OpenRouter with OpenAI-compatible tool calling.
+
+    Multi-turn agent loop (same shape as _chat_vllm): feed each tool result
+    back to the model until it answers without tool calls or MAX_TURNS.
+    """
     from openai import OpenAI
+
+    from gitd.config import settings
 
     session.messages.append(ChatMessage(role="user", content=user_message))
 
     client = OpenAI(
-        api_key=os.environ.get("OPENROUTER_API_KEY", ""),
+        api_key=os.environ.get("OPENROUTER_API_KEY", settings.openrouter_api_key or ""),
         base_url="https://openrouter.ai/api/v1",
     )
 
-    # Convert tools to OpenAI format
     oai_tools = openai_tools_for_device(session.device)
 
-    # Build messages
     context = ""
     try:
         tree = get_screen_tree(session.device)
@@ -539,41 +557,85 @@ def _chat_openrouter(session: ChatSession, user_message: str):
     except Exception:
         pass
 
-    messages = [
+    messages: list[dict] = [
         {"role": "system", "content": system_prompt_for_device(session.device)},
         {"role": "user", "content": f"{context}Device: {session.device}\n\n{user_message}"},
     ]
 
-    try:
-        resp = client.chat.completions.create(
-            model=session.model or "anthropic/claude-sonnet-4",
-            messages=messages,
-            tools=oai_tools,
-            max_tokens=4096,
-        )
+    model = session.model or "anthropic/claude-sonnet-4"
+
+    for _turn in range(MAX_TURNS):
+        try:
+            resp = None
+            for ev in backoff_stream(
+                lambda: client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    tools=oai_tools,
+                    max_tokens=4096,
+                    timeout=effort_timeout(model),
+                )
+            ):
+                if "__result__" in ev:
+                    resp = ev["__result__"]
+                else:
+                    yield ev
+        except Exception as e:
+            yield {"type": "error", "content": str(e)}
+            yield {"type": "done"}
+            return
+
         msg = resp.choices[0].message
 
         if msg.content:
             session.messages.append(ChatMessage(role="assistant", content=msg.content))
             yield {"type": "text", "content": msg.content}
 
-        if msg.tool_calls:
-            for tc in msg.tool_calls:
-                tool_name = tc.function.name
-                tool_args = json.loads(tc.function.arguments)
-                tool_args.setdefault("device", session.device)
+        tool_calls = getattr(msg, "tool_calls", None) or []
+        if not tool_calls:
+            break
 
-                session.messages.append(
-                    ChatMessage(role="tool_call", tool_name=tool_name, tool_args=tool_args, content="")
-                )
-                yield {"type": "tool_call", "name": tool_name, "args": tool_args}
+        messages.append(
+            {
+                "role": "assistant",
+                "content": msg.content or "",
+                "tool_calls": [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+                    }
+                    for tc in tool_calls
+                ],
+            }
+        )
 
+        for tc in tool_calls:
+            tool_name = tc.function.name
+            try:
+                tool_args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+            except json.JSONDecodeError:
+                tool_args = {}
+            tool_args.setdefault("device", session.device)
+
+            session.messages.append(ChatMessage(role="tool_call", tool_name=tool_name, tool_args=tool_args, content=""))
+            yield {"type": "tool_call", "name": tool_name, "args": tool_args}
+
+            try:
                 result = execute_tool(tool_name, tool_args)
-                session.messages.append(ChatMessage(role="tool_result", content=result, tool_name=tool_name))
-                yield {"type": "tool_result", "name": tool_name, "result": result[:500]}
+            except Exception as e:
+                result = f"Tool error: {e}"
+            session.messages.append(ChatMessage(role="tool_result", content=result[:500], tool_name=tool_name))
+            yield {"type": "tool_result", "name": tool_name, "result": result[:500]}
 
-    except Exception as e:
-        yield {"type": "error", "content": str(e)}
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "name": tool_name,
+                    "content": result[:1500],
+                }
+            )
 
     yield {"type": "done"}
 
@@ -623,12 +685,20 @@ def _chat_vllm(session: ChatSession, user_message: str):
         yield {"type": "activity", "content": f"🧠 Inferring (turn {turn + 1})..."}
 
         try:
-            resp = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                tools=oai_tools,
-                max_tokens=2048,
-            )
+            resp = None
+            for ev in backoff_stream(
+                lambda: client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    tools=oai_tools,
+                    max_tokens=2048,
+                    timeout=effort_timeout(model),
+                )
+            ):
+                if "__result__" in ev:
+                    resp = ev["__result__"]
+                else:
+                    yield ev
         except Exception as e:
             yield {
                 "type": "error",
@@ -701,7 +771,7 @@ def _chat_vllm(session: ChatSession, user_message: str):
     yield {"type": "done"}
 
 
-# ── Ollama ───────────────────────────────────────────────────────────────────
+# ── Tool-call parsing + Ollama ────────────────────────────────────────────────
 
 
 def _parse_tool_calls(text: str) -> list[dict]:

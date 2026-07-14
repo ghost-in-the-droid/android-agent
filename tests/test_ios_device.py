@@ -349,7 +349,7 @@ Current device information:
     }
 
 
-def test_remote_xpc_tunnel_status_detects_stale_registry_address(monkeypatch):
+def test_remote_xpc_tunnel_status_tolerates_independent_tunnel_addresses(monkeypatch):
     monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORT", raising=False)
     monkeypatch.delenv("IOS_REMOTE_XPC_REGISTRY_PORTS", raising=False)
 
@@ -377,15 +377,16 @@ def test_remote_xpc_tunnel_status_detects_stale_registry_address(monkeypatch):
         host={"source": "host", "platform_version": "26.5"},
     )
 
+    # Independent tunnels (pymobiledevice3 vs CoreDevice) with different addresses:
+    # while devicectl reports the tunnel connected, this is 'available', not stale.
     assert status["required"] is True
-    assert status["ok"] is False
-    assert status["state"] == "stale"
+    assert status["ok"] is True
+    assert status["state"] == "available"
     assert status["registry"]["address"] == "fd5d:d8f1:7a61::1"
     assert status["devicectl"]["tunnel_ip_address"] == "fdc0:1f0c:103c::1"
     assert status["registry_address"] == "fd5d:d8f1:7a61::1"
     assert status["current_address"] == "fdc0:1f0c:103c::1"
     assert status["devicectl_connected"] is True
-    assert status["stale_reason"] == "registry_address_mismatch"
 
 
 def test_remote_xpc_tunnel_status_reports_missing_registry_entry(monkeypatch):
@@ -1099,9 +1100,11 @@ def test_probe_fails_fast_when_required_remote_xpc_tunnel_is_stale(monkeypatch):
             }
         ],
     )
+    # Genuinely stale: devicectl reports the tunnel disconnected (a real staleness
+    # signal, unlike a mere address mismatch which is normal for independent tunnels).
     monkeypatch.setattr(
         "gitd.bots.common.ios.devicectl_device_details",
-        lambda udid: {"tunnel_ip_address": "fdc0:1f0c:103c::1", "tunnel_state": "connected"},
+        lambda udid: {"tunnel_ip_address": "", "tunnel_state": "disconnected"},
     )
     monkeypatch.delenv("IOS_DEVICE_NAME", raising=False)
     monkeypatch.delenv("IOS_PLATFORM_VERSION", raising=False)
@@ -1110,8 +1113,9 @@ def test_probe_fails_fast_when_required_remote_xpc_tunnel_is_stale(monkeypatch):
     status = dev.probe(deep=True)
 
     assert status.state == "remote_xpc_tunnel_unavailable"
-    assert "stale tunnel" in status.message
+    assert "not connected" in status.message
     assert status.checks["remote_xpc_tunnel"]["state"] == "stale"
+    assert status.checks["remote_xpc_tunnel"]["stale_reason"] == "devicectl_tunnel_disconnected"
     assert all(not url.endswith("/session") for url in calls)
 
 

@@ -25,7 +25,6 @@ android-agent skill install tiktok
 | Workflow | Description | Steps |
 |----------|-------------|-------|
 | `upload_video` | Upload a video with caption and hashtags | open_app, upload_flow |
-| `crawl_users` | Search users tab, scrape profiles | open_app, tap_search, type_and_search, scrape_loop |
 | `publish_draft` | Find and publish a saved draft | open_app, navigate_to_profile, open_drafts, publish |
 
 ## Popup Detectors

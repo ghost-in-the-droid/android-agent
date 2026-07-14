@@ -179,4 +179,4 @@ Then cut a new PATCH release with the fix.
 
 ## Automation Roadmap
 
-See `docs/refactor/release-automation-nbs.md` (internal) for the next-level automation plans that are deliberately not shipped yet (release-please bot, squash-merge enforcement, Trusted Publishing, public-first workflow).
+Next-level automation is planned but deliberately not shipped yet: a release-please bot, squash-merge enforcement, Trusted Publishing, and a public-first workflow.

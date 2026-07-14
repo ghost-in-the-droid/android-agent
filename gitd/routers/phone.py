@@ -33,6 +33,22 @@ def _error_text(exc: Exception) -> str:
     return str(exc) or exc.__class__.__name__
 
 
+def _ios_unsupported(feature: str) -> dict:
+    return {"ok": False, "platform": "ios", "error": f"{feature} is Android-only and is not supported for iOS devices"}
+
+
+def _platform(device: str) -> str:
+    return "ios" if is_ios_ref(device) else "android"
+
+
+def _phone_error(device: str, error: str) -> dict:
+    return {"ok": False, "device": device, "platform": _platform(device), "error": error}
+
+
+def _error_text(exc: Exception) -> str:
+    return str(exc) or exc.__class__.__name__
+
+
 def _try_wifi_reconnect(db: Session):
     """Try reconnecting known WiFi devices that aren't currently connected (max once per 30s)."""
     global _last_wifi_reconnect
@@ -257,7 +273,9 @@ def api_phone_tap(data: dict = Body({})):
             if is_ios_ref(device):
                 dev.press_key(str(data["keyevent"]))
             else:
-                dev.adb("shell", "input", "keyevent", data["keyevent"])
+                from gitd.bots.common.adb import normalize_keycode
+
+                dev.adb("shell", "input", "keyevent", normalize_keycode(str(data["keyevent"])))
         else:
             x, y = int(data.get("x", 0)), int(data.get("y", 0))
             stream_w = int(data.get("stream_w", 0))
@@ -291,7 +309,9 @@ def api_phone_type(data: dict = Body({})):
         if is_ios_ref(device):
             dev.type_text(text_val)
         else:
-            dev.adb("shell", "input", "text", text_val.replace(" ", "%s"))
+            from gitd.bots.common.adb import ascii_typeable, input_text_arg
+
+            dev.adb("shell", "input", "text", input_text_arg(ascii_typeable(str(text_val))))
         return {"ok": True, "device": device, "platform": _platform(device)}
     except Exception as e:
         return _phone_error(device, _error_text(e))
@@ -376,10 +396,10 @@ def api_phone_key(data: dict = Body({})):
         dev = get_device(device)
         if is_ios_ref(device):
             dev.press_key(key)
-        elif not key.startswith("KEYCODE_"):
-            key = "KEYCODE_" + key
-            dev.adb("shell", "input", "keyevent", key)
         else:
+            from gitd.bots.common.adb import normalize_keycode
+
+            key = normalize_keycode(key)
             dev.adb("shell", "input", "keyevent", key)
         return {"ok": True, "device": device, "platform": _platform(device)}
     except Exception as e:

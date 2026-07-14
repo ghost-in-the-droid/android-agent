@@ -48,6 +48,13 @@ def test_task_max_steps():
     assert task.max_steps == 15
 
 
+def test_tasks_default_to_android_platform():
+    task = Task(id="Sample", goal="Do a thing.", app="com.example", category="settings")
+    assert task.supported_platforms() == ["android"]
+    assert task.supports_platform("android")
+    assert not task.supports_platform("ios")
+
+
 def test_task_result_defaults():
     result = TaskResult(task_id="test", goal="test goal", model="m", device="d")
     assert result.score == 0.0
@@ -64,13 +71,7 @@ def test_all_tasks_have_eval():
     for task in load_tasks():
         assert task.eval, f"Task {task.id} missing eval"
         assert task.eval.get("cmd"), f"Task {task.id} eval missing cmd"
-
-
-def test_tasks_default_to_android_platform():
-    task = Task(id="Sample", goal="Do a thing.", app="com.example", category="settings")
-    assert task.supported_platforms() == ["android"]
-    assert task.supports_platform("android")
-    assert not task.supports_platform("ios")
+        assert task.supported_platforms() == ["android"]
 
 
 def test_benchmark_tasks_api_exposes_platform_metadata():

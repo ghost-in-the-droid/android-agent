@@ -30,7 +30,20 @@ export const CATEGORY_LABELS: Record<string, string> = {
 export function loadSpec(slug: string): DemoSpec | null {
 	const file = path.join(SHOWCASE_DIR, slug, 'spec.yaml');
 	if (!fs.existsSync(file)) return null;
-	return yamlLoad(fs.readFileSync(file, 'utf8')) as DemoSpec;
+	const spec = yamlLoad(fs.readFileSync(file, 'utf8')) as DemoSpec;
+	if (!spec || typeof spec !== 'object') return null;
+	spec.demo ??= slug;
+	// Recording-pipeline specs carry only `demo` — title/category come from
+	// copy.yaml. Backfill so partial specs never crash the build.
+	const copy = loadCopy()[spec.demo];
+	spec.title ??= copy?.title ?? spec.demo;
+	spec.category ??= 'ai-integration';
+	return spec;
+}
+
+/** A demo is "renderable" once the pipeline has produced its poster. */
+function isRenderable(slug: string): boolean {
+	return fs.existsSync(path.join(SHOWCASE_DIR, slug, 'poster.png'));
 }
 
 export function loadAllSpecs(): DemoSpec[] {
@@ -38,9 +51,10 @@ export function loadAllSpecs(): DemoSpec[] {
 	return fs
 		.readdirSync(SHOWCASE_DIR, { withFileTypes: true })
 		.filter((e) => e.isDirectory() && !e.name.startsWith('_'))
+		.filter((e) => isRenderable(e.name)) // skip specs with no rendered assets yet
 		.map((e) => loadSpec(e.name))
 		.filter((s): s is DemoSpec => s !== null)
-		.sort((a, b) => a.title.localeCompare(b.title));
+		.sort((a, b) => (a.title ?? a.demo).localeCompare(b.title ?? b.demo));
 }
 
 export function loadSnippet(slug: string): string {

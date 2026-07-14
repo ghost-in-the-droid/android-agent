@@ -34,6 +34,13 @@ export default defineConfig({
 				},
 				{
 					tag: 'script',
+					attrs: {
+						defer: true,
+						src: '/_vercel/insights/script.js',
+					},
+				},
+				{
+					tag: 'script',
 					content: `
 document.addEventListener('DOMContentLoaded', function() {
 	var nav = document.querySelector('header nav .right-group, header nav');
@@ -129,6 +136,12 @@ document.addEventListener('DOMContentLoaded', function() {
 						{ label: '⛏️ App Explorer', slug: 'features/app-explorer' },
 						{ label: '🔌 MCP Server', slug: 'features/mcp-server' },
 						{ label: '🔗 MCP Clients', slug: 'features/mcp-clients' },
+						{ label: '⛓️ Chain', slug: 'features/chain' },
+						{ label: '📸 Screenshot Sequence', slug: 'features/screenshot-sequence' },
+						{ label: '🔬 Sub-Agent', slug: 'features/sub-agent' },
+						{ label: '♿ Differential A11y', slug: 'features/differential-a11y' },
+						{ label: '🔤 ASCII Transliteration', slug: 'features/ascii-translit' },
+						{ label: '⏱️ Timeouts & Backoff', slug: 'features/timeouts-backoff' },
 						{ label: '🦜 LangChain & LlamaIndex', slug: 'features/integrations' },
 						{ label: '⚖️ How Ghost Compares', slug: 'features/how-ghost-compares' },
 						{ label: '🧠 LLM Providers', slug: 'features/llm-providers' },
@@ -166,6 +179,17 @@ document.addEventListener('DOMContentLoaded', function() {
 					],
 				},
 				{ label: '⚠️ Troubleshooting', slug: 'troubleshooting' },
+				{
+					label: '📦 Releases',
+					collapsed: true,
+					items: [
+						{ label: 'All releases', slug: 'release-notes' },
+						{ label: 'v1.3.0', slug: 'release-notes/v1-3-0' },
+						{ label: 'v1.2.0', slug: 'release-notes/v1-2-0' },
+						{ label: 'v1.1.0', slug: 'release-notes/v1-1-0' },
+						{ label: 'v1.0.0', slug: 'release-notes/v1-0-0' },
+					],
+				},
 				{
 					label: 'Legal',
 					items: [

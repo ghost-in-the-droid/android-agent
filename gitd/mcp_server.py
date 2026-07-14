@@ -6,7 +6,6 @@ Usage:
   HTTP:   python3 -m gitd.mcp_server  (port 8002)
 """
 
-import base64
 import importlib
 import json
 import re
@@ -130,12 +129,17 @@ def list_devices() -> str:
 
 @mcp.tool()
 def screenshot(device: str) -> str:
-    """Take a screenshot of the device screen. Returns base64-encoded PNG.
-    Use this to SEE what's on screen before deciding what to tap."""
-    if is_ios_ref(device):
-        return base64.b64encode(get_device(device).take_screenshot()).decode()
-    raw = subprocess.check_output(["adb", "-s", device, "exec-out", "screencap", "-p"], timeout=10)
-    return base64.b64encode(raw).decode()
+    """Take a screenshot of the device screen. Returns a base64-encoded JPEG.
+    Use this to SEE what's on screen before deciding what to tap.
+
+    Routes through the shared compressed screenshot path (half-resolution JPEG,
+    cross-platform) instead of a raw full-res PNG: a raw PNG base64 string
+    overflows the MCP tool-result token cap on content-heavy screens, so the
+    client falls back to text/OCR and never sees the pixels. The downscale cuts
+    the payload ~4-8x so most screens stay under the cap. (The lasting fix is
+    returning an MCP image-content block; tracked as feature #8.)"""
+    from gitd.services.device_context import screenshot as _screenshot
+    return _screenshot(device)["image"]
 
 
 @mcp.tool()
@@ -181,14 +185,20 @@ def swipe(device: str, x1: int, y1: int, x2: int, y2: int, duration_ms: int = 50
 
 @mcp.tool()
 def type_text(device: str, text: str) -> str:
-    """Type ASCII text into the currently focused input field.
+    """Type text into the currently focused input field.
     Tap an input field first to focus it. Spaces are supported.
-    For emoji/unicode, use type_unicode() instead."""
+    Non-ASCII input is transliterated to the closest ASCII (adb input text is
+    ASCII-only); for full-fidelity emoji/CJK use type_unicode() instead."""
     if is_ios_ref(device):
         get_device(device).type_text(text)
-    else:
-        Device(device).adb("shell", "input", "text", text.replace(" ", "%s"))
-    return f"Typed: {text}"
+        return f"Typed: {text}"
+    from gitd.bots.common.adb import ascii_typeable, input_text_arg
+
+    typed = ascii_typeable(text)
+    Device(device).adb("shell", "input", "text", input_text_arg(typed))
+    if typed != text:
+        return f"Typed (transliterated non-ASCII): {text!r} -> {typed!r}"
+    return f"Typed: {typed}"
 
 
 @mcp.tool()
@@ -228,8 +238,9 @@ def press_key(device: str, key: str) -> str:
     if is_ios_ref(device):
         get_device(device).press_key(key)
         return f"Sent {key}"
-    if not key.startswith("KEYCODE_"):
-        key = "KEYCODE_" + key
+    from gitd.bots.common.adb import normalize_keycode
+
+    key = normalize_keycode(key)
     Device(device).adb("shell", "input", "keyevent", key)
     return f"Sent {key}"
 
@@ -1160,6 +1171,39 @@ def create_skill(
         skills_dir=Path(__file__).parent / "skills",
     )
     return result["message"]
+
+
+# ── Lead / influencer lookups (for marketing agents) ────────────────────────
+
+
+@mcp.tool()
+def lookup_lead(handle: str) -> str:
+    """Get the full fact sheet for one influencer lead by handle.
+
+    Use this when you need to know everything about an influencer to draft
+    a personalised reply or decide next-step outreach: their follower count,
+    engagement, bio, niche, what hashtag we found them on, when we DMed them,
+    which account sent the DM, their latest reply, and unread state.
+
+    Args:
+        handle: TikTok username, with or without @ (e.g. 'creatorhandle' or '@creatorhandle')
+    """
+    from gitd.services.marketing_lookup import lookup_lead as _lookup_lead
+
+    return _lookup_lead(handle)
+
+
+@mcp.tool()
+def list_unread_leads() -> str:
+    """List every influencer with an unread reply in the inbox, sorted by recency.
+
+    Returns one row per unread conversation with the handle, unread count,
+    last message preview, and timestamp. Useful for daily prioritisation:
+    'which leads should I respond to right now?'
+    """
+    from gitd.services.marketing_lookup import list_unread_leads as _list_unread_leads
+
+    return _list_unread_leads()
 
 
 # ── Local CRM lookups ────────────────────────────────────────────────────────

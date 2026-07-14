@@ -17,7 +17,7 @@ print(skill.name)              # 'tiktok'
 print(skill.app_package)       # 'com.zhiliaoapp.musically'
 print(len(skill.elements))     # 41
 print(skill.list_actions())    # ['open_app', 'navigate_to_profile', ...]
-print(skill.list_workflows())  # ['upload_video', 'crawl_users', 'publish_draft']
+print(skill.list_workflows())  # ['upload_video', 'publish_draft']
 ```
 
 ### Run an Action

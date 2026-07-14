@@ -1,61 +1,31 @@
-# Showcase demo spec — on-device inference, airplane mode, phone-only layout.
-# Model in recording: gemma-4-e2b (q4km GGUF) — the CKL-approved calculator clip.
-# NOTE: demo ID stays 'on-device-gemma' (product supports Gemma/Qwen/Llama/Mistral);
-# the HUD chip shows gemma-4-e2b. Title broadened to 'On-Device AI' (CKL-approved).
-placeholder: false
+# Showcase demo spec — schema per task #782 (record_demo.py is the consumer).
+# placeholder: true until the pipeline records the real demo.
+placeholder: true
 demo: on-device-gemma
-title: "On-Device AI"
+title: On-Device Gemma
 category: llm-providers
 featured: true
 docs: /features/on-device-llm/
-duration_target_s: 30
+duration_target_s: 60
 device: android
-layout: phone_only
-
-platform_notes: "gemma-4-e2b (q4km GGUF) running in the Ghost APK via llama.cpp JNI. Airplane mode on camera throughout."
-
+platform_notes: "Gemma runs on the phone itself — no cloud round-trip."
 setup:
-  - step: airplane_mode_on
-  - step: wake_unlock
   - step: kill_all_apps
-  - step: shell
-    args: { cmd: "input keyevent KEYCODE_HOME" }
-
-# Captions match the CKL-approved F-phone-only-REAL.webm preview (calculator +
-# gemma clip). Timed to the 26s real clip: opens on the airplane-mode shade,
-# calculator opens ~20s.
+  - step: wake_unlock
 timeline:
   - t: 0
-    caption: "Airplane mode on. Fully offline."
-    action: show_phone
-    notes: "quick-settings shade shows Aeroplane mode: On + airplane icon"
-
-  - t: 5
-    caption: "Gemma runs inside the Ghost APK."
-    action: show_phone
-    notes: "model HUD chip: on-device · gemma-4-e2b-q4km-gguf"
-
-  - t: 9
-    caption: "Type a task in plain English."
-    action: show_phone
-    notes: "user sends 'open the calculator app'"
-
-  - t: 13
-    caption: "Ghost reads the screen. Reasons on the phone."
-    action: show_phone
-    notes: "Inferring (turn 1)… — model processing on-device"
-
+    caption: "Start the agent with the on-device Gemma provider"
+    action: terminal_type
+    args: { cmd: "android-agent up --provider gemma" }
+  - t: 10
+    caption: "Ask it to open the calculator and compute a tip"
+    action: terminal_type
+    args: { cmd: "android-agent run 'open the calculator and compute an 18% tip on 42'" }
   - t: 20
-    caption: "The calculator opens. Nothing left the device."
-    action: show_phone
-    notes: "calculator launches, all offline"
-
-  - t: 24
-    caption: "One phone. Zero cloud. Zero cost."
-    action: show_phone
-
+    caption: "The phone acts — no network involved"
+    action: wait_for_phone
+    args: { seconds: 30 }
 outro:
   cta_line: "pip install ghost-in-the-droid"
-  cta_link: "https://ghostinthedroid.com/docs/getting-started/installation"
-
+  cta_link: /getting-started/installation/
 highlight_window: { start_s: 18, end_s: 26 }

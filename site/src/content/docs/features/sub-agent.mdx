@@ -1,0 +1,46 @@
+---
+title: "Sub-Agent — Vision Sub-Call Over Cached Frames"
+description: Hand a burst of cached screenshots to a separate, stateless vision model and get back just the answer — keeping the main agent's context lean.
+---
+import PlatformBadges from '../../../components/PlatformBadges.astro';
+
+<PlatformBadges android="yes" ios="yes" />
+
+`sub_agent` hands the frames captured by
+[`screenshot_sequence`](/features/screenshot-sequence/) to a **separate,
+stateless vision call** and returns **only its text answer**. The images never
+enter the main agent's context — you get "what happened in that animation?"
+answered without paying for the frames in your main conversation.
+
+```json
+// 1. capture   2. ask
+screenshot_sequence({"duration_seconds": 6, "fps": 2})
+sub_agent({"task": "Did the video start playing? Describe the first 3 seconds."})
+```
+
+It reads the cached frames for the device (up to a hard ceiling of **60
+frames**, uniformly downsampled), runs one vision call, and returns the text.
+
+## Needs an API key
+
+The sub-call is a one-shot Anthropic vision request, so it needs an
+`ANTHROPIC_API_KEY` — it is **not** available under the `claude-code`
+subscription provider. It **degrades gracefully**: with no key set, `sub_agent`
+returns an explanatory message rather than raising, and the agent carries on.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...        # enables sub_agent
+export SUB_AGENT_MODEL=claude-sonnet-5     # optional model override (default)
+```
+
+## Not chainable
+
+Because it spawns a paid LLM call, `sub_agent` is **`EXEC_CAPABLE`, not `SAFE`** —
+it can't be smuggled into a [`run_flow`](/features/run-flow/) or
+[`chain`](/features/chain/) batch, so an untrusted flow can't fan out arbitrary
+billed vision calls.
+
+## Related
+
+- [Screenshot Sequence](/features/screenshot-sequence/) — produces the frames
+- [LLM Providers](/features/llm-providers/) — how Ghost reaches models

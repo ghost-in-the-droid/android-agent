@@ -638,6 +638,15 @@ TOOLS = [
         },
     },
     {
+        "name": "lookup_lead",
+        "description": "Get the marketing fact sheet for one influencer lead by handle.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"handle": {"type": "string", "description": "TikTok handle with or without @."}},
+            "required": ["handle"],
+        },
+    },
+    {
         "name": "crm_lookup_contact",
         "description": "Get the stored fact sheet for one local CRM contact by handle. Read-only.",
         "input_schema": {
@@ -647,9 +656,57 @@ TOOLS = [
         },
     },
     {
+        "name": "list_unread_leads",
+        "description": "List influencer leads with unread replies, sorted by recency.",
+        "input_schema": {"type": "object", "properties": {}},
+    },
+    {
         "name": "crm_list_unread_messages",
         "description": "List local CRM contacts with unread messages, sorted by recency. Read-only.",
         "input_schema": {"type": "object", "properties": {}},
+    },
+    # Frame capture + vision sub-agent (for image-heavy subtasks like reading a
+    # playing video). screenshot_sequence captures a burst; sub_agent reads it.
+    {
+        "name": "screenshot_sequence",
+        "description": (
+            "Capture a burst of screenshots over a window while something plays on "
+            "screen (e.g. a video), caching them for sub_agent — do NOT dump them into "
+            "your own context. Media usually autoplays when opened and a short clip can "
+            "finish during one turn, so open AND capture in ONE step: "
+            "chain[{open the item}, {screenshot_sequence}]. Then call sub_agent to read them."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "duration_seconds": {"type": "integer", "default": 4, "description": "Capture window (2-180)."},
+                "fps": {"type": "number", "default": 1.0, "description": "Frames per second (0.1-4.0)."},
+            },
+        },
+    },
+    {
+        "name": "sub_agent",
+        "description": (
+            "Hand the cached screenshot_sequence frames to a SEPARATE vision sub-agent "
+            "that returns ONLY its text answer, keeping your context lean on image-heavy "
+            "subtasks (e.g. transcribing frames of a video). Give a precise task. Requires "
+            "an Anthropic API key; unavailable under the claude-code subscription provider."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "task": {
+                    "type": "string",
+                    "description": "Precise instruction for the sub-agent (e.g. what to transcribe).",
+                },
+                "max_frames": {
+                    "type": "integer",
+                    "default": 60,
+                    "description": "Cap on frames sent (subsampled, hard max 60).",
+                },
+            },
+            "required": ["task"],
+        },
     },
     # System
     {
@@ -659,6 +716,37 @@ TOOLS = [
             "type": "object",
             "properties": {"seconds": {"type": "number", "default": 2}},
             "required": ["seconds"],
+        },
+    },
+    {
+        "name": "chain",
+        "description": (
+            "Run several device actions in ONE step, settling between each — e.g. fill a form's "
+            "fields, or tap→type→tap a submit. Saves turns on known sequences. Each sub-action is "
+            '{"tool": "<name>", "args": {...}} using the same tool names; only read/UI tools are '
+            "allowed inside a chain (no shell/run_skill/nested chain). Returns each sub-action's result."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "actions": {
+                    "type": "array",
+                    "description": 'Ordered sub-actions, e.g. [{"tool":"tap_element","args":{"idx":3}},{"tool":"type_text","args":{"text":"hi"}}].',
+                    "items": {"type": "object"},
+                },
+                "settle": {
+                    "type": "string",
+                    "enum": ["stabilize", "delay"],
+                    "default": "stabilize",
+                    "description": "How to wait between sub-actions: 'stabilize' (short fixed settle) or 'delay' (delay_ms).",
+                },
+                "delay_ms": {
+                    "type": "integer",
+                    "default": 600,
+                    "description": "Settle time when settle='delay' (capped 3000).",
+                },
+            },
+            "required": ["actions"],
         },
     },
 ]
@@ -695,6 +783,8 @@ SAFE_DEVICE_TOOLS = frozenset(
         # Screen recording (writes only to the vetted recordings dir)
         "start_screen_recording",
         "stop_screen_recording",
+        # Frame-burst capture (read-only screenshots; chainable so open+capture is one step)
+        "screenshot_sequence",
         # UI actions
         "tap",
         "tap_element",
@@ -733,6 +823,9 @@ SAFE_DEVICE_TOOLS = frozenset(
         # Local CRM (read-only DB queries, no exec)
         "crm_lookup_contact",
         "crm_list_unread_messages",
+        # Marketing lead lookups (read-only DB queries, no exec)
+        "lookup_lead",
+        "list_unread_leads",
     }
 )
 
@@ -746,6 +839,16 @@ SAFE_DEVICE_TOOLS = frozenset(
 #   launch_intent    — arbitrary Android intent incl. component + extras
 #   explore_app      — spawns the BFS explorer subprocess, drives UI for minutes
 #   fix_device_health — device-admin recovery actions (can install the Portal APK)
+#   chain            — meta-executor: runs N sub-actions. Like run_flow it must
+#                      not be reachable from run_flow / framework adapters (an
+#                      untrusted batch shouldn't nest another batch), so it's
+#                      denied here. It still gates its OWN sub-actions to
+#                      SAFE_DEVICE_TOOLS, so even first-party callers can't
+#                      smuggle shell/run_skill through it.
+#   sub_agent        — spawns a fresh (paid) Anthropic vision call over cached
+#                      frames. Kept out of SAFE so it can't be smuggled into a
+#                      run_flow/chain batch (which would let an untrusted flow fan
+#                      out arbitrary billed LLM calls).
 EXEC_CAPABLE_TOOLS = frozenset(
     {
         "shell",
@@ -756,6 +859,8 @@ EXEC_CAPABLE_TOOLS = frozenset(
         "launch_intent",
         "explore_app",
         "fix_device_health",
+        "chain",
+        "sub_agent",
     }
 )
 
@@ -820,7 +925,41 @@ def execute_tool(name: str, args: dict) -> str:
                 result += f"\n\n[Screen after action]\n{tree}"
         except Exception:
             pass
+        result += _a11y_diff_suffix(args["device"])
     return result
+
+
+# Per-device cache of the element list seen after the previous UI action, so the
+# next UI action can show a before/after diff. Read-only tools do not update it,
+# keeping the diff strictly action-to-action.
+_LAST_ELEMENTS: dict[str, list[dict]] = {}
+
+
+def _a11y_diff_suffix(device: str) -> str:
+    """Diff the current interactive elements against the ones cached after the
+    previous UI action on this device; return a text block to append (or "").
+
+    Fail-open: any error (or the kill-switch off) yields an empty string, so the
+    existing post-action screen-tree behaviour is never disturbed. Costs one
+    extra UI-tree dump per UI action — disable with A11Y_DIFF_ENABLED=false.
+    """
+    try:
+        from gitd.config import settings
+        from gitd.services.a11y_diff import diff_elements
+
+        if not settings.a11y_diff_enabled:
+            return ""
+        curr = ctx.get_interactive_elements(device)
+        prev = _LAST_ELEMENTS.get(device)
+        _LAST_ELEMENTS[device] = curr
+        diff = diff_elements(prev, curr)
+        # Suppress the "no change" line — only surface an actual delta (or the
+        # first-action empty string), to avoid nudging the model on a no-op.
+        if diff and diff != "A11y diff: no change.":
+            return f"\n\n[{diff}]"
+    except Exception:
+        pass
+    return ""
 
 
 def _execute_tool_inner(name: str, args: dict) -> str:
@@ -964,9 +1103,17 @@ def _execute_tool_inner(name: str, args: dict) -> str:
         elif name == "type_text":
             if is_ios_ref(device):
                 get_device(device).type_text(args["text"])
-            else:
-                Device(device).adb("shell", "input", "text", args["text"].replace(" ", "%s"))
-            return f"Typed: {args['text']}"
+                return f"Typed: {args['text']}"
+            # `adb input text` is ASCII-only — one non-ASCII char blanks the whole
+            # field. Transliterate to the closest ASCII so accented input still
+            # lands (use type_unicode for full-fidelity emoji/CJK).
+            from gitd.bots.common.adb import ascii_typeable, input_text_arg
+
+            typed = ascii_typeable(args["text"])
+            Device(device).adb("shell", "input", "text", input_text_arg(typed))
+            if typed != args["text"]:
+                return f"Typed (transliterated non-ASCII): {args['text']!r} -> {typed!r}"
+            return f"Typed: {typed}"
         elif name == "type_unicode":
             if is_ios_ref(device):
                 get_device(device).type_text(args["text"])
@@ -986,10 +1133,10 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             key = args["key"]
             if is_ios_ref(device):
                 get_device(device).press_key(key)
-            elif not key.startswith("KEYCODE_"):
-                key = "KEYCODE_" + key
-                Device(device).adb("shell", "input", "keyevent", key)
             else:
+                from gitd.bots.common.adb import normalize_keycode
+
+                key = normalize_keycode(key)
                 Device(device).adb("shell", "input", "keyevent", key)
             return f"Pressed {key}"
         elif name == "long_press":
@@ -1531,6 +1678,14 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 },
                 indent=2,
             )
+        elif name == "lookup_lead":
+            from gitd.services.marketing_lookup import lookup_lead
+
+            return lookup_lead(args["handle"])
+        elif name == "list_unread_leads":
+            from gitd.services.marketing_lookup import list_unread_leads
+
+            return list_unread_leads()
         elif name == "crm_lookup_contact":
             from gitd.services.crm_lookup import crm_lookup_contact
 
@@ -1539,13 +1694,120 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             from gitd.services.crm_lookup import crm_list_unread_messages
 
             return crm_list_unread_messages()
+        elif name == "screenshot_sequence":
+            return _capture_sequence(device, args)
+        elif name == "sub_agent":
+            return _run_sub_agent_tool(device, args)
         elif name == "wait":
             time.sleep(args.get("seconds", 2))
             return f"Waited {args.get('seconds', 2)}s"
+        elif name == "chain":
+            return _execute_chain(device, args)
         else:
             return f"Unknown tool: {name}"
     except Exception as e:
         return f"Error: {e}"
+
+
+# Cap on sub-actions per chain — a batch that big is almost certainly a
+# runaway; bound it so one chain call can't monopolise the device.
+_CHAIN_MAX_ACTIONS = 15
+_CHAIN_MAX_DELAY_S = 3.0
+_CHAIN_STABILIZE_S = 0.6
+
+
+def _execute_chain(device: str, args: dict) -> str:
+    """Run a sequence of sub-actions in one step, settling between each.
+
+    Fail-closed like run_flow: every sub-action's tool must be on
+    SAFE_DEVICE_TOOLS, and a chain may not nest another chain — a batch is
+    exactly where an injected instruction would try to smuggle an exec tool, so
+    the whole chain is refused before any sub-action runs if any step names a
+    non-allowed tool. Sub-actions dispatch via _execute_tool_inner (no
+    per-action screen-tree append); we settle between them instead.
+    """
+    import time
+
+    subs = args.get("actions")
+    if not isinstance(subs, list) or not subs:
+        return "chain: 'actions' must be a non-empty list of {tool, args}"
+    if len(subs) > _CHAIN_MAX_ACTIONS:
+        return f"chain: too many actions ({len(subs)} > {_CHAIN_MAX_ACTIONS})"
+
+    # Validate the WHOLE batch before running ANY of it, so a chain that hides a
+    # disallowed action after some benign steps executes nothing.
+    for i, sub in enumerate(subs):
+        if not isinstance(sub, dict) or "tool" not in sub:
+            return f"chain: step {i} must be an object with a 'tool' field"
+        tool = sub["tool"]
+        if tool == "chain":
+            return f"chain: step {i} may not nest another chain"
+        if tool not in SAFE_DEVICE_TOOLS:
+            return f"chain: step {i} tool '{tool}' is not allowed inside a chain (only read/UI tools)"
+
+    settle = args.get("settle", "stabilize")
+    delay_s = min(max(int(args.get("delay_ms", 600)), 0) / 1000, _CHAIN_MAX_DELAY_S)
+
+    infos: list[str] = []
+    for i, sub in enumerate(subs):
+        tool = sub["tool"]
+        sub_args = dict(sub.get("args") or {})
+        sub_args.setdefault("device", device)
+        try:
+            out = _execute_tool_inner(tool, sub_args)
+            infos.append(f"{tool}: {str(out)[:80]}")
+        except Exception as e:
+            infos.append(f"{tool}: err:{e}")
+            break  # abort the rest of the chain on the first hard failure
+        if i < len(subs) - 1:
+            time.sleep(delay_s if settle == "delay" else _CHAIN_STABILIZE_S)
+
+    return f"chain[{len(infos)}/{len(subs)}]: " + " > ".join(infos)
+
+
+# Per-device burst of frames captured by screenshot_sequence, read by sub_agent.
+# Module-level so it survives across tool calls (and works inside a chain step).
+_SEQ_FRAMES: dict[str, list[str]] = {}
+
+_SEQ_MAX_DURATION_S = 180
+_SEQ_MAX_FPS = 4.0
+
+
+def _capture_sequence(device: str, args: dict) -> str:
+    """Poll per-frame screenshots over a window, caching them for sub_agent.
+
+    Uses the normal screenshot path (screencap on Android / WDA on iOS) rather than
+    a video recorder: a recorder can freeze on a playing SurfaceView, but per-frame
+    screenshots capture playing content fine. Frames are cached (NOT returned) so
+    they never bloat the master agent's context — sub_agent reads them.
+    """
+    import time as _t
+
+    dur = max(2, min(int(args.get("duration_seconds", args.get("seconds", 4))), _SEQ_MAX_DURATION_S))
+    fps = max(0.1, min(float(args.get("fps", 1.0)), _SEQ_MAX_FPS))
+    interval = 1.0 / fps
+    n = max(1, int(dur * fps))
+    frames: list[str] = []
+    for i in range(n):
+        shot = get_screenshot_b64(device)
+        if shot:
+            frames.append(shot)
+        if i < n - 1:
+            _t.sleep(interval)
+    _SEQ_FRAMES[device] = frames
+    return f"screenshot_sequence: captured {len(frames)} frames over {dur}s @ {fps}fps (cached for sub_agent)"
+
+
+def _run_sub_agent_tool(device: str, args: dict) -> str:
+    """Hand the cached frames for this device to the vision sub-agent; return its text."""
+    from gitd.services.sub_agent import run_sub_agent
+
+    task = args.get("task", "") or args.get("prompt", "")
+    frames = _SEQ_FRAMES.get(device) or []
+    result = run_sub_agent(task, frames, max_frames=int(args.get("max_frames", 60)))
+    if frames and not result.startswith(("sub_agent", "SUB_AGENT")):
+        return f"SUB_AGENT RESULT ({len(frames)} frames): {result}"
+    return result
 
 
 def get_screenshot_b64(device: str) -> str | None:

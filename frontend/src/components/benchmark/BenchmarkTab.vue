@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useBenchmarkStore } from '@/stores/benchmarks'
 
 const store = useBenchmarkStore()
@@ -17,18 +17,57 @@ const runModel = ref('gemma3:4b')
 const runDevice = ref('emulator-5554')
 const selectAll = ref(false)
 
-const PROVIDERS = [
+type Provider = {
+  id: string
+  label: string
+  models: string[]
+}
+
+const PROVIDERS: Provider[] = [
   { id: 'claude-code', label: 'Claude Code', models: ['sonnet', 'opus', 'haiku'] },
   { id: 'anthropic', label: 'Claude API', models: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514'] },
   { id: 'openrouter', label: 'OpenRouter', models: ['anthropic/claude-sonnet-4', 'google/gemini-2.5-pro'] },
   { id: 'ollama', label: 'Ollama (local)', models: ['llama3.2:3b', 'gemma3:4b', 'qwen3:4b', 'phi4-mini:3.8b', 'mistral:7b'] },
 ]
 
-const currentModels = computed(() => PROVIDERS.find(p => p.id === runProvider.value)?.models || [])
+const currentModels = computed<string[]>(() => PROVIDERS.find(p => p.id === runProvider.value)?.models || [])
+const runPlatform = computed<'android' | 'ios'>(() => runDevice.value.trim().startsWith('ios:') ? 'ios' : 'android')
+const selectedTaskIds = computed(() => [...selectedTasks.value])
+const tasksForRun = computed(() => {
+  if (!selectedTasks.value.size) return store.tasks
+  const selected = selectedTasks.value
+  return store.tasks.filter(t => selected.has(t.id))
+})
+const unsupportedTasksForRun = computed(() => tasksForRun.value.filter(t => !taskSupportsPlatform(t, runPlatform.value)))
+const canStartRun = computed(() => store.tasks.length > 0 && unsupportedTasksForRun.value.length === 0)
+const runButtonTitle = computed(() => {
+  if (!store.tasks.length) return 'No benchmark tasks loaded'
+  if (!unsupportedTasksForRun.value.length) return ''
+  const sample = unsupportedTasksForRun.value.slice(0, 3).map(t => t.id).join(', ')
+  const suffix = unsupportedTasksForRun.value.length > 3 ? ` and ${unsupportedTasksForRun.value.length - 3} more` : ''
+  return `${sample}${suffix} ${unsupportedTasksForRun.value.length === 1 ? 'does' : 'do'} not support ${runPlatform.value}`
+})
+
+function taskPlatforms(task: any): string[] {
+  const platforms = Array.isArray(task.platforms) && task.platforms.length ? task.platforms : ['android']
+  return platforms.map((p: string) => String(p).toLowerCase())
+}
+
+function taskSupportsPlatform(task: any, platform: 'android' | 'ios') {
+  const platforms = taskPlatforms(task)
+  return platforms.includes('all') || platforms.includes(platform)
+}
+
+function taskPlatformLabel(task: any) {
+  const platforms = taskPlatforms(task)
+  if (platforms.includes('all')) return 'All'
+  return platforms.map((p: string) => p === 'ios' ? 'iOS' : 'Android').join(', ')
+}
 
 function onProviderChange() {
   const p = PROVIDERS.find(p => p.id === runProvider.value)
-  if (p?.models.length) runModel.value = p.models[0]
+  const firstModel = p?.models[0]
+  if (firstModel) runModel.value = firstModel
 }
 
 // Also try to fetch live Ollama models
@@ -40,7 +79,8 @@ async function fetchOllamaModels() {
       const ollama = providers.find((p: any) => p.id === 'ollama')
       if (ollama?.models?.length) {
         const idx = PROVIDERS.findIndex(p => p.id === 'ollama')
-        if (idx >= 0) PROVIDERS[idx].models = ollama.models
+        const provider = idx >= 0 ? PROVIDERS[idx] : null
+        if (provider) provider.models = ollama.models
       }
     }
   } catch {}
@@ -58,16 +98,37 @@ function showToast(msg: string, type: 'ok' | 'err' = 'ok') {
 }
 
 function toggleSelectAll() {
-  if (selectAll.value) store.tasks.forEach(t => selectedTasks.value.add(t.id))
-  else selectedTasks.value.clear()
+  if (selectAll.value) {
+    const compatible = store.tasks.filter(t => taskSupportsPlatform(t, runPlatform.value))
+    selectedTasks.value = new Set(compatible.map(t => t.id))
+    if (!compatible.length) {
+      selectAll.value = false
+      showToast(`No ${runPlatform.value} benchmark tasks are available`, 'err')
+    }
+  } else {
+    selectedTasks.value = new Set()
+  }
 }
 
 function toggleTask(id: string) {
-  if (selectedTasks.value.has(id)) selectedTasks.value.delete(id)
-  else selectedTasks.value.add(id)
+  const task = store.tasks.find(t => t.id === id)
+  if (task && !taskSupportsPlatform(task, runPlatform.value)) {
+    showToast(`${id} does not support ${runPlatform.value}`, 'err')
+    return
+  }
+  const next = new Set(selectedTasks.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedTasks.value = next
+  const compatibleCount = store.tasks.filter(t => taskSupportsPlatform(t, runPlatform.value)).length
+  selectAll.value = compatibleCount > 0 && next.size === compatibleCount
 }
 
 async function startRun() {
+  if (!canStartRun.value) {
+    showToast(runButtonTitle.value || `No compatible ${runPlatform.value} benchmark tasks selected`, 'err')
+    return
+  }
   const ids = selectedTasks.value.size > 0 ? [...selectedTasks.value] : null
   try {
     const result = await store.startRun(runSuite.value, ids, runModel.value, runDevice.value, runProvider.value)
@@ -109,6 +170,12 @@ async function handleStop(id: string) {
 }
 
 const activeRun = computed(() => store.runs.find(r => r.status === 'running'))
+
+watch(runPlatform, () => {
+  const allowed = new Set(store.tasks.filter(t => taskSupportsPlatform(t, runPlatform.value)).map(t => t.id))
+  selectedTasks.value = new Set(selectedTaskIds.value.filter(id => allowed.has(id)))
+  selectAll.value = selectedTasks.value.size > 0 && selectedTasks.value.size === allowed.size
+})
 
 onMounted(async () => {
   await Promise.all([store.fetchSuites(), store.fetchTasks(), store.fetchRuns()])
@@ -159,15 +226,23 @@ onUnmounted(() => {
               <option v-for="m in currentModels" :key="m" :value="m">{{ m }}</option>
             </select>
             <input v-model="runDevice" class="text-xs px-2 py-1 rounded" style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-2); width: 140px" placeholder="device serial" />
-            <button @click="startRun" class="ml-auto px-4 py-1.5 text-sm font-semibold rounded-lg" style="background: #059669; color: white">
+            <span class="text-xs px-2 py-1 rounded font-semibold" style="background: var(--bg-deep); color: var(--text-3); border: 1px solid var(--border)">
+              {{ runPlatform === 'ios' ? 'iOS' : 'Android' }}
+            </span>
+            <button @click="startRun" :disabled="!canStartRun" :title="runButtonTitle"
+              class="ml-auto px-4 py-1.5 text-sm font-semibold rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+              style="background: #059669; color: white">
               Run {{ selectedTasks.size || 'All' }} Tasks
             </button>
+          </div>
+          <div v-if="unsupportedTasksForRun.length" class="card px-4 py-2 text-xs" style="border-color: #f59e0b55; color: #fbbf24; background: #f59e0b0d">
+            {{ unsupportedTasksForRun.length }} {{ selectedTasks.size ? 'selected' : 'available' }} benchmark task{{ unsupportedTasksForRun.length === 1 ? '' : 's' }} cannot run on {{ runPlatform }}.
           </div>
 
           <div class="card" style="min-height: 200px">
             <div class="flex items-center justify-between mb-3">
               <h2 class="text-base font-semibold" style="color: var(--text-1)">Ghost Bench</h2>
-              <span class="text-xs" style="color: var(--text-4)">{{ store.tasks.length }} tasks</span>
+              <span class="text-xs" style="color: var(--text-4)">{{ store.tasks.length }} tasks · {{ runPlatform }}</span>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
@@ -177,16 +252,23 @@ onUnmounted(() => {
                     <th class="pb-2 pr-2">Task</th>
                     <th class="pb-2 pr-2">Goal</th>
                     <th class="pb-2 pr-2">Category</th>
+                    <th class="pb-2 pr-2">Platform</th>
                     <th class="pb-2 pr-2">Steps</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="task in store.tasks" :key="task.id" class="border-t" style="border-color: var(--border)"
-                    :class="{ 'bg-indigo-500/5': selectedTasks.has(task.id) }">
-                    <td class="py-2 pr-2"><input type="checkbox" :checked="selectedTasks.has(task.id)" @change="toggleTask(task.id)" /></td>
+                    :class="{ 'bg-indigo-500/5': selectedTasks.has(task.id), 'opacity-50': !taskSupportsPlatform(task, runPlatform) }">
+                    <td class="py-2 pr-2"><input type="checkbox" :checked="selectedTasks.has(task.id)" :disabled="!taskSupportsPlatform(task, runPlatform)" @change="toggleTask(task.id)" /></td>
                     <td class="py-2 pr-2 font-mono text-xs" style="color: var(--text-2)">{{ task.id }}</td>
                     <td class="py-2 pr-2 truncate" style="color: var(--text-1); max-width: 280px" :title="task.goal">{{ task.goal }}</td>
                     <td class="py-2 pr-2 text-xs" style="color: var(--text-3)">{{ task.category }}</td>
+                    <td class="py-2 pr-2 text-xs">
+                      <span class="px-2 py-0.5 rounded-full font-semibold"
+                        :style="{ background: taskSupportsPlatform(task, runPlatform) ? '#05966922' : '#64748b22', color: taskSupportsPlatform(task, runPlatform) ? '#34d399' : 'var(--text-4)' }">
+                        {{ taskPlatformLabel(task) }}
+                      </span>
+                    </td>
                     <td class="py-2 pr-2 text-xs" style="color: var(--text-3)">{{ task.max_steps }}</td>
                   </tr>
                 </tbody>

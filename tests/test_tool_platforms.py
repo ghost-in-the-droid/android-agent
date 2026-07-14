@@ -44,9 +44,14 @@ def test_every_agent_and_mcp_tool_has_platform_classification():
 def test_agent_and_mcp_tool_catalogs_match():
     agent_names = {tool["name"] for tool in TOOLS}
 
-    # Deliberately NOT exposed over MCP: raw exec vectors. MCP clients get
+    # Deliberately NOT exposed over MCP: raw exec vectors, plus the agent-loop
+    # frame tools (screenshot_sequence caches frames for the in-process sub_agent
+    # fan-out; neither is useful to a standalone MCP client). MCP clients get
     # run_flow (fail-closed allow-list) + run_workflow/run_action instead.
-    mcp_excluded = {"shell", "run_skill"}
+    # `chain` is the agent-chat batch primitive — the mirror image of run_flow
+    # (which is MCP-only): MCP clients batch via run_flow, so chain stays out of
+    # the MCP catalog.
+    mcp_excluded = {"shell", "run_skill", "chain", "screenshot_sequence", "sub_agent"}
     # MCP-only: batched flow + crash reports have no in-process agent-tool
     # equivalent (agents read crashes via their own transcript context).
     mcp_only = {"run_flow", "list_crashes", "get_crash"}
@@ -324,6 +329,14 @@ def test_agent_list_devices_returns_android_and_ios_metadata(monkeypatch):
     ]
 
 
+def test_agent_marketing_lookup_tools_use_shared_service(monkeypatch):
+    monkeypatch.setattr("gitd.services.marketing_lookup.lookup_lead", lambda handle: f"lead:{handle}")
+    monkeypatch.setattr("gitd.services.marketing_lookup.list_unread_leads", lambda: "2 unread")
+
+    assert execute_tool("lookup_lead", {"handle": "demo"}) == "lead:demo"
+    assert execute_tool("list_unread_leads", {}) == "2 unread"
+
+
 def test_agent_crm_lookup_tools_use_shared_service(monkeypatch):
     monkeypatch.setattr("gitd.services.crm_lookup.crm_lookup_contact", lambda handle: f"contact:{handle}")
     monkeypatch.setattr("gitd.services.crm_lookup.crm_list_unread_messages", lambda: "2 unread")
@@ -504,6 +517,8 @@ def test_tools_for_device_filters_by_platform():
     assert "run_workflow" in ios_names
     assert "run_action" in ios_names
     assert "create_skill" in ios_names
+    assert "lookup_lead" in ios_names
+    assert "list_unread_leads" in ios_names
     assert "crm_lookup_contact" in ios_names
     assert "crm_list_unread_messages" in ios_names
     assert "app_state" in ios_names
@@ -523,6 +538,8 @@ def test_tools_for_device_filters_by_platform():
     assert "run_workflow" in android_names
     assert "run_action" in android_names
     assert "create_skill" in android_names
+    assert "lookup_lead" in android_names
+    assert "list_unread_leads" in android_names
     assert "crm_lookup_contact" in android_names
     assert "crm_list_unread_messages" in android_names
     assert "start_screen_recording" in android_names
@@ -713,6 +730,8 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "run_workflow" in ios_names
     assert "run_action" in ios_names
     assert "create_skill" in ios_names
+    assert "lookup_lead" in ios_names
+    assert "list_unread_leads" in ios_names
     assert "crm_lookup_contact" in ios_names
     assert "crm_list_unread_messages" in ios_names
     assert "get_current_url" in ios_names
@@ -728,6 +747,8 @@ def test_openai_tool_schema_is_filtered_by_device():
     assert "run_workflow" in android_names
     assert "run_action" in android_names
     assert "create_skill" in android_names
+    assert "lookup_lead" in android_names
+    assert "list_unread_leads" in android_names
     assert "crm_lookup_contact" in android_names
     assert "crm_list_unread_messages" in android_names
     assert "get_current_url" not in android_names
