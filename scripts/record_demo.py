@@ -60,9 +60,10 @@ import re
 import shutil
 import shlex
 import socket
+import signal
 import subprocess
 import sys
-import threading
+import tempfile
 import time
 from pathlib import Path
 
@@ -375,74 +376,45 @@ def run_setup(dev, spec: dict) -> None:
 
 
 class PhoneRecorder:
-    """Chained `adb shell screenrecord` in a background thread. screenrecord hard-
-    caps at ~180s per invocation, so for longer content (e.g. a 5-subreddit run,
-    ~260s) we record back-to-back 179s segments and concat them into one clip.
-    For content ≤179s this is a single segment — identical to the old behavior."""
+    """Host-side screen capture via scrcpy (--no-control, so the driving agent
+    keeps input). Unlike device `screenrecord` this has NO 180s cap and doesn't
+    die from the agent's concurrent adb during a long harvest — a single
+    continuous clip. scrcpy records VFR, so we normalize to CFR on stop."""
 
     def __init__(self, serial: str, limit_s: float, size: str | None):
         self.serial = serial
-        self.total_s = int(limit_s)            # total desired recording length
-        self.size = size
-        self.segments: list[str] = []          # remote segment paths, in order
-        self._stop = threading.Event()
-        self._thread: threading.Thread | None = None
+        self.size = size                       # optional max dimension (e.g. "1080")
+        self.proc: subprocess.Popen | None = None
+        self.raw = Path(tempfile.mktemp(suffix="_scrcpy.mp4"))
         self.started_at = 0.0
 
-    def _record_segments(self) -> None:
-        i, elapsed = 0, 0.0
-        while not self._stop.is_set() and elapsed < self.total_s:
-            remote = f"/sdcard/ghost_rec_{i}.mp4"
-            seg_s = min(179, max(2, int(self.total_s - elapsed) + 1))
-            cmd = ["adb", "-s", self.serial, "shell", "screenrecord",
-                   "--bit-rate", "8000000", "--time-limit", str(seg_s)]
-            if self.size:
-                cmd += ["--size", self.size]
-            cmd.append(remote)
-            proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            self.segments.append(remote)
-            seg_start = time.monotonic()
-            while proc.poll() is None:
-                if self._stop.is_set():
-                    subprocess.run(["adb", "-s", self.serial, "shell", "pkill",
-                                    "-2", "screenrecord"], capture_output=True)
-                    try:
-                        proc.wait(timeout=15)
-                    except subprocess.TimeoutExpired:
-                        proc.kill()
-                    break
-                time.sleep(0.3)
-            elapsed += time.monotonic() - seg_start
-
     def start(self) -> None:
+        cmd = ["scrcpy", "-s", self.serial, "--no-display", "--no-control",
+               "--record", str(self.raw)]
+        if self.size:
+            cmd += ["--max-size", self.size.split("x")[0]]
+        self.proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL)
         self.started_at = time.monotonic()
-        self._thread = threading.Thread(target=self._record_segments, daemon=True)
-        self._thread.start()
-        time.sleep(1.5)  # screenrecord startup latency before frames roll
+        time.sleep(2.0)  # scrcpy pushes its server + connects before frames roll
 
     def stop_and_pull(self, dest: Path) -> None:
-        self._stop.set()
-        if self._thread:
-            self._thread.join(timeout=40)
-        time.sleep(1.0)  # let the device flush the last file
-        locals_: list[Path] = []
-        for i, remote in enumerate(self.segments):
-            lp = dest.parent / f"phone_seg_{i}.mp4"
-            subprocess.run(["adb", "-s", self.serial, "pull", remote, str(lp)],
-                           capture_output=True)
-            subprocess.run(["adb", "-s", self.serial, "shell", "rm", "-f", remote],
-                           capture_output=True)
-            if lp.exists() and lp.stat().st_size > 1024:
-                locals_.append(lp)
-        if not locals_:
-            die("phone recording produced no segments")
-        if len(locals_) == 1:
-            shutil.move(str(locals_[0]), str(dest))
-        else:
-            listf = dest.parent / "phone_segs.txt"
-            listf.write_text("".join(f"file '{p}'\n" for p in locals_))
-            run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(listf),
-                 "-c", "copy", str(dest)], "concat phone segments", heavy=True)
+        # SIGINT lets scrcpy finalize the mp4 cleanly.
+        if self.proc and self.proc.poll() is None:
+            self.proc.send_signal(signal.SIGINT)
+            try:
+                self.proc.wait(timeout=20)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+        time.sleep(1.0)
+        if not self.raw.exists() or self.raw.stat().st_size < 1024:
+            die("scrcpy produced no phone recording")
+        # scrcpy writes variable-frame-rate; re-encode to CFR so the composite's
+        # trim/setpts and the dedup pass behave predictably.
+        run(["ffmpeg", "-y", "-i", str(self.raw), "-vf", f"fps={FPS}",
+             "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p",
+             str(dest)], "normalize phone recording to CFR", heavy=True)
+        self.raw.unlink(missing_ok=True)
 
 
 # ── Inner mode: executes the timeline inside the asciinema pty ────────────────
