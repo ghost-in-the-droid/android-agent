@@ -12,7 +12,7 @@ code_pane_source: scripts/showcase/langchain_script.py
 # landing the demo in the 30-45s target with NO extra speedup (stacking speedup on
 # top of dedup makes it unwatchably fast). The intro opens with the tall code
 # window + phone already on the side (phone_in_intro), so content must NOT re-slide.
-content_speedup: 1
+content_speedup: 2
 content_dedup: true          # drop only frozen/duplicate frames (dead air), nothing else
 phone_in_intro: true
 
