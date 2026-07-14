@@ -49,7 +49,7 @@ SUBSTITUTIONS: list[tuple[re.Pattern, str]] = [
         re.compile(r"\b[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}\b"),
         "<IPHONE_UDID>",
     ),
-    # iOS UDIDs (modern A12+ format: 8 hex - 16 hex, e.g. 00008130-001259DC11C2001C),
+    # iOS UDIDs (modern A12+ format: 8 hex - 16 hex, e.g. 00008030-0011223344556677),
     # optionally with an ios: prefix from ghost device specs
     (
         re.compile(r"\b(?:ios:)?[0-9A-Fa-f]{8}-[0-9A-Fa-f]{16}\b"),
