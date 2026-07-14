@@ -1,6 +1,6 @@
 demo: langchain
 device: android
-duration_target_s: 360
+duration_target_s: 420
 
 # 3-window layout: phone (left) + code (top-right, langchain_script.py — the
 # high-level main() segment) + terminal (bottom-right, live Claude-Code tool
@@ -50,7 +50,7 @@ timeline:
   # Table payoff: a plain one-liner SQL against the DB the agent just wrote —
   # no show() helper in the script for the viewer to wade through. t sized so all
   # 5 harvests (~50s each ≈ 260s) finish first; dedup collapses any slack.
-  - t: 330
+  - t: 400
     caption: "5 subreddits profiled. Ghost drove. Claude Code thought."
     action: terminal_type
     args:
@@ -61,4 +61,4 @@ outro:
   cta_line: "pip install ghost-in-the-droid[langchain]"
   cta_link: "https://ghostinthedroid.com/features/integrations/"
 
-highlight_window: {start_s: 330, end_s: 338}
+highlight_window: {start_s: 400, end_s: 408}
