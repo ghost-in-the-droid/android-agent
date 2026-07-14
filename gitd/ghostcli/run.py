@@ -14,6 +14,53 @@ import time
 # gets vision today; effort-scaling is a later refinement.
 _MODE_AUTOSHOT = {"fast": False, "vision": True, "reason": True}
 
+# Per-tool emoji for the streamed tool-call line. Without this every call renders
+# the same generic 🧰 and a demo reads as a flat wall; a distinct glyph per action
+# makes the agent's moves legible at a glance. Unmapped tools fall back to 🧰.
+_TOOL_EMOJI = {
+    # input / interaction
+    "tap": "👆", "tap_element": "👆", "long_press": "🤏",
+    "type_text": "⌨️", "type_unicode": "⌨️", "paste_text": "📋",
+    "press_key": "🎹", "press_back": "🔙", "press_home": "🏠", "browser_back": "🔙",
+    "swipe": "📜",
+    # screen / vision
+    "screenshot": "📸", "screenshot_annotated": "📸", "screenshot_cropped": "📸",
+    "screenshot_sequence": "🎞️", "get_screen_tree": "🌲", "get_screen_xml": "📄",
+    "get_elements": "🔲", "classify_screen": "🧠", "find_on_screen": "🔍",
+    "ocr_screen": "🔠", "ocr_region": "🔠",
+    "extract_visible_text": "📃", "extract_articles": "📰", "read_news": "📰",
+    # apps / navigation
+    "launch_app": "🚀", "launch_intent": "🚀", "force_stop": "🛑",
+    "list_apps": "📱", "list_packages": "📦", "search_apps": "🔎", "app_state": "ℹ️",
+    "open_url": "🌐", "get_current_url": "🔗",
+    # device / system
+    "list_devices": "📱", "device_health": "🩺", "fix_device_health": "🔧",
+    "get_phone_state": "📊", "shell": "⚙️", "wait": "⏳", "wait_for_text": "⏳",
+    "speak_text": "🔊", "open_camera": "📷",
+    # notifications / clipboard
+    "get_notifications": "🔔", "open_notifications": "🔔", "clear_notifications": "🔕",
+    "clipboard_get": "📋", "clipboard_set": "📋",
+    # recording / stream
+    "start_screen_recording": "⏺️", "stop_screen_recording": "⏹️",
+    "screen_recording_status": "📹", "get_stream_info": "📡",
+    # web / search
+    "web_search": "🔎",
+    # skills / agent orchestration
+    "list_skills": "🧩", "create_skill": "✨", "run_action": "▶️", "explore_app": "🧭",
+    "chain": "⛓️", "sub_agent": "🤖", "run_flow": "🔀", "run_workflow": "🔀",
+    "toggle_overlay": "🖼️",
+    # crashes
+    "list_crashes": "💥", "get_crash": "💥",
+    # crm / leads
+    "lookup_lead": "🔎", "list_unread_leads": "📥",
+    "crm_lookup_contact": "🔎", "crm_list_unread_messages": "📥",
+}
+
+
+def _tool_emoji(name: str) -> str:
+    """Emoji for a tool-call line; 🧰 for anything unmapped."""
+    return _TOOL_EMOJI.get(name, "🧰")
+
 
 def _emit(text: str, *, end: str = "") -> None:
     sys.stdout.write(text + end)
@@ -43,7 +90,7 @@ def run_task(prompt: str, device_ref: str, provider: str, model: str, mode: str,
             elif etype == "tool_call":
                 tool_calls += 1
                 name = event.get("name") or event.get("tool") or "tool"
-                _emit(f"\n  🧰  {name}\n")
+                _emit(f"\n  {_tool_emoji(name)}  {name}\n")
             elif etype == "thinking":
                 pass  # keep the terminal clean; thinking is not surfaced
             elif etype == "error":
