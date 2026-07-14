@@ -620,6 +620,10 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
         dedup_f = ("mpdecimate" + (f"={dedup}" if isinstance(dedup, str) else "")
                    + f",setpts=N/{FPS}/TB,")
     pts = "PTS-STARTPTS" if speedup == 1 else f"(PTS-STARTPTS)/{speedup}"
+    # tail_hold_s: freeze the LAST content frame (the SQL stats payoff) for N sec so
+    # it's readable even when the harvest before it is heavily sped up / deduped.
+    tail_hold = float(spec.get("tail_hold_s", 0) or 0)
+    tail_f = f"tpad=stop_mode=clone:stop_duration={tail_hold}," if tail_hold else ""
     captions = workdir / "captions.ass"
     build_captions(spec, captions)
 
@@ -672,7 +676,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
             f"[c1][framepng]overlay=0:0:format=auto[c2];"
             f"[c2]subtitles='{captions}':fontsdir='{BRAND_DIR / 'fonts'}',"
             f"trim=duration={content_s},{dedup_f}setpts={pts},fps={FPS},"
-            f"format=yuv420p[content];"
+            f"{tail_f}format=yuv420p[content];"
             f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
             f"[1:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[outro];"
             f"[intro][content][outro]concat=n=3:v=1:a=0,scale=1920:1080[out]"
@@ -773,10 +777,10 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
            f"[c3]null[c4];")
         # captions only for standard layout (headline baked into motion bg)
         + (f"[c4]trim=duration={content_s},{dedup_f}setpts={pts},fps={FPS},"
-           f"format=yuv420p[content];" if three_pane else
+           f"{tail_f}format=yuv420p[content];" if three_pane else
            f"[c4]subtitles='{captions}':fontsdir='{BRAND_DIR / 'fonts'}',"
            f"trim=duration={content_s},{dedup_f}setpts={pts},fps={FPS},"
-           f"format=yuv420p[content];")
+           f"{tail_f}format=yuv420p[content];")
         # cards
         + f"[0:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[intro];"
         f"[1:v]scale={CANVAS_W}:{CANVAS_H},fps={FPS},format=yuv420p[outro];"
