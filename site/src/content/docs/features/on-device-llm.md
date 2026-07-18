@@ -15,7 +15,11 @@ There's a big difference between "local" and "on-device":
 | Local ([Ollama](https://ollama.com/), [vLLM](https://docs.vllm.ai/)) | Your laptop / desk GPU | Prompts leave the phone (via LAN or SSH tunnel) — but stay on your network |
 | **On-device** ⭐ | **The phone itself** | **Nothing** |
 
-On-device is the only mode where the LLM literally executes inside the Ghost Android app process. The phone is both the agent's body **and** its brain.
+On-device is the only mode where the LLM literally executes inside the Ghost app process. The phone is both the agent's body **and** its brain.
+
+:::tip[On iPhone too]
+On-device is no longer Android-only. A native SwiftUI app runs the model and the agent loop entirely on the iPhone via **llama.cpp on Metal** (Qwen2.5 1.5B), with an **opt-in MLX engine** for faster decode on Apple Silicon. Same idea, same airplane-mode guarantee: your iPhone talks to itself. See the [iOS on-device guide](https://github.com/ghost-in-the-droid/android-agent/blob/main/docs/IOS_ONDEVICE.md).
+:::
 
 ## The 2 engines under one wrapper
 

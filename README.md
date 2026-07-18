@@ -1,8 +1,8 @@
-# Ghost in the Droid
-
 <p align="center">
   <img src="docs/assets/mascot/12-the-tap.png" alt="Ghost tapping a phone" width="200" />
 </p>
+
+<h1 align="center">Ghost in the Droid</h1>
 
 <p align="center">
   <strong>Summon a ghost into your phone.</strong><br/>
@@ -12,12 +12,57 @@
 <p align="center">
   <a href="https://ghostinthedroid.com">Website</a> &middot;
   <a href="https://ghostinthedroid.com/getting-started/installation/">Docs</a> &middot;
-  <a href="https://ghostinthedroid.com/skills/">Skill Hub</a>
+  <a href="https://ghostinthedroid.com/skills/">Skill Hub</a> &middot;
+  <a href="https://github.com/ghost-in-the-droid/android-agent/releases/latest">Releases</a>
 </p>
 
-![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)
-![License: MIT](https://img.shields.io/badge/license-MIT-green)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal)
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT" />
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+" />
+  <img src="https://img.shields.io/badge/MCP-62%20tools-6366f1" alt="62 MCP tools" />
+  <img src="https://img.shields.io/badge/platforms-Android%20%2B%20iOS-a78bfa" alt="Android + iOS" />
+  <img src="https://img.shields.io/badge/inference-cloud%20or%20on--device-22c55e" alt="cloud or on-device" />
+</p>
+
+---
+
+<!-- HERO VIDEO. Served from a relative repo path so it plays on the private mirror preview AND the public repo, with no release-attach dependency. GitHub renders <video> inline; the poster + linked image are the fallback for older markdown renderers. -->
+<p align="center">
+  <video src="docs/assets/hero-reel.mp4" poster="docs/assets/hero-poster.jpg" width="820" controls muted playsinline>
+    <a href="docs/assets/hero-reel.mp4">
+      <img src="docs/assets/hero-poster.jpg" alt="Ghost driving nine real phones. Click to watch the reel." width="820" />
+    </a>
+  </video>
+</p>
+
+<p align="center"><em>Nine agents. Nine real devices. One ghost. (Click to watch.)</em></p>
+
+---
+
+## The pitch, in one breath
+
+Every AI agent can think. Almost none can touch a phone.
+
+**Ghost is the body.** It gives any LLM agent a real Android phone or iPhone: it reads the screen, taps, swipes, and types through a clean tool surface, and it scales from one device on your desk to a whole phone farm. Point Claude Code, Codex, Antigravity, Cursor, your LangChain app, or a model running *inside the phone itself* at it, and your agent grows hands.
+
+Bring your own brain. Keep the same body. MIT, forever.
+
+---
+
+## Mix and match: the Ghost matrix
+
+Ghost 1.3 is the only Android + iOS agent framework where **platform**, **brain**, and **driver** are all swappable. Pick one from each column. They all compose.
+
+| Pick a platform | Pick a brain | Pick a driver |
+|---|---|---|
+| **Android** over USB ADB | **Claude Code** (free with your Max/Pro sub) | **MCP client** (Claude Code, Codex, Antigravity, Cursor, Opencode) |
+| **Android** over Wi-Fi ADB | **Anthropic API** | **LangChain** toolkit |
+| **Android** in a **Docker + KVM** emulator pool | **OpenRouter** (any model, one key) | **LlamaIndex** tool spec |
+| **iPhone** over Appium + WebDriverAgent *(experimental)* | **Ollama** (fully local) | **Ghost CLI** (`ghost "book a table" --device pixel`) |
+| | **vLLM** (your own GPU) | **Web dashboard** chat with a live phone stream |
+| | **On-device** (the model runs *in the phone*, airplane-mode works) | **REST API** (`/docs` OpenAPI) |
+
+The body stays the same 62 MCP tools no matter what you plug in. Every new model release is a free upgrade to your phone agent.
 
 ---
 
@@ -28,8 +73,8 @@ Open-source Python framework for controlling Android and iOS devices from one ag
 Define **skills** for any app, run them from the dashboard or API, scale across a phone farm.
 
 **The ghost taps what you'd tap**
-- Android control through ADB — tap, swipe, type, clipboard, shell, intents, and stealth variants
-- iOS control through WebDriverAgent — screenshot, accessibility tree, tap, swipe, type, app launch, clipboard, browser actions
+- Android control through ADB: tap, swipe, type, clipboard, shell, intents, and stealth variants
+- iOS control through WebDriverAgent: screenshot, accessibility tree, tap, swipe, type, app launch, clipboard, browser actions
 - Live phone screen streaming: Android MJPEG/WebRTC, iOS WDA MJPEG with screenshot fallback
 - Interactive touch-to-tap on the streamed screen
 - Multi-device phone farm with per-device job queues
@@ -41,12 +86,12 @@ Define **skills** for any app, run them from the dashboard or API, scale across 
 - Multi-step workflows that chain actions together
 - Built-in skills for TikTok and Play Store
 - iOS browser/news demo skill and smoke-level TikTok iOS workflows
-- **Skill Hub** — browse, search, and install skills from the community registry
+- **Skill Hub**: browse, search, and install skills from the community registry
 - Install from CLI: `android-agent skill install tiktok`
 
 **Teach the ghost new tricks**
-- BFS-based auto app explorer — discovers every screen and transition
-- LLM-assisted Skill Creator — chat with AI while viewing the live device stream
+- BFS-based auto app explorer: discovers every screen and transition
+- LLM-assisted Skill Creator: chat with AI while viewing the live device stream
 - The AI identifies UI elements and generates action/workflow code
 
 **Scale the haunting**
@@ -69,6 +114,18 @@ Define **skills** for any app, run them from the dashboard or API, scale across 
 
 ---
 
+## Why it is built this way
+
+**Skills cost $0. Thinking costs tokens.** An agent should not pay an LLM to tap a button it has tapped a thousand times. Known workflows compile to **skills**: deterministic YAML + Python recipes that replay in seconds with zero LLM calls. Use AI for the unknown task, replay for the known one.
+
+**The phone is the easiest sandbox there is.** Give the ghost an old Android with its own SIM and its own accounts, physically separate from your life. You already know how to set up a phone.
+
+**Zero-app by default.** A fresh install touches nothing on the Android device: screen reads go through `uiautomator`, actions through `adb shell input`, no root, no accessibility service. Want it faster? The optional Portal companion app gives roughly 30x quicker UI reads. Want it private? On-device mode runs the whole loop inside the phone, nothing leaves it. All opt-in.
+
+**Local-first, cloud-optional.** The server and dashboard run on your machine. With a local or on-device brain, your screenshots never leave your network. Pick a cloud brain and prompts go to that provider, same as any tool. Your call, always.
+
+---
+
 ## Requirements
 
 - **Python 3.10+**
@@ -87,8 +144,11 @@ cover web tasks. Android-only tools (`shell`, `launch_intent`, Portal overlay)
 return a clear platform error instead of failing silently.
 
 iOS support is **feature-gated and OFF by default** while device testing
-matures — enable it with `GITD_ENABLE_IOS=1` (or `ios_platform_enabled=true`
-in `.env`). See [docs/SETUP_IOS.md](docs/SETUP_IOS.md) for Appium/WDA setup.
+matures. Enable it with `GITD_ENABLE_IOS=1` (or `ios_platform_enabled=true`
+in `.env`). Wireless drive rides your Tailscale tailnet, so treat the tailnet as
+the trust boundary. See [docs/SETUP_IOS.md](docs/SETUP_IOS.md) for Appium/WDA
+setup, and [docs/IOS_ONDEVICE.md](docs/IOS_ONDEVICE.md) to run the model on the
+iPhone itself.
 
 ---
 
@@ -97,37 +157,34 @@ in `.env`). See [docs/SETUP_IOS.md](docs/SETUP_IOS.md) for Appium/WDA setup.
 Zero-install with [`uvx`](https://docs.astral.sh/uv/) (or `pipx`):
 
 ```bash
-# Check your environment first — Python, adb on PATH, devices, ports, LLM keys
-uvx ghost-in-the-droid doctor
-
-# Sign in with your Claude subscription — no API key needed (see below)
-uvx ghost-in-the-droid login
-
-# Start the server + dashboard
-uvx ghost-in-the-droid up
-# → http://localhost:5055  (dashboard + API; docs at /docs)
+uvx ghost-in-the-droid doctor   # green/red preflight: python, adb on PATH, devices, ports, LLM keys
+uvx ghost-in-the-droid login    # sign in with your Claude subscription, no API key needed
+uvx ghost-in-the-droid up       # server + dashboard at http://localhost:5055  (API docs at /docs)
 ```
 
-`doctor` prints a green/red checklist with fix hints instead of a stack trace when
-something's missing (e.g. `adb` not on PATH). Prefer `pipx`? `pipx install
-ghost-in-the-droid` gives you the `ghost-in-the-droid` / `android-agent` commands.
+`doctor` prints a checklist with fix hints instead of a stack trace when something is missing (e.g. `adb` not on PATH). Prefer `pipx`? `pipx install ghost-in-the-droid` gives you the `ghost-in-the-droid` / `android-agent` commands.
 
 ### Sign in with your Claude subscription (no API key)
 
-If you have a **Claude Max/Pro** subscription, you don't need an API key.
-`android-agent login` signs you in through the `claude` CLI's own Anthropic
-OAuth flow and points Ghost at the `claude-code` provider:
+If you have a **Claude Max/Pro** subscription, you don't need an API key. `android-agent login` signs you in through the `claude` CLI's own Anthropic OAuth flow and points Ghost at the `claude-code` provider:
 
 ```bash
 android-agent login       # opens Anthropic sign-in via the claude CLI
 ```
 
-Ghost never handles or stores your token — the `claude` CLI owns it, including
-refresh. Under the hood this is the sanctioned subscription path (we don't touch
-Anthropic's private OAuth endpoints). `doctor` shows a green **Claude
-subscription** check once you're signed in. To use an API key instead, set
-`ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` / `OPENROUTER_API_KEY`) and pick that
-provider.
+Ghost never handles or stores your token; the `claude` CLI owns it, refresh included. `doctor` shows a green **Claude subscription** check once you are signed in. To use an API key instead, set `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` / `OPENROUTER_API_KEY`) and pick that provider.
+
+<details>
+<summary>Run fully local with Ollama (no keys, no cloud)</summary>
+
+Select Ollama in the Phone Agent tab. Runs entirely on your machine with [Ollama](https://ollama.com):
+
+```bash
+brew install ollama       # or: curl -fsSL https://ollama.com/install.sh | sh
+ollama serve &
+ollama pull llama3.2:3b   # 2GB, fast, good tool-use
+```
+</details>
 
 <details>
 <summary>From a clone (for development)</summary>
@@ -135,8 +192,6 @@ provider.
 ```bash
 git clone https://github.com/ghost-in-the-droid/android-agent.git
 cd android-agent
-
-# 2. Install Python dependencies
 pip install -e ".[all]"
 
 android-agent doctor        # preflight
@@ -197,118 +252,28 @@ Copy `.env.example` to `.env` (if provided) or create a `.env` file in the proje
 | `IOS_DEVICES_JSON` | Per-device iOS config for multiple phones/simulators, WDA ports, bundle IDs, and MJPEG ports |
 | `IOS_MJPEG_SERVER_PORT` | WDA MJPEG stream port; use one unique port per iOS device |
 
-**No API keys needed for local models:** Select Ollama in the Phone Agent tab — runs entirely on your machine with [Ollama](https://ollama.com). Install, pull a model, go:
+---
+
+## Give any AI agent a mobile body (MCP)
+
+Ghost ships an [MCP](https://modelcontextprotocol.io) server with **62 tools** for real-device control. Any MCP-compatible client can use them. Android serials receive the Android implementation; `ios:<udid>` refs route to the iOS backend where supported and return stable unsupported-platform errors for Android-only tools. One command wires it up:
 
 ```bash
-brew install ollama       # or curl -fsSL https://ollama.com/install.sh | sh
-ollama serve &
-ollama pull llama3.2:3b   # 2GB, fast, good tool-use
-```
-
-**No API keys needed for local models:** Select Ollama in the Phone Agent tab — runs entirely on your machine with [Ollama](https://ollama.com). Install, pull a model, go:
-
-```bash
-brew install ollama       # or curl -fsSL https://ollama.com/install.sh | sh
-ollama serve &
-ollama pull llama3.2:3b   # 2GB, fast, good tool-use
-```
-
----
-
-## Architecture
-
-```
-android-agent/
-  run.py                        # Entry point: Uvicorn on :5055
-  gitd/
-    app.py                      # FastAPI app factory + plugin hook
-    config.py                   # Pydantic settings from .env
-    models/                     # SQLAlchemy 2.0 ORM
-    schemas/                    # Pydantic v2 request/response validation
-    routers/                    # FastAPI route handlers
-    services/                   # Business logic helpers
-    skills/                     # Skill packages per app
-      _base/                    #   Base classes (Skill, Action, Workflow)
-      tiktok/                   #   TikTok skill (elements, actions, workflows)
-      play_store/               #   Play Store skill (install, update, search)
-      safari/                   #   iOS browser/news demo skill
-      tiktok_ios/               #   iOS TikTok smoke workflows
-    bots/
-      common/
-        adb.py                  #   Device class: tap, swipe, dump XML, wait_for
-        ios.py                  #   IOSDevice class: Appium/WDA session, UI tree, gestures
-    mcp_server.py               # MCP server — expose tools for any LLM agent
-    alembic/                    # Database migrations
-  frontend/                     # Vue 3 + Vite + TypeScript + Tailwind CSS
-    src/
-      App.vue                   # Tab shell (9 tabs)
-      views/                    # One view per tab
-      composables/              # Typed API fetch wrapper
-  portal/                       # Kotlin companion app (WebRTC, accessibility)
-  site/                         # Docs site (Astro + Starlight)
-  tests/                        # Integration tests (require a connected phone)
-  docs/                         # Architecture docs
-```
-
-### How It Fits Together
-
-1. **Backend** (`run.py`) starts a FastAPI server on port 5055 with routers covering device control, skills, bots, scheduling, and streaming.
-2. **Frontend** (`frontend/`) is a Vue 3 SPA that talks to the backend via `/api/*`. Vite proxies API calls to the backend during development.
-3. **Skills** define how to interact with a specific app. Each skill has a `elements.yaml` (UI elements), Python actions (atomic operations), and workflows (multi-step sequences).
-4. **Device backends** route by device ref. Bare serials use `bots/common/adb.py`; `ios:<udid>` refs use `bots/common/ios.py` and Appium/WDA.
-5. **Database** is SQLite with SQLAlchemy 2.0 ORM and Alembic migrations.
-
----
-
-## API Documentation
-
-The backend auto-generates interactive API docs via FastAPI:
-
-- **Swagger UI**: [http://localhost:5055/docs](http://localhost:5055/docs)
-- **ReDoc**: [http://localhost:5055/redoc](http://localhost:5055/redoc)
-
-API domains: phone, streaming, skills, creator, explorer, agent-chat, bot, scheduler, tests, tools, misc.
-
----
-
-## Dashboard Tabs
-
-| Tab | What It Does |
-|-----|-------------|
-| Phone Agent | Live device stream (MJPEG/WebRTC), tap/swipe on screen, multi-device view |
-| Scheduler | Cron-style job scheduling with queue management |
-| Skill Hub | Browse installed skills, run actions and workflows, export/delete |
-| Skill Creator | LLM-assisted skill builder with live device stream |
-| Skill Miner | Auto app explorer — BFS state discovery with screenshots |
-| Tools | Utility tools hub |
-| Manual Run | Start/stop bot jobs, queue management, logs |
-| Tests | Per-device test runner with screen recording playback |
-| Emulators | Create, boot, snapshot, and manage Android emulators |
-
----
-
-## MCP Server — Give Any AI Agent a Mobile Body
-
-The project ships an [MCP](https://modelcontextprotocol.io) server with 35 tools for mobile control. Any MCP-compatible AI client (Claude Code, Claude Desktop, Cursor, VS Code Copilot, Windsurf) can use them. Android serials receive the Android implementation; `ios:<udid>` refs route to the iOS backend where supported and return stable unsupported-platform errors for Android-only tools.
-
-### Install
-
-One command — works with Claude Code, Codex, Cursor, VS Code Copilot, Windsurf:
-
-```bash
+# Claude Code (same shape for Codex, Cursor, VS Code Copilot, Windsurf)
 claude mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
 ```
 
-That's it. `uvx` installs the package, creates an isolated env, and runs the MCP server. No clone, no venv, no manual setup.
+`uvx` installs the package, builds an isolated env, and runs the server. No clone, no venv.
 
-**Other clients** — same command, different registration:
+<details>
+<summary>Other clients (Codex, Claude Desktop, Cursor, VS Code, Windsurf)</summary>
 
 ```bash
 # Codex (OpenAI)
 codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
 ```
 
-**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+**Claude Desktop** (`claude_desktop_config.json`), **Cursor** (`.cursor/mcp.json`), **Windsurf** (`mcp_config.json`):
 ```json
 {
   "mcpServers": {
@@ -320,71 +285,51 @@ codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
 }
 ```
 
-**VS Code Copilot** (`.vscode/mcp.json`):
-```json
-{
-  "servers": {
-    "android-agent": {
-      "command": "uvx",
-      "args": ["--from", "ghost-in-the-droid", "android-agent-mcp"]
-    }
-  }
-}
-```
+**VS Code Copilot** (`.vscode/mcp.json`) uses the same block under a `"servers"` key. Contributors who clone the repo get a ready `.mcp.json`, all 62 tools live on first `claude` launch.
+</details>
 
-**Cursor** (`.cursor/mcp.json`) / **Windsurf** (`~/.codeium/windsurf/mcp_config.json`):
-```json
-{
-  "mcpServers": {
-    "android-agent": {
-      "command": "uvx",
-      "args": ["--from", "ghost-in-the-droid", "android-agent-mcp"]
-    }
-  }
-}
-```
+**The 62 tools, by category:**
 
-**For contributors** who clone the repo: the `.mcp.json` is already there — the 35 mobile tools are available on first `claude` launch.
+| Category | What the ghost can do |
+|----------|-----------------------|
+| **See** | `screenshot`, `get_elements`, `get_screen_tree`, `get_screen_xml`, `screenshot_annotated`, `screenshot_cropped` |
+| **Touch** | `tap`, `tap_element`, `swipe`, `long_press`, `type_text`, `type_unicode`, `press_back`, `press_home`, `press_key` |
+| **Apps** | `launch_app`, `search_apps`, `list_apps`, `launch_intent`, `force_stop`, `list_packages` |
+| **Understand** | `get_phone_state`, `classify_screen`, `find_on_screen`, `ocr_screen`, `ocr_region`, `extract_visible_text` |
+| **Browser / iOS** | `open_url`, `browser_back`, `get_current_url`, `read_news`, `extract_articles`, `wait_for_text` |
+| **Device** | `list_devices`, `clipboard_get`, `clipboard_set`, `get_notifications`, `open_notifications`, `toggle_overlay`, `device_health` |
+| **Skills** | `list_skills`, `run_workflow`, `run_action`, `create_skill`, `explore_app` |
+| **Batch** | `run_flow` / `chain`: one call runs a whole multi-step recipe server-side, N round-trips collapse to 1 |
+| **Diagnostics** | `list_crashes`, `get_crash`, `web_search`, screen recording, camera + TTS |
 
-### Available tools
+`toggle_overlay`, `launch_intent`, Android shell helpers, wireless ADB, and Play Store helpers remain Android-only and return stable platform errors on iOS.
 
-| Category | Tools |
-|----------|-------|
-| Screen | `screenshot`, `get_elements`, `get_screen_tree`, `get_screen_xml`, `screenshot_annotated`, `screenshot_cropped` |
-| Interaction | `tap`, `tap_element`, `swipe`, `long_press`, `type_text`, `type_unicode`, `press_back`, `press_home`, `press_key` |
-| Apps | `launch_app`, `search_apps`, `list_apps`, `launch_intent` |
-| Context | `get_phone_state`, `classify_screen`, `find_on_screen`, `ocr_screen`, `ocr_region` |
-| Device | `list_devices`, `clipboard_get`, `clipboard_set`, `get_notifications`, `open_notifications`, `toggle_overlay` |
-| Skills | `list_skills`, `run_workflow`, `run_action`, `create_skill`, `explore_app` |
-| Browser/iOS | `open_url`, `browser_back`, `get_current_url`, `wait_for_text`, `extract_visible_text`, `extract_articles`, `read_news` |
+---
 
-`toggle_overlay`, `launch_intent`, Android shell helpers, wireless ADB, Play Store helpers, and Portal-specific actions remain Android-only.
+## Run the brain inside the phone
+
+New in 1.3: the model can live *on the device*. The Ghost companion app embeds real inference engines, so the phone is both the body and the brain. Airplane mode on, agent still working, nothing leaving the device.
+
+| Platform | Engine | Model format | Best for |
+|----------|--------|-------------|----------|
+| Android | **llama.cpp** (JNI) | `.gguf` | Any GGUF: Gemma, Llama, Mistral, Qwen, DeepSeek |
+| Android | **MediaPipe** | `.task` | Small Gemma models, fastest Android integration |
+| iPhone | **llama.cpp** (Metal) | `.gguf` | Same GGUF as Android, Qwen2.5 1.5B on Metal |
+| iPhone | **MLX** | Apple Silicon | Faster decode on newer chips, opt-in |
+
+On iPhone, Qwen2.5 1.5B runs through llama.cpp on Metal and drives the phone's own UI, with an opt-in MLX engine for faster decode on Apple Silicon. Small models are kept honest with grammar-constrained decoding so tool calls always parse. Full detail in [docs/IOS_ONDEVICE.md](docs/IOS_ONDEVICE.md).
 
 ---
 
 ## Skill Hub CLI
 
 ```bash
-# Search the public registry
-android-agent skill search tiktok
-
-# Install a skill
-android-agent skill install tiktok
-
-# Install from any GitHub repo
+android-agent skill search tiktok        # search the public registry
+android-agent skill install tiktok       # install a skill
 android-agent skill install github.com/someone/their-skill
-
-# List installed skills
-android-agent skill list
-
-# Update a skill
-android-agent skill update tiktok
-
-# Remove a skill
-android-agent skill remove tiktok
-
-# Validate before publishing
-android-agent skill validate ./my-skill/
+android-agent skill list                 # what is installed
+android-agent skill update tiktok        # update a skill
+android-agent skill validate ./my-skill/ # check before publishing
 ```
 
 The skill registry lives in [`registry/`](registry/) in this repo. Community skills are auto-discovered nightly from repos tagged `android-agent-skill`.
@@ -393,24 +338,63 @@ The skill registry lives in [`registry/`](registry/) in this repo. Community ski
 
 Two ways to forge a skill:
 
-**Community skill** (your own repo):
-1. Create a new repo with `skill.yaml`, `elements.yaml`, actions, workflows
-2. Tag your repo with the `android-agent-skill` topic
-3. It appears on the hub automatically (nightly scraper)
+**Community skill** (your own repo): create a repo with `skill.yaml`, `elements.yaml`, actions, and workflows, tag it `android-agent-skill`, and it appears on the [Skill Hub](https://ghostinthedroid.com/skills/) automatically (nightly scraper).
 
-**Official skill** (PR to this repo):
-1. Build and test as a community skill first
-2. Open a PR adding your skill to [`registry/`](registry/)
-3. CI validates, maintainer reviews, gets "Official" badge
+**Official skill** (PR to this repo): build and test as a community skill first, then open a PR adding it to [`registry/`](registry/). CI validates, a maintainer reviews, and it gets the "Official" badge.
 
 Each skill needs:
-- `skill.yaml` — metadata (name, version, app package or iOS bundle ID, supported platforms, actions, workflows)
-- `elements.yaml` — Android UI element resource IDs and descriptions
-- `elements_ios.yaml` — optional iOS selectors for XCTest accessibility trees
-- `actions/` — Python classes extending `Action` with `precondition()` and `execute()`
-- `workflows/` — Python classes extending `Workflow` with `steps()`
+- `skill.yaml`: metadata (name, version, app package or iOS bundle ID, supported platforms, actions, workflows)
+- `elements.yaml`: Android UI element resource IDs and descriptions
+- `elements_ios.yaml`: optional iOS selectors for XCTest accessibility trees
+- `actions/`: Python classes extending `Action` with `precondition()` and `execute()`
+- `workflows/`: Python classes extending `Workflow` with `steps()`
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
+Prefer to let AI do it? The **Skill Creator** watches a live device stream and generates the action and workflow code while you narrate. Full guide in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## The dashboard
+
+A local-first control room at `http://localhost:5055` (or `:6175` in dev). WebRTC and MJPEG live streams, tap-on-screen, tracing, and every tab below.
+
+| Tab | What it does |
+|-----|-------------|
+| Phone Agent | Live device stream (MJPEG/WebRTC), tap/swipe on screen, multi-device view |
+| Scheduler | Cron-style job scheduling with queue management |
+| Skill Hub | Browse installed skills, run actions and workflows, export/delete |
+| Skill Creator | LLM-assisted skill builder with live device stream |
+| Skill Miner | Auto app explorer: BFS state discovery with screenshots |
+| Manual Run | Start/stop bot jobs, queue management, logs |
+| Tests | Per-device test runner with screen recording playback |
+| Emulators | Create, boot, snapshot, and manage Android emulators |
+| Tracing | Per-turn traces, token accounting, tool-call visibility |
+
+---
+
+## Architecture
+
+```
+android-agent/
+  run.py                    # Uvicorn entry point on :5055
+  gitd/
+    app.py                  # FastAPI app factory + plugin hook
+    models/  schemas/       # SQLAlchemy 2.0 ORM + Pydantic v2
+    routers/  services/     # Route handlers + business logic
+    skills/                 # Skill packages (tiktok, play_store, safari [iOS], tiktok_ios)
+    bots/common/adb.py      # Android Device class: tap, swipe, dump tree, wait_for
+    bots/common/ios.py      # iOS Device class: Appium/WDA session, UI tree, gestures
+    mcp_server.py           # MCP server: 62 tools for any LLM agent
+  frontend/                 # Vue 3 + Vite + TypeScript + Tailwind
+  portal/                   # Kotlin companion app (WebRTC, on-device inference)
+  site/                     # Docs site (Astro + Starlight)
+```
+
+**The flow:** FastAPI backend on `:5055` exposes device control, skills, bots, scheduling, and streaming. The Vue SPA talks to it over `/api/*`. Skills define per-app interaction (elements + actions + workflows). Device backends route by ref: bare serials use `bots/common/adb.py`, `ios:<udid>` refs use `bots/common/ios.py` and Appium/WDA. State lives in SQLite via SQLAlchemy 2.0 and Alembic.
+
+<!-- BENCHMARK: sneak-peek only per CKL directive (number is preview, no methodology/trajectories published yet). Public README is high-scrutiny; CKL to explicitly approve keeping this block, else cut. -->
+## Benchmark (sneak peek)
+
+Early result, with the full methodology writeup still cooking: driven by Claude Code, Ghost completes **115 of 116 tasks (99.1%)** on [AndroidWorld](https://github.com/google-research/android_world), Google Research's benchmark for Android agents, on the unmodified upstream harness. Treat this as a preview rather than a citable number. The detailed writeup and trajectories are coming. Watch the [releases](https://github.com/ghost-in-the-droid/android-agent/releases/latest).
 
 ---
 
@@ -419,17 +403,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 | Layer | Technology |
 |-------|-----------|
 | Backend | FastAPI, Uvicorn, Python 3.10+ |
-| ORM | SQLAlchemy 2.0 (Mapped types) |
-| Migrations | Alembic |
-| Validation | Pydantic v2 |
-| Database | SQLite (WAL mode) |
-| Frontend | Vue 3 (Composition API), TypeScript, Vite, Tailwind CSS 4 |
-| Charts | Chart.js 4, Plotly.js |
-| Device Control | ADB for Android; Appium XCUITest/WebDriverAgent for iOS |
+| Data | SQLAlchemy 2.0, Alembic, Pydantic v2, SQLite (WAL) |
+| Frontend | Vue 3, TypeScript, Vite, Tailwind CSS 4 |
+| Device control | ADB for Android; Appium XCUITest/WebDriverAgent for iOS |
 | Streaming | Android MJPEG/WebRTC via Portal; iOS WDA MJPEG plus screenshot fallback |
-| LLM | OpenAI, Anthropic (optional) |
-| Linting | Ruff |
-| Testing | pytest, Playwright (optional) |
+| On-device | llama.cpp, MediaPipe (Android); llama.cpp on Metal, MLX (iOS) |
+| Quality | Ruff, pytest, Playwright |
 
 ---
 
@@ -440,12 +419,7 @@ Most tests are unit/API tests and run without a live device. Live Android and iO
 ```bash
 # Run all tests on a specific device
 DEVICE=<serial> python3 -m pytest tests/ -v --tb=short
-
-# Run a single test file
-DEVICE=<serial> python3 -m pytest tests/test_00_baseline.py -v
 ```
-
-Get your device serial from `adb devices`.
 
 For iOS live smoke tests:
 
@@ -457,6 +431,8 @@ IOS_BUNDLE_ID="com.google.chrome.ios" \
 uv run --extra test python -m pytest tests/test_browser_news.py::test_live_ios_chrome_news_workflow
 ```
 
+Get your Android device serial from `adb devices`.
+
 ---
 
 ## Database Migrations
@@ -464,29 +440,19 @@ uv run --extra test python -m pytest tests/test_browser_news.py::test_live_ios_c
 The project uses Alembic for schema migrations:
 
 ```bash
-# Generate a migration after editing a model
-alembic revision --autogenerate -m "add new_field to my_table"
-
-# Apply pending migrations
-alembic upgrade head
-
-# Rollback one migration
-alembic downgrade -1
+alembic revision --autogenerate -m "add new_field to my_table"   # after editing a model
+alembic upgrade head                                              # apply pending
+alembic downgrade -1                                              # rollback one
 ```
 
 ---
 
 ## Contributing
 
-The ghost gets stronger with every skill. See [CONTRIBUTING.md](CONTRIBUTING.md) for:
-
-- Adding skills for new apps (highest impact)
-- Writing actions and workflows
-- Backend architecture and code style
-- PR process
+The ghost gets stronger with every skill. See [CONTRIBUTING.md](CONTRIBUTING.md) for adding app skills (highest impact), writing actions and workflows, backend architecture, and the PR process. Join the community on the [Skill Hub](https://ghostinthedroid.com/skills/).
 
 ---
 
 ## License
 
-[MIT](LICENSE) — The ghost is free. The ghost is open source. The ghost is yours.
+[MIT](LICENSE). The ghost is free. The ghost is open source. The ghost is yours.
