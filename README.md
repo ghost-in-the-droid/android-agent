@@ -30,7 +30,7 @@
 <p align="center">
   <img src="docs/assets/hero-reel.gif" alt="Ghost driving nine real phones" width="820" />
 </p>
-<p align="center"><sub>🔊 <a href="docs/assets/hero-reel.mp4">Play with sound (32s mp4)</a></sub></p>
+<p align="center"><sub>▶ <a href="https://youtu.be/fdaXdFQo61o">Watch full HD with sound on YouTube</a> · <a href="docs/assets/hero-reel.mp4">Download mp4</a></sub></p>
 
 <p align="center"><em>Nine agents. Nine real devices. One ghost. (Click to watch.)</em></p>
 
