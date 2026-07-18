@@ -3,9 +3,12 @@
 import subprocess
 
 from gitd.benchmarks.base import Task
+from gitd.bots.common.device import is_ios_ref
 
 
 def _adb(serial: str, *args: str, timeout: int = 10) -> str:
+    if is_ios_ref(serial):
+        raise RuntimeError("Ghost Bench evaluators are Android-only and do not support iOS device refs")
     cmd = ["adb", "-s", serial, "shell", *args]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     return r.stdout.strip()

@@ -13,7 +13,6 @@ import argparse
 import hashlib
 import json
 import logging
-import os
 import subprocess
 import sys
 import time
@@ -26,7 +25,7 @@ from xml.etree import ElementTree as ET
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from gitd.bots.common.adb import Device
+from gitd.bots.common.device import get_device, is_ios_ref
 
 log = logging.getLogger(__name__)
 
@@ -143,12 +142,20 @@ def xml_structure_hash(xml_str: str) -> str:
     return hashlib.md5(skel.encode()).hexdigest()[:12]
 
 
+def ios_state_hash(package: str, activity: str, xml_str: str, screenshot: bytes | None = None) -> str:
+    """Hash iOS state identity from app identity, normalized tree, and pixels."""
+    xml_hash = xml_structure_hash(xml_str)
+    screenshot_hash = hashlib.md5(screenshot or b"").hexdigest()[:12] if screenshot else ""
+    material = "|".join(["ios", package or "", activity or "", xml_hash, screenshot_hash])
+    return hashlib.md5(material.encode()).hexdigest()[:12]
+
+
 # ── Explorer ─────────────────────────────────────────────────────────────────
 
 class AppExplorer:
     """BFS explorer that navigates through an app's UI states."""
 
-    def __init__(self, dev: Device, package: str, output_dir: str, max_depth: int = 3,
+    def __init__(self, dev: Any, package: str, output_dir: str, max_depth: int = 3,
                  max_states: int = 50, settle_time: float = 1.5):
         self.dev = dev
         self.package = package
@@ -165,6 +172,10 @@ class AppExplorer:
         (self.output_dir / "screenshots").mkdir(parents=True, exist_ok=True)
         (self.output_dir / "xml").mkdir(parents=True, exist_ok=True)
 
+    @property
+    def platform(self) -> str:
+        return "ios" if is_ios_ref(getattr(self.dev, "serial", "")) else "android"
+
     def _log_progress(self, msg: str):
         """Append a timestamped message to the progress log."""
         ts = time.strftime('%H:%M:%S')
@@ -176,7 +187,13 @@ class AppExplorer:
     def _write_progress(self, current_depth: int = 0):
         """Write progress.json for the dashboard to poll."""
         total_transitions = sum(len(s.transitions) for s in self.states.values())
+        current_activity = next(reversed(self.states.values())).activity if self.states else ""
         progress = {
+            "device": getattr(self.dev, "serial", ""),
+            "package": self.package,
+            "platform": self.platform,
+            "output_dir": str(self.output_dir),
+            "current_activity": current_activity,
             "states_found": len(self.states),
             "max_states": self.max_states,
             "transitions": total_transitions,
@@ -191,6 +208,18 @@ class AppExplorer:
 
     def _get_activity(self) -> str:
         """Get current foreground activity."""
+        if self.platform == "ios":
+            try:
+                state = self.dev.get_phone_state()
+                return (
+                    state.get("bundleId")
+                    or state.get("bundle_id")
+                    or state.get("packageName")
+                    or state.get("currentApp")
+                    or "unknown"
+                )
+            except Exception:
+                return "unknown"
         try:
             out = subprocess.check_output(
                 ["adb", "-s", self.dev.serial, "shell",
@@ -209,6 +238,40 @@ class AppExplorer:
             pass
         return "unknown"
 
+    def _launch_app(self) -> None:
+        if self.platform == "ios":
+            self.dev.launch_app(self.package)
+            time.sleep(self.settle_time)
+            return
+        subprocess.run(
+            ["adb", "-s", self.dev.serial, "shell", "am", "force-stop", self.package],
+            timeout=5, capture_output=True
+        )
+        time.sleep(0.5)
+        subprocess.run(
+            ["adb", "-s", self.dev.serial, "shell",
+             "monkey", "-p", self.package, "-c", "android.intent.category.LAUNCHER", "1"],
+            timeout=15, capture_output=True
+        )
+        time.sleep(8)  # Apps need time to load past splash/animations
+
+    def _go_back(self) -> None:
+        if self.platform == "ios" and hasattr(self.dev, "browser_back"):
+            try:
+                self.dev.browser_back(delay=0)
+                return
+            except Exception:
+                pass
+        self.dev.back(delay=0)
+
+    def _screenshot_bytes(self) -> bytes:
+        if self.platform == "ios":
+            return self.dev.take_screenshot()
+        return subprocess.check_output(
+            ["adb", "-s", self.dev.serial, "exec-out", "screencap", "-p"],
+            timeout=10
+        )
+
     def _capture_state(self, depth: int) -> AppState | None:
         """Dump XML + screenshot, create AppState if new."""
         time.sleep(self.settle_time)
@@ -218,7 +281,19 @@ class AppExplorer:
             log.warning("Empty XML dump, skipping")
             return None
 
-        state_id = xml_structure_hash(xml_str)
+        activity = self._get_activity()
+        screenshot_bytes: bytes | None = None
+        if self.platform == "ios":
+            try:
+                screenshot_bytes = self._screenshot_bytes()
+            except Exception as e:
+                log.warning(f"Screenshot failed: {e}")
+
+        state_id = (
+            ios_state_hash(self.package, activity, xml_str, screenshot_bytes)
+            if self.platform == "ios"
+            else xml_structure_hash(xml_str)
+        )
 
         # Already visited?
         if state_id in self.states:
@@ -231,16 +306,13 @@ class AppExplorer:
         # Screenshot
         ss_path = self.output_dir / "screenshots" / f"{state_id}.png"
         try:
-            data = subprocess.check_output(
-                ["adb", "-s", self.dev.serial, "exec-out", "screencap", "-p"],
-                timeout=10
-            )
-            ss_path.write_bytes(data)
+            if screenshot_bytes is None:
+                screenshot_bytes = self._screenshot_bytes()
+            ss_path.write_bytes(screenshot_bytes)
         except Exception as e:
             log.warning(f"Screenshot failed: {e}")
 
         elements = extract_interactive_elements(xml_str)
-        activity = self._get_activity()
 
         state = AppState(
             state_id=state_id,
@@ -269,26 +341,17 @@ class AppExplorer:
         """Run BFS exploration. Returns state graph as dict."""
         log.info(f"Starting BFS exploration of {self.package}")
         log.info(f"  Device: {self.dev.serial}")
+        log.info(f"  Platform: {self.platform}")
         log.info(f"  Max depth: {self.max_depth}, Max states: {self.max_states}")
         log.info(f"  Output: {self.output_dir}")
 
-        self._log_progress(f"Starting exploration of {self.package}")
+        self._log_progress(f"Starting {self.platform} exploration of {self.package}")
         self._write_progress(0)
 
         # Launch app
         log.info("Launching app...")
         self._log_progress("Launching app...")
-        subprocess.run(
-            ["adb", "-s", self.dev.serial, "shell", "am", "force-stop", self.package],
-            timeout=5, capture_output=True
-        )
-        time.sleep(0.5)
-        subprocess.run(
-            ["adb", "-s", self.dev.serial, "shell",
-             "monkey", "-p", self.package, "-c", "android.intent.category.LAUNCHER", "1"],
-            timeout=15, capture_output=True
-        )
-        time.sleep(8)  # Apps need time to load past splash/animations
+        self._launch_app()
 
         # Capture initial state
         initial = self._capture_state(depth=0)
@@ -340,7 +403,7 @@ class AppExplorer:
                     state.transitions[elem_key] = "error"
 
                 # Navigate back
-                self.dev.back(delay=0)
+                self._go_back()
                 time.sleep(self.settle_time)
 
                 # Verify we're back (check state hasn't drifted)
@@ -348,11 +411,11 @@ class AppExplorer:
                 if back_state and back_state.state_id != state_id:
                     log.warning(f"  Back didn't return to {state_id}, now at {back_state.state_id}")
                     # Try one more back
-                    self.dev.back(delay=0)
+                    self._go_back()
                     time.sleep(self.settle_time)
                     retry = self._capture_state(depth)
                     if retry and retry.state_id != state_id:
-                        log.warning(f"  Still lost after double-back. Stopping this state.")
+                        log.warning("  Still lost after double-back. Stopping this state.")
                         break
 
                 if len(self.states) >= self.max_states:
@@ -363,6 +426,11 @@ class AppExplorer:
         graph = {
             "package": self.package,
             "device": self.dev.serial,
+            "platform": self.platform,
+            "state_identity": {
+                "android": ["xml_structure_hash"],
+                "ios": ["bundle_id", "activity", "xml_structure_hash", "screenshot_hash"],
+            },
             "max_depth": self.max_depth,
             "total_states": len(self.states),
             "total_transitions": sum(len(s.transitions) for s in self.states.values()),
@@ -392,8 +460,8 @@ class AppExplorer:
 
 def main():
     parser = argparse.ArgumentParser(description="Auto Skill Creator — BFS app explorer")
-    parser.add_argument("--package", required=True, help="App package name")
-    parser.add_argument("--device", required=True, help="ADB device serial")
+    parser.add_argument("--package", required=True, help="Android package name or iOS bundle id")
+    parser.add_argument("--device", required=True, help="ADB serial or ios:<udid> device ref")
     parser.add_argument("--max-depth", type=int, default=3, help="Max BFS depth (default: 3)")
     parser.add_argument("--max-states", type=int, default=50, help="Max states to discover (default: 50)")
     parser.add_argument("--output", help="Output directory (default: data/app_explorer/<package>/)")
@@ -403,7 +471,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 
     output_dir = args.output or f"data/app_explorer/{args.package}"
-    dev = Device(args.device)
+    dev = get_device(args.device)
     explorer = AppExplorer(
         dev=dev,
         package=args.package,
@@ -414,7 +482,7 @@ def main():
     )
 
     graph = explorer.explore()
-    print(f"\nExploration complete:")
+    print("\nExploration complete:")
     print(f"  States: {graph.get('total_states', 0)}")
     print(f"  Transitions: {graph.get('total_transitions', 0)}")
     print(f"  Output: {output_dir}/state_graph.json")

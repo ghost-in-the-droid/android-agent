@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import subprocess
+import sys
 from datetime import datetime, timedelta
 
 from sqlalchemy import text
@@ -20,6 +21,7 @@ from gitd.services._job_helpers import (
     _parse_job_summary,
     archive_to_runs,
     finish_job,
+    resolve_script,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,7 +59,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd = [
                 "python3",
                 "-u",
-                str(script_dir / "bots" / "tiktok" / "crawl_runner.py"),
+                str(resolve_script("bots/tiktok/crawl_runner.py")),
                 "--label",
                 str(label),
                 "--n-hashtags",
@@ -88,7 +90,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd = [
                 "python3",
                 "-u",
-                str(script_dir / "bots" / "tiktok" / "scraper.py"),
+                str(resolve_script("bots/tiktok/scraper.py")),
                 query,
                 "--tab",
                 str(tab),
@@ -110,7 +112,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
         cmd = [
             "python3",
             "-u",
-            str(script_dir / "bots" / "tiktok" / "outreach.py"),
+            str(resolve_script("bots/tiktok/outreach.py")),
             "--strategy-id",
             str(sid),
             "--delay",
@@ -134,7 +136,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
     elif job_type == "post":
         video = config.get("video", "")
         action = config.get("action", "draft")
-        cmd = ["python3", "-u", str(script_dir / "bots" / "tiktok" / "upload.py")]
+        cmd = ["python3", "-u", str(resolve_script("bots/tiktok/upload.py"))]
         if video:
             cmd.append(video)
         else:
@@ -154,7 +156,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd += ["--account", config["account"]]
         return cmd
     elif job_type == "publish_draft":
-        cmd = ["python3", "-u", str(script_dir / "bots" / "tiktok" / "upload.py")]
+        cmd = ["python3", "-u", str(resolve_script("bots/tiktok/upload.py"))]
         if phone:
             cmd += ["--device", phone]
         if config.get("draft_tag"):
@@ -170,7 +172,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
     elif job_type in ("content_gen", "content_plan"):
         days = config.get("days", 1)
         ppd = config.get("posts_per_day", 3)
-        agent_script = _SCRIPT_DIR / "agent" / "agent_core.py"
+        agent_script = resolve_script("agent/agent_core.py")
         cmd = [
             "python3",
             "-u",
@@ -192,7 +194,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd += ["--platform", config["platform"]]
         return cmd
     elif job_type == "inbox_scan":
-        cmd = ["python3", "-u", str(script_dir / "bots" / "tiktok" / "inbox_scanner.py")]
+        cmd = ["python3", "-u", str(resolve_script("bots/tiktok/inbox_scanner.py"))]
         if phone:
             cmd += ["--device", phone]
         max_scrolls = config.get("max_scrolls", 80)
@@ -201,7 +203,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd += ["--account", config["account"]]
         return cmd
     elif job_type == "perf_scan":
-        cmd = ["python3", "-u", str(script_dir / "bots" / "tiktok" / "perf_scanner.py")]
+        cmd = ["python3", "-u", str(resolve_script("bots/tiktok/perf_scanner.py"))]
         if phone:
             cmd += ["--device", phone]
         num_posts = config.get("num_posts", 10)
@@ -214,7 +216,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd += ["--account", config["account"]]
         return cmd
     elif job_type == "engage":
-        cmd = ["python3", "-u", str(script_dir / "bots" / "tiktok" / "engage.py")]
+        cmd = ["python3", "-u", str(resolve_script("bots/tiktok/engage.py"))]
         if phone:
             cmd += ["--device", phone]
         if config.get("duration"):
@@ -233,7 +235,7 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
     elif job_type == "app_explore":
         script = script_dir / "skills" / "auto_creator.py"
         package = config.get("package", "")
-        cmd = ["python3", "-u", str(script), "--package", package]
+        cmd = [sys.executable, "-u", str(script), "--package", package]
         if phone:
             cmd += ["--device", phone]
         if config.get("max_depth"):
@@ -246,13 +248,16 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
             cmd += ["--output", config["output"]]
         return cmd
     elif job_type in ("skill_workflow", "skill_action"):
-        skill_name = config.get("skill", "tiktok")
-        target = config.get("workflow") or config.get("action", "")
+        if _skill_config_preflight(job_type, config):
+            return None
+        skill_name = str(config.get("skill") or "").strip()
+        target_key = "workflow" if job_type == "skill_workflow" else "action"
+        target = str(config.get(target_key) or "").strip()
         params = config.get("params", {})
         run_type = "workflow" if job_type == "skill_workflow" else "action"
         runner = script_dir / "skills" / "_run_skill.py"
         cmd = [
-            "python3",
+            sys.executable,
             "-u",
             str(runner),
             "--skill",
@@ -271,11 +276,125 @@ def _build_scheduled_cmd(job_type: str, config: dict, phone: str | None) -> list
 # ── Job launch / kill ───────────────────────────────────────────────────────
 
 
+_TIKTOK_JOB_TYPES = {"crawl", "outreach", "post", "publish_draft", "perf_scan", "engage", "inbox_scan"}
+_TIKTOK_SKILL_NAMES = {"tiktok", "tiktok_ios"}
+
+
+def _job_uses_tiktok_account(job_type: str, config: dict | None) -> bool:
+    if job_type in _TIKTOK_JOB_TYPES:
+        return True
+    if job_type not in ("skill_workflow", "skill_action"):
+        return False
+    skill_name = str((config or {}).get("skill") or "").strip()
+    return skill_name in _TIKTOK_SKILL_NAMES
+
+
+def _job_platform_preflight(phone: str | None, job_type: str) -> str | None:
+    if not phone:
+        return None
+    try:
+        from gitd.bots.common.device import is_ios_ref
+    except Exception:
+        return None
+    if is_ios_ref(phone) and job_type in _TIKTOK_JOB_TYPES:
+        return f"{job_type} jobs are Android-only until the iOS TikTok workflow is ported"
+    return None
+
+
+def _skill_config_preflight(job_type: str, config: dict) -> str | None:
+    if job_type not in ("skill_workflow", "skill_action"):
+        return None
+    skill_name = str((config or {}).get("skill") or "").strip()
+    if not skill_name:
+        return f"{job_type} jobs require config.skill"
+    target_key = "workflow" if job_type == "skill_workflow" else "action"
+    target = str((config or {}).get(target_key) or "").strip()
+    if not target:
+        return f"{job_type} jobs require config.{target_key}"
+    params = (config or {}).get("params", {})
+    if params is not None and not isinstance(params, dict):
+        return f"{job_type} jobs require config.params to be an object"
+    return None
+
+
+def _account_preflight(phone: str | None, job_type: str, config: dict) -> str | None:
+    """Verify the expected TikTok account is active before running.
+
+    Returns an error message string if the job should be blocked, or None
+    if it should proceed. Non-TikTok jobs always pass.
+
+    Detection failures (no premium installed, can't detect) do NOT block —
+    we log and proceed. Only an *observed mismatch* blocks the job.
+    """
+    if not _job_uses_tiktok_account(job_type, config):
+        return None
+    expected = (config or {}).get("account")
+    if not expected or not phone:
+        return None
+    try:
+        from gitd.services.account_health import expected_account_matches
+
+        check = expected_account_matches(phone, expected)
+    except Exception as e:
+        logger.warning("preflight skipped (error): %s", e)
+        return None
+    if check["ok"]:
+        if check.get("reason"):
+            logger.warning("preflight passed with caveat: %s", check["reason"])
+        return None
+    return check["reason"] or "account mismatch"
+
+
+def _skill_platform_preflight(phone: str | None, job_type: str, config: dict) -> str | None:
+    if job_type not in ("skill_workflow", "skill_action"):
+        return None
+    try:
+        import yaml
+
+        from gitd.skills.platforms import skill_platform_error, skill_supports_device
+
+        skill_name = config.get("skill", "tiktok")
+        meta_path = _SCRIPT_DIR / "skills" / skill_name / "skill.yaml"
+        meta = yaml.safe_load(meta_path.read_text()) if meta_path.exists() else {}
+        meta = meta or {}
+        device = phone or _BOT_DEVICE
+        if not skill_supports_device(meta, device):
+            return skill_platform_error(skill_name, meta, device)["message"]
+    except Exception as exc:
+        logger.warning("skill platform preflight skipped: %s", exc)
+    return None
+
+
 def _launch_scheduled_job(db, job_row: dict):
     """Launch a queued job subprocess."""
     job_id = job_row["id"]
     phone = job_row.get("phone_serial")
     config = json.loads(job_row.get("config_json") or "{}")
+
+    config_err = _skill_config_preflight(job_row["job_type"], config)
+    if config_err:
+        finish_job(db, job_id, "failed", error_msg=f"preflight: {config_err}")
+        archive_to_runs(db, job_id)
+        return
+
+    platform_err = _job_platform_preflight(phone, job_row["job_type"])
+    if platform_err:
+        finish_job(db, job_id, "failed", error_msg=f"preflight: {platform_err}")
+        archive_to_runs(db, job_id)
+        return
+
+    # Pre-flight: refuse to start if the wrong TikTok account is active.
+    preflight_err = _account_preflight(phone, job_row["job_type"], config)
+    if preflight_err:
+        finish_job(db, job_id, "failed", error_msg=f"preflight: {preflight_err}")
+        archive_to_runs(db, job_id)
+        return
+    skill_preflight_err = _skill_platform_preflight(phone, job_row["job_type"], config)
+    if skill_preflight_err:
+        finish_job(db, job_id, "failed", error_msg=f"preflight: {skill_preflight_err}")
+        archive_to_runs(db, job_id)
+        return
+
     cmd = _build_scheduled_cmd(job_row["job_type"], config, phone)
     if not cmd:
         finish_job(db, job_id, "failed", error_msg=f"unsupported job_type: {job_row['job_type']}")

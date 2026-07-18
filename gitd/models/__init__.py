@@ -10,6 +10,7 @@ from .chat import ChatConversation, ChatMessageRow
 from .phone import Phone, TikTokAccount
 from .schedule import JobQueue, JobRun, ScheduledJob
 from .skill_compat import SkillCompat, SkillRun
+from .trace import Trace, TraceSpan
 
 __all__ = [
     # Base
@@ -30,6 +31,9 @@ __all__ = [
     # Chat
     "ChatConversation",
     "ChatMessageRow",
+    # Tracing
+    "Trace",
+    "TraceSpan",
     # Skill compat
     "SkillRun",
     "SkillCompat",

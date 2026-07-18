@@ -5,8 +5,8 @@ import logging
 import os
 import re
 import shutil
-import signal
 import subprocess
+import sys
 import threading
 import time
 from datetime import datetime
@@ -15,11 +15,14 @@ from pathlib import Path
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import FileResponse
 
+from gitd.bots.common.device import is_ios_ref
+from gitd.services import phone_recording
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["tests"])
 
-_tr_runs: dict = {}  # serial -> {proc, log_f, log_path, sr_proc, ...}
+_tr_runs: dict = {}  # serial -> {proc, log_f, log_path, sr_active, ...}
 _tr_lock = threading.Lock()
 _TESTS_DIR = Path(__file__).parent.parent.parent / "tests"
 _TR_RECORDINGS_DIR = Path(__file__).parent.parent.parent / "test_recordings"
@@ -43,50 +46,83 @@ def _device_label(serial: str) -> str:
     return serial[:5] if serial else ""
 
 
-def _sr_start(serial: str) -> tuple:
+def _safe_recording_name(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_") or "device"
+
+
+def _recording_device_ref(device_safe: str) -> str:
+    if device_safe.startswith("ios_") and len(device_safe) > 4:
+        return "ios:" + device_safe[4:]
+    return device_safe
+
+
+def _parse_recording_name(filename: str) -> dict[str, str]:
+    stem = Path(filename).stem
+    match = re.match(r"^(?P<device>.+?)_(?P<date>\d{8})_(?P<time>\d{6})(?:_(?P<test>.*))?$", stem)
+    if not match:
+        return {"device_ref": "", "device_safe": "", "test_name": stem}
+    device_safe = match.group("device")
+    return {
+        "device_ref": _recording_device_ref(device_safe),
+        "device_safe": device_safe,
+        "test_name": match.group("test") or "",
+    }
+
+
+def _pytest_cmd(node: str, *, retry: bool = False) -> list[str]:
+    cmd = [sys.executable, "-u", "-m", "pytest", "-v", "--tb=short", "-s"]
+    if retry:
+        cmd += ["--reruns", "2", "--reruns-delay", "5"]
+    cmd.append(node)
+    return cmd
+
+
+def _pytest_env(device: str) -> dict[str, str]:
+    env = {**os.environ, "PYTHONUNBUFFERED": "1", "DEVICE": device}
+    if is_ios_ref(device):
+        env["IOS_DEVICE_UDID"] = device.removeprefix("ios:")
+    return env
+
+
+def _sr_start(serial: str, local_name: str | None = None) -> dict:
     """Start screen recording on device."""
-    subprocess.run(
-        ["adb", "-s", serial, "shell", "input", "keyevent", "KEYCODE_WAKEUP"], timeout=5, capture_output=True
-    )
-    subprocess.run(["adb", "-s", serial, "shell", "input", "keyevent", "KEYCODE_MENU"], timeout=5, capture_output=True)
-    time.sleep(0.3)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    device_path = f"/sdcard/test_rec_{ts}.mp4"
-    proc = subprocess.Popen(
-        ["adb", "-s", serial, "shell", "screenrecord", device_path],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    return proc, device_path
-
-
-def _sr_stop_and_pull(serial, sr_proc, device_path, local_name):
-    """Stop screen recording and pull MP4 from device."""
-    sr_proc.send_signal(signal.SIGINT)
-    try:
-        sr_proc.wait(timeout=15)
-    except subprocess.TimeoutExpired:
-        sr_proc.kill()
-    time.sleep(2)
-    local_path = _TR_RECORDINGS_DIR / local_name
-    try:
+    if not local_name:
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        local_name = f"{_safe_recording_name(serial)}_{ts}.mp4"
+    if not is_ios_ref(serial):
         subprocess.run(
-            ["adb", "-s", serial, "pull", device_path, str(local_path)], timeout=30, check=True, capture_output=True
+            ["adb", "-s", serial, "shell", "input", "keyevent", "KEYCODE_WAKEUP"], timeout=5, capture_output=True
         )
-        subprocess.run(["adb", "-s", serial, "shell", "rm", device_path], timeout=5, capture_output=True)
-        return local_path
-    except (subprocess.SubprocessError, OSError):
+        subprocess.run(
+            ["adb", "-s", serial, "shell", "input", "keyevent", "KEYCODE_MENU"], timeout=5, capture_output=True
+        )
+        time.sleep(0.3)
+    return phone_recording.start_recording(serial, filename=local_name, recordings_dir=_TR_RECORDINGS_DIR)
+
+
+def _sr_stop_and_pull(serial, local_name=""):
+    """Stop screen recording and pull MP4 from device."""
+    result = phone_recording.stop_recording(serial)
+    if not result.get("ok") or not result.get("saved"):
         return None
+    path = Path(str(result.get("path") or ""))
+    if path.exists() and path.is_file():
+        return path
+    if local_name:
+        fallback = _TR_RECORDINGS_DIR / Path(local_name).name
+        if fallback.exists() and fallback.is_file():
+            return fallback
+    return None
 
 
 def _tr_finalize(device):
     """Stop recording + pull MP4. Must be called with _tr_lock held."""
     entry = _tr_runs.get(device)
-    if not entry or not entry.get("sr_proc"):
+    if not entry or not entry.get("sr_active"):
         return
-    lp = _sr_stop_and_pull(device, entry["sr_proc"], entry["sr_device_path"], entry["sr_local_name"])
+    lp = _sr_stop_and_pull(device, entry["sr_local_name"])
     entry["sr_local_path"] = str(lp) if lp else None
-    entry["sr_proc"] = None
+    entry["sr_active"] = False
     try:
         entry["log_f"].close()
     except Exception:
@@ -119,9 +155,14 @@ def _tr_watcher():
         wake_counter += 1
         with _tr_lock:
             for dev, entry in list(_tr_runs.items()):
-                if entry["proc"].poll() is not None and entry.get("sr_proc") and not entry.get("sr_local_path"):
+                if entry["proc"].poll() is not None and entry.get("sr_active") and not entry.get("sr_local_path"):
                     _tr_finalize(dev)
-                elif entry["proc"].poll() is None and entry.get("sr_proc") and wake_counter % 15 == 0:
+                elif (
+                    entry["proc"].poll() is None
+                    and entry.get("sr_active")
+                    and wake_counter % 15 == 0
+                    and not is_ios_ref(dev)
+                ):
                     try:
                         subprocess.run(
                             ["adb", "-s", dev, "shell", "input", "keyevent", "KEYCODE_WAKEUP"],
@@ -172,20 +213,17 @@ def tr_start(data: dict = Body({})):
         node = f"tests/{file_}" + (f"::{test_}" if test_ else "")
         test_label = test_ or file_.replace(".py", "")
 
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        sr_local_name = f"{_safe_recording_name(device)}_{ts}_{_safe_recording_name(test_label)}.mp4"
+
         try:
-            sr_proc, sr_device_path = _sr_start(device)
+            sr_result = _sr_start(device, sr_local_name)
             time.sleep(0.5)
         except Exception:
-            sr_proc, sr_device_path = None, None
+            sr_result = {"ok": False}
 
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        sr_local_name = f"{device}_{ts}_{test_label}.mp4"
-
-        cmd = ["python3", "-u", "-m", "pytest", "-v", "--tb=short", "-s"]
-        if retry:
-            cmd += ["--reruns", "2", "--reruns-delay", "5"]
-        cmd.append(node)
-        env = {**os.environ, "PYTHONUNBUFFERED": "1", "DEVICE": device}
+        cmd = _pytest_cmd(node, retry=retry)
+        env = _pytest_env(device)
         log_path = Path(f"/tmp/tiktok_tests_{device}.log")
         log_f = open(log_path, "w", buffering=1)
         proc = subprocess.Popen(
@@ -208,8 +246,8 @@ def tr_start(data: dict = Body({})):
             "proc": proc,
             "log_f": log_f,
             "log_path": log_path,
-            "sr_proc": sr_proc,
-            "sr_device_path": sr_device_path,
+            "sr_active": bool(sr_result.get("ok")),
+            "sr_start": sr_result,
             "sr_local_name": sr_local_name,
             "sr_local_path": None,
             "test_node": node,
@@ -320,7 +358,8 @@ def tr_recordings():
                 }
             except Exception:
                 pass
-        serial = f.stem.split("_")[0] if "_" in f.stem else ""
+        parsed = _parse_recording_name(f.name)
+        device_ref = parsed["device_ref"]
         recs.append(
             {
                 "name": f.name,
@@ -329,7 +368,11 @@ def tr_recordings():
                 "has_log": log_file.exists(),
                 "has_overlay": overlay_file.exists(),
                 "result": result,
-                "device": _device_label(serial),
+                "device": _device_label(device_ref),
+                "device_ref": device_ref,
+                "device_label": _device_label(device_ref),
+                "platform": "ios" if is_ios_ref(device_ref) else "android",
+                "test_name": parsed["test_name"],
             }
         )
     return recs

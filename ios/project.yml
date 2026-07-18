@@ -1,0 +1,43 @@
+name: GhostLLM
+options:
+  bundleIdPrefix: com.ghostinthedroid
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+packages:
+  LlamaSwift:
+    url: https://github.com/mattt/llama.swift
+    branch: main
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  GhostLLM:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: GhostLLM
+    dependencies:
+      - package: LlamaSwift
+    info:
+      path: GhostLLM/Info.plist
+      properties:
+        UILaunchScreen: {}
+        CFBundleDisplayName: Ghost LLM
+        NSLocalNetworkUsageDescription: "Ghost publishes this device's on-device demo status to the fleet dashboard."
+        # Background audio keeps the on-device agent loop alive while it drives a
+        # DIFFERENT app (X) in the foreground — otherwise iOS suspends us in ~30s.
+        UIBackgroundModes: [audio]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ghostinthedroid.ghostllm
+        CODE_SIGN_ENTITLEMENTS: GhostLLM/GhostLLM.entitlements
+        CODE_SIGN_STYLE: Automatic
+        # DEVELOPMENT_TEAM is passed on the xcodebuild command line (kept out of
+        # git) — see ios/README.md. Local override: IOS_XCODE_ORG_ID.
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        # llama.h is a C header (extern "C") — plain C interop is enough.

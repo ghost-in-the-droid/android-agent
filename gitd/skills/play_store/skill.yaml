@@ -2,6 +2,9 @@ name: play_store
 description: Google Play Store automation — install, uninstall, update apps, check versions
 version: "1.0.0"
 app_package: com.android.vending
+android_package: com.android.vending
+platforms:
+  - android
 
 exports:
   actions:

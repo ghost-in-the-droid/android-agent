@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- TestFlight / App Store. Needs an Apple Distribution cert in the signing
+         keychain + an App Store provisioning profile. Upload with `xcrun altool`
+         or Transporter after export. -->
+    <key>method</key>
+    <string>app-store</string>
+    <key>teamID</key>
+    <string>WWD665FH95</string>
+    <key>signingStyle</key>
+    <string>automatic</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>

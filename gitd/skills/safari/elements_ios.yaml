@@ -1,0 +1,9 @@
+address_field:
+  content_desc: "Address"
+  class_name: "XCUIElementTypeTextField"
+tab_overview:
+  content_desc: "Tabs"
+  class_name: "XCUIElementTypeButton"
+share:
+  content_desc: "Share"
+  class_name: "XCUIElementTypeButton"
