@@ -28,11 +28,9 @@
 
 <!-- HERO VIDEO. Served from a relative repo path so it plays on the private mirror preview AND the public repo, with no release-attach dependency. GitHub renders <video> inline; the poster + linked image are the fallback for older markdown renderers. -->
 <p align="center">
-  <video src="https://github.com/ghost-in-the-droid/android-agent-private-mirror/releases/download/v1.3.0-preview-assets/hero-reel.mp4" poster="docs/assets/hero-poster.jpg" width="820" controls muted playsinline>
-    <img src="docs/assets/hero-reel.gif" alt="Ghost driving nine real phones" width="820" />
-  </video>
+  <img src="docs/assets/hero-reel.gif" alt="Ghost driving nine real phones" width="820" />
 </p>
-<p align="center"><sub>▶ Inline player above (with sound). GIF fallback for older readers.</sub></p>
+<p align="center"><sub>🔊 <a href="docs/assets/hero-reel.mp4">Play with sound (32s mp4)</a></sub></p>
 
 <p align="center"><em>Nine agents. Nine real devices. One ghost. (Click to watch.)</em></p>
 
