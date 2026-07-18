@@ -55,11 +55,49 @@ Ghost 1.3 is the only Android + iOS agent framework where **platform**, **brain*
 | **Android** over USB ADB | **Claude Code** (free with your Max/Pro sub) | **MCP client** (Claude Code, Codex, Antigravity, Cursor, Opencode) |
 | **Android** over Wi-Fi ADB | **Anthropic API** | **LangChain** toolkit |
 | **Android** in a **Docker + KVM** emulator pool | **OpenRouter** (any model, one key) | **LlamaIndex** tool spec |
-| **iPhone** over Appium + WebDriverAgent *(experimental)* | **Ollama** (fully local) | **Ghost CLI** (`ghost "book a table" --device pixel`) |
-| | **vLLM** (your own GPU) | **Web dashboard** chat with a live phone stream |
+| **iPhone** over Appium + WebDriverAgent | **Ollama** (fully local) | **Ghost CLI** (`ghost "book a table" --device pixel`) |
+| **iPhone** over Tailscale + WebDriverAgent (wireless) | **vLLM** (your own GPU) | **Web dashboard** chat with a live phone stream |
 | | **On-device** (the model runs *in the phone*, airplane-mode works) | **REST API** (`/docs` OpenAPI) |
 
+<sub>The Docker + KVM emulator pool is Android-only; iOS uses Apple's own simulator and Xcode signing, which are macOS-native.</sub>
+
 The body stays the same 62 MCP tools no matter what you plug in. Every new model release is a free upgrade to your phone agent.
+
+---
+
+## See it in action
+
+Nine demos, one per feature, each recorded on real devices. (Click any clip to watch the full mp4.)
+
+**MCP clients: point your agent at a phone**
+
+<table>
+<tr>
+<td width="33%"><a href="docs/assets/videos/mcp-claude-code-tui.mp4"><img src="docs/assets/videos/mcp-claude-code-tui.gif" width="260" alt="Claude Code drives the phone"/></a><br/><sub><b>Claude Code</b>: type in the TUI, watch it drive the phone.</sub></td>
+<td width="33%"><a href="docs/assets/videos/mcp-codex-tui.mp4"><img src="docs/assets/videos/mcp-codex-tui.gif" width="260" alt="Codex drives the phone"/></a><br/><sub><b>Codex</b>: OpenAI's CLI operating a real phone over MCP.</sub></td>
+<td width="33%"><a href="docs/assets/videos/mcp-agy-tui.mp4"><img src="docs/assets/videos/mcp-agy-tui.gif" width="260" alt="Antigravity drives the phone"/></a><br/><sub><b>Antigravity</b>: Google's agent, same 62-tool body.</sub></td>
+</tr>
+</table>
+
+**Interfaces: CLI, framework, browser**
+
+<table>
+<tr>
+<td width="33%"><a href="docs/assets/videos/ghost-cli.mp4"><img src="docs/assets/videos/ghost-cli.gif" width="260" alt="Ghost CLI one-liner"/></a><br/><sub><b>Ghost CLI</b>: `ghost "check reddit" --device asus`.</sub></td>
+<td width="33%"><a href="docs/assets/videos/langchain.mp4"><img src="docs/assets/videos/langchain.gif" width="260" alt="LangChain adapter"/></a><br/><sub><b>LangChain</b>: Ghost's tools in a framework agent.</sub></td>
+<td width="33%"><a href="docs/assets/videos/web-chat-gui.mp4"><img src="docs/assets/videos/web-chat-gui.gif" width="260" alt="Web chat drives phone"/></a><br/><sub><b>Web chat</b>: chat in your browser, it drives a real phone.</sub></td>
+</tr>
+</table>
+
+**On-device and iOS: the phone as body and brain**
+
+<table>
+<tr>
+<td width="33%"><a href="docs/assets/videos/on-device-android.mp4"><img src="docs/assets/videos/on-device-android.gif" width="260" alt="On-device Android"/></a><br/><sub><b>On-device Android</b>: model runs in the app, airplane mode.</sub></td>
+<td width="33%"><a href="docs/assets/videos/on-device-ios.mp4"><img src="docs/assets/videos/on-device-ios.gif" width="260" alt="On-device iPhone"/></a><br/><sub><b>On-device iPhone</b>: your iPhone talks to itself.</sub></td>
+<td width="33%"><a href="docs/assets/videos/iphone-duolingo.mp4"><img src="docs/assets/videos/iphone-duolingo.gif" width="260" alt="iPhone real-app control"/></a><br/><sub><b>iPhone, real app</b>: Ghost does the Duolingo lesson.</sub></td>
+</tr>
+</table>
 
 ---
 
@@ -132,20 +170,19 @@ Define **skills** for any app, run them from the dashboard or API, scale across 
 
 ---
 
-## iOS Support (Experimental)
+## iOS Support
 
-Ghost can also drive iPhones through Appium/WebDriverAgent with the same tool
+Ghost drives iPhones through Appium/WebDriverAgent with the same tool
 surface: `ios:<udid>` device refs route tap/swipe/type/screenshot to WDA, and
 iOS-aware browser primitives (`open_url`, `read_news`, `extract_visible_text`)
 cover web tasks. Android-only tools (`shell`, `launch_intent`, Portal overlay)
 return a clear platform error instead of failing silently.
 
-iOS support is **feature-gated and OFF by default** while device testing
-matures. Enable it with `GITD_ENABLE_IOS=1` (or `ios_platform_enabled=true`
+iOS is **opt-in**: enable it with `GITD_ENABLE_IOS=1` (or `ios_platform_enabled=true`
 in `.env`). Wireless drive rides your Tailscale tailnet, so treat the tailnet as
 the trust boundary. See [docs/SETUP_IOS.md](docs/SETUP_IOS.md) for Appium/WDA
-setup, and [docs/IOS_ONDEVICE.md](docs/IOS_ONDEVICE.md) to run the model on the
-iPhone itself.
+setup, and [on-device on iPhone](https://ghostinthedroid.com/features/on-device-llm/)
+to run the model on the iPhone itself.
 
 ---
 
@@ -314,7 +351,7 @@ New in 1.3: the model can live *on the device*. The Ghost companion app embeds r
 | iPhone | **llama.cpp** (Metal) | `.gguf` | Same GGUF as Android, Qwen2.5 1.5B on Metal |
 | iPhone | **MLX** | Apple Silicon | Faster decode on newer chips, opt-in |
 
-On iPhone, Qwen2.5 1.5B runs through llama.cpp on Metal and drives the phone's own UI, with an opt-in MLX engine for faster decode on Apple Silicon. Small models are kept honest with grammar-constrained decoding so tool calls always parse. Full detail in [docs/IOS_ONDEVICE.md](docs/IOS_ONDEVICE.md).
+On iPhone, Qwen2.5 1.5B runs through llama.cpp on Metal and drives the phone's own UI, with an opt-in MLX engine for faster decode on Apple Silicon. Small models are kept honest with grammar-constrained decoding so tool calls always parse. Full detail on the [on-device LLM page](https://ghostinthedroid.com/features/on-device-llm/).
 
 ---
 

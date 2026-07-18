@@ -3,6 +3,8 @@
 Ghost in the Droid supports iOS through Appium XCUITest and WebDriverAgent.
 Android devices still use ADB. iOS devices are addressed with `ios:<udid>`.
 
+> **Running the model on the iPhone itself?** See [IOS_ONDEVICE.md](IOS_ONDEVICE.md) for the on-device LLM story (llama.cpp on Metal and the opt-in MLX engine), where the model and the agent loop both run on the phone in airplane mode.
+
 ## Requirements
 
 - macOS with Xcode installed.
