@@ -67,35 +67,26 @@ The body stays the same 62 MCP tools no matter what you plug in. Every new model
 
 ## See it in action
 
-Nine demos, one per feature, each recorded on real devices. (Click any clip to watch the full mp4.)
+Nine demos, one per feature, each recorded on real devices. Click any clip for the full mp4.
 
-**MCP clients: point your agent at a phone**
-
-<table>
+<table width="100%">
+<tr><th colspan="3" align="left">MCP clients: point your agent at a phone</th></tr>
 <tr>
-<td width="33%"><a href="docs/assets/videos/mcp-claude-code-tui.mp4"><img src="docs/assets/videos/mcp-claude-code-tui.webp" width="260" alt="Claude Code drives the phone"/></a><br/><sub><b>Claude Code</b>: type in the TUI, watch it drive the phone.</sub></td>
-<td width="33%"><a href="docs/assets/videos/mcp-codex-tui.mp4"><img src="docs/assets/videos/mcp-codex-tui.webp" width="260" alt="Codex drives the phone"/></a><br/><sub><b>Codex</b>: OpenAI's CLI operating a real phone over MCP.</sub></td>
-<td width="33%"><a href="docs/assets/videos/mcp-agy-tui.mp4"><img src="docs/assets/videos/mcp-agy-tui.webp" width="260" alt="Antigravity drives the phone"/></a><br/><sub><b>Antigravity</b>: Google's agent, same 62-tool body.</sub></td>
+<td width="33%" valign="top"><a href="docs/assets/videos/mcp-claude-code-tui.mp4"><img src="docs/assets/videos/mcp-claude-code-tui.webp" width="100%" alt="Claude Code drives the phone"/></a><br/><sub><b>Claude Code</b>: type in the TUI, watch it drive the phone.</sub></td>
+<td width="33%" valign="top"><a href="docs/assets/videos/mcp-codex-tui.mp4"><img src="docs/assets/videos/mcp-codex-tui.webp" width="100%" alt="Codex drives the phone"/></a><br/><sub><b>Codex</b>: OpenAI's CLI operating a real phone over MCP.</sub></td>
+<td width="33%" valign="top"><a href="docs/assets/videos/mcp-agy-tui.mp4"><img src="docs/assets/videos/mcp-agy-tui.webp" width="100%" alt="Antigravity drives the phone"/></a><br/><sub><b>Antigravity</b>: Google's agent, same 62-tool body.</sub></td>
 </tr>
-</table>
-
-**Interfaces: CLI, framework, browser**
-
-<table>
+<tr><th colspan="3" align="left">Interfaces: CLI, framework, browser</th></tr>
 <tr>
-<td width="33%"><a href="docs/assets/videos/ghost-cli.mp4"><img src="docs/assets/videos/ghost-cli.webp" width="260" alt="Ghost CLI one-liner"/></a><br/><sub><b>Ghost CLI</b>: `ghost "check reddit" --device asus`.</sub></td>
-<td width="33%"><a href="docs/assets/videos/langchain.mp4"><img src="docs/assets/videos/langchain.webp" width="260" alt="LangChain adapter"/></a><br/><sub><b>LangChain</b>: Ghost's tools in a framework agent.</sub></td>
-<td width="33%"><a href="docs/assets/videos/web-chat-gui.mp4"><img src="docs/assets/videos/web-chat-gui.webp" width="260" alt="Web chat drives phone"/></a><br/><sub><b>Web chat</b>: chat in your browser, it drives a real phone.</sub></td>
+<td width="33%" valign="top"><a href="docs/assets/videos/ghost-cli.mp4"><img src="docs/assets/videos/ghost-cli.webp" width="100%" alt="Ghost CLI one-liner"/></a><br/><sub><b>Ghost CLI</b>: <code>ghost "check reddit" --device asus</code>.</sub></td>
+<td width="33%" valign="top"><a href="docs/assets/videos/langchain.mp4"><img src="docs/assets/videos/langchain.webp" width="100%" alt="LangChain adapter"/></a><br/><sub><b>LangChain</b>: Ghost's tools in a framework agent.</sub></td>
+<td width="33%" valign="top"><a href="docs/assets/videos/web-chat-gui.mp4"><img src="docs/assets/videos/web-chat-gui.webp" width="100%" alt="Web chat drives phone"/></a><br/><sub><b>Web chat</b>: chat in your browser, it drives a real phone.</sub></td>
 </tr>
-</table>
-
-**On-device and iOS: the phone as body and brain**
-
-<table>
+<tr><th colspan="3" align="left">On-device and iOS: the phone as body and brain</th></tr>
 <tr>
-<td width="33%"><a href="docs/assets/videos/on-device-android.mp4"><img src="docs/assets/videos/on-device-android.webp" width="260" alt="On-device Android"/></a><br/><sub><b>On-device Android</b>: model runs in the app, airplane mode.</sub></td>
-<td width="33%"><a href="docs/assets/videos/on-device-ios.mp4"><img src="docs/assets/videos/on-device-ios.webp" width="260" alt="On-device iPhone"/></a><br/><sub><b>On-device iPhone</b>: your iPhone talks to itself.</sub></td>
-<td width="33%"><a href="docs/assets/videos/iphone-duolingo.mp4"><img src="docs/assets/videos/iphone-duolingo.webp" width="260" alt="iPhone real-app control"/></a><br/><sub><b>iPhone, real app</b>: Ghost does the Duolingo lesson.</sub></td>
+<td width="33%" valign="top"><a href="docs/assets/videos/on-device-android.mp4"><img src="docs/assets/videos/on-device-android.webp" width="100%" alt="On-device Android"/></a><br/><sub><b>On-device Android</b>: model runs in the app, airplane mode.</sub></td>
+<td width="33%" valign="top"><a href="docs/assets/videos/on-device-ios.mp4"><img src="docs/assets/videos/on-device-ios.webp" width="100%" alt="On-device iPhone"/></a><br/><sub><b>On-device iPhone</b>: your iPhone talks to itself.</sub></td>
+<td width="33%" valign="top"><a href="docs/assets/videos/iphone-duolingo.mp4"><img src="docs/assets/videos/iphone-duolingo.webp" width="100%" alt="iPhone real-app control"/></a><br/><sub><b>iPhone, real app</b>: Ghost does the Duolingo lesson.</sub></td>
 </tr>
 </table>
 
