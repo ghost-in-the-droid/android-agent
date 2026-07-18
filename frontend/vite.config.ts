@@ -14,8 +14,9 @@ export default defineConfig({
     port: 6175,
     proxy: {
       '/api': {
-        target: 'http://localhost:5055',
+        target: 'http://localhost:5056',
         changeOrigin: true,
+        ws: true,   // proxy WebSocket upgrades (H.264 stream at /api/phone/h264/*)
         // Required for SSE (Server-Sent Events) — disable response buffering
         configure: (proxy) => {
           proxy.on('proxyRes', (proxyRes) => {

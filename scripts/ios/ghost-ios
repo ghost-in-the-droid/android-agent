@@ -1,0 +1,339 @@
+#!/usr/bin/env bash
+#
+# ghost-ios — one command to run the whole iOS device stack for Ghost in the Droid.
+#
+# Collapses the RemoteXPC tunnel + Appium + backend + dashboard + a self-healing
+# supervisor into ONE terminal window. Run it from your own Terminal (a GUI login
+# session) so codesign can reach your signing key. It prompts for sudo once (the
+# RemoteXPC tunnel needs root) and keeps everything alive until you Ctrl-C.
+#
+#   ghost-ios up          start the stack + self-healing tunnel supervisor (main one)
+#   ghost-ios doctor      preflight: check every known failure point + the fix for each
+#   ghost-ios status      show tunnel / appium / backend / dashboard health
+#   ghost-ios report      machine-readable JSON inventory of attached device(s)
+#   ghost-ios dashboard   start the web dashboard (vite) and open it
+#   ghost-ios smoke       run the sample Chrome->news smoke test
+#   ghost-ios speak TEXT  speak TEXT aloud on the phone (native WDA TTS)
+#   ghost-ios keychain    one-time: grant CLI codesign access to your signing key
+#   ghost-ios rebuild-wda (re)build+install the patched WebDriverAgent onto the phone
+#   ghost-ios down        stop tunnel + appium + backend
+#   ghost-ios config      show the resolved configuration (and where it came from)
+#   ghost-ios help        this help
+#
+# Configuration is auto-detected where possible; override via environment or a
+# config file — see ghost-ios.env.example. No settings are baked into this script.
+set -uo pipefail
+
+GHOST_IOS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/ios/lib.sh
+. "$GHOST_IOS_DIR/lib.sh"
+
+SUDO_KEEPALIVE=""
+# sudo strips PATH; hand the tunnel daemon its node + appium back.
+SUDO_PATH="$(dirname "${APPIUM_BIN:-/usr/local/bin/appium}"):/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+# health probes (appium_up/ghost_up/vite_up/tunnel_up/wda_up) come from lib.sh
+
+# ------------------------------- lifecycle -----------------------------------
+start_appium(){
+  appium_up && { say "[appium ] already running"; return; }
+  [ -n "$APPIUM_BIN" ] || { say "ERROR: appium not found (npm i -g appium; appium driver install xcuitest)"; exit 1; }
+  say "[appium ] starting on :$APPIUM_PORT ..."
+  ( export PATH="$(dirname "$APPIUM_BIN"):$PATH"
+    nohup "$APPIUM_BIN" --port "$APPIUM_PORT" --log-timestamp --relaxed-security >"$LOG_DIR/appium.log" 2>&1 & )
+}
+
+start_ghost(){
+  ghost_up && { say "[ghost  ] already running"; return; }
+  say "[ghost  ] starting backend on :$GHOST_PORT ..."
+  ( cd "$GHOST_REPO"; export_backend_env
+    nohup "$PYBIN" run.py >"$LOG_DIR/ghost.log" 2>&1 & )
+}
+
+start_tunnel(){
+  say "[tunnel ] (re)starting RemoteXPC tunnel ..."
+  sudo pkill -f "tunnel-creation --udid ${IOS_DEVICE_UDID}" 2>/dev/null; sleep 1
+  sudo env "PATH=$SUDO_PATH" "$APPIUM_BIN" driver run xcuitest tunnel-creation \
+    --udid "$IOS_DEVICE_UDID" --disconnect-retry-max-attempts 0 --disconnect-retry-interval-ms 2000 \
+    >"$LOG_DIR/tunnel.log" 2>&1 &
+}
+
+reap_orphans(){
+  # Kill strays from previous or duplicate runs BEFORE starting — orphaned tunnel
+  # daemons fight over the device (usbmux "no USB device") and duplicate
+  # supervisors thrash the RemoteXPC address, killing streams.
+  local others
+  others=$(pgrep -f "bash .*/ghost-ios up" 2>/dev/null | grep -v "^$$\$" || true)
+  if [ -n "$others" ]; then
+    say "[reap  ] killing other 'ghost-ios up' supervisor(s): $(echo "$others")"
+    echo "$others" | xargs -r kill -9 2>/dev/null || true
+  fi
+  pgrep -f "tunnel-creation" >/dev/null 2>&1 && { say "[reap  ] killing stray tunnel daemon(s)"; sudo pkill -9 -f "tunnel-creation" 2>/dev/null || true; }
+  pgrep -f "run\.py" >/dev/null 2>&1 && { say "[reap  ] killing stale backend (run.py)"; pkill -9 -f "run\.py" 2>/dev/null || true; }
+  lsof -nP -iTCP:${GHOST_PORT} -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $2}' | xargs -r kill -9 2>/dev/null || true
+  sleep 1
+}
+
+teardown(){
+  echo; say "[ghost-ios] shutting down ..."
+  [ -n "$SUDO_KEEPALIVE" ] && kill "$SUDO_KEEPALIVE" 2>/dev/null
+  sudo pkill -f "tunnel-creation --udid ${IOS_DEVICE_UDID}" 2>/dev/null
+  pkill -f "appium --port ${APPIUM_PORT}" 2>/dev/null
+  pkill -f "run\.py" 2>/dev/null
+  say "[ghost-ios] tunnel + appium + backend stopped (dashboard left running)."
+  exit 0
+}
+
+# ------------------------------- commands ------------------------------------
+cmd_up(){
+  require_udid
+  say "== ghost-ios up :: $DEV_REF =="
+  [ -n "$APPIUM_BIN" ] || { say "ERROR: appium not found (npm i -g appium; appium driver install xcuitest)"; exit 1; }
+  # `devicectl device info details` HANGS indefinitely (esp. right after an iPhone
+  # reboot while CoreDevice re-pairs) — never gate startup on it. Use xctrace
+  # (reliable) for presence, bounded by timeout.
+  timeout 12 xcrun xctrace list devices 2>/dev/null | grep -qF "$IOS_DEVICE_UDID" \
+    || say "[warn ] iPhone not visible yet — plug in via USB + unlock (continuing anyway)"
+  say "[tip  ] prevent tunnel drops: iPhone > Settings > Display & Brightness > Auto-Lock > Never"
+  sudo -v || { say "sudo is required (the tunnel needs root)"; exit 1; }
+  reap_orphans
+  ( while kill -0 "$$" 2>/dev/null; do sudo -n true 2>/dev/null; sleep 45; done ) & SUDO_KEEPALIVE=$!
+  trap teardown INT TERM
+  start_appium; start_ghost; start_tunnel
+  if ! vite_up && [ -d "$GHOST_REPO/frontend" ]; then
+    say "[dash   ] starting web dashboard on :$VITE_PORT ..."
+    ( cd "$GHOST_REPO/frontend"; [ -d node_modules ] || npm install >"$LOG_DIR/npm.log" 2>&1
+      nohup npm run dev >"$LOG_DIR/vite.log" 2>&1 & )
+  fi
+  say "[ghost-ios] supervising — Ctrl-C stops everything."
+  say "[ghost-ios] dashboard: http://localhost:${VITE_PORT}/"
+  local last="" miss=0 restarts=0 onusb
+  while true; do
+    sleep 3
+    if tunnel_up; then
+      [ "$last" != up ] && say "[$(ts)] tunnel UP   device reachable"
+      last=up; miss=0; restarts=0
+    else
+      miss=$((miss+1))
+      ioreg -p IOUSB 2>/dev/null | grep -qi iPhone && onusb=1 || onusb=0
+      if [ "$last" != down ]; then
+        [ "$onusb" = 1 ] && say "[$(ts)] tunnel DOWN  (USB present — recovering)" \
+                          || say "[$(ts)] tunnel DOWN  (iPhone OFF USB — reseat/clean the port)"
+      fi
+      last=down
+      if [ "$miss" -ge 3 ]; then
+        if [ "$onusb" = 0 ]; then
+          # physical disconnect — restarting the tunnel is pointless until it's back
+          say "[$(ts)] waiting for iPhone to re-appear on USB (physical — check cable/port)"
+          miss=0
+        else
+          restarts=$((restarts+1))
+          if [ "$restarts" -ge 3 ]; then
+            # tunnel daemon restarts aren't recovering => CoreDevice/usbmux wedged.
+            # Reset the device-connection stack (auto-restarts) — what a manual
+            # ghost-ios restart was clearing by hand.
+            say "[$(ts)] tunnel wedged after $restarts restarts — resetting usbmuxd/remoted/CoreDeviceService"
+            reset_coredevice; restarts=0; sleep 3
+          fi
+          say "[$(ts)] restarting tunnel daemon"; start_tunnel; miss=0
+        fi
+      fi
+    fi
+  done
+}
+
+cmd_status(){
+  say "== ghost-ios status =="
+  tunnel_up && say "tunnel :$TUNNEL_PORT   UP"   || say "tunnel :$TUNNEL_PORT   DOWN"
+  appium_up && say "appium :$APPIUM_PORT    UP"  || say "appium :$APPIUM_PORT    DOWN (ghost-ios up)"
+  ghost_up  && say "ghost  :$GHOST_PORT    UP"   || say "ghost  :$GHOST_PORT    DOWN (ghost-ios up)"
+  vite_up   && say "dash   :$VITE_PORT    UP"    || say "dash   :$VITE_PORT    DOWN (ghost-ios dashboard)"
+}
+
+cmd_config(){
+  say "== ghost-ios config (resolved) =="
+  say "repo            $GHOST_REPO"
+  say "python          $PYBIN"
+  say "device udid     ${IOS_DEVICE_UDID:-<unset — attach one iPhone or set IOS_DEVICE_UDID>}"
+  say "team id         ${IOS_XCODE_ORG_ID:-<unset>}"
+  say "signing id      ${IOS_XCODE_SIGNING_ID:-<unset>}"
+  say "wda bundle id   $IOS_UPDATED_WDA_BUNDLE_ID"
+  say "derived data    $IOS_DERIVED_DATA_PATH"
+  say "appium          ${APPIUM_BIN:-<not found>}"
+  say "ports           appium=$APPIUM_PORT ghost=$GHOST_PORT tunnel=$TUNNEL_PORT vite=$VITE_PORT wda=$WDA_PORT"
+  say "config file     ${GHOST_IOS_ENV:-$GHOST_IOS_DIR/ghost-ios.env or ~/.config/ghost-ios.env (if present)}"
+}
+
+cmd_report(){
+  # Machine-readable inventory of attached iOS device(s) for remote-fleet
+  # discovery (docs/ios/REMOTE_DRIVE.md). FAST + degrades gracefully: booleans
+  # are sub-second curls; identity comes from `xctrace list devices` (~1.7s,
+  # reliable — `devicectl device info details` can hang), cached so a slow/absent
+  # xctrace still yields a full record.
+  require_udid
+  local wda tun app host gen rawline cache
+  tunnel_up && tun=true || tun=false
+  appium_up && app=true || app=false
+  wda_up && wda=true || wda=false      # true == a WDA session is live right now
+  rawline="$(timeout 12 xcrun xctrace list devices 2>/dev/null | grep -F "$IOS_DEVICE_UDID" | head -1)"
+  host="$(hostname -s 2>/dev/null)"
+  gen="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)"
+  cache="$LOG_DIR/device-identity-${IOS_DEVICE_UDID}.json"
+  UDID="$IOS_DEVICE_UDID" RAWLINE="$rawline" CACHE="$cache" WDA="$wda" TUN="$tun" APP="$app" \
+  HOST="$host" GEN="$gen" /usr/bin/python3 - <<'PY'
+import json, os, re
+udid = os.environ.get("UDID",""); raw = os.environ.get("RAWLINE",""); cache = os.environ.get("CACHE","")
+def slug(s):
+    s = re.sub(r"[’'\"]", "", s or "")       # drop apostrophes
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+name, ver = "", ""
+if raw:
+    head = raw.split("("+udid)[0].rstrip()         # strip trailing " (udid)"
+    m = re.match(r"^(.*)\(([^)]+)\)\s*$", head)     # "<name> (<version>)"
+    if m: name, ver = m.group(1).strip(), m.group(2).strip()
+    else: name = head.strip()
+if name:
+    try: json.dump({"device_name":name,"ios_version":ver}, open(cache,"w"))
+    except Exception: pass
+elif cache and os.path.exists(cache):
+    try:
+        c = json.load(open(cache)); name = c.get("device_name",""); ver = ver or c.get("ios_version","")
+    except Exception: pass
+name = name or "iPhone"
+dev = {"udid": udid, "name": name, "ref_slug": slug(name) or "iphone", "ios_version": ver,
+       "wda_up": os.environ.get("WDA")=="true", "appium_up": os.environ.get("APP")=="true",
+       "tunnel_up": os.environ.get("TUN")=="true"}
+print(json.dumps({"schema":1,"host":os.environ.get("HOST",""),"generated_at":os.environ.get("GEN",""),
+                  "devices":[dev]}, indent=2))
+PY
+}
+
+cmd_smoke(){
+  require_udid
+  cd "$GHOST_REPO"; export_backend_env
+  "$PYBIN" scripts/ios_chrome_news_smoke.py --device "$DEV_REF" \
+    --bundle-id "${IOS_BROWSER_BUNDLE_ID:-com.google.chrome.ios}" --url "${SMOKE_URL:-https://text.npr.org/}" --skip-health
+}
+
+cmd_speak(){
+  require_udid
+  cd "$GHOST_REPO"; export_backend_env
+  GHOST_DEV_REF="$DEV_REF" GHOST_SPEAK_TEXT="${*:-Hello from Ghost on iOS}" "$PYBIN" -c \
+    "import os; from gitd.services.device_context import speak_text; print(speak_text(os.environ['GHOST_DEV_REF'], os.environ['GHOST_SPEAK_TEXT'], 1.0))"
+}
+
+cmd_dashboard(){
+  [ -d "$GHOST_REPO/frontend" ] || { say "no frontend/ in $GHOST_REPO"; exit 1; }
+  if ! vite_up; then
+    say "[dash] starting web dashboard ..."
+    ( cd "$GHOST_REPO/frontend"; [ -d node_modules ] || npm install; nohup npm run dev >"$LOG_DIR/vite.log" 2>&1 & )
+    for _ in $(seq 1 15); do vite_up && break; sleep 1; done
+  fi
+  open "http://localhost:${VITE_PORT}/" 2>/dev/null
+  say "dashboard: http://localhost:${VITE_PORT}/"
+}
+
+cmd_record(){
+  # Silent screen capture from WDA MJPEG :9100 -> MP4 (H.264 yuv420p, portrait).
+  # This is the pipeline BASELINE (record_demo.py phone_mp4). For demos that need
+  # the phone's AUDIO (e.g. an app talking), use record-quicktime.sh instead —
+  # WDA MJPEG carries no audio. Usage: ghost-ios record [seconds] [--out PATH]
+  require_udid
+  local secs="" out="/tmp/ios_demo_rec.mp4"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --out) out="$2"; shift 2 ;;
+      *) secs="$1"; shift ;;
+    esac
+  done
+  local src="http://127.0.0.1:9100"
+  if ! curl -sf -o /dev/null -m3 "$src" 2>/dev/null; then
+    say "[record] MJPEG :9100 not up — warming a WDA session ..."
+    curl -s -m45 "http://127.0.0.1:${GHOST_PORT}/api/phone/screenshot?device=${DEV_REF}" >/dev/null 2>&1 &
+    for _ in $(seq 1 20); do curl -sf -o /dev/null -m2 "$src" 2>/dev/null && break; sleep 1; done
+  fi
+  curl -sf -o /dev/null -m3 "$src" 2>/dev/null || { say "[record] MJPEG :9100 unavailable — is the stack up (ghost-ios up)?"; exit 1; }
+  say "[record] $src -> $out ${secs:+(${secs}s)}  (silent; Ctrl-C to stop + finalize)"
+  # curl feeds ffmpeg's mpjpeg (multipart) demuxer; even-dimension scale for libx264.
+  local tflag=""; [ -n "$secs" ] && tflag="-t $secs"
+  # shellcheck disable=SC2086
+  curl -sN "$src" | ffmpeg -y -loglevel warning -f mpjpeg -i - -an \
+    -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -c:v libx264 -pix_fmt yuv420p $tflag "$out"
+  say "[record] saved $out ($([ -s "$out" ] && stat -f%z "$out" || echo 0) bytes)"
+}
+
+cmd_reset(){
+  # Manual CoreDevice/usbmux reset for the "Device is busy (Connecting to)" wedge.
+  require_udid
+  reset_coredevice
+  say "Done. Unlock the iPhone and give it ~5s to re-handshake, then retry."
+}
+
+cmd_keychain(){
+  say "One-time: grant command-line codesign access to your Apple Development key."
+  read -rs -p "Mac login password> " PW; echo
+  security unlock-keychain -p "$PW" "$KEYCHAIN"
+  security set-key-partition-list -S apple-tool:,apple: -s -k "$PW" "$KEYCHAIN" >/dev/null
+  unset PW
+  say "Done."
+}
+
+cmd_rebuild_wda(){
+  require_udid
+  [ -n "$IOS_XCODE_ORG_ID" ] || { say "ERROR: no Apple team id. Set IOS_XCODE_ORG_ID (see ghost-ios.env.example)."; exit 1; }
+  [ -d "$WDA_SRC" ] || { say "WDA project not found at $WDA_SRC (appium driver install xcuitest)"; exit 1; }
+  cd "$WDA_SRC"
+  say "Rebuilding WebDriverAgent onto $IOS_DEVICE_UDID (keep the iPhone unlocked) ..."
+  xcodebuild build-for-testing test-without-building \
+    -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner \
+    -destination "id=$IOS_DEVICE_UDID" -allowProvisioningUpdates \
+    DEVELOPMENT_TEAM="$IOS_XCODE_ORG_ID" PRODUCT_BUNDLE_IDENTIFIER="$IOS_UPDATED_WDA_BUNDLE_ID" \
+    GCC_TREAT_WARNINGS_AS_ERRORS=0 COMPILER_INDEX_STORE_ENABLE=NO \
+    | grep -iE "CompileC.*FBCustomCommands|CodeSign|Installing|TEST BUILD|BUILD SUCCEEDED|BUILD FAILED|error:" || true
+}
+
+cmd_doctor(){ "$GHOST_IOS_DIR/doctor.sh"; }
+
+cmd_help(){
+  cat <<EOF
+ghost-ios — one command to run the whole iOS device stack for Ghost in the Droid.
+
+Run from your own Terminal (a GUI login session) so codesign can reach your
+signing key. It prompts for sudo once (the RemoteXPC tunnel needs root) and keeps
+everything alive + self-healing until you Ctrl-C.
+
+  ghost-ios up          start the stack + self-healing tunnel supervisor (main one)
+  ghost-ios doctor      preflight: check every known failure point + the fix for each
+  ghost-ios status      show tunnel / appium / backend / dashboard health
+  ghost-ios report      JSON inventory of attached device(s)
+  ghost-ios dashboard   start the web dashboard (vite) and open it
+  ghost-ios smoke       run the sample Chrome->news smoke test
+  ghost-ios speak TEXT  speak TEXT aloud on the phone (native WDA TTS)
+  ghost-ios keychain    one-time: grant CLI codesign access to your signing key
+  ghost-ios rebuild-wda (re)build+install the patched WebDriverAgent onto the phone
+  ghost-ios reset       reset usbmuxd/remoted (fixes "Device is busy (Connecting to)")
+  ghost-ios record [s]  capture the screen to an MP4 (silent; WDA MJPEG). audio -> record-av.sh
+  ghost-ios config      show resolved configuration
+  ghost-ios down        stop tunnel + appium + backend
+
+Config is auto-detected or set via env / a config file — see ghost-ios.env.example.
+Device: \${IOS_DEVICE_UDID:-<auto-detected>}   Logs: $LOG_DIR/
+EOF
+}
+
+case "${1:-help}" in
+  up)              cmd_up ;;
+  status|st)       cmd_status ;;
+  config|cfg)      cmd_config ;;
+  report)          cmd_report ;;
+  dashboard|dash)  cmd_dashboard ;;
+  smoke)           cmd_smoke ;;
+  speak)           shift; cmd_speak "$@" ;;
+  doctor|dr)       cmd_doctor ;;
+  rebuild-wda|wda) cmd_rebuild_wda ;;
+  keychain)        cmd_keychain ;;
+  reset)           cmd_reset ;;
+  record)          shift; cmd_record "$@" ;;
+  down|stop)       teardown ;;
+  *)               cmd_help ;;
+esac

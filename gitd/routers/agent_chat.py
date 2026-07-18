@@ -107,6 +107,11 @@ def send_message(data: dict = Body({})):
         raise HTTPException(status_code=400, detail="content required")
 
     session = get_session(sid) if sid else None
+    # Session not in memory — try to reload from DB (happens after backend restart)
+    if not session and sid:
+        from gitd.services.agent_chat import load_conversation
+
+        session = load_conversation(sid)
     # Auto-create session if device provided but no session
     if not session:
         device = data.get("device", "")
@@ -209,6 +214,74 @@ def list_providers():
     from gitd.services.agent_chat import get_providers
 
     return get_providers()
+
+
+@router.post("/warmup", summary="Pre-fill on-device KV cache")
+def warmup_on_device(data: dict = Body({})):
+    """
+    Pre-bake the system + tool list prefix into the on-device LLM's KV cache
+    so the user's first chat turn lands as a "turn 2" with full prefix
+    reuse. Saves ~120 s of cold prefill on Snapdragon-class CPUs with the
+    default 1.3K-token system prompt.
+
+    The Android app should POST this once at launch (idempotent; subsequent
+    calls are near-free if the prefix is already cached). No-op for
+    non-llama.cpp runtimes.
+
+    Body: {"device": "<adb_serial>", "model": "gemma-4-e2b-q4km-gguf"}
+    """
+    from gitd.services.agent_chat import DEFAULT_SYSTEM, system_prompt_for_device
+    from gitd.services.agent_chat_ondevice import _kotlin_llm
+    from gitd.services.agent_tools import tool_prompt_list, tools_for_device
+
+    device = (data.get("device") or "").strip()
+    model_id = (data.get("model") or "").strip()
+    if not model_id:
+        raise HTTPException(status_code=400, detail="model required")
+
+    llm = _kotlin_llm()
+    if llm is None:
+        return {"ok": False, "warmed": 0, "reason": "Chaquopy bridge missing"}
+
+    try:
+        if not bool(llm.ensureLoaded(model_id)):
+            return {"ok": False, "warmed": 0, "reason": f"model {model_id} not loaded"}
+    except Exception as e:
+        return {"ok": False, "warmed": 0, "reason": f"ensureLoaded failed: {e}"}
+
+    # Stable prefix + disk cache path are computed in agent_chat_ondevice so
+    # chat and warmup share the same key. Without this, the chat path's
+    # generateStart sees an empty KV and pays a full cold prefill (~4 min on
+    # Q5_K_M / Q6_K) every time even though the prefix is already on disk.
+    from gitd.services.agent_chat_ondevice import (
+        _ensure_kv_warmed,
+        _kv_cache_path,
+        ondevice_stable_prefix,
+    )
+
+    system = DEFAULT_SYSTEM.replace("{tool_list}", tool_prompt_list(tools_for_device(device)))
+    system = system_prompt_for_device(device, system)
+    stable_prefix = ondevice_stable_prefix(system, device)
+    cache_path = _kv_cache_path(model_id, stable_prefix)
+
+    # Try restore first.
+    from_cache, loaded = _ensure_kv_warmed(llm, model_id, stable_prefix)
+    if from_cache:
+        return {"ok": True, "warmed": loaded, "model": model_id, "from_cache": True}
+
+    # Cold path: do the full prefill.
+    try:
+        warmed = int(llm.warmup(model_id, stable_prefix))
+    except Exception as e:
+        return {"ok": False, "warmed": 0, "reason": f"warmup failed: {e}"}
+
+    # Save for next launch (best-effort; failure doesn't break the warmup).
+    try:
+        getattr(llm, "saveState")(model_id, cache_path)
+    except Exception:
+        pass
+
+    return {"ok": True, "warmed": warmed, "model": model_id, "from_cache": False}
 
 
 # ── Ollama model management ──────────────────────────────────────────────

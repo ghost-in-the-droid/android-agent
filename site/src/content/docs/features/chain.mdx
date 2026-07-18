@@ -1,0 +1,55 @@
+---
+title: "Chain — Batched Sub-Actions"
+description: Run an ordered list of device actions in one tool call, settling between each, aborting on the first failure — with the whole batch pre-validated against the safe-tool allow-list.
+---
+import PlatformBadges from '../../../components/PlatformBadges.astro';
+
+<PlatformBadges android="yes" ios="yes" />
+
+`chain` runs an ordered list of sub-actions in a **single tool call**, settling
+between each one. It's the agent-loop cousin of [`run_flow`](/features/run-flow/):
+where `run_flow` batches an MCP round-trip, `chain` lets the agent collapse a
+short "do this, then this, then this" into one step without re-reading the
+screen between every action.
+
+Each sub-action is `{"tool": "<name>", "args": {...}}`:
+
+```json
+chain({"actions": [
+  {"tool": "launch_app", "args": {"package": "com.android.settings"}},
+  {"tool": "find_on_screen", "args": {"text": "Wi-Fi"}},
+  {"tool": "tap", "args": {"x": 540, "y": 300}}
+]})
+```
+
+## Settle between actions
+
+The `settle` param controls the pause between sub-actions:
+
+- `"stabilize"` (default) — a fixed 0.6 s settle so the UI can catch up.
+- `"delay"` — sleep `delay_ms` (default 600 ms, capped at 3 s).
+
+No settle runs after the final action.
+
+## Fail-fast, fail-closed
+
+- **Max 15 actions** per chain; a longer batch is refused.
+- **The whole batch is validated before anything runs.** Every sub-action's
+  tool must be in the safe-tool allow-list (`SAFE_DEVICE_TOOLS`) — if any step
+  names a disallowed tool, the entire chain is refused and **nothing
+  executes**. A chain can't hide a privileged call after a few benign steps.
+- Chains can't nest (a step naming `chain` is refused).
+- At runtime, the first sub-action that **raises** aborts the rest of the chain
+  and reports how far it got.
+
+## Not chainable itself
+
+`chain` is a meta-executor, so it's **`EXEC_CAPABLE`, not `SAFE`** — it can't be
+smuggled inside a `run_flow` or another `chain`. Its own children stay
+restricted to the safe allow-list, so higher-privilege tools (like
+[`sub_agent`](/features/sub-agent/)) can never run inside a chain.
+
+## Related
+
+- [Run Flow](/features/run-flow/) — the MCP-level batch primitive
+- [Screenshot Sequence](/features/screenshot-sequence/) — chainable frame burst

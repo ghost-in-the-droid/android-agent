@@ -4,10 +4,63 @@ Shared test fixtures.
 Device tests require a connected Android phone (set DEVICE env var).
 API tests use FastAPI TestClient (no phone needed).
 """
+
+import hashlib
 import os
+import tempfile
 from pathlib import Path
 
 import pytest
+
+# ── Test DB isolation (must run at conftest import, before any gitd import) ───
+# gitd.models.base builds its SQLAlchemy engine bound to settings.db_path AT
+# IMPORT TIME, and `settings` is created the first time gitd.config is imported.
+# So the ONLY place we can redirect the DB is here, at conftest import — pytest
+# loads conftest before collecting/importing any test module that pulls in gitd.
+# Without this, trace tests (which insert and DELETE trace rows) run against the
+# real data/gitd.db and wipe live rows. This module does NOT import gitd, so the
+# env var is set first.
+# ── iOS feature gate ──────────────────────────────────────────────────────────
+# iOS support ships gate-OFF by default; the test suite exercises the full iOS
+# surface, so enable it here. Gate-off behavior has its own dedicated tests
+# (tests/test_ios_feature_gate.py) that monkeypatch the gate closed.
+os.environ.setdefault("GITD_ENABLE_IOS", "1")
+
+if "DB_PATH" not in os.environ:
+    # Per-worktree DB path. A fixed /tmp/gitd_pytest.db is shared by every
+    # checkout, so pytest running concurrently in two per-agent worktrees would
+    # race on the same file (one session's clean-slate unlink + create clobbers
+    # the other → intermittent "no such table"/locked failures). Keying the path
+    # to this worktree's root makes each checkout use its own DB; re-runs in the
+    # same worktree still reuse one stable, debuggable path.
+    _wt_key = hashlib.md5(str(Path(__file__).resolve().parent.parent).encode()).hexdigest()[:8]
+    _TEST_DB = Path(tempfile.gettempdir()) / f"gitd_pytest_{_wt_key}.db"
+    # Start each test session from a clean slate (drop WAL/SHM sidecars too).
+    for _suffix in ("", "-wal", "-shm"):
+        Path(str(_TEST_DB) + _suffix).unlink(missing_ok=True)
+    os.environ["DB_PATH"] = str(_TEST_DB)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _verify_db_isolated():
+    """Fail loudly if the app DB wasn't redirected to the throwaway test DB.
+
+    If anything imported gitd before this conftest set DB_PATH, the module-level
+    engine would still point at the real dev DB and the trace tests would wipe
+    it. This guard turns that silent data-loss into an immediate, obvious error.
+    """
+    from gitd.models.base import engine
+
+    engine_url = str(engine.url)
+    db_path = os.environ.get("DB_PATH", "")
+    real_db = "data/gitd.db"  # the production default in gitd/config.py
+    assert db_path and db_path in engine_url and real_db not in engine_url, (
+        f"Test DB isolation failed: engine is bound to {engine_url!r} (DB_PATH="
+        f"{db_path!r}), expected a throwaway temp DB and definitely NOT {real_db}. "
+        "Something imported gitd before conftest set DB_PATH — do NOT run this "
+        "suite, it would touch the real dev DB."
+    )
+    yield
 
 
 @pytest.fixture(scope="session")
@@ -19,3 +72,21 @@ def dev():
     if not serial:
         pytest.skip("DEVICE env var not set — skipping device tests")
     return Device(serial)
+
+
+@pytest.fixture(scope="session")
+def client():
+    """FastAPI test client — no real server needed.
+
+    Lives here (the top-level conftest) rather than tests/api/conftest.py so it
+    resolves reliably: when a run mixes ``tests/`` and ``tests/api/`` files (the CI
+    ios-parity job), a subdir conftest that only defines this fixture was not
+    getting collected, causing 'fixture client not found' setup errors. gitd is
+    imported inside the fixture (not at module import) to preserve DB isolation.
+    """
+    from fastapi.testclient import TestClient
+
+    from gitd.app import app
+
+    with TestClient(app) as c:
+        yield c

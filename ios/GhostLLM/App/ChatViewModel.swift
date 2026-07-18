@@ -1,0 +1,200 @@
+import Foundation
+import SwiftUI
+
+/// Tiny step counter for the scripted agent self-test (safe across the loop's
+/// @Sendable decider closure).
+actor Counter {
+    private var n = 0
+    func next() -> Int { defer { n += 1 }; return n }
+}
+
+struct ChatMessage: Identifiable, Equatable {
+    enum Role { case user, assistant, system }
+    let id = UUID()
+    let role: Role
+    var text: String
+}
+
+/// Drives on-device chat: model load/download/switch + full streaming turns.
+/// One engine instance per loaded model; KV cleared each turn (full history
+/// re-fed — simple + correct for MVP-length chats).
+@MainActor
+final class ChatViewModel: ObservableObject {
+    @Published var messages: [ChatMessage] = []
+    @Published var status: String = "loading model…"
+    @Published var ready = false
+    @Published var generating = false
+    @Published var currentModel: ModelSpec = ModelRegistry.defaultModel
+    @Published var downloadProgress: Double? = nil   // non-nil while downloading
+
+    let models = ModelRegistry.all
+    private var engine: LlamaEngine?
+    private let downloader = ModelDownloadManager()
+    private let systemPrompt = "You are Ghost, a concise helpful assistant running entirely on this iPhone."
+    private let maxTokens = 256
+
+    func loadDefaultModel() async { await load(currentModel) }
+
+    func switchModel(to spec: ModelSpec) async {
+        guard spec.id != currentModel.id || !ready else { return }
+        await load(spec)
+    }
+
+    private func load(_ spec: ModelSpec) async {
+        ready = false
+        engine = nil
+        currentModel = spec
+        do {
+            let url: URL
+            if ModelStore.isAvailable(spec) {
+                url = try ModelStore.resolvedURL(for: spec)
+            } else {
+                status = "downloading \(spec.displayName) (\(spec.sizeLabel))…"
+                downloadProgress = 0
+                var lastDecile = -1
+                url = try await downloader.ensure(spec) { [weak self] p in
+                    let d = Int(p * 10)
+                    if d != lastDecile { lastDecile = d; print("DL_PROGRESS \(spec.id) \(d * 10)%") }
+                    Task { @MainActor in self?.downloadProgress = p }
+                }
+                downloadProgress = nil
+            }
+            status = "loading \(spec.displayName)…"
+            let engine = try LlamaEngine(modelURL: url)
+            self.engine = engine
+            let backend = await engine.backend
+            status = "ready · \(spec.displayName) · \(backend)"
+            ready = true
+        } catch {
+            downloadProgress = nil
+            status = "error: \(error)"
+        }
+    }
+
+    /// Headless proof of the download-on-first-run path: download a model over
+    /// the network into Documents, then load it. Uses the small model URL so the
+    /// mechanism is validated fast (the production Gemma path is identical).
+    func runDownloadSelfTest() async {
+        let spec = ModelSpec(
+            id: "dl-test", displayName: "download self-test",
+            filename: "dltest-\(ModelRegistry.phase0.filename)",
+            url: ModelRegistry.phase0.url, sizeBytes: ModelRegistry.phase0.sizeBytes, bundled: false
+        )
+        try? FileManager.default.removeItem(at: ModelStore.documentsURL(for: spec))
+        var lastDecile = -1
+        do {
+            let url = try await downloader.ensure(spec) { p in
+                let d = Int(p * 10)
+                if d != lastDecile { lastDecile = d; print("DL_TEST_PROGRESS \(d * 10)%") }
+            }
+            let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int64) ?? -1
+            let inDocs = url.path.contains("/Documents/models/")
+            let engine = try LlamaEngine(modelURL: url)
+            let backend = await engine.backend
+            print("DL_TEST_RESULT ok file=\(url.lastPathComponent) size=\(size ?? -1) in_documents=\(inDocs) loaded_backend=\(backend)")
+        } catch {
+            print("DL_TEST_ERROR \(error)")
+        }
+    }
+
+    /// Phone-free proof of the agent loop: a scripted decider drives MockWDAClient
+    /// (getUI → tap → done); asserts the loop issues the right WDA calls in order
+    /// and terminates. The real loop swaps the mock for HTTPWDAClient + the LLM.
+    func runAgentSelfTest() async {
+        let mock = MockWDAClient()
+        let loop = AgentLoop(engine: nil, wda: mock)
+        let script: [ToolCall] = [
+            ToolCall(tool: "getUI"),
+            ToolCall(tool: "tap", x: 100, y: 200),
+            ToolCall(tool: "done", summary: "tapped Settings"),
+        ]
+        let counter = Counter()
+        let result = await loop.run(goal: "Open Settings", maxSteps: 6) { _ in
+            let i = await counter.next()
+            return i < script.count ? script[i] : nil
+        }
+        let calls = await mock.calls
+        let transcript = await loop.transcript
+        let ok = calls == ["createSession", "source", "tap(100,200)"] && result == "tapped Settings"
+        print("AGENT_TEST_RESULT ok=\(ok) result=<\(result)> calls=\(calls) transcript=\(transcript)")
+    }
+
+    /// Proof that the on-device LLM emits grammar-valid tool calls that drive the
+    /// loop (mock WDA, no phone). Grammar guarantees parseable JSON even from the
+    /// tiny model; the real device swaps MockWDAClient → HTTPWDAClient.
+    func runAgentLLMTest() async {
+        do {
+            let url = try ModelStore.bundledPhase0ModelURL()
+            let engine = try LlamaEngine(modelURL: url)
+            var raw = ""
+            _ = try await engine.generate(
+                prompt: "You control an iPhone. Emit ONE JSON tool call like {\"tool\":\"getUI\"}.\nGOAL: open Settings\nNext tool call:",
+                maxTokens: 64, grammar: nil
+            ) { raw += $0 }
+            let parsed = ToolCall.parse(from: raw)
+            print("AGENT_LLM_RAW=<\(raw)> parsed_tool=\(parsed?.tool ?? "nil") valid_json=\(parsed != nil)")
+
+            let mock = MockWDAClient()
+            let loop = AgentLoop(engine: engine, wda: mock)
+            let result = await loop.run(goal: "Open the Settings app", maxSteps: 3)
+            let calls = await mock.calls
+            let transcript = await loop.transcript
+            print("AGENT_LLM_RESULT result=<\(result)> calls=\(calls) transcript=\(transcript)")
+        } catch {
+            print("AGENT_LLM_ERROR \(error)")
+        }
+    }
+
+    /// Load a model (downloading if needed) and time a fixed generation — the
+    /// on-device performance proof. On the phone the backend is Metal.
+    func runPerf(_ which: String) async {
+        let spec = which == "gemma" ? ModelRegistry.gemma4E2B : ModelRegistry.phase0
+        print("PERF_START model=\(spec.displayName)")
+        await load(spec)
+        guard ready, let engine else { print("PERF_ERROR status=\(status)"); return }
+        do {
+            // warm-up (kernels/graph), then a timed run
+            _ = try await engine.generate(prompt: "Hi", maxTokens: 4) { _ in }
+            let info = try await engine.generate(
+                prompt: "Explain what an iPhone is in two short sentences.",
+                maxTokens: 80
+            ) { _ in }
+            print("PERF_RESULT model=\(spec.displayName) \(info.summary)")
+        } catch {
+            print("PERF_ERROR \(error)")
+        }
+    }
+
+    func send(_ text: String) async {
+        let prompt = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !prompt.isEmpty, !generating, let engine else { return }
+        generating = true
+        defer { generating = false }
+
+        messages.append(ChatMessage(role: .user, text: prompt))
+        let assistantIndex = messages.count
+        messages.append(ChatMessage(role: .assistant, text: ""))
+
+        var turns: [ChatTurn] = [ChatTurn(role: "system", content: systemPrompt)]
+        for m in messages where m.role != .assistant || !m.text.isEmpty {
+            let role = m.role == .user ? "user" : (m.role == .system ? "system" : "assistant")
+            turns.append(ChatTurn(role: role, content: m.text))
+        }
+
+        await engine.resetContext()
+        let formatted = await engine.formatChat(turns)
+        do {
+            let info = try await engine.generate(prompt: formatted, maxTokens: maxTokens) { [weak self] piece in
+                Task { @MainActor in
+                    guard let self, self.messages.indices.contains(assistantIndex) else { return }
+                    self.messages[assistantIndex].text += piece
+                }
+            }
+            status = "ready · \(info.summary)"
+            print("M1_RESULT reply=<\(messages[assistantIndex].text)> \(info.summary)")
+        } catch {
+            messages[assistantIndex].text = "[error: \(error)]"
+            print("M1_ERROR \(error)")
+        }
+    }
+}

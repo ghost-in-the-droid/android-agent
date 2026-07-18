@@ -129,17 +129,15 @@ skills/tiktok/
   actions/
     __init__.py
     core.py            # OpenApp, NavigateToProfile, TapSearch, TypeAndSearch, DismissPopup
-    engagement.py      # LikePost, CommentOnPost, FollowUser, ScrollFeed, TapUser, etc.
   workflows/
     __init__.py
     upload_video.py
-    crawl_users.py
     publish_draft.py
 ```
 
 ## TikTok Skill Reference
 
-### 13 Actions
+### 5 Actions
 
 | Action | File | Has Postcondition |
 |--------|------|-------------------|
@@ -148,21 +146,12 @@ skills/tiktok/
 | `tap_search` | core.py | Yes (checks search box RID) |
 | `type_and_search` | core.py | No |
 | `dismiss_popup` | core.py | No |
-| `like_post` | engagement.py | No |
-| `comment_on_post` | engagement.py | No |
-| `follow_user` | engagement.py | No |
-| `scroll_feed` | engagement.py | No |
-| `tap_user` | engagement.py | No |
-| `tap_message_button` | engagement.py | No |
-| `type_message` | engagement.py | No |
-| `tap_send` | engagement.py | No |
 
-### 3 Workflows
+### 2 Workflows
 
 | Workflow | Wraps |
 |----------|-------|
 | `upload_video` | `bots/tiktok/upload.py` (43-step flow) |
-| `crawl_users` | `bots/tiktok/scraper.py --tab users` |
 | `publish_draft` | `bots/tiktok/upload.py --publish-draft` |
 
 ### Base Skill (9 shared actions)
@@ -188,7 +177,7 @@ This keeps the server responsive and provides process isolation.
 | File | Lines | Purpose |
 |------|-------|---------|
 | `skills/base.py` | 262 | ActionResult, Element, Action, Workflow, Skill |
-| `skills/tiktok/` | -- | 13 actions + 3 workflows + 41 elements |
+| `skills/tiktok/` | -- | 5 actions + 2 workflows + 41 elements |
 | `skills/_base/` | -- | 9 shared actions |
 | `skills/instagram/` | -- | Skeleton (skill.yaml only) |
 | `skills/_run_skill.py` | -- | CLI runner for job queue |

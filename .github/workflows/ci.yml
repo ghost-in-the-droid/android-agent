@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, "rc/**", ios]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, "rc/**", ios]
 
 # Secrets are set in GitHub repo Settings → Secrets → Actions
 # They're encrypted, never printed in logs, available as ${{ secrets.NAME }}
@@ -36,6 +36,45 @@ jobs:
           python-version: "3.10"
       - run: pip install -e ".[test]" httpx
       - run: python -m pytest tests/api/test_smoke.py -v --tb=short
+
+  ios-parity-tests:
+    runs-on: ubuntu-latest
+    env:
+      DEFAULT_DEVICE: ""  # No device in CI
+      IOS_LIVE_NEWS_TEST: ""  # Live WDA/Appium tests are opt-in outside CI
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install -e ".[test]" httpx
+      - name: Run non-live iOS parity suite
+        run: >
+          python -m pytest
+          tests/api/test_explorer_ios.py
+          tests/api/test_streaming.py
+          tests/api/test_phone_app_state.py
+          tests/api/test_phone_apps.py
+          tests/api/test_phone_clipboard_notifications.py
+          tests/api/test_phone_controls.py
+          tests/api/test_phone_elements.py
+          tests/api/test_phone_health_ios.py
+          tests/api/test_phone_platform_metadata.py
+          tests/api/test_phone_recording.py
+          tests/test_creator_ios.py
+          tests/test_ios_job_guards.py
+          tests/test_scheduler_skill_results.py
+          tests/test_safari_ios_skill.py
+          tests/test_tiktok_ios_skill.py
+          tests/test_skill_platforms.py
+          tests/test_ios_explorer_recorder.py
+          tests/test_ios_test_runner_recording.py
+          tests/test_mcp_ios_skill_creation.py
+          tests/test_tool_platforms.py
+          tests/api/test_tools_hub.py
+          tests/test_ios_device.py
+          tests/test_browser_news.py
+          tests/test_ios_chrome_news_smoke.py
 
   build-frontend:
     runs-on: ubuntu-latest

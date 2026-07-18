@@ -1,0 +1,48 @@
+---
+title: "Timeouts & Backoff — Robust LLM Calls"
+description: Ghost retries rate-limited LLM calls with exponential backoff and keepalive events, and scales per-call timeouts to the model tier so long reasoning runs aren't cut short.
+---
+import PlatformBadges from '../../../components/PlatformBadges.astro';
+
+<PlatformBadges android="yes" ios="yes" />
+
+Long agent runs hit two failure modes: provider rate limits and calls that run
+longer than a fixed timeout allows. Ghost handles both around every LLM call.
+
+## Rate-limit backoff
+
+Rate-limit and overload errors (HTTP 429/529, "overloaded", "usage limit", …)
+retry on an exponential schedule; every other error re-raises immediately.
+
+- Interactive (streaming chat) retries **3 times** on a `15s → 30s → 60s`
+  schedule (~105 s total) before surfacing the error.
+- While waiting, the SSE stream emits keepalive events every 10 s
+  (`⏳ Rate-limited — waiting Ns (retry x/y)…`) so idle proxies don't drop the
+  connection.
+
+Only genuine rate-limit signals retry — a real error surfaces right away instead
+of being masked behind minutes of backoff.
+
+## Effort-scaled timeouts
+
+Each call gets a wall-clock timeout scaled to the model tier, so a deep Opus
+reasoning turn isn't killed on the same clock as a quick Haiku call:
+
+| Model tier | Timeout |
+|------------|---------|
+| Opus | 420 s |
+| Sonnet | 300 s |
+| Haiku | 240 s |
+| Other (vLLM, on-device, …) | 600 s |
+
+For the `claude-code` subprocess provider, the tier value is used as an
+**idle** ceiling — if no new output arrives for that window the subprocess is
+treated as wedged and stopped; any new line resets the clock.
+
+These are internal robustness defaults with **no env-var overrides** — they
+apply to every provider loop automatically.
+
+## Related
+
+- [LLM Providers](/features/llm-providers/) — the provider loops this wraps
+- [Tracing](/features/tracing/) — retries and timeouts show in the trace

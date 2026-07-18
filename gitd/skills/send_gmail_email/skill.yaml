@@ -1,6 +1,9 @@
 app_package: com.google.android.gm
+android_package: com.google.android.gm
 description: Auto-generated skill from 6 recorded steps
 name: send_gmail_email
+platforms:
+- android
 version: 1.0.0
 
 default_params:

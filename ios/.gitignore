@@ -1,0 +1,17 @@
+# Xcode project is generated from project.yml via xcodegen
+*.xcodeproj
+*.xcworkspace
+
+# Build output / DerivedData
+build/
+DerivedData/
+.swiftpm/
+*.xcuserstate
+
+# Models are large; fetched via scripts/fetch-phase0-model.sh, not committed
+models/*.gguf
+GhostLLM/Resources/*.gguf
+
+# macOS
+.DS_Store
+GhostLLM/Info.plist

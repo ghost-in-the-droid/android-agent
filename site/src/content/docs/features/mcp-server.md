@@ -1,9 +1,9 @@
 ---
 title: "MCP Server"
-description: Expose Android automation as tools for any LLM agent — Claude, Cursor, Codex, OpenClaw, ChatGPT.
+description: 41 Android automation tools for any LLM agent — Claude Code, Cursor, Codex, ChatGPT.
 ---
 
-The MCP server exposes the entire Android automation system as tools that any LLM agent can use. Supports MCP (Model Context Protocol) for Claude Code, Cursor, Codex CLI, and OpenClaw, plus an OpenAPI-compatible REST layer for ChatGPT/GPT Actions.
+The MCP server exposes the entire Android automation system as 41 tools any LLM agent can call. Supports MCP (Model Context Protocol) for Claude Code, Cursor, Codex CLI, and OpenClaw via stdio or HTTP, plus an OpenAPI-compatible REST layer for ChatGPT/GPT Actions.
 
 ## Architecture
 
@@ -15,80 +15,143 @@ LLM Agent Platforms
         v                    v
   mcp_server.py         FastAPI server
   port 8002             port 5055
-  33 tools              /api/* endpoints
+  41 tools              /api/* endpoints
         |                    |
         +--------+-----------+
                  v
        Physical Android phones via ADB
 ```
 
-**File:** `gitd/mcp_server.py` — single file, ~540 lines, 33 tools.
+**File:** `gitd/mcp_server.py` — single file, 41 tools.
 
-## Tool Tiers
+## Ghost Skills vs MCP Tools
 
-### Tier 1: Raw Android Control
+These are two separate things:
 
-Work with ANY app. The agent figures out what to do by looking at elements/screenshots.
+- **MCP Tools** — 41 tools the agent calls directly (`tap`, `screenshot`, `launch_app`, etc.). This is what LLM agents interact with.
+- **Ghost Skills** — high-level reusable automations recorded in `registry/` (TikTok upload, Instagram crawl, Gmail send). Think macros.
+
+Five MCP tools bridge the two: `list_skills`, `run_workflow`, `run_action`, `create_skill`, `explore_app`. They let an agent discover and run pre-built skills, or record new ones.
+
+## All 41 Tools
+
+### Screen Reading (11 tools)
 
 | Tool | Description |
 |------|-------------|
-| `list_devices` | List connected phones with serial + model |
-| `screenshot` | Base64 PNG of current screen |
-| `get_elements` | JSON array of all UI elements (idx, text, bounds, clickable) |
+| `get_screen_tree` | LLM-friendly indented UI hierarchy — primary tool for understanding the screen |
+| `get_elements` | JSON array of UI elements with idx, text, bounds, clickable |
+| `screenshot` | Full screen as base64 PNG |
+| `screenshot_annotated` | Screenshot with numbered element labels overlaid |
+| `screenshot_cropped` | Zoom into a specific pixel region |
+| `get_screen_xml` | Raw uiautomator XML — when you need exact attributes |
 | `get_phone_state` | Current app, activity, keyboard state, focused element |
-| `tap` | Tap at (x, y) coordinates |
+| `classify_screen` | Heuristic: home / search / profile / dialog / error / loading |
+| `find_on_screen` | Search for text — XML first, OCR fallback |
+| `ocr_screen` | Full screen OCR via RapidOCR — for WebViews, games, canvas |
+| `ocr_region` | OCR a specific pixel region |
+
+### Input & Control (10 tools)
+
+| Tool | Description |
+|------|-------------|
+| `tap` | Tap at pixel coords (x, y) |
 | `tap_element` | Tap element by idx from `get_elements()` |
-| `swipe` | Swipe from (x1,y1) to (x2,y2) with duration |
-| `type_text` | Type ASCII text into focused field |
-| `type_unicode` | Type emoji/CJK via ADBKeyboard |
+| `swipe` | Swipe/scroll between two points with duration |
+| `long_press` | Long press — context menus, drag initiation |
+| `type_text` | Type ASCII into focused field |
+| `type_unicode` | Type emoji / CJK / accented chars via ADBKeyboard broadcast |
+| `paste_text` | Set clipboard and paste into focused field in one call |
 | `press_back` | Android Back button |
 | `press_home` | Android Home button |
-| `press_key` | Any key event (POWER, VOLUME_UP, ENTER, etc.) |
-| `launch_app` | Launch app by package name |
-| `long_press` | Long press at coordinates |
+| `press_key` | Any key event: ENTER, POWER, VOLUME_UP, KEYCODE_* |
 
-### Tier 1.5: Context & Screen Reading
+### App Management (5 tools)
 
 | Tool | Description |
 |------|-------------|
-| `get_screen_tree` | Structured UI tree with hierarchy |
-| `get_screen_xml` | Raw Android UI hierarchy XML |
-| `screenshot_annotated` | Screenshot with element bounding boxes |
-| `screenshot_cropped` | Crop a region of the screen |
-| `ocr_screen` | OCR all text on screen |
-| `ocr_region` | OCR a specific screen region |
-| `classify_screen` | Identify which app/screen is showing |
-| `toggle_overlay` | Toggle element overlay on device |
-| `clipboard_get` / `clipboard_set` | Read/write clipboard |
-| `get_notifications` | Read notification shade |
+| `launch_app` | Open app by package name (handles disabled packages, ROM quirks) |
+| `open_camera` | Open camera in photo / video / selfie / selfie_video + optional timer (2s/3s/5s/10s) |
+| `launch_intent` | Full Android intent — URLs, deep links, share sheets, extras |
+| `search_apps` | Find installed app by name → returns package name |
+| `list_apps` | All installed apps with human-readable names |
+
+### Clipboard (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `clipboard_get` | Read current clipboard |
+| `clipboard_set` | Write to clipboard via Ghost portal |
+| `paste_text` | Write clipboard + paste in one shot (preferred) |
+
+### System & Utility (6 tools)
+
+| Tool | Description |
+|------|-------------|
+| `get_notifications` | All active notifications as JSON |
 | `open_notifications` | Pull down notification shade |
-| `launch_intent` | Launch Android intent with extras |
-| `find_on_screen` | Find element by text or description |
+| `web_search` | Open search in best available browser |
+| `speak_text` | Phone speaks text aloud via TTS (works from PC and on-device) |
+| `list_devices` | All connected ADB devices with model names |
+| `toggle_overlay` | Toggle numbered element overlay for visual debugging |
 
-### Tier 2: Skill Workflows
+### Skill Bridge (5 tools)
 
-One tool call = one complete automation task. Uses installed skills.
-
-| Tool | Description |
-|------|-------------|
-| `run_workflow` | Run a skill workflow (e.g. TikTok upload, Gmail send) |
-| `run_action` | Run a single skill action (e.g. tiktok/open_app) |
-
-### Tier 3: Meta / Discovery
-
-Let the agent discover capabilities and create new ones.
+Connect MCP to the Ghost Skills system in `registry/`.
 
 | Tool | Description |
 |------|-------------|
-| `list_skills` | List all installed skills with actions/workflows |
-| `explore_app` | BFS explore an app's UI, returns state graph |
-| `create_skill` | Create new skill from JSON step list |
+| `list_skills` | Discover installed skills with their actions and workflows |
+| `run_workflow` | Run a full skill workflow: `run_workflow(device, "tiktok", "upload_video", params)` |
+| `run_action` | Run a single action: `run_action(device, "tiktok", "open_app", {})` |
+| `create_skill` | Record a new reusable skill from a JSON step list |
+| `explore_app` | BFS crawl an app's UI and return a state graph |
 
-## Platform Setup
+## Connecting a client
 
-### Claude Code / Cursor (stdio)
+Ghost speaks MCP over two transports:
 
-Add to `.mcp.json` in the project root:
+- **stdio** — run `android-agent-mcp` (or `python3 -m gitd.mcp_server`)
+- **streamable HTTP** — `http://localhost:8002/mcp` (start the server with `python3 -m gitd.mcp_server`)
+
+The fastest start is Claude Code:
+
+### Claude Code (recommended)
+
+Add `.mcp.json` to your project root:
+
+```json
+{
+  "mcpServers": {
+    "android-agent": {
+      "command": "android-agent-mcp"
+    }
+  }
+}
+```
+
+Or register globally:
+
+```bash
+claude mcp add android-agent android-agent-mcp
+```
+
+### Claude Desktop (HTTP)
+
+```json
+{
+  "mcpServers": {
+    "android-agent": {
+      "url": "http://localhost:8002/mcp"
+    }
+  }
+}
+```
+
+Start the server first: `python3 -m gitd.mcp_server`
+
+### Cursor / Codex CLI (stdio)
+
 ```json
 {
   "mcpServers": {
@@ -100,41 +163,27 @@ Add to `.mcp.json` in the project root:
 }
 ```
 
-### Claude Desktop (HTTP)
-
-Start server: `python3 -m gitd.mcp_server`
-
-Add to Claude Desktop config:
-```json
-{
-  "mcpServers": {
-    "android-agent": {
-      "url": "http://localhost:8002/mcp"
-    }
-  }
-}
-```
-
-### OpenAI Codex CLI
-
-Add to `~/.codex/config.toml`:
-```toml
-[mcp_servers.android-agent]
-command = "python3"
-args = ["-m", "gitd.mcp_server"]
-```
-
 ### ChatGPT / GPT Actions
 
-ChatGPT uses OpenAPI, not MCP. Expose port 5055 via ngrok or Cloudflare Tunnel, then import the OpenAPI spec as a Custom GPT Action. See `docs/features/mcp-server.md` for the full OpenAPI schema.
+ChatGPT uses OpenAPI, not MCP. Expose port 5055 via ngrok or Cloudflare Tunnel, then import the OpenAPI spec as a Custom GPT Action.
 
-## Typical Agent Flow
+### Other clients
 
-1. `list_devices()` -- get device serial
-2. `list_skills()` -- check if a skill exists for the task
-3. If skill exists: `run_workflow(device, skill, workflow, params)`
-4. If not: `get_elements(device)` -- understand screen -- `tap`/`type`/`swipe` raw
-5. After building a new flow: `create_skill(name, package, steps)` to save it
+Every other client — Cursor, Windsurf, Zed, Continue, Cline, Codex CLI, Claude Desktop, Cherry Studio, OpenClaw, and ChatGPT / GPT Actions (via the OpenAPI REST layer) — has its own config format. The **[MCP Clients compatibility matrix](/features/mcp-clients/)** lists the transport each one supports and the exact snippet to wire Ghost in.
+
+Prefer to drive Ghost from **LangChain or LlamaIndex** directly? Skip MCP entirely and use the native framework adapters — see [LangChain & LlamaIndex](/features/integrations/).
+
+## Typical Agent Loop
+
+```
+1. list_devices()                              → pick device serial
+2. list_skills()                               → check if skill exists for task
+3a. If skill: run_workflow(dev, skill, wf, {}) → done in one call
+3b. If not:   get_screen_tree(dev)             → understand screen
+              tap / type / swipe / ...         → act
+              get_screen_tree(dev)             → verify
+              create_skill(name, pkg, steps)   → save for next time
+```
 
 ## Testing
 
@@ -142,21 +191,19 @@ ChatGPT uses OpenAPI, not MCP. Expose port 5055 via ngrok or Cloudflare Tunnel, 
 # Verify tools load
 python3 -c "from gitd.mcp_server import mcp; print('OK')"
 
+# List all tools via stdio
+printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list"}\n' \
+  | android-agent-mcp | python3 -c "import sys,json; [print(t['name']) for line in sys.stdin.read().split('\n') for d in [json.loads(line)] if d.get('id')==2 for t in d['result']['tools']]"
+
 # HTTP mode
 python3 -m gitd.mcp_server &
 curl -s http://localhost:8002/mcp -X POST \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
-```
-
-## Dependencies
-
-```bash
-pip install "mcp[cli]"
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
 
 ## Related
 
-- [Skill System](/features/skill-system/) -- skills that MCP tools can execute
-- [Skill Hub](/features/skill-hub/) -- browse and manage installed skills
-- [ADB Device](/features/adb-device/) -- the raw device methods MCP wraps
+- [Skill System](/features/skill-system/) — skills that MCP tools can execute
+- [Skill Hub](/features/skill-hub/) — browse and manage installed skills
+- [ADB Device](/features/adb-device/) — raw device methods the MCP wraps

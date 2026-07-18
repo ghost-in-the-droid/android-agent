@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { api } from '@/composables/useApi'
 import PhoneStreamWidget from '@/components/PhoneStreamWidget.vue'
 
@@ -10,13 +10,23 @@ interface AppState {
   state_id: string; screenshot_path: string; elements: any[]; depth: number; activity: string
   transitions: Record<string, string>
 }
+interface InstalledApp {
+  name: string
+  package: string
+  bundle_id?: string
+  platform?: string
+  verified?: boolean
+  installed?: boolean
+  app_state_name?: string
+  verification_error?: string
+}
 
-const devices = ref<{serial: string; nickname?: string}[]>([])
+const devices = ref<{serial: string; nickname?: string; platform?: string; status?: string}[]>([])
 const runs = ref<ExplorerRun[]>([])
 const pkg = ref('')
 const device = ref('')
-const installedPackages = ref<string[]>([])
-const filteredPackages = ref<string[]>([])
+const installedApps = ref<InstalledApp[]>([])
+const filteredApps = ref<InstalledApp[]>([])
 const showPkgDropdown = ref(false)
 const maxDepth = ref(3)
 const maxStates = ref(20)
@@ -24,6 +34,12 @@ const settle = ref(1.5)
 const running = ref(false)
 const jobId = ref<number | null>(null)
 const progress = ref({ states_found: 0, transitions: 0, current_depth: 0, log_tail: [] as string[] })
+const selectedDeviceIsIos = computed(() => {
+  const selected = devices.value.find(d => d.serial === device.value)
+  return selected?.platform === 'ios' || device.value.startsWith('ios:')
+})
+const packageLabel = computed(() => selectedDeviceIsIos.value ? 'Bundle ID' : 'Package')
+const packagePlaceholder = computed(() => selectedDeviceIsIos.value ? 'com.google.chrome.ios' : 'com.zhiliaoapp.musically')
 
 const cleanLogs = computed(() => {
   return progress.value.log_tail.map(line => {
@@ -43,7 +59,8 @@ async function loadDevices() {
   try {
     const resp = await api('/api/phone/devices')
     devices.value = resp.devices || resp || []
-    if (devices.value.length && !device.value) device.value = devices.value[0].serial
+    const firstDevice = devices.value[0]
+    if (firstDevice && !device.value) device.value = firstDevice.serial
   } catch {}
 }
 
@@ -54,23 +71,40 @@ async function loadRuns() {
 async function loadPackages() {
   if (!device.value) return
   try {
-    const resp = await api(`/api/phone/packages/${device.value}`)
-    installedPackages.value = resp.packages || resp || []
-  } catch { installedPackages.value = [] }
+    const resp = await api(`/api/phone/apps/${encodeURIComponent(device.value)}`)
+    const apps = resp.apps || []
+    const packages = resp.packages || []
+    installedApps.value = apps.length
+      ? apps.map((app: any) => ({
+        ...app,
+        package: app.package || app.bundle_id || '',
+        bundle_id: app.bundle_id || app.package || '',
+        name: app.name || app.package || app.bundle_id || ''
+      }))
+      : packages.map((p: string) => ({ name: p, package: p, bundle_id: p }))
+  } catch { installedApps.value = [] }
+  filteredApps.value = installedApps.value.slice(0, 20)
 }
 
 function onPkgInput() {
   const q = pkg.value.toLowerCase()
   if (!q) {
-    filteredPackages.value = installedPackages.value.slice(0, 20)
+    filteredApps.value = installedApps.value.slice(0, 20)
   } else {
-    filteredPackages.value = installedPackages.value.filter(p => p.toLowerCase().includes(q)).slice(0, 20)
+    filteredApps.value = installedApps.value.filter(app => {
+      const haystack = `${app.name || ''} ${app.package || ''} ${app.bundle_id || ''}`.toLowerCase()
+      return haystack.includes(q)
+    }).slice(0, 20)
   }
-  showPkgDropdown.value = filteredPackages.value.length > 0
+  showPkgDropdown.value = filteredApps.value.length > 0
 }
 
-function selectPkg(p: string) {
-  pkg.value = p
+function appIdentifier(app: InstalledApp) {
+  return selectedDeviceIsIos.value ? (app.bundle_id || app.package || '') : (app.package || app.bundle_id || '')
+}
+
+function selectPkg(app: InstalledApp) {
+  pkg.value = appIdentifier(app)
   showPkgDropdown.value = false
 }
 
@@ -142,6 +176,9 @@ onMounted(async () => {
   await Promise.all([loadDevices(), loadRuns()])
   await loadPackages()
 })
+watch(device, () => {
+  loadPackages()
+})
 onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer)
 })
@@ -153,7 +190,8 @@ onUnmounted(() => {
     <div style="flex: 3; overflow-y: auto; min-width: 0">
     <div class="flex items-center gap-2 mb-4">
       <h2 class="text-lg font-bold" style="color: var(--text-1)">⛏️ Skill-Miner</h2>
-      <span v-if="installedPackages.length" class="text-xs px-2 py-0.5 rounded-full" style="background: var(--bg-deep); color: var(--text-4); border: 1px solid var(--border)">{{ installedPackages.length }} packages</span>
+      <span v-if="installedApps.length" class="text-xs px-2 py-0.5 rounded-full" style="background: var(--bg-deep); color: var(--text-4); border: 1px solid var(--border)">{{ installedApps.length }} apps</span>
+      <span v-else-if="selectedDeviceIsIos" class="text-xs px-2 py-0.5 rounded-full" style="background: var(--bg-deep); color: var(--text-4); border: 1px solid var(--border)">iOS bundle id</span>
       <span class="text-xs ml-auto flex items-center gap-1.5" :style="{ color: running ? '#f59e0b' : 'var(--text-4)' }">
         <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%" :style="{ background: running ? '#f59e0b' : '#64748b' }"></span>
         {{ running ? 'exploring...' : 'idle' }}
@@ -164,15 +202,23 @@ onUnmounted(() => {
     <div class="card mb-4">
       <div class="flex gap-3 mb-3 items-end flex-wrap">
         <div style="position: relative; min-width: 200px; max-width: 260px; flex: 1">
-          <label class="block text-xs mb-1" style="color: var(--text-3)">Package</label>
+          <label class="block text-xs mb-1" style="color: var(--text-3)">{{ packageLabel }}</label>
           <input v-model="pkg" @input="onPkgInput" @focus="onPkgInput" @blur="hidePkgDropdown" class="w-full px-3 py-2 rounded-lg text-sm"
             style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-1)"
-            placeholder="com.zhiliaoapp.musically" />
+            :placeholder="packagePlaceholder" />
           <div v-if="showPkgDropdown" class="absolute left-0 right-0 mt-1 rounded-lg overflow-auto z-10"
             style="background: var(--bg-card); border: 1px solid var(--border); max-height: 200px; box-shadow: 0 4px 12px rgba(0,0,0,0.3)">
-            <div v-for="p in filteredPackages" :key="p" @mousedown="selectPkg(p)"
-              class="px-3 py-1.5 text-xs cursor-pointer hover:bg-white/5" style="color: var(--text-2)">
-              {{ p }}
+            <div v-for="app in filteredApps" :key="appIdentifier(app)" @mousedown="selectPkg(app)"
+              class="px-3 py-2 text-xs cursor-pointer hover:bg-white/5" style="color: var(--text-2)">
+              <div style="font-weight: 600; color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+                {{ app.name || appIdentifier(app) }}
+              </div>
+              <div style="font-family: 'JetBrains Mono', 'Fira Code', monospace; color: var(--text-4); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+                {{ appIdentifier(app) }}
+              </div>
+              <div v-if="selectedDeviceIsIos && app.verified === false" style="color: #f59e0b; font-size: 10px; margin-top: 2px">
+                unverified
+              </div>
             </div>
           </div>
         </div>
@@ -180,7 +226,9 @@ onUnmounted(() => {
           <label class="block text-xs mb-1" style="color: var(--text-3)">Device</label>
           <select v-model="device" class="w-full px-3 py-2 rounded-lg text-sm"
             style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-1)">
-            <option v-for="d in devices" :key="d.serial" :value="d.serial">{{ d.nickname || d.serial }}</option>
+            <option v-for="d in devices" :key="d.serial" :value="d.serial">
+              {{ (d.nickname || d.serial) + ((d.platform === 'ios' || d.serial.startsWith('ios:')) ? ' (iOS)' : ' (Android)') }}
+            </option>
           </select>
         </div>
         <div class="flex gap-2">

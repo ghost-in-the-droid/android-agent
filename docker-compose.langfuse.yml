@@ -1,0 +1,48 @@
+version: "3.9"
+
+# Langfuse self-hosted — run on the Mac. Web UI at http://localhost:3000
+#
+#   docker compose -f docker-compose.langfuse.yml up -d
+#   open http://localhost:3000
+#   → sign up (local-only, first user becomes admin)
+#   → create project → copy public/secret keys → paste into .env
+#
+# To let the phone (Chaquopy on-device provider) report to this same instance:
+#   adb -s <serial> reverse tcp:3000 tcp:3000
+# then on Android side LANGFUSE_HOST=http://127.0.0.1:3000 works as if local.
+
+services:
+  langfuse-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  langfuse:
+    image: langfuse/langfuse:2  # pinned to v2 for single-container simplicity
+    restart: unless-stopped
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: dev-secret-change-me-in-prod
+      SALT: dev-salt-change-me-in-prod
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_DEFAULT_PROJECT_ROLE: ADMIN
+      AUTH_DISABLE_SIGNUP: "false"
+    ports:
+      - "3000:3000"
+
+volumes:
+  langfuse_pg_data:

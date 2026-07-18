@@ -13,6 +13,7 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from gitd.bots.common.device import is_ios_ref
 from gitd.config import settings
 from gitd.models.base import get_db
 
@@ -33,6 +34,21 @@ _SCRIPTS_DIR = Path(__file__).resolve().parent.parent
 
 
 _PREMIUM_JOB_TYPES = {"outreach", "crawl", "inbox_scan", "perf_scan", "engage", "content_gen", "content_plan"}
+_ANDROID_BOT_JOB_TYPES = {"post", "publish_draft"}
+
+
+def _bot_platform_error(job_type: str, device: str | None) -> dict | None:
+    if is_ios_ref(device) and job_type in _ANDROID_BOT_JOB_TYPES:
+        return {
+            "ok": False,
+            "error": "unsupported_platform",
+            "job_type": job_type,
+            "device": device,
+            "platform": "ios",
+            "supported_platforms": ["android"],
+            "message": f"{job_type} jobs are Android-only until the iOS TikTok workflow is ported",
+        }
+    return None
 
 
 def _build_cmd(job: dict, device: str | None = None) -> list:
@@ -41,6 +57,9 @@ def _build_cmd(job: dict, device: str | None = None) -> list:
 
     if job_type in _PREMIUM_JOB_TYPES:
         raise ValueError(f"Job type '{job_type}' requires the ghost_premium plugin.")
+    platform_error = _bot_platform_error(job_type, dev)
+    if platform_error:
+        raise ValueError(platform_error["message"])
 
     if job_type == "post":
         script = _SCRIPTS_DIR / "bots" / "tiktok" / "upload.py"
@@ -177,6 +196,9 @@ def bot_queue_add(data: dict = Body({})):
         }
         if job_type in _PREMIUM_JOB_TYPES:
             return {"ok": False, "error": f"Job type '{job_type}' requires the ghost_premium plugin."}
+        platform_error = _bot_platform_error(job_type, job["device"])
+        if platform_error:
+            return platform_error
         if job_type == "post":
             job.update(
                 {

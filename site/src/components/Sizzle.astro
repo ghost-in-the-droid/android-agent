@@ -1,0 +1,135 @@
+---
+/**
+ * Sizzle — full-width autoplaying hero reel (public/showcase/hero-reel.webm,
+ * built by the showcase pipeline) with tagline + CTAs. Respects
+ * prefers-reduced-motion by showing the poster instead of autoplaying.
+ */
+interface Props {
+	/** Where "Watch all demos" points. Same-page anchor on /showcase, page URL elsewhere. */
+	demosHref?: string;
+	getStartedHref?: string;
+}
+
+const { demosHref = '/showcase/', getStartedHref = '/getting-started/installation/' } = Astro.props;
+---
+
+<section class="sizzle" aria-label="Ghost in the Droid demo reel">
+	<video
+		class="sizzle-video"
+		muted
+		loop
+		playsinline
+		preload="metadata"
+		poster="/showcase/hero-poster.png"
+		data-sizzle-video
+	>
+		<source src="/showcase/hero-reel.webm" type="video/webm" />
+	</video>
+	<div class="sizzle-overlay">
+		<h1>Ghost in the Droid</h1>
+		<p class="sizzle-tagline">Real phones. Any AI. Zero cloud.</p>
+		<div class="sizzle-ctas">
+			<a class="cta-primary" href={getStartedHref}>Get started</a>
+			<a class="cta-secondary" href={demosHref} data-sizzle-demos>Watch all demos ↓</a>
+		</div>
+	</div>
+</section>
+
+<style>
+	.sizzle {
+		position: relative;
+		width: 100%;
+		aspect-ratio: 16 / 9;
+		max-height: min(80vh, 720px);
+		overflow: hidden;
+		background: #070b08;
+	}
+	.sizzle-video {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.sizzle-overlay {
+		position: relative;
+		z-index: 1;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		padding: 1.5rem;
+		background: linear-gradient(rgba(7, 11, 8, 0.25), rgba(7, 11, 8, 0.65));
+	}
+	.sizzle h1 {
+		margin: 0;
+		font-family: 'Outfit', sans-serif;
+		font-weight: 800;
+		font-size: clamp(2.2rem, 6vw, 4.5rem);
+		color: #e8ede9;
+		text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+	}
+	.sizzle-tagline {
+		margin: 0.75rem 0 1.75rem;
+		font-size: clamp(1.05rem, 2.2vw, 1.5rem);
+		color: #bec8c0;
+		text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
+	}
+	.sizzle-ctas {
+		display: flex;
+		gap: 1rem;
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+	.cta-primary,
+	.cta-secondary {
+		display: inline-block;
+		padding: 0.7rem 1.6rem;
+		border-radius: 0.6rem;
+		font-weight: 700;
+		text-decoration: none;
+		transition: transform 0.15s ease, box-shadow 0.15s ease;
+	}
+	.cta-primary {
+		background: #00e5a0;
+		color: #06130c;
+	}
+	.cta-primary:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 4px 24px rgba(0, 229, 160, 0.4);
+	}
+	.cta-secondary {
+		border: 1px solid rgba(232, 237, 233, 0.4);
+		color: #e8ede9;
+		background: rgba(7, 11, 8, 0.35);
+	}
+	.cta-secondary:hover {
+		border-color: #00e5a0;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.cta-primary:hover {
+			transform: none;
+		}
+	}
+</style>
+
+<script>
+	const video = document.querySelector<HTMLVideoElement>('[data-sizzle-video]');
+	if (video && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+		video.autoplay = true;
+		video.play().catch(() => {}); // autoplay blocked → poster stays, fine
+	}
+
+	// Smooth-scroll when the demos link is a same-page anchor.
+	document.querySelector<HTMLAnchorElement>('[data-sizzle-demos]')?.addEventListener('click', (e) => {
+		const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href') ?? '';
+		if (href.startsWith('#')) {
+			e.preventDefault();
+			document.querySelector(href)?.scrollIntoView({
+				behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+			});
+		}
+	});
+</script>

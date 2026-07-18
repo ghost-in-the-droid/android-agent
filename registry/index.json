@@ -2,7 +2,7 @@
   "generated_at": "2026-04-02T16:46:53Z",
   "skill_count": 4,
   "total_actions": 17,
-  "total_workflows": 5,
+  "total_workflows": 3,
   "skills": [
     {
       "name": "base",
@@ -52,9 +52,7 @@
         "navigate_to_profile",
         "tap_search"
       ],
-      "workflows": [
-        "crawl_hashtag"
-      ],
+      "workflows": [],
       "elements_count": 0,
       "tested_on": [
         {
@@ -92,7 +90,7 @@
     {
       "name": "tiktok",
       "display_name": "TikTok",
-      "description": "TikTok automation skill \u2014 upload, navigate, search, engage",
+      "description": "TikTok automation skill \u2014 open, navigate, search, upload your own drafts",
       "version": "1.0.0",
       "app_package": "com.zhiliaoapp.musically",
       "author": "C-K-Loan",
@@ -106,8 +104,7 @@
       ],
       "workflows": [
         "upload_video",
-        "crawl_hashtag",
-        "engage_fyp"
+        "publish_draft"
       ],
       "elements_count": 41,
       "tested_on": [

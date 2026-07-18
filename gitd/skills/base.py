@@ -16,8 +16,20 @@ from pathlib import Path
 from typing import Any
 
 from gitd.bots.common.adb import Device
+from gitd.bots.common.device import is_ios_ref
+from gitd.skills.platforms import (
+    skill_android_package,
+    skill_ios_bundle_id,
+    skill_platforms,
+    skill_supports_device,
+    skill_target_for_device,
+)
 
 log = logging.getLogger(__name__)
+
+
+def _device_is_ios(device: Any) -> bool:
+    return is_ios_ref(getattr(device, 'serial', str(device)))
 
 
 # ── Result ────────────────────────────────────────────────────────────────────
@@ -64,7 +76,7 @@ class Element:
                     return device.bounds_center(bounds)
         # Fallback to class name
         if self.class_name:
-            bounds = device.find_bounds(xml, resource_id=self.class_name)
+            bounds = device.find_bounds(xml, class_name=self.class_name)
             if bounds:
                 return device.bounds_center(bounds)
         # Last resort: fixed coords
@@ -79,7 +91,7 @@ class Element:
             content_desc=d.get('content_desc'),
             text=d.get('text'),
             resource_id=d.get('resource_id'),
-            class_name=d.get('class_name'),
+            class_name=d.get('class_name') or d.get('class'),
             x=d.get('x'),
             y=d.get('y'),
         )
@@ -125,6 +137,7 @@ class Action(ABC):
                                 duration_ms=(time.time() - t0) * 1000)
 
         last_error = None
+        last_data = {}
         for attempt in range(1, self.max_retries + 1):
             try:
                 result = self.execute()
@@ -133,17 +146,20 @@ class Action(ABC):
                     return result
                 if not result:
                     last_error = result.error or f'{self.name}: execute returned failure'
+                    last_data = result.data
                 else:
                     last_error = f'{self.name}: postcondition failed'
+                    last_data = result.data
                     self.rollback()
             except Exception as e:
                 last_error = f'{self.name}: {e}'
+                last_data = {}
                 log.warning(f'Action {self.name} attempt {attempt} failed: {e}')
 
             if attempt < self.max_retries:
                 time.sleep(self.retry_delay)
 
-        return ActionResult(success=False, error=last_error,
+        return ActionResult(success=False, error=last_error, data=last_data,
                             duration_ms=(time.time() - t0) * 1000)
 
     def find_element(self, name: str, xml: str | None = None) -> tuple[int, int] | None:
@@ -216,6 +232,14 @@ class Workflow:
         """Phase 0-2: Wake screen, back-spam to home, press Home."""
         cfg = self.engine
         dev = self.device
+        if _device_is_ios(dev):
+            log.info(f'[{self.name}] Returning iOS device to Home')
+            try:
+                dev.press_key('HOME')
+            except Exception:
+                pass
+            time.sleep(cfg.home_settle)
+            return
         log.info(f'[{self.name}] Waking screen, back ×{cfg.back_count}')
         dev.adb('shell', 'input', 'keyevent', 'KEYCODE_WAKEUP')
         time.sleep(0.5)
@@ -231,6 +255,10 @@ class Workflow:
             return
         dev = self.device
         log.info(f'[{self.name}] Launching {self.app_package}')
+        if _device_is_ios(dev):
+            dev.launch_app(self.app_package)
+            time.sleep(self.engine.launch_settle)
+            return
         dev.adb('shell', 'monkey', '-p', self.app_package,
                 '-c', 'android.intent.category.LAUNCHER', '1')
         time.sleep(self.engine.launch_settle)
@@ -242,6 +270,8 @@ class Workflow:
         xml = self.device.dump_xml()
         if not xml:
             return False
+        if not hasattr(self.device, 'dismiss_popups'):
+            return False
         dismissed = self.device.dismiss_popups(xml, popups=self._popup_detectors)
         if dismissed:
             log.info(f'[{self.name}] Popup dismissed after {step_name or "startup"}')
@@ -252,6 +282,19 @@ class Workflow:
                     break
                 time.sleep(0.5)
         return dismissed
+
+    def _step_results_data(self, steps: list[Action]) -> list[dict[str, Any]]:
+        """Return compact, serializable action results for scheduler/API evidence."""
+        out: list[dict[str, Any]] = []
+        for action, result in zip(steps, self.results, strict=False):
+            out.append({
+                'name': action.name,
+                'success': result.success,
+                'data': result.data,
+                'error': result.error,
+                'duration_ms': result.duration_ms,
+            })
+        return out
 
     def run(self) -> ActionResult:
         """Execute the full lifecycle: startup → [step → popup detect] → done."""
@@ -266,7 +309,8 @@ class Workflow:
             self._dismiss_popups()
 
         # Execute steps with popup detection between each
-        for action in self.steps():
+        steps = self.steps()
+        for action in steps:
             log.info(f'[{self.name}] Running: {action.name}')
             result = action.run()
             self.results.append(result)
@@ -276,7 +320,8 @@ class Workflow:
                     success=False,
                     error=f'Workflow {self.name} failed at step {action.name}: {result.error}',
                     data={'completed_steps': len(self.results) - 1,
-                          'failed_step': action.name},
+                          'failed_step': action.name,
+                          'step_results': self._step_results_data(steps)},
                     duration_ms=(time.time() - t0) * 1000,
                 )
             # Popup detection after each step
@@ -286,7 +331,8 @@ class Workflow:
 
         return ActionResult(
             success=True,
-            data={'completed_steps': len(self.results)},
+            data={'completed_steps': len(self.results),
+                  'step_results': self._step_results_data(steps)},
             duration_ms=(time.time() - t0) * 1000,
         )
 
@@ -313,8 +359,11 @@ class RecordedStepAction(Action):
         if action in ('launch', 'open_app'):
             pkg = step.get('package', '')
             if pkg:
-                self.device.adb('shell', 'am', 'start', '-a', 'android.intent.action.MAIN',
-                                '-c', 'android.intent.category.LAUNCHER', pkg)
+                if _device_is_ios(self.device) and hasattr(self.device, 'launch_app'):
+                    self.device.launch_app(pkg)
+                else:
+                    self.device.adb('shell', 'am', 'start', '-a', 'android.intent.action.MAIN',
+                                    '-c', 'android.intent.category.LAUNCHER', pkg)
         elif action == 'tap' and step.get('element_idx') is not None:
             import re
             import xml.etree.ElementTree as ET
@@ -355,14 +404,19 @@ class RecordedStepAction(Action):
             self.device.tap(step['x'], step['y'])
         elif action == 'type' and step.get('text'):
             text = step['text']
-            if all(ord(c) < 128 for c in text):
+            if _device_is_ios(self.device) and hasattr(self.device, 'type_text'):
+                self.device.type_text(text)
+            elif all(ord(c) < 128 for c in text):
                 self.device.adb('shell', 'input', 'text', text.replace(' ', '%s'))
             else:
                 self.device.type_unicode(text)
         elif action == 'back':
             self.device.back()
         elif action == 'home':
-            self.device.adb('shell', 'input', 'keyevent', 'KEYCODE_HOME')
+            if _device_is_ios(self.device) and hasattr(self.device, 'press_key'):
+                self.device.press_key('HOME')
+            else:
+                self.device.adb('shell', 'input', 'keyevent', 'KEYCODE_HOME')
         elif action == 'swipe':
             self.device.swipe(step.get('x1', 0), step.get('y1', 0),
                               step.get('x2', 0), step.get('y2', 0))
@@ -371,9 +425,13 @@ class RecordedStepAction(Action):
         elif action == 'key':
             key = step.get('key', '')
             if key:
-                if not key.startswith('KEYCODE_'):
+                if _device_is_ios(self.device) and hasattr(self.device, 'press_key'):
+                    self.device.press_key(key)
+                elif not key.startswith('KEYCODE_'):
                     key = 'KEYCODE_' + key
-                self.device.adb('shell', 'input', 'keyevent', key)
+                    self.device.adb('shell', 'input', 'keyevent', key)
+                else:
+                    self.device.adb('shell', 'input', 'keyevent', key)
         else:
             log.warning(f'Unknown recorded action: {action}')
 
@@ -414,6 +472,7 @@ class Skill:
         self.skill_dir = Path(skill_dir)
         self.metadata: dict = {}
         self.elements: dict[str, Element] = {}
+        self._elements_by_file: dict[str, dict[str, Element]] = {}
         self.popup_detectors: list[dict] = []
         self._actions: dict[str, type[Action]] = {}
         self._workflows: dict[str, type[Workflow]] = {}
@@ -430,12 +489,27 @@ class Skill:
                      f' ({len(self.popup_detectors)} popup detectors)')
 
     def _load_elements(self):
-        path = self.skill_dir / 'elements.yaml'
+        self.elements = self._load_elements_file('elements.yaml')
+
+    def _load_elements_file(self, filename: str) -> dict[str, Element]:
+        path = self.skill_dir / filename
+        elements: dict[str, Element] = {}
         if path.exists():
             raw = yaml.safe_load(path.read_text()) or {}
             for name, locators in raw.items():
-                self.elements[name] = Element.from_dict(name, locators)
-            log.info(f'Loaded {len(self.elements)} elements for {self.name}')
+                elements[name] = Element.from_dict(name, locators)
+            log.info(f'Loaded {len(elements)} elements from {filename} for {self.name}')
+        self._elements_by_file[filename] = elements
+        return elements
+
+    def _elements_for_device(self, device: Device | None) -> dict[str, Element]:
+        if device and _device_is_ios(device):
+            if 'elements_ios.yaml' not in self._elements_by_file:
+                self._load_elements_file('elements_ios.yaml')
+            ios_elements = self._elements_by_file.get('elements_ios.yaml', {})
+            if ios_elements:
+                return ios_elements
+        return self.elements
 
     @property
     def name(self) -> str:
@@ -443,7 +517,19 @@ class Skill:
 
     @property
     def app_package(self) -> str:
-        return self.metadata.get('app_package', '')
+        return skill_android_package(self.metadata)
+
+    @property
+    def android_package(self) -> str:
+        return skill_android_package(self.metadata)
+
+    @property
+    def ios_bundle_id(self) -> str:
+        return skill_ios_bundle_id(self.metadata)
+
+    @property
+    def platforms(self) -> list[str]:
+        return skill_platforms(self.metadata)
 
     @property
     def version(self) -> str:
@@ -461,7 +547,7 @@ class Skill:
             return None
         if not device:
             return cls
-        action = cls(device, self.elements, **kwargs)
+        action = cls(device, self._elements_for_device(device), **kwargs)
         action._popup_detectors = self.popup_detectors or None
         return action
 
@@ -471,10 +557,14 @@ class Skill:
             return None
         if not device:
             return cls
-        wf = cls(device, self.elements, **kwargs)
+        wf = cls(device, self._elements_for_device(device), **kwargs)
         wf._popup_detectors = self.popup_detectors or None
-        wf.app_package = self.metadata.get('app_package', '') or ''
+        wf.app_package = skill_target_for_device(self.metadata, getattr(device, 'serial', str(device))) or ''
         return wf
+
+    def supports_device(self, device: Device | str | None) -> bool:
+        serial = getattr(device, 'serial', device)
+        return skill_supports_device(self.metadata, str(serial) if serial else None)
 
     def list_actions(self) -> list[str]:
         return list(self._actions.keys())

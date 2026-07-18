@@ -1,0 +1,30 @@
+# Showcase demo spec — schema per task #782 (record_demo.py is the consumer).
+# placeholder: true until the pipeline records the real demo.
+placeholder: true
+demo: ios
+title: iPhone Support
+category: platform
+featured: true
+docs: /features/ios/
+duration_target_s: 60
+device: ios
+platform_notes: "Appium + WebDriverAgent; QuickTime mirror for recording."
+setup:
+  - step: wake_unlock
+timeline:
+  - t: 0
+    caption: "Same agent, now with an iPhone attached"
+    action: terminal_type
+    args: { cmd: "android-agent devices" }
+  - t: 10
+    caption: "Drive iOS with the same tool calls"
+    action: terminal_type
+    args: { cmd: "android-agent run 'open Settings and enable Do Not Disturb'" }
+  - t: 20
+    caption: "Real phones. Any AI. Zero cloud."
+    action: wait_for_phone
+    args: { seconds: 30 }
+outro:
+  cta_line: "pip install ghost-in-the-droid"
+  cta_link: /getting-started/installation/
+highlight_window: { start_s: 14, end_s: 22 }
