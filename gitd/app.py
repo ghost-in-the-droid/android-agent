@@ -3,6 +3,7 @@ FastAPI application factory for Ghost in the Droid.
 """
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -29,6 +30,29 @@ from gitd.routers.tools_hub import router as tools_hub_router
 from gitd.routers.traces import router as traces_router
 
 logger = logging.getLogger(__name__)
+
+# Default CORS allowlist — the local dashboard (Vite dev server, port 6175)
+# and the local docs site (Astro/Starlight, port 4321). Anything else is
+# refused so a random web page opened in the developer's browser cannot
+# talk to the API (which exposes ADB, skill install, file I/O, etc.).
+# Additional origins can be supplied via the GITD_CORS_ORIGINS env var
+# (comma-separated).
+_DEFAULT_CORS_ORIGINS = (
+    "http://localhost:6175",
+    "http://127.0.0.1:6175",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:4321",
+    "http://127.0.0.1:4321",
+)
+
+
+def _cors_origins() -> list[str]:
+    """Return the list of allowed CORS origins, honoring GITD_CORS_ORIGINS."""
+    override = os.environ.get("GITD_CORS_ORIGINS", "").strip()
+    if not override:
+        return list(_DEFAULT_CORS_ORIGINS)
+    return [o.strip() for o in override.split(",") if o.strip()]
 
 
 @asynccontextmanager
@@ -81,9 +105,13 @@ def create_app() -> FastAPI:
         openapi_tags=TAGS_METADATA,
     )
 
+    # CORS: restrict to the local dashboard/docs origins by default. A
+    # wildcard combined with allow_credentials=True lets *any* website the
+    # developer visits issue credentialed requests to this API, which in
+    # turn can drive ADB (/api/phone/*), install skills, etc. See CWE-352.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=_cors_origins(),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

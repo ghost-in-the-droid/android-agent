@@ -57,7 +57,7 @@ Ghost 1.3 is the only Android + iOS agent framework where **platform**, **brain*
 | **Android** in a **Docker + KVM** emulator pool | **OpenRouter** (any model, one key) | **LlamaIndex** tool spec |
 | **iPhone** over Appium + WebDriverAgent | **Ollama** (fully local) | **Ghost CLI** (`ghost "book a table" --device pixel`) |
 | **iPhone** over Tailscale + WebDriverAgent (wireless) | **vLLM** (your own GPU) | **Web dashboard** chat with a live phone stream |
-| | **On-device** (the model runs *in the phone*, airplane-mode works) | **REST API** (`/docs` OpenAPI) |
+| | **On-device** — llama.cpp (`.gguf`, any quant), MediaPipe (`.task`, Gemma mobile bundles), MLX (Apple Silicon, opt-in). The model runs *in the phone*, airplane-mode works | **REST API** (`/docs` OpenAPI) |
 
 <sub>The Docker + KVM emulator pool is Android-only; iOS uses Apple's own simulator and Xcode signing, which are macOS-native.</sub>
 
