@@ -9,13 +9,13 @@ title: "iPhone Duolingo"
 category: real-world
 featured: true
 docs: /features/
-duration_target_s: 1211
+duration_target_s: 1599
 device: ios
 
 # Heavy compression: the raw lesson is ~20min. content_dedup drops the static
 # reading/animation stretches, content_speedup takes the rest down to ~30s, and
 # tail_hold freezes the final 625-day-streak payoff frame ~2s so it's readable.
-content_speedup: 15
+content_speedup: 22
 content_dedup: true
 tail_hold_s: 2
 
@@ -31,7 +31,7 @@ timeline:
   - t: 0
     caption: "Keep the streak alive — hands-free."
     action: show_phone
-  - t: 1207
+  - t: 1595
     caption: "625-day streak, solved on-device."
     action: show_phone
 
@@ -39,4 +39,4 @@ outro:
   cta_line: "pip install ghost-in-the-droid"
   cta_link: "https://ghostinthedroid.com/"
 
-highlight_window: {start_s: 1205, end_s: 1211}
+highlight_window: {start_s: 1592, end_s: 1599}

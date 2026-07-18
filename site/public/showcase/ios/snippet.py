@@ -1,6 +1,4 @@
-# Same agent, now with an iPhone attached
-# android-agent devices
-from gitd.agent import Agent
+# iPhone Support — commands from this demo
+# /getting-started/installation/
 
-agent = Agent(device="iphone-15-pro")  # Appium + WebDriverAgent
-agent.run("open Settings and enable Do Not Disturb")
+

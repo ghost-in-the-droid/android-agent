@@ -2,7 +2,7 @@
   "name": "ghost",
   "description": "Ghost in the Droid terminal theme for asciinema-agg. Palette mirrors site/src/styles/custom.css.",
   "font_family": "JetBrains Mono",
-  "font_size": 16,
+  "font_size": 22,
   "line_height": 1.4,
   "theme": {
     "background": "#0d130e",

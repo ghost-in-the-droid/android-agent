@@ -129,7 +129,12 @@ def chat_claude_code(session: ChatSession, user_message: str):
             "mcp__android-agent__open_camera(device, mode, timer_s). Do NOT use launch_app, "
             "do NOT call list_skills, do NOT tap any camera UI. open_camera handles everything.\n"
             "2. For any speak/TTS task: ToolSearch select mcp__android-agent__speak_text then call it.\n"
-            "3. For all other app tasks: use launch_app first."
+            "3. For all other app tasks: use launch_app first.\n"
+            "4. POST/COMMENT APPROVAL GATE: For any task involving posting a comment, reply, "
+            "or public post, first type the composed text into the input field, then STOP "
+            "WITHOUT tapping the submit/post/reply button. Tell the user the exact text you "
+            "drafted and ask them to reply 'APPROVED' to post it. Only after the user replies "
+            "with a message containing APPROVED may you tap the submit button to publish it."
         )
 
     prompt = f"""You are controlling mobile device serial={session.device}.
