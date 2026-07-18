@@ -28,9 +28,9 @@
 
 <!-- HERO VIDEO. Served from a relative repo path so it plays on the private mirror preview AND the public repo, with no release-attach dependency. GitHub renders <video> inline; the poster + linked image are the fallback for older markdown renderers. -->
 <p align="center">
-  <a href="docs/assets/hero-reel.mp4"><img src="docs/assets/hero-poster.jpg" alt="Ghost driving nine real phones — click to watch (7.8MB, 32s)" width="820" /></a>
+  <img src="docs/assets/hero-reel.gif" alt="Ghost driving nine real phones" width="820" />
 </p>
-<p align="center"><sub><a href="docs/assets/hero-reel.mp4">▶ Play the 32s master reel</a></sub></p>
+<p align="center"><sub>🔊 <a href="docs/assets/hero-reel.mp4">Play with sound (32s mp4)</a></sub></p>
 
 <p align="center"><em>Nine agents. Nine real devices. One ghost. (Click to watch.)</em></p>
 
