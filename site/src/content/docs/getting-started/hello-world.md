@@ -102,12 +102,10 @@ skill = load()
 
 # See what's available
 print(skill.list_actions())
-# ['open_app', 'navigate_to_profile', 'tap_search', 'type_and_search',
-#  'dismiss_popup', 'like_post', 'comment_on_post', 'follow_user',
-#  'scroll_feed', 'tap_user', 'tap_message_button', 'type_message', 'tap_send']
+# ['open_app', 'navigate_to_profile', 'tap_search', 'type_and_search', 'dismiss_popup']
 
 print(skill.list_workflows())
-# ['upload_video', 'crawl_users', 'publish_draft']
+# ['upload_video', 'publish_draft']
 
 # Run a single action (opens TikTok)
 action = skill.get_action("open_app", dev)

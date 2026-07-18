@@ -1,0 +1,42 @@
+# Showcase spec — iPhone Duolingo. Claude Code (terminal) drives a real iPhone
+# via WDA to complete a Duolingo lesson and keep the streak alive. Composed from
+# external sources (no ADB): device:ios selects the iphone15pro bezel; standard
+# layout = terminal LEFT (macOS chrome) + phone RIGHT (bezel) on the C-prime bg.
+# CAPTIONS/HEADLINE are placeholders — adb-marketing to finalize copy.
+placeholder: false
+demo: iphone-duolingo
+title: "iPhone Duolingo"
+category: real-world
+featured: true
+docs: /features/
+duration_target_s: 1599
+device: ios
+
+# Heavy compression: the raw lesson is ~20min. content_dedup drops the static
+# reading/animation stretches, content_speedup takes the rest down to ~30s, and
+# tail_hold freezes the final 625-day-streak payoff frame ~2s so it's readable.
+content_speedup: 22
+content_dedup: true
+tail_hold_s: 2
+
+headline: "Ghost does the lesson. The streak lives."
+platform_notes: "iPhone via WebDriverAgent; external clip + Claude Code cast composed via --compose."
+
+setup:
+  - step: wake_unlock
+
+# timeline drives content_s (= last t + 4 ~= the phone length used). The persistent
+# `headline` above is what actually renders; these captions are placeholders.
+timeline:
+  - t: 0
+    caption: "Keep the streak alive — hands-free."
+    action: show_phone
+  - t: 1595
+    caption: "625-day streak, solved on-device."
+    action: show_phone
+
+outro:
+  cta_line: "pip install ghost-in-the-droid"
+  cta_link: "https://ghostinthedroid.com/"
+
+highlight_window: {start_s: 1592, end_s: 1599}

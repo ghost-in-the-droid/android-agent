@@ -3,6 +3,10 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
 export default defineConfig({
+	// Canonical site URL — enables absolute canonical <link> tags, correct
+	// social/OG URLs, and sitemap generation (Starlight's @astrojs/sitemap
+	// integration is a no-op without this).
+	site: 'https://ghostinthedroid.com',
 	integrations: [
 		starlight({
 			title: 'Ghost in the Droid',
@@ -14,6 +18,27 @@ export default defineConfig({
 			],
 			customCss: ['./src/styles/custom.css'],
 			head: [
+				{
+					tag: 'meta',
+					attrs: {
+						name: 'google-site-verification',
+						content: 'lCpzZZM3agcLw_H0vN9ek2NKHN3aRF5ijaIwX5Vsnyw',
+					},
+				},
+				{
+					tag: 'script',
+					attrs: {
+						defer: true,
+						src: '/_vercel/insights/script.js',
+					},
+				},
+				{
+					tag: 'script',
+					attrs: {
+						defer: true,
+						src: '/_vercel/insights/script.js',
+					},
+				},
 				{
 					tag: 'script',
 					content: `
@@ -110,13 +135,28 @@ document.addEventListener('DOMContentLoaded', function() {
 						{ label: '🛠️ Skill Creator', slug: 'features/skill-creator' },
 						{ label: '⛏️ App Explorer', slug: 'features/app-explorer' },
 						{ label: '🔌 MCP Server', slug: 'features/mcp-server' },
+						{ label: '🔗 MCP Clients', slug: 'features/mcp-clients' },
+						{ label: '⛓️ Chain', slug: 'features/chain' },
+						{ label: '📸 Screenshot Sequence', slug: 'features/screenshot-sequence' },
+						{ label: '🔬 Sub-Agent', slug: 'features/sub-agent' },
+						{ label: '♿ Differential A11y', slug: 'features/differential-a11y' },
+						{ label: '🔤 ASCII Transliteration', slug: 'features/ascii-translit' },
+						{ label: '⏱️ Timeouts & Backoff', slug: 'features/timeouts-backoff' },
+						{ label: '🦜 LangChain & LlamaIndex', slug: 'features/integrations' },
+						{ label: '⚖️ How Ghost Compares', slug: 'features/how-ghost-compares' },
+						{ label: '🧠 LLM Providers', slug: 'features/llm-providers' },
+						{ label: '📱 On-Device LLM', slug: 'features/on-device-llm' },
+						{ label: '🔍 Tracing', slug: 'features/tracing' },
+						{ label: '🐛 Ghost Bench', slug: 'features/ghost-bench' },
+						{ label: '🌐 Web Search', slug: 'features/web-search-tool' },
+						{ label: '📤 Jobs API', slug: 'features/marketing-jobs-seam' },
 						{ label: '📋 Dashboard', slug: 'features/dashboard' },
 						{ label: '⏰ Scheduler', slug: 'features/scheduler' },
 						{ label: '🎥 WebRTC Streaming', slug: 'features/webrtc' },
 						{ label: '🎬 Macro Recorder', slug: 'features/macro-recorder' },
 						{ label: '🥷 Stealth Mode', slug: 'features/stealth-mode' },
 						{ label: '📎 Device Context', slug: 'features/device-context' },
-						{ label: '🖥️ Emulators', slug: 'features/emulator', badge: { text: 'Coming Soon', variant: 'caution' } },
+						{ label: '🖥️ Emulators', slug: 'features/emulator' },
 					],
 				},
 				{
@@ -139,6 +179,17 @@ document.addEventListener('DOMContentLoaded', function() {
 					],
 				},
 				{ label: '⚠️ Troubleshooting', slug: 'troubleshooting' },
+				{
+					label: '📦 Releases',
+					collapsed: true,
+					items: [
+						{ label: 'All releases', slug: 'release-notes' },
+						{ label: 'v1.3.0', slug: 'release-notes/v1-3-0' },
+						{ label: 'v1.2.0', slug: 'release-notes/v1-2-0' },
+						{ label: 'v1.1.0', slug: 'release-notes/v1-1-0' },
+						{ label: 'v1.0.0', slug: 'release-notes/v1-0-0' },
+					],
+				},
 				{
 					label: 'Legal',
 					items: [

@@ -9,6 +9,7 @@ Live phone screen streaming from Android devices to the browser dashboard via We
 **Working:**
 - WebRTC streaming via Droidrun Portal MediaProjection (primary method)
 - MJPEG streaming via 3 fallback modes: Portal screenshot polling, screencap, h264 pipe
+- iOS live view through `/api/phone/stream?device=ios:<udid>&mode=mjpeg`, backed by WDA MJPEG when available and screenshot polling otherwise
 - Browser viewer embedded in Phone Agent tab (single-device + multi-device)
 - Standalone viewer pages (`/api/phone/webrtc-viewer`, `/api/phone/webrtc-multi`)
 - Start/Stop stream controls with FPS counter overlay (green 20+, yellow 10-19, red <10)
@@ -22,6 +23,10 @@ Live phone screen streaming from Android devices to the browser dashboard via We
 - First `stream/start` returns `prompting_user` (MediaProjection dialog) — needs manual approve or auto-accept
 - Touch forwarding not yet implemented (view only, no remote interaction via stream)
 - MJPEG screencap fallback is slow (~2 FPS over USB)
+- iOS does not use Portal WebRTC. `/api/phone/webrtc-signal`,
+  `/api/phone/webrtc-ws-send`, and `/api/phone/webrtc-ws-poll` return a
+  structured `stream_fallback` payload for `ios:<udid>` device refs so clients
+  can switch to WDA MJPEG instead of attempting ADB/Portal setup.
 
 ## Architecture
 
@@ -81,6 +86,7 @@ WebRTC peer connection established — video flows directly device → browser
 | `portal` | Portal `/screenshot` → base64 PNG → JPEG | ~3-5 | Good |
 | `screencap` | `adb exec-out screencap -p` → PIL → JPEG | ~2 | OK |
 | `h264` | `screenrecord --output-format=h264` → ffmpeg → MJPEG | ~25 | Best |
+| `mjpeg` on iOS | WDA MJPEG stream passthrough, with screenshot polling fallback | WDA-dependent | Good |
 
 All modes half the resolution (width/2, height/2) for bandwidth.
 

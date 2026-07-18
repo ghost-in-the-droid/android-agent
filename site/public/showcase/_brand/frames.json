@@ -1,0 +1,36 @@
+{
+  "pixel8": {
+    "canvas": [
+      1920,
+      1080
+    ],
+    "screen_rect": [
+      748,
+      70,
+      423,
+      940
+    ],
+    "screen_radius": 56,
+    "source_resolution": [
+      1080,
+      2400
+    ]
+  },
+  "iphone15pro": {
+    "canvas": [
+      1920,
+      1080
+    ],
+    "screen_rect": [
+      743,
+      70,
+      434,
+      940
+    ],
+    "screen_radius": 100,
+    "source_resolution": [
+      1179,
+      2556
+    ]
+  }
+}

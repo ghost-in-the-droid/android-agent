@@ -1,0 +1,65 @@
+demo: langchain
+device: android
+duration_target_s: 420
+
+# 3-window layout: phone (left) + code (top-right, langchain_script.py — the
+# high-level main() segment) + terminal (bottom-right, live Claude-Code tool
+# stream: ● list_devices / force_stop / launch_app / tap … then the DB table)
+layout: three_window
+code_pane_source: scripts/showcase/langchain_script.py
+# content_dedup drops the dead air (agent thinks on a static screen ~95% of the
+# run); that alone compresses 5 harvests (~260s) down to the ~40s of real action,
+# landing the demo in the 30-45s target with NO extra speedup (stacking speedup on
+# top of dedup makes it unwatchably fast). The intro opens with the tall code
+# window + phone already on the side (phone_in_intro), so content must NOT re-slide.
+content_speedup: 4           # harvest flies by; the payoff is held instead (tail_hold_s)
+content_dedup: true          # drop only frozen/duplicate frames (dead air), nothing else
+tail_hold_s: 2               # freeze the final SQL stats table ~2s so it's readable
+phone_in_intro: true
+
+setup:
+  - step: wake_unlock
+  - step: kill_all_apps
+  # Reset Reddit ONCE before the demo so no accumulated state (recent searches,
+  # last-viewed subreddit) pollutes the first run. The loop's per-harvest
+  # force-stop keeps the rest clean.
+  - step: shell
+    args: {cmd: "am force-stop com.reddit.frontpage"}
+  - step: shell
+    args: {cmd: "input keyevent KEYCODE_HOME"}
+  - step: shell
+    args: {cmd: "input keyevent KEYCODE_HOME"}
+  # NOTE: setup `shell` steps run via adb ON THE PHONE, so the HOST posts.db is
+  # reset in the loop's exec_cmd below (not here) — it must start empty so run 1
+  # picks LocalLLaMA and run 2 picks MachineLearning.
+
+# The code pane already shows the script (no `cat` needed). The terminal just
+# RUNS it in a simple bash loop (2x for now — scale up later). The DISPLAYED cmd
+# is clean (`python …`); exec_cmd resets the host DB, then runs the 3.11 venv
+# that has langchain-claude-code. Each terminal_type BLOCKS until done, so
+# t-values are lower bounds sized so content_s (which caps the phone recording)
+# covers 2 Claude-Code harvests (~2-3min each) + the SQL table. Captions not
+# rendered in three_window (baked headline).
+timeline:
+  - t: 2
+    caption: "LangChain agent, driven by local Claude Code — no cloud API."
+    action: terminal_type
+    args:
+      cmd: "for i in 1 2 3 4 5; do python scripts/showcase/langchain_script.py; done"
+      exec_cmd: "rm -f scripts/showcase/posts.db; for i in 1 2 3 4 5; do ~/.ghost-cc-venv/bin/python scripts/showcase/langchain_script.py; done"
+
+  # Table payoff: a plain one-liner SQL against the DB the agent just wrote —
+  # no show() helper in the script for the viewer to wade through. t sized so all
+  # 5 harvests (~50s each ≈ 260s) finish first; dedup collapses any slack.
+  - t: 400
+    caption: "5 subreddits profiled. Ghost drove. Claude Code thought."
+    action: terminal_type
+    args:
+      cmd: 'sqlite3 -header -column scripts/showcase/posts.db "SELECT subreddit, upvotes, comments, substr(title,1,38) title FROM posts"'
+      exec_cmd: 'sqlite3 -header -column scripts/showcase/posts.db "SELECT subreddit, upvotes, comments, substr(title,1,38) title FROM posts"'
+
+outro:
+  cta_line: "pip install ghost-in-the-droid[langchain]"
+  cta_link: "https://ghostinthedroid.com/features/integrations/"
+
+highlight_window: {start_s: 400, end_s: 408}
