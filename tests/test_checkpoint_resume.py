@@ -122,3 +122,37 @@ def test_not_awaiting_conflict_409():
         assert ei.value.status_code == 409
     finally:
         db.close()
+
+
+def test_engine_checkpoint_auto_resolves_via_real_db():
+    """Integration: a checkpoint step drives the real SkillRun status through the
+    DB callbacks (awaiting_human → running) and auto-resolves when its condition
+    is met on the (mocked) device screen."""
+    from unittest.mock import MagicMock
+
+    from gitd.models.base import SessionLocal
+    from gitd.models.skill_compat import SkillRun
+    from gitd.skills.base import RecordedStepAction
+
+    db = SessionLocal()
+    run = SkillRun(device_serial="d", skill_name="s", kind="hard",
+                   target_type="workflow", target_name="recorded", status="running")
+    db.add(run)
+    db.commit()
+    rid = run.id
+    db.close()
+
+    dev = MagicMock()
+    dev.serial = "d"
+    dev.dump_xml.return_value = "<node text='mail.proton.me/u/0/inbox'/>"
+    step = {"action": "checkpoint", "reason": "captcha", "success": {"screen_has": "/inbox"}}
+    res = RecordedStepAction(dev, step, 0, run_id=rid).execute()
+    assert res.success and res.data["resolution"] == "auto"
+
+    db = SessionLocal()
+    try:
+        row = db.get(SkillRun, rid)
+        assert row.status == "running"          # resumed
+        assert row.checkpoint_json is not None   # recorded what it waited on
+    finally:
+        db.close()

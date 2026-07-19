@@ -355,9 +355,10 @@ class RecordedStepAction(Action):
     max_retries = 1
     retry_delay = 0.5
 
-    def __init__(self, device: Device, step: dict, step_index: int):
+    def __init__(self, device: Device, step: dict, step_index: int, run_id: int | None = None):
         super().__init__(device)
         self._step = step
+        self.run_id = run_id  # SkillRun id — lets a checkpoint step signal/poll its run
         self.name = f"step_{step_index + 1}_{step.get('action', 'unknown')}"
         self.description = step.get("description", step.get("action", ""))
 
@@ -488,11 +489,90 @@ class RecordedStepAction(Action):
                 component=step.get("component", ""),
                 extras=step.get("extras") or None,
             )
+        elif action == "checkpoint":
+            # Human-in-the-loop gate — blocks here; returns without the settle sleep.
+            return self._run_checkpoint(step)
         else:
             log.warning(f"Unknown recorded action: {action}")
 
         time.sleep(1.0)  # settle time between steps
         return ActionResult(success=True, data={"action": action})
+
+    # ── Checkpoint (human-in-the-loop) ────────────────────────────────
+    def _run_checkpoint(self, step: dict) -> ActionResult:
+        """Suspend the workflow at a human-cleared gate; see skills/checkpoint.py."""
+        import json as _json
+        import time as _time
+
+        from gitd.skills.checkpoint import DEFAULT_TIMEOUT_S, run_checkpoint, screen_condition_met
+
+        reason = step.get("reason", "generic")
+        prompt = step.get("prompt", "")
+        success = step.get("success") or {}
+        timeout_s = step.get("timeout_s", DEFAULT_TIMEOUT_S)
+
+        # No run to signal AND no auto-detect condition → cannot gate on a human;
+        # log and continue rather than hang forever (e.g. an untracked local replay).
+        if self.run_id is None and not success:
+            log.warning("[checkpoint] no run_id and no success condition — skipping gate (%s)", reason)
+            return ActionResult(success=True, data={"checkpoint": reason, "resolution": "skipped"})
+
+        def _set_state(status: str, checkpoint: dict | None):
+            if self.run_id is None:
+                return
+            try:
+                from gitd.models.base import SessionLocal
+                from gitd.models.skill_compat import SkillRun
+
+                db = SessionLocal()
+                try:
+                    row = db.get(SkillRun, self.run_id)
+                    if row:
+                        row.status = status
+                        if checkpoint is not None:
+                            row.checkpoint_json = _json.dumps(checkpoint)
+                        if status in ("awaiting_human", "running"):
+                            row.resume_signal = None  # clear stale/consumed signal
+                        db.commit()
+                finally:
+                    db.close()
+            except Exception:
+                log.exception("[checkpoint] set_state failed")
+
+        def _read_signal():
+            if self.run_id is None:
+                return None
+            try:
+                from gitd.models.base import SessionLocal
+                from gitd.models.skill_compat import SkillRun
+
+                db = SessionLocal()
+                try:
+                    row = db.get(SkillRun, self.run_id)
+                    return row.resume_signal if row else None
+                finally:
+                    db.close()
+            except Exception:
+                log.exception("[checkpoint] read_signal failed")
+                return None
+
+        def _notify(rsn: str, msg: str):
+            line = f"[checkpoint] ⏸ AWAITING HUMAN — {rsn}: {msg or '(no prompt)'} (run {self.run_id})"
+            log.warning(line)
+            print(line, flush=True)  # surfaces in the run's captured output / live log
+
+        outcome = run_checkpoint(
+            reason=reason, prompt=prompt, success=success, timeout_s=timeout_s,
+            read_signal=_read_signal,
+            check_success=lambda s: screen_condition_met(self.device, s),
+            set_state=_set_state, notify=_notify,
+            now=_time.time, sleep=_time.sleep,
+        )
+        return ActionResult(
+            success=outcome.resolved,
+            error=outcome.error,
+            data={"checkpoint": reason, "resolution": outcome.resolution},
+        )
 
 
 class RecordedWorkflow(Workflow):
@@ -501,21 +581,22 @@ class RecordedWorkflow(Workflow):
     name = "recorded"
     description = "Replay recorded steps"
 
-    def __init__(self, device: Device, recorded_steps: list[dict], params: dict | None = None):
+    def __init__(self, device: Device, recorded_steps: list[dict], params: dict | None = None, run_id: int | None = None):
         super().__init__(device)
         self._raw_steps = recorded_steps
         self._params = params or {}
+        self._run_id = run_id  # threaded to checkpoint steps so they can signal their run
 
     def steps(self) -> list[Action]:
         actions = []
         for i, step in enumerate(self._raw_steps):
             # Resolve parameter placeholders
             resolved = dict(step)
-            for field in ("text", "package", "description", "goal"):
+            for field in ("text", "package", "description", "goal", "prompt"):
                 if isinstance(resolved.get(field), str):
                     for k, v in self._params.items():
                         resolved[field] = resolved[field].replace(f"{{{k}}}", str(v))
-            actions.append(RecordedStepAction(self.device, resolved, i))
+            actions.append(RecordedStepAction(self.device, resolved, i, run_id=self._run_id))
         return actions
 
 

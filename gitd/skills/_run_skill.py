@@ -81,6 +81,11 @@ def _record_start(
         return None
 
 
+# Terminal statuses a checkpoint step sets that the normal finish must NOT clobber
+# to 'fail' — they are resumable/retryable and carry their own meaning.
+_PRESERVED_STATUSES = {"timed_out", "aborted"}
+
+
 def _record_finish(run_id: int | None, success: bool, duration_ms: float, error: str | None = None):
     """Update skill_runs row and upsert skill_compat aggregate."""
     if run_id is None:
@@ -93,7 +98,10 @@ def _record_finish(run_id: int | None, success: bool, duration_ms: float, error:
         db = SessionLocal()
         row = db.get(SkillRun, run_id)
         if row:
-            row.status = "ok" if success else "fail"
+            # A checkpoint may have ended the run as timed_out/aborted — keep that
+            # status (resumable, never silently downgraded to 'fail').
+            if row.status not in _PRESERVED_STATUSES:
+                row.status = "ok" if success else "fail"
             row.duration_ms = duration_ms
             row.error_msg = error[:500] if error else None
             row.finished_at = db.execute(sql_text("SELECT datetime('now')")).scalar()
@@ -242,7 +250,7 @@ def main():
         steps = json.loads(recorded_path.read_text())
         print(f"Running {len(steps)} recorded steps for {args.skill} through execution engine")
 
-        wf = RecordedWorkflow(dev, steps, params)
+        wf = RecordedWorkflow(dev, steps, params, run_id=run_id)
         # Load popup detectors + app_package from skill.yaml
         meta_path = skill_dir / "skill.yaml"
         if meta_path.exists():
