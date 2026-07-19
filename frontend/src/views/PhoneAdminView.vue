@@ -1236,6 +1236,94 @@ const chatTokens = ref(0)
 const chatActivity = ref('')  // brief status during thinking
 const chatVerbose = ref(false) // show tool calls inline in chat
 
+/* ── Save conversation as skill ──────────────────────────────────────── */
+const saveSkillModal = ref(false)
+const saveSkillKind = ref<'hard' | 'soft'>('hard')
+const saveSkillName = ref('')
+const saveSkillPackage = ref('')
+const saveSkillDesc = ref('')
+const saveSkillSteps = ref('')      // editable pretty-printed JSON of recorded steps
+const saveSkillGuidance = ref('')   // markdown for soft skills
+const saveSkillSummary = ref('')    // draft summary from backend
+const saveSkillLoading = ref(false) // draft fetch in flight
+const saveSkillSaving = ref(false)  // save in flight
+const saveSkillError = ref('')
+
+function openSaveSkillModal() {
+  if (!chatSessionId.value) return
+  saveSkillKind.value = 'hard'
+  saveSkillName.value = ''
+  saveSkillPackage.value = ''
+  saveSkillDesc.value = ''
+  saveSkillSteps.value = ''
+  saveSkillGuidance.value = ''
+  saveSkillSummary.value = ''
+  saveSkillError.value = ''
+  saveSkillModal.value = true
+  loadDraftSteps()
+}
+
+function setSaveSkillKind(k: 'hard' | 'soft') {
+  saveSkillKind.value = k
+  if (k === 'hard' && !saveSkillSteps.value && chatSessionId.value) loadDraftSteps()
+}
+
+async function loadDraftSteps() {
+  if (!chatSessionId.value) return
+  saveSkillLoading.value = true
+  saveSkillError.value = ''
+  try {
+    const resp = await fetch('/api/skills/draft-from-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversation_id: chatSessionId.value }),
+    })
+    if (!resp.ok) throw new Error(await resp.text())
+    const data = await resp.json()
+    saveSkillSummary.value = data.summary || ''
+    saveSkillSteps.value = JSON.stringify(data.steps || [], null, 2)
+    if (data.app_package && !saveSkillPackage.value) saveSkillPackage.value = data.app_package
+  } catch (e: any) {
+    saveSkillError.value = 'Failed to load steps: ' + e.message
+  } finally {
+    saveSkillLoading.value = false
+  }
+}
+
+async function saveSkillFromChat() {
+  saveSkillError.value = ''
+  if (!saveSkillName.value.trim()) { saveSkillError.value = 'Name is required.'; return }
+  const body: any = {
+    conversation_id: chatSessionId.value || undefined,
+    kind: saveSkillKind.value,
+    name: saveSkillName.value.trim(),
+    app_package: saveSkillPackage.value.trim() || undefined,
+    description: saveSkillDesc.value.trim() || undefined,
+  }
+  if (saveSkillKind.value === 'hard') {
+    try { body.steps = JSON.parse(saveSkillSteps.value || '[]') }
+    catch (e: any) { saveSkillError.value = 'Steps must be valid JSON: ' + e.message; return }
+  } else {
+    body.guidance = saveSkillGuidance.value
+  }
+  saveSkillSaving.value = true
+  try {
+    const resp = await fetch('/api/skills/save-from-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    if (!resp.ok) throw new Error(await resp.text())
+    const data = await resp.json()
+    statusText.value = data.message || 'Skill saved.'
+    saveSkillModal.value = false
+  } catch (e: any) {
+    saveSkillError.value = 'Save failed: ' + e.message
+  } finally {
+    saveSkillSaving.value = false
+  }
+}
+
 // Markdown rendering
 function renderMd(text: string): string {
   const w = window as any
@@ -1662,6 +1750,9 @@ onUnmounted(() => {
             <span v-if="chatTokens > 0" style="font-size: 9px; color: var(--text-4); font-family: monospace" :title="`~${Math.round(chatTokens)} tokens used`">
               ~{{ chatTokens > 1000 ? (chatTokens / 1000).toFixed(1) + 'k' : Math.round(chatTokens) }} tok
             </span>
+            <button v-if="chatSessionId" @click="openSaveSkillModal"
+              style="font-size: 9px; padding: 2px 8px; background: #1a1f2e; border: 1px solid #6366f1; border-radius: 4px; color: #a5b4fc; cursor: pointer"
+              title="Save this conversation as a reusable skill">Save skill</button>
             <button v-if="chatMessages.length" @click="chatClear" style="font-size: 9px; padding: 2px 8px; background: #1a1f2e; border: 1px solid #2a3044; border-radius: 4px; color: #94a3b8; cursor: pointer">Clear</button>
             <button v-if="chatSessionId && chatConversations.some(c => c.id === chatSessionId)" @click="deleteConversation(chatSessionId)"
               style="font-size: 9px; padding: 2px 6px; background: #1a1f2e; border: 1px solid #2a3044; border-radius: 4px; color: #ef4444; cursor: pointer" title="Delete conversation">&#x1F5D1;</button>
@@ -2120,6 +2211,67 @@ onUnmounted(() => {
         <div class="flex gap-2">
           <button class="btn btn-primary" @click="wirelessConnect">Connect</button>
           <button class="btn" @click="showWirelessModal = false">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save conversation as skill modal -->
+    <div v-if="saveSkillModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" @click.self="saveSkillModal = false">
+      <div class="card" style="width: 480px; max-width: 92vw; max-height: 88vh; overflow-y: auto">
+        <h3 class="font-bold text-sm mb-3" style="color: var(--text-1)">Save conversation as skill</h3>
+
+        <!-- Kind toggle -->
+        <div class="mb-3">
+          <label class="block text-xs mb-1" style="color: var(--text-3)">Type</label>
+          <div class="flex gap-2">
+            <button class="btn" :class="saveSkillKind === 'hard' ? 'btn-primary' : ''" @click="setSaveSkillKind('hard')">Hard (replay steps)</button>
+            <button class="btn" :class="saveSkillKind === 'soft' ? 'btn-primary' : ''" @click="setSaveSkillKind('soft')">Soft (guidance)</button>
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <label class="block text-xs mb-1" style="color: var(--text-3)">Name</label>
+          <input v-model="saveSkillName" placeholder="my_skill" class="w-full px-3 py-2 rounded-lg text-sm"
+            style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-1)" />
+        </div>
+        <div class="mb-2">
+          <label class="block text-xs mb-1" style="color: var(--text-3)">App package</label>
+          <input v-model="saveSkillPackage" placeholder="com.example.app" class="w-full px-3 py-2 rounded-lg text-sm"
+            style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-1)" />
+        </div>
+        <div class="mb-2">
+          <label class="block text-xs mb-1" style="color: var(--text-3)">Description</label>
+          <input v-model="saveSkillDesc" placeholder="What this skill does" class="w-full px-3 py-2 rounded-lg text-sm"
+            style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-1)" />
+        </div>
+
+        <!-- Hard: summary + editable steps JSON -->
+        <template v-if="saveSkillKind === 'hard'">
+          <div v-if="saveSkillLoading" class="mb-2 text-xs" style="color: var(--text-3)">Loading steps from conversation…</div>
+          <div v-if="saveSkillSummary" class="mb-2 p-2 rounded text-xs" style="background: var(--bg-deep); color: var(--text-2)">{{ saveSkillSummary }}</div>
+          <div class="mb-2">
+            <label class="block text-xs mb-1" style="color: var(--text-3)">Steps (JSON)</label>
+            <textarea v-model="saveSkillSteps" rows="10" class="w-full px-3 py-2 rounded-lg text-sm font-mono"
+              style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-1)" />
+          </div>
+        </template>
+
+        <!-- Soft: guidance markdown -->
+        <template v-else>
+          <div class="mb-2">
+            <label class="block text-xs mb-1" style="color: var(--text-3)">Guidance (markdown)</label>
+            <textarea v-model="saveSkillGuidance" rows="10" placeholder="Describe how to accomplish the task…"
+              class="w-full px-3 py-2 rounded-lg text-sm font-mono"
+              style="background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-1)" />
+          </div>
+        </template>
+
+        <div v-if="saveSkillError" class="mb-2 p-2 rounded text-xs" style="background: #ef444411; color: #f87171">{{ saveSkillError }}</div>
+
+        <div class="flex gap-2">
+          <button class="btn btn-primary" :disabled="saveSkillSaving" @click="saveSkillFromChat">{{ saveSkillSaving ? 'Saving…' : 'Save' }}</button>
+          <button v-if="saveSkillKind === 'hard'" class="btn" :disabled="saveSkillLoading" @click="loadDraftSteps">Reload steps</button>
+          <button class="btn" @click="saveSkillModal = false">Close</button>
         </div>
       </div>
     </div>

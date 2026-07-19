@@ -13,9 +13,11 @@ interface SkillInfo {
   description: string; actions: string[] | SkillAction[]; workflows: string[] | SkillWorkflow[]
   elements_count: number; elements_ios_count?: number; popup_count?: number; popup_detectors?: PopupDetector[]
   metadata: any; default_params?: Record<string, Record<string, any>>
+  kind?: 'hard' | 'soft'; has_guidance?: boolean
 }
 interface SkillDetail extends SkillInfo {
   elements: Record<string, any>[]
+  guidance?: string
 }
 
 const skills = ref<SkillInfo[]>([])
@@ -48,7 +50,7 @@ const ICONS: Record<string, string> = {
 interface CompatEntry {
   device_serial: string; skill_name: string; target_type: string; target_name: string
   app_version: string | null; status: string; last_run_at: string | null; last_error: string | null
-  run_count: number; ok_count: number; fail_count: number
+  run_count: number; ok_count: number; fail_count: number; kind?: string
 }
 const compat = ref<CompatEntry[]>([])
 const verifying = ref(false)
@@ -112,9 +114,11 @@ async function verifySkill(skillName: string, device: string) {
   // Auto-start stream so user can watch the verification
   if (phoneWidget.value && !phoneWidget.value.streaming) phoneWidget.value.startStream()
   const sk = selected.value
-  const workflows = sk?.workflows || []
-  for (const w of workflows) {
-    const wName = typeof w === 'string' ? w : w.name
+  const wfNames = (sk?.workflows || []).map(w => typeof w === 'string' ? w : w.name)
+  // Soft skills have no workflows — run a single smoke verify (backend ignores the
+  // workflow arg for soft skills and treats verify as a smoke check).
+  const toTest = wfNames.length ? wfNames : ['recorded']
+  for (const wName of toTest) {
     verifyLog.value += `Testing ${wName}...\n`
     try {
       const res = await api(`/api/skills/${skillName}/verify`, {
@@ -299,6 +303,11 @@ onUnmounted(() => {
             <h2 class="sh-detail-name">{{ selected.name }}</h2>
             <div class="sh-detail-meta">
               <span class="sh-version-badge">v{{ selected.version || '1.0.0' }}</span>
+              <span v-if="selected.kind" class="sh-kind-badge"
+                :class="selected.kind === 'soft' ? 'sh-kind-badge--soft' : 'sh-kind-badge--hard'"
+                :title="selected.kind === 'soft' ? 'Guidance skill (LLM-followed)' : 'Replay skill (recorded steps)'">
+                {{ selected.kind === 'soft' ? 'SOFT' : 'HARD' }}
+              </span>
               <span class="sh-platform-badge">{{ platformLabel(selected) }}</span>
               <span class="sh-pkg">{{ skillTargetLabel(selected) }}</span>
             </div>
@@ -312,6 +321,13 @@ onUnmounted(() => {
 
         <!-- LEFT column (60%) — Actions + Workflows -->
         <div class="sh-col-left">
+
+          <!-- Guidance (soft skills) -->
+          <div class="sh-section" v-if="selected.kind === 'soft'">
+            <h3 class="sh-section-title">Guidance</h3>
+            <pre v-if="selected.guidance" class="sh-guidance">{{ selected.guidance }}</pre>
+            <p v-else class="sh-elements-note">No guidance text.</p>
+          </div>
 
           <!-- Actions -->
           <div class="sh-section" v-if="actionCount(selected)">
@@ -483,6 +499,11 @@ onUnmounted(() => {
               <div class="sh-card-title-block">
                 <span class="sh-card-name">{{ s.name || s.dir }}</span>
                 <span class="sh-version-badge">v{{ s.metadata?.version || '1.0.0' }}</span>
+                <span v-if="s.kind" class="sh-kind-badge"
+                  :class="s.kind === 'soft' ? 'sh-kind-badge--soft' : 'sh-kind-badge--hard'"
+                  :title="s.kind === 'soft' ? 'Guidance skill (LLM-followed)' : 'Replay skill (recorded steps)'">
+                  {{ s.kind === 'soft' ? 'SOFT' : 'HARD' }}
+                </span>
               </div>
             </div>
 
@@ -840,6 +861,39 @@ onUnmounted(() => {
   background: color-mix(in srgb, var(--_text-4) 18%, transparent);
   color: var(--_text-3);
   line-height: 1.6;
+}
+
+/* ── Kind badge (hard / soft) ─────────────────────────────────────── */
+.sh-kind-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  letter-spacing: 0.04em;
+}
+.sh-kind-badge--hard {
+  background: color-mix(in srgb, #6366f1 16%, transparent);
+  color: #a5b4fc;
+}
+.sh-kind-badge--soft {
+  background: color-mix(in srgb, #f59e0b 16%, transparent);
+  color: #fbbf24;
+}
+
+/* ── Guidance block (soft skills) ─────────────────────────────────── */
+.sh-guidance {
+  margin: 0;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.55;
+  font-family: monospace;
+  background: var(--_bg-deep);
+  color: var(--_text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 480px;
+  overflow: auto;
 }
 
 /* ── Detail view ──────────────────────────────────────────────────── */
