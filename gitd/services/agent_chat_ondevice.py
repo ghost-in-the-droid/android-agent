@@ -20,7 +20,7 @@ from gitd.services.agent_chat import (
     normalize_tool_call,
     system_prompt_for_device,
 )
-from gitd.services.agent_tools import execute_tool, tool_prompt_list, tools_for_device
+from gitd.services.agent_tools import tool_prompt_list, tools_for_device
 from gitd.services.device_context import get_phone_state, get_screen_tree
 from gitd.services.observability import (
     record_generation,
