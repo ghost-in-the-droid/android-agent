@@ -18,7 +18,7 @@ import subprocess
 import sys
 import time
 from collections import deque
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 from xml.etree import ElementTree as ET

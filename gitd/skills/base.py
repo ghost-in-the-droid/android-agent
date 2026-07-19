@@ -8,13 +8,14 @@ Skill   — loads skill.yaml, registers actions + workflows for an app
 
 from __future__ import annotations
 
-import time
 import logging
-import yaml
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from gitd.bots.common.adb import Device
 from gitd.bots.common.device import is_ios_ref
@@ -562,11 +563,16 @@ class RecordedStepAction(Action):
             print(line, flush=True)  # surfaces in the run's captured output / live log
 
         outcome = run_checkpoint(
-            reason=reason, prompt=prompt, success=success, timeout_s=timeout_s,
+            reason=reason,
+            prompt=prompt,
+            success=success,
+            timeout_s=timeout_s,
             read_signal=_read_signal,
             check_success=lambda s: screen_condition_met(self.device, s),
-            set_state=_set_state, notify=_notify,
-            now=_time.time, sleep=_time.sleep,
+            set_state=_set_state,
+            notify=_notify,
+            now=_time.time,
+            sleep=_time.sleep,
         )
         return ActionResult(
             success=outcome.resolved,
@@ -581,7 +587,9 @@ class RecordedWorkflow(Workflow):
     name = "recorded"
     description = "Replay recorded steps"
 
-    def __init__(self, device: Device, recorded_steps: list[dict], params: dict | None = None, run_id: int | None = None):
+    def __init__(
+        self, device: Device, recorded_steps: list[dict], params: dict | None = None, run_id: int | None = None
+    ):
         super().__init__(device)
         self._raw_steps = recorded_steps
         self._params = params or {}

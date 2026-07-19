@@ -11,13 +11,11 @@ Usage:
 
 from __future__ import annotations
 
-import re
 import subprocess
 import time
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from typing import Optional
-
 
 GMAIL_PKG = "com.google.android.gm"
 

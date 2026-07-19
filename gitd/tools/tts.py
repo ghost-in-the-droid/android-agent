@@ -4,9 +4,8 @@
 import argparse
 import base64
 import json
-import subprocess
-import tempfile
 import os
+import subprocess
 
 import requests
 

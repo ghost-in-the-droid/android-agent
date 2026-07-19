@@ -1,6 +1,5 @@
 """Play Store actions — atomic operations for app management."""
 
-import re
 import time
 
 from gitd.skills.base import Action, ActionResult

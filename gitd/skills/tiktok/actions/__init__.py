@@ -1,11 +1,11 @@
 """TikTok actions — core UI interactions."""
 
 from gitd.skills.tiktok.actions.core import (
-    OpenApp,
+    DismissPopup,
     NavigateToProfile,
+    OpenApp,
     TapSearch,
     TypeAndSearch,
-    DismissPopup,
 )
 
 __all__ = [

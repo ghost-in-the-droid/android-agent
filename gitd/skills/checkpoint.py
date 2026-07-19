@@ -25,8 +25,8 @@ VALID_REASONS = {"captcha", "sms", "email", "login", "generic"}
 
 @dataclass
 class CheckpointOutcome:
-    resolved: bool                 # True → resume the workflow; False → stop it
-    resolution: str                # 'human' | 'auto' | 'timed_out' | 'aborted'
+    resolved: bool  # True → resume the workflow; False → stop it
+    resolution: str  # 'human' | 'auto' | 'timed_out' | 'aborted'
     error: str | None = None
     data: dict = field(default_factory=dict)
 

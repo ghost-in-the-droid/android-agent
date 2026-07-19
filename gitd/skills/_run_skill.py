@@ -92,6 +92,7 @@ def _record_finish(run_id: int | None, success: bool, duration_ms: float, error:
         return
     try:
         from sqlalchemy import text as sql_text
+
         from gitd.models.base import SessionLocal
         from gitd.models.skill_compat import SkillRun
 
@@ -116,6 +117,7 @@ def _record_finish(run_id: int | None, success: bool, duration_ms: float, error:
 def _upsert_compat(db, run):
     """Update the skill_compat aggregate row for this device+skill+target."""
     from sqlalchemy import text as sql_text
+
     from gitd.models.skill_compat import SkillCompat
 
     row = (
@@ -196,7 +198,6 @@ def main():
     args = parser.parse_args()
 
     import importlib
-    import time
 
     params = json.loads(args.params)
     skill_meta = _load_skill_metadata(args.skill)
@@ -244,8 +245,9 @@ def main():
     skill_dir = Path(__file__).parent / args.skill
     recorded_path = skill_dir / "workflows" / "recorded.json"
     if args.workflow == "recorded" and recorded_path.exists():
-        from gitd.skills.base import RecordedWorkflow
         import yaml
+
+        from gitd.skills.base import RecordedWorkflow
 
         steps = json.loads(recorded_path.read_text())
         print(f"Running {len(steps)} recorded steps for {args.skill} through execution engine")

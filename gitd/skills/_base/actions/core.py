@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import time
+from pathlib import Path
 
-from gitd.skills.base import Action, ActionResult, Element, _device_is_ios
+from gitd.skills.base import Action, ActionResult, _device_is_ios
 
 
 class TapElement(Action):

@@ -6,7 +6,13 @@ Single Device class providing tap, swipe, type, screenshot, XML dump,
 and other low-level ADB operations used by skills and bot scripts.
 """
 
-import hashlib, html, json, re, shlex, subprocess, time
+import hashlib
+import html
+import json
+import re
+import shlex
+import subprocess
+import time
 import unicodedata
 from typing import NamedTuple
 
@@ -94,8 +100,6 @@ def _stable_port(serial: str, base: int = 18000) -> int:
     """Deterministic port from serial (stable across Python processes)."""
     return base + int(hashlib.md5(serial.encode()).hexdigest()[:3], 16) % 1000
 
-
-from pathlib import Path
 
 TIKTOK_PKG = "com.zhiliaoapp.musically"
 TIKTOK_MAIN_ACTIVITY = f"{TIKTOK_PKG}/com.ss.android.ugc.aweme.main.MainActivity"
