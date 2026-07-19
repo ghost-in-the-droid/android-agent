@@ -1,0 +1,9 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties: {}
+  commandFunction: |-
+    (config) => ({command: 'python', args: ['-m', 'ghost_in_the_droid'], env: {}})
