@@ -439,6 +439,56 @@ def chat_turn(session: ChatSession, user_message: str):
         yield {"type": "error", "content": f"Unknown provider: {provider}"}
 
 
+# ── Session-scoped meta tools (chat → skill) ─────────────────────────────────
+
+_META_TOOLS = {"draft_skill", "save_skill"}
+
+
+def maybe_handle_meta_tool(session: ChatSession, name: str, args: dict) -> str | None:
+    """Handle conversation-level meta tools (draft_skill / save_skill).
+
+    These operate on the whole session (not the device UI), so they run here —
+    where `session` is in scope — instead of the stateless execute_tool. Returns
+    the result string, or None for a normal device tool so the caller falls back
+    to execute_tool. The session is flushed to the DB first so the distiller
+    reads a complete, ordered action trace.
+    """
+    if name not in _META_TOOLS:
+        return None
+    import json as _json
+
+    try:
+        save_session_to_db(session)
+    except Exception:
+        log.exception("meta-tool %s: failed to flush session %s", name, session.id)
+    try:
+        if name == "draft_skill":
+            from gitd.services.skills_from_chat import draft_hard_skill
+
+            return _json.dumps(draft_hard_skill(session.id), indent=2)
+        # save_skill
+        from gitd.services.skills_from_chat import commit_skill
+
+        res = commit_skill(
+            kind=args.get("kind", "hard"),
+            name=(args.get("name") or "").strip().lower().replace(" ", "_"),
+            app_package=args.get("app_package", ""),
+            description=args.get("description", ""),
+            steps=args.get("steps"),
+            guidance=args.get("guidance"),
+            conversation_id=session.id,
+        )
+        return _json.dumps(res, indent=2)
+    except Exception as e:
+        return f"Error: {e}"
+
+
+def _dispatch_tool(session: ChatSession, name: str, args: dict) -> str:
+    """Dispatch a tool call: session-scoped meta tools first, else device tools."""
+    result = maybe_handle_meta_tool(session, name, args)
+    return result if result is not None else execute_tool(name, args)
+
+
 # ── Anthropic API (native tool_use) ──────────────────────────────────────────
 
 
@@ -500,7 +550,7 @@ def _chat_anthropic(session: ChatSession, user_message: str):
                 # Anthropic request is malformed — so the error text flows into
                 # the same result path below. Mirrors the vllm/ollama loops.
                 try:
-                    result = execute_tool(tool_name, tool_args)
+                    result = _dispatch_tool(session, tool_name, tool_args)
                 except Exception as e:
                     result = f"Tool error: {e}"
                 image_b64 = ""
@@ -622,7 +672,7 @@ def _chat_openrouter(session: ChatSession, user_message: str):
             yield {"type": "tool_call", "name": tool_name, "args": tool_args}
 
             try:
-                result = execute_tool(tool_name, tool_args)
+                result = _dispatch_tool(session, tool_name, tool_args)
             except Exception as e:
                 result = f"Tool error: {e}"
             session.messages.append(ChatMessage(role="tool_result", content=result[:500], tool_name=tool_name))
@@ -752,7 +802,7 @@ def _chat_vllm(session: ChatSession, user_message: str):
             yield {"type": "tool_call", "name": tool_name, "args": tool_args}
 
             try:
-                result = execute_tool(tool_name, tool_args)
+                result = _dispatch_tool(session, tool_name, tool_args)
             except Exception as e:
                 result = f"Tool error: {e}"
             session.messages.append(ChatMessage(role="tool_result", content=result[:500], tool_name=tool_name))
@@ -1053,7 +1103,7 @@ def _chat_ollama(session: ChatSession, user_message: str):
             yield {"type": "tool_call", "name": tool_name, "args": tool_args}
 
             try:
-                result = execute_tool(tool_name, tool_args)
+                result = _dispatch_tool(session, tool_name, tool_args)
                 session.messages.append(ChatMessage(role="tool_result", content=result[:500], tool_name=tool_name))
                 yield {"type": "tool_result", "name": tool_name, "result": result[:500]}
                 tool_results.append(f"[{tool_name}] {result[:800]}")

@@ -89,6 +89,8 @@ _CROSS_PLATFORM = {
     "clear_notifications": "Android notification service clear or best-effort iOS Clear control tap.",
     "explore_app": "BFS explorer over Android uiautomator XML or normalized iOS WDA XML with iOS tree/screenshot state identity.",
     "create_skill": "Creates recorded skills with Android package or iOS bundle metadata and per-platform element files.",
+    "draft_skill": "Distils this conversation's action trace into draft replayable steps; conversation-level, platform-neutral.",
+    "save_skill": "Saves this conversation as a hard (replay) or soft (guidance) skill; conversation-level, platform-neutral.",
     "lookup_lead": "Device-neutral marketing data lookup.",
     "list_unread_leads": "Device-neutral marketing inbox lookup.",
     "run_flow": "Batched execution of allow-listed tools; each step routes per-platform.",

@@ -580,6 +580,41 @@ TOOLS = [
         },
     },
     {
+        "name": "draft_skill",
+        "description": (
+            "Distil what you did in THIS conversation into draft replayable steps for a HARD skill. "
+            "Returns the captured steps (with correct coords/args), a guessed app_package, and a summary. "
+            "Review/prune/rename them, then call save_skill(kind='hard', steps=...). Nothing is written yet."
+        ),
+        "input_schema": {"type": "object", "properties": {"device": {"type": "string"}}},
+    },
+    {
+        "name": "save_skill",
+        "description": (
+            "Save the current conversation as a reusable skill. kind='hard' replays concrete actions — "
+            "pass your revised `steps` from draft_skill, or omit them to auto-distil the trace. "
+            "kind='soft' stores markdown `guidance` (what to watch out for) that is surfaced to the agent "
+            "on demand via list_skills / run_skill."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "device": {"type": "string"},
+                "kind": {"type": "string", "enum": ["hard", "soft"], "default": "hard"},
+                "name": {"type": "string", "description": "Short skill name (snake_case)."},
+                "app_package": {"type": "string", "description": "Target app package / iOS bundle id."},
+                "description": {"type": "string", "description": "One-line description of the skill."},
+                "steps": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "description": "HARD only: the revised recorded steps to save.",
+                },
+                "guidance": {"type": "string", "description": "SOFT only: markdown guidance text."},
+            },
+            "required": ["name"],
+        },
+    },
+    {
         "name": "run_workflow",
         "description": "Run a skill workflow. Alias of run_skill for MCP/agent parity.",
         "input_schema": {
@@ -811,6 +846,8 @@ SAFE_DEVICE_TOOLS = frozenset(
         "search_apps",
         "list_packages",
         "list_skills",
+        # Chat → skill: draft is read-only (distils the trace, no write/exec)
+        "draft_skill",
         # Browser (read/navigate)
         "web_search",
         "open_url",
@@ -856,6 +893,8 @@ EXEC_CAPABLE_TOOLS = frozenset(
         "run_workflow",
         "run_action",
         "create_skill",
+        # save_skill writes a skill dir (recorded.json / guidance.md) later loaded/run — same class as create_skill
+        "save_skill",
         "launch_intent",
         "explore_app",
         "fix_device_health",
@@ -1608,6 +1647,8 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 entry = {
                     "name": info["name"],
                     "description": info.get("description", ""),
+                    "kind": info.get("kind", "hard"),
+                    "guidance_available": info.get("has_guidance", False),
                     "app_package": info.get("app_package", ""),
                     "android_package": info.get("android_package", ""),
                     "ios_bundle_id": info.get("ios_bundle_id", ""),
@@ -1631,6 +1672,14 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             skill_info = skills.get(args["skill"])
             if skill_info and not skill_supports_device(skill_info.get("metadata") or {}, device):
                 return skill_platform_error_text(args["skill"], skill_info.get("metadata") or {}, device)
+            # SOFT skills carry guidance, not runnable steps — return the text on demand.
+            if skill_info and skill_info.get("kind") == "soft":
+                from gitd.routers.skills import _SKILLS_DIR
+
+                gpath = _SKILLS_DIR / args["skill"] / "guidance.md"
+                if gpath.exists():
+                    return f"[soft skill '{args['skill']}' — guidance]\n\n{gpath.read_text()}"
+                return f"Soft skill '{args['skill']}' has no guidance text."
             runner = __import__("pathlib").Path(__file__).parent.parent / "skills" / "_run_skill.py"
             params = json.dumps(args.get("params", {}))
             mode_arg = "--action" if name == "run_action" else "--workflow"
