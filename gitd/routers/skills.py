@@ -516,6 +516,51 @@ def api_skills_create_from_recording(data: dict = Body({})):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.post("/draft-from-chat", summary="Draft Recorded Steps From A Chat")
+def api_skills_draft_from_chat(data: dict = Body({})):
+    """Distil a chat conversation's action trace into draft recorded steps (no write).
+
+    The 'draft' half of draft -> review -> commit: the caller (LLM or UI) reviews
+    and revises the returned steps, then POSTs them to /save-from-chat.
+    """
+    conversation_id = (data.get("conversation_id") or "").strip()
+    if not conversation_id:
+        raise HTTPException(status_code=400, detail="conversation_id required")
+    from gitd.services.skills_from_chat import draft_hard_skill
+
+    try:
+        return draft_hard_skill(conversation_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/save-from-chat", summary="Save A Skill From A Chat")
+def api_skills_save_from_chat(data: dict = Body({})):
+    """Commit a HARD or SOFT skill from a chat conversation.
+
+    HARD: pass revised `steps` (from /draft-from-chat) or just a `conversation_id`
+    to re-distil. SOFT: pass `guidance` markdown.
+    """
+    name = (data.get("name") or "").strip().lower().replace(" ", "_")
+    if not name:
+        raise HTTPException(status_code=400, detail="name required")
+    from gitd.services.skills_from_chat import commit_skill
+
+    try:
+        return commit_skill(
+            kind=data.get("kind", "hard"),
+            name=name,
+            app_package=data.get("app_package", ""),
+            description=data.get("description", ""),
+            steps=data.get("steps"),
+            guidance=data.get("guidance"),
+            conversation_id=data.get("conversation_id"),
+            skills_dir=_SKILLS_DIR,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.delete("/{name}", summary="Delete Custom Skill")
 def api_skill_delete(name: str):
     """Delete a custom skill."""

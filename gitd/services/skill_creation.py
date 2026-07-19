@@ -81,6 +81,7 @@ def create_recorded_skill(
     elements_android: Any = None,
     skills_dir: str | Path | None = None,
     description_prefix: str = "Auto-generated skill with",
+    description: str = "",
     kind: str = "hard",
 ) -> dict[str, Any]:
     """Create a recorded (HARD) skill directory with platform-aware metadata."""
@@ -103,7 +104,7 @@ def create_recorded_skill(
         "version": "1.0.0",
         "kind": kind,
         **pmeta,
-        "description": f"{description_prefix} {len(parsed_steps)} steps",
+        "description": description.strip() or f"{description_prefix} {len(parsed_steps)} steps",
     }
     (skill_dir / "skill.yaml").write_text(yaml.dump(meta, default_flow_style=False))
     (skill_dir / "workflows" / "recorded.json").write_text(json.dumps(parsed_steps, indent=2))
