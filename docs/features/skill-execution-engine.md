@@ -64,6 +64,10 @@ class MyWorkflow(Workflow):
     skip_popup_detect = False  # set True to disable popup checks between steps
 ```
 
+## Checkpoints (Human-in-the-Loop)
+
+A `checkpoint` step suspends a running workflow at a gate a bot must not clear itself (captcha / SMS / email / login-2FA). The run is marked **`awaiting_human`** and surfaced on the dashboard (banner + live stream) with **Resume** / **Abort**; it continues when a human posts to `/api/skills/runs/{id}/resume` OR an optional auto-detect condition (`success: {url_contains | screen_has}`) is met — first to fire wins. `timeout_s` defaults to 600s (`0`/null = indefinite); on expiry the run ends **`timed_out`** (resumable, never a silent fail). Signalling crosses the `_run_skill.py` subprocess boundary via the shared DB (`SkillRun.resume_signal` / `checkpoint_json`); the poll loop lives in `skills/checkpoint.py`. See the Skill System doc for the step schema.
+
 ## Skill Compatibility Tracking
 
 Every execution is recorded in the database:
