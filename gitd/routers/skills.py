@@ -15,6 +15,15 @@ from sqlalchemy.orm import Session
 
 from gitd.models.base import get_db
 from gitd.services.admin_auth import require_admin_token
+from gitd.services.skill_creation import create_recorded_skill
+from gitd.skills.platforms import (
+    skill_android_package,
+    skill_ios_bundle_id,
+    skill_platform_error,
+    skill_platforms,
+    skill_supports_device,
+    skill_supports_platform,
+)
 
 router = APIRouter(prefix="/api/skills", tags=["skills"])
 
@@ -61,13 +70,24 @@ def _load_all_skills() -> dict:
                 if (d / "elements.yaml").exists():
                     elements = yaml.safe_load((d / "elements.yaml").read_text()) or {}
                 popups = meta.get("popup_detectors", [])
+                elements_ios = {}
+                if (d / "elements_ios.yaml").exists():
+                    elements_ios = yaml.safe_load((d / "elements_ios.yaml").read_text()) or {}
+                platforms = skill_platforms(meta)
                 results[d.name] = {
                     "name": meta.get("name", d.name),
                     "description": meta.get("description", ""),
                     "version": meta.get("version", "0.0.0"),
                     "app_package": meta.get("app_package", ""),
+                    "android_package": skill_android_package(meta),
+                    "ios_bundle_id": skill_ios_bundle_id(meta),
+                    "platforms": platforms,
+                    "supports_android": skill_supports_platform(meta, "android"),
+                    "supports_ios": skill_supports_platform(meta, "ios"),
+                    "platform_limitations": meta.get("platform_limitations", {}) or {},
                     "dir": d.name,
                     "elements_count": len(elements),
+                    "elements_ios_count": len(elements_ios),
                     "popup_count": len(popups),
                     "popup_detectors": popups,
                     "metadata": meta,
@@ -96,10 +116,12 @@ def _load_skill(name: str):
 
 
 @router.get("", summary="List All Installed Skills")
-def api_skills_list():
-    """List all installed skills."""
+def api_skills_list(device: str = ""):
+    """List all installed skills. Optional ?device=<ref> adds supported_on_device flag."""
     skills = _load_all_skills()
     for name, info in skills.items():
+        if device:
+            info["supported_on_device"] = skill_supports_device(info.get("metadata", {}), device)
         try:
             s = _load_skill(name)
             if s is None:
@@ -360,6 +382,11 @@ def api_skill_run(name: str, data: dict = Body({})):
     if not device_serial:
         raise HTTPException(status_code=400, detail="device serial required")
 
+    skills = _load_all_skills()
+    info = skills.get(name)
+    if info and not skill_supports_device(info.get("metadata", {}), device_serial):
+        raise HTTPException(status_code=400, detail=skill_platform_error(name, info.get("metadata", {}), device_serial))
+
     from gitd.models import SessionLocal
     from gitd.services.db_helpers import enqueue_job
 
@@ -462,32 +489,25 @@ def api_skill_compat_reset(device: str, skill_name: str, db: Session = Depends(g
 
 @router.post("/create-from-recording", summary="Create Skill From Recording")
 def api_skills_create_from_recording(data: dict = Body({})):
-    """Create a skill from recorded steps."""
+    """Create a skill from recorded steps. Platform-aware — see create_recorded_skill."""
     name = data.get("name", "new_skill").strip().lower().replace(" ", "_")
     steps = data.get("steps", [])
-    app_package = data.get("app_package", "")
-
     if not name or not steps:
         raise HTTPException(status_code=400, detail="name and steps required")
-
-    skill_dir = _SKILLS_DIR / name
-    skill_dir.mkdir(parents=True, exist_ok=True)
-    (skill_dir / "actions").mkdir(exist_ok=True)
-    (skill_dir / "workflows").mkdir(exist_ok=True)
-
-    import yaml
-
-    meta = {
-        "name": name,
-        "version": "1.0.0",
-        "app_package": app_package,
-        "description": f"Auto-generated skill from {len(steps)} recorded steps",
-    }
-    (skill_dir / "skill.yaml").write_text(yaml.dump(meta, default_flow_style=False))
-    (skill_dir / "workflows" / "recorded.json").write_text(json.dumps(steps, indent=2))
-    (skill_dir / "__init__.py").write_text(f'"""Skill: {name} -- auto-generated from recording."""\n')
-
-    return {"ok": True, "skill": name, "steps": len(steps), "dir": str(skill_dir)}
+    try:
+        return create_recorded_skill(
+            name=name,
+            steps=steps,
+            app_package=data.get("app_package", ""),
+            android_package=data.get("android_package"),
+            platforms=data.get("platforms", ""),
+            ios_bundle_id=data.get("ios_bundle_id", ""),
+            elements_ios=data.get("elements_ios"),
+            elements_android=data.get("elements_android"),
+            skills_dir=_SKILLS_DIR,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{name}", summary="Delete Custom Skill")
