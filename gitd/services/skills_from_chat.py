@@ -20,6 +20,28 @@ from typing import Any
 from gitd.skills.trace_to_steps import distill_steps
 
 
+def latest_conversation_id(device: str) -> str | None:
+    """The most-recently-updated conversation id for a device.
+
+    Used by the claude-code MCP self-trigger, where the tool call carries a
+    device but not a conversation id — the active chat is the newest one.
+    """
+    from gitd.models.base import SessionLocal
+    from gitd.models.chat import ChatConversation
+
+    db = SessionLocal()
+    try:
+        conv = (
+            db.query(ChatConversation)
+            .filter_by(device=device)
+            .order_by(ChatConversation.updated_at.desc())
+            .first()
+        )
+        return conv.id if conv else None
+    finally:
+        db.close()
+
+
 def _load_messages(conversation_id: str) -> list | None:
     """Re-load a conversation's ordered ChatMessage trace, or None if missing."""
     from gitd.services.agent_chat import load_conversation

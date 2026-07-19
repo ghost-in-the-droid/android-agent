@@ -51,14 +51,7 @@ def test_agent_and_mcp_tool_catalogs_match():
     # `chain` is the agent-chat batch primitive — the mirror image of run_flow
     # (which is MCP-only): MCP clients batch via run_flow, so chain stays out of
     # the MCP catalog.
-    # draft_skill/save_skill are session-scoped chat→skill meta tools, handled in
-    # the agent chat loop (they need the live ChatSession). MCP parity is added in
-    # M6 (claude-code self-trigger), which resolves the device's active
-    # conversation; until then they are intentionally agent-only.
-    mcp_excluded = {
-        "shell", "run_skill", "chain", "screenshot_sequence", "sub_agent",
-        "draft_skill", "save_skill",
-    }
+    mcp_excluded = {"shell", "run_skill", "chain", "screenshot_sequence", "sub_agent"}
     # MCP-only: batched flow + crash reports have no in-process agent-tool
     # equivalent (agents read crashes via their own transcript context).
     mcp_only = {"run_flow", "list_crashes", "get_crash"}

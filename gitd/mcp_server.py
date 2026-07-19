@@ -724,6 +724,8 @@ def list_skills(device: str = "", supported_only: bool = False) -> str:
                 "platform_limitations": platform_summary["platform_limitations"],
                 "default_params": meta.get("default_params", {}),
                 "description": meta.get("description", ""),
+                "kind": meta.get("kind", "hard"),
+                "guidance_available": (d / "guidance.md").exists(),
             }
             if supported is not None:
                 info["supported_on_device"] = supported
@@ -763,6 +765,12 @@ def run_workflow(device: str, skill: str, workflow: str, params: str = "{}") -> 
     meta = _load_skill_metadata(skill)
     if not skill_supports_device(meta, device):
         return skill_platform_error_text(skill, meta, device)
+    # SOFT skills carry guidance, not runnable steps — return the text on demand.
+    if meta.get("kind") == "soft":
+        gpath = Path(__file__).parent / "skills" / skill / "guidance.md"
+        if gpath.exists():
+            return f"[soft skill '{skill}' — guidance]\n\n{gpath.read_text()}"
+        return f"Soft skill '{skill}' has no guidance text."
     parsed_params = json.loads(params)
     runner = Path(__file__).parent / "skills" / "_run_skill.py"
     result = subprocess.run(
@@ -803,6 +811,12 @@ def run_action(device: str, skill: str, action: str, params: str = "{}") -> str:
     meta = _load_skill_metadata(skill)
     if not skill_supports_device(meta, device):
         return skill_platform_error_text(skill, meta, device)
+    # SOFT skills carry guidance, not runnable steps — return the text on demand.
+    if meta.get("kind") == "soft":
+        gpath = Path(__file__).parent / "skills" / skill / "guidance.md"
+        if gpath.exists():
+            return f"[soft skill '{skill}' — guidance]\n\n{gpath.read_text()}"
+        return f"Soft skill '{skill}' has no guidance text."
     parsed_params = json.loads(params)
     runner = Path(__file__).parent / "skills" / "_run_skill.py"
     result = subprocess.run(
@@ -1171,6 +1185,58 @@ def create_skill(
         skills_dir=Path(__file__).parent / "skills",
     )
     return result["message"]
+
+
+@mcp.tool()
+def draft_skill(device: str) -> str:
+    """Distil the device's most recent chat conversation into draft replayable steps for a HARD skill.
+
+    Returns the captured steps (with correct coords/args), a guessed app_package, and a summary.
+    Nothing is written — review/prune/rename the steps, then call save_skill(kind="hard", steps=...)."""
+    from gitd.services.skills_from_chat import draft_hard_skill, latest_conversation_id
+
+    cid = latest_conversation_id(device)
+    if not cid:
+        return f"No chat conversation found for device {device}."
+    try:
+        return json.dumps(draft_hard_skill(cid), indent=2)
+    except ValueError as e:
+        return f"ERROR: {e}"
+
+
+@mcp.tool()
+def save_skill(
+    device: str,
+    name: str,
+    kind: str = "hard",
+    app_package: str = "",
+    description: str = "",
+    steps: str = "",
+    guidance: str = "",
+) -> str:
+    """Save the device's current chat conversation as a reusable skill.
+
+    kind="hard" replays concrete actions — pass revised `steps` (a JSON array from draft_skill), or
+    omit them to auto-distil the conversation. kind="soft" stores markdown `guidance` (what to watch
+    out for) surfaced to agents on demand via list_skills / run_workflow."""
+    from gitd.services.skills_from_chat import commit_skill, latest_conversation_id
+
+    cid = latest_conversation_id(device)
+    parsed_steps = json.loads(steps) if steps.strip() else None
+    try:
+        res = commit_skill(
+            kind=kind,
+            name=name.strip().lower().replace(" ", "_"),
+            app_package=app_package,
+            description=description,
+            steps=parsed_steps,
+            guidance=guidance or None,
+            conversation_id=cid,
+            skills_dir=str(Path(__file__).parent / "skills"),
+        )
+        return res.get("message", json.dumps(res))
+    except ValueError as e:
+        return f"ERROR: {e}"
 
 
 # ── Lead / influencer lookups (for marketing agents) ────────────────────────
