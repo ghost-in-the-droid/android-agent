@@ -59,6 +59,9 @@ def _cors_origins() -> list[str]:
 async def lifespan(app: FastAPI):
     """Startup / shutdown lifecycle."""
     Base.metadata.create_all(bind=engine)
+    from gitd.models.base import ensure_additive_columns
+
+    ensure_additive_columns()
     from gitd.routers.misc import setup_log_capture
     from gitd.services import scheduler_service
 

@@ -31,7 +31,7 @@ def _load_skill_metadata(skill: str) -> dict:
 # ── Skill run tracking ──────────────────────────────────────────────────
 
 def _record_start(device: str, skill: str, target_type: str, target_name: str,
-                  params: dict, is_verify: bool = False) -> int | None:
+                  params: dict, is_verify: bool = False, kind: str = 'hard') -> int | None:
     """Insert a skill_runs row at start. Returns row id or None on error."""
     try:
         from gitd.models.base import SessionLocal
@@ -50,7 +50,7 @@ def _record_start(device: str, skill: str, target_type: str, target_name: str,
         except Exception:
             pass
         row = SkillRun(
-            device_serial=device, skill_name=skill,
+            device_serial=device, skill_name=skill, kind=kind,
             target_type=target_type, target_name=target_name,
             app_version=app_ver, status='running',
             params_json=json.dumps(params) if params else None,
@@ -106,12 +106,13 @@ def _upsert_compat(db, run):
         else:
             row.fail_count += 1
         row.status = run.status
+        row.kind = run.kind
         row.app_version = run.app_version
         row.last_run_at = now
         row.last_error = run.error_msg if run.status == 'fail' else row.last_error
     else:
         row = SkillCompat(
-            device_serial=run.device_serial, skill_name=run.skill_name,
+            device_serial=run.device_serial, skill_name=run.skill_name, kind=run.kind,
             target_type=run.target_type, target_name=run.target_name,
             app_version=run.app_version, status=run.status,
             last_run_at=now,
@@ -122,6 +123,26 @@ def _upsert_compat(db, run):
         )
         db.add(row)
     db.commit()
+
+
+def _soft_smoke_check(skill: str, meta: dict, device: str, skills_dir: Path | None = None) -> tuple[bool, str | None]:
+    """Verify a SOFT skill: guidance present + target app reachable on the device.
+
+    Soft skills have no runnable steps, so 'verify' is a smoke check that keeps
+    the compatibility matrix meaningful (tested/untested) for them too.
+    """
+    base = skills_dir if skills_dir is not None else Path(__file__).parent
+    guidance = Path(base) / skill / 'guidance.md'
+    if not guidance.exists() or not guidance.read_text().strip():
+        return False, 'guidance.md missing or empty'
+    pkg = skill_target_for_device(meta, device)
+    if pkg:
+        try:
+            if not get_device(device).get_app_version(pkg):
+                return False, f'target app not installed: {pkg}'
+        except Exception as e:
+            return False, f'app check failed: {e}'
+    return True, None
 
 
 def main():
@@ -149,6 +170,19 @@ def main():
         print(skill_platform_error_text(args.skill, skill_meta, args.device), file=sys.stderr)
         sys.exit(2)
 
+    kind = skill_meta.get('kind', 'hard')
+
+    # SOFT skills have no runnable steps — a run/verify is a guidance smoke check.
+    if kind == 'soft':
+        run_id = _record_start(args.device, args.skill, 'guidance', 'guidance', params,
+                               is_verify=args.verify, kind='soft')
+        t0 = _time.time()
+        ok, err = _soft_smoke_check(args.skill, skill_meta, args.device)
+        _record_finish(run_id, ok, (_time.time() - t0) * 1000, err)
+        print(f'Soft skill "{args.skill}" smoke check: {"ok" if ok else "fail"}'
+              + (f' ({err})' if err else ''))
+        sys.exit(0 if ok else 1)
+
     dev = get_device(args.device)
 
     # Build engine config from CLI flags
@@ -168,7 +202,8 @@ def main():
 
     target_type = 'workflow' if args.workflow else 'action'
     target_name = args.workflow or args.action
-    run_id = _record_start(args.device, args.skill, target_type, target_name, params, is_verify=args.verify)
+    run_id = _record_start(args.device, args.skill, target_type, target_name, params,
+                           is_verify=args.verify, kind=kind)
     t0 = _time.time()
 
     # Check for recorded skill (has workflows/recorded.json instead of Python classes)

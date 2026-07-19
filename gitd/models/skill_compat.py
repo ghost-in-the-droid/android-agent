@@ -16,7 +16,8 @@ class SkillRun(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, nullable=False)
     device_serial: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     skill_name: Mapped[str] = mapped_column(Text, nullable=False, index=True)
-    target_type: Mapped[str] = mapped_column(Text, nullable=False)  # 'workflow' or 'action'
+    kind: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'hard'"))  # 'hard' or 'soft'
+    target_type: Mapped[str] = mapped_column(Text, nullable=False)  # 'workflow', 'action', or 'guidance'
     target_name: Mapped[str] = mapped_column(Text, nullable=False)  # e.g. 'send_dm', 'open_app'
     app_version: Mapped[Optional[str]] = mapped_column(Text)  # installed app version at runtime
     status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'running'"))  # running/ok/fail
@@ -39,6 +40,7 @@ class SkillCompat(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, nullable=False)
     device_serial: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     skill_name: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'hard'"))  # 'hard' or 'soft'
     target_type: Mapped[str] = mapped_column(Text, nullable=False)
     target_name: Mapped[str] = mapped_column(Text, nullable=False)
     app_version: Mapped[Optional[str]] = mapped_column(Text)
