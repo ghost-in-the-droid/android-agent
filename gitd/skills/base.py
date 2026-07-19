@@ -364,6 +364,25 @@ class RecordedStepAction(Action):
                 else:
                     self.device.adb('shell', 'am', 'start', '-a', 'android.intent.action.MAIN',
                                     '-c', 'android.intent.category.LAUNCHER', pkg)
+        elif action == 'tap' and any(step.get(k) for k in ('text', 'resource_id', 'content_desc', 'class_name')):
+            # Locator-based tap — re-find the element on each run so the skill
+            # survives minor UI shifts instead of hard-coding pixel coords.
+            # Falls back to captured x/y if the locator no longer resolves.
+            el = Element(
+                name='tap',
+                text=step.get('text'),
+                resource_id=step.get('resource_id'),
+                content_desc=step.get('content_desc'),
+                class_name=step.get('class_name'),
+            )
+            coord = el.find(self.device)
+            if coord:
+                self.device.tap(coord[0], coord[1])
+            elif step.get('x') is not None and step.get('y') is not None:
+                self.device.tap(step['x'], step['y'])
+            else:
+                locator = step.get('text') or step.get('resource_id') or step.get('content_desc')
+                return ActionResult(success=False, error=f'tap locator not found: {locator}')
         elif action == 'tap' and step.get('element_idx') is not None:
             import re
             import xml.etree.ElementTree as ET
@@ -432,6 +451,25 @@ class RecordedStepAction(Action):
                     self.device.adb('shell', 'input', 'keyevent', key)
                 else:
                     self.device.adb('shell', 'input', 'keyevent', key)
+        elif action == 'long_press':
+            x, y = step.get('x'), step.get('y')
+            if x is not None and y is not None:
+                self.device.long_press(x, y, duration_ms=step.get('duration_ms', 1000))
+        elif action == 'open_url':
+            url = step.get('url', '')
+            if url:
+                from gitd.services.browser import open_url as _open_url
+                _open_url(self.device.serial, url, bundle_id=step.get('bundle_id') or None)
+        elif action == 'launch_intent':
+            from gitd.services import device_context as _ctx
+            _ctx.launch_intent(
+                self.device.serial,
+                action=step.get('intent_action', ''),
+                data=step.get('data', ''),
+                package=step.get('package', ''),
+                component=step.get('component', ''),
+                extras=step.get('extras') or None,
+            )
         else:
             log.warning(f'Unknown recorded action: {action}')
 
