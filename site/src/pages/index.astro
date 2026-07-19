@@ -371,7 +371,7 @@
 			overflow: hidden;
 			background: var(--surface);
 		}
-		.demo-tab {
+		.demo-tab, .install-tab {
 			padding: 0.55rem 1.25rem;
 			font-size: 0.82rem;
 			font-weight: 500;
@@ -384,9 +384,9 @@
 			border-right: 1px solid var(--border);
 			white-space: nowrap;
 		}
-		.demo-tab:last-child { border-right: none; }
-		.demo-tab:hover { color: var(--text-primary); background: var(--surface-raised); }
-		.demo-tab.active {
+		.demo-tab:last-child, .install-tab:last-child { border-right: none; }
+		.demo-tab:hover, .install-tab:hover { color: var(--text-primary); background: var(--surface-raised); }
+		.demo-tab.active, .install-tab.active {
 			color: #050505;
 			background: var(--accent);
 			font-weight: 600;
@@ -411,6 +411,30 @@
 			letter-spacing: 1.5px;
 			color: var(--accent);
 		}
+
+		/* ═══════════ MCP INSTALLER TABS ═══════════ */
+		.install-terminal { position: relative; max-width: 760px; margin: 0 auto; text-align: left; }
+		.install-panel { display: none; }
+		.install-panel.active { display: block; }
+		.copy-btn {
+			margin-left: auto;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.35rem;
+			background: transparent;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			color: var(--text-secondary);
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.65rem;
+			padding: 0.28rem 0.55rem;
+			cursor: pointer;
+			transition: color 0.2s, border-color 0.2s;
+		}
+		.copy-btn:hover, .copy-btn.copied { color: var(--accent); border-color: var(--accent-mid); }
+		.install-note { text-align: center; margin-top: 1rem; font-size: 0.8rem; color: #555; }
+		.install-note a { color: #7f8d86; transition: color 0.2s; }
+		.install-note a:hover { color: var(--accent); }
 		.demo-player {
 			position: relative;
 			border-radius: var(--radius);
@@ -594,7 +618,7 @@
 		}
 		.stats-grid {
 			display: grid;
-			grid-template-columns: repeat(5, 1fr);
+			grid-template-columns: repeat(4, 1fr);
 			gap: 2rem;
 			text-align: center;
 		}
@@ -792,28 +816,102 @@
 		</div>
 	</section>
 
-	<!-- MCP INSTALL — one-liner for AI agents -->
-	<section style="position:relative;z-index:1;padding:3rem 0 1rem">
+	<!-- MCP INSTALL — tabbed per-client installer -->
+	<section class="install-section" style="position:relative;z-index:1;padding:3rem 0 1rem">
 		<div class="container">
-			<div style="max-width:720px;margin:0 auto;text-align:center">
-				<h2 style="font-size:1.4rem;font-weight:700;color:var(--text-primary);margin-bottom:0.5rem">Give your AI agent an Android body</h2>
-				<p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem">62 MCP tools — tap, swipe, type, screenshot, OCR, launch apps, run skills. Works with Claude, Cursor, VS Code Copilot, Windsurf.</p>
-				<div class="terminal" style="text-align:left;margin-bottom:1rem">
+			<div style="max-width:840px;margin:0 auto;text-align:center">
+				<h2 style="font-size:1.4rem;font-weight:700;color:var(--text-primary);margin-bottom:0.5rem">Wire up your agent — one command per client</h2>
+				<p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem">62 MCP tools — tap, swipe, type, screenshot, OCR, launch apps, run skills. Pick your client:</p>
+				<div class="demo-groups">
+					<div class="demo-group">
+						<span class="demo-group-label">CLI — one command</span>
+						<div class="demo-tabs">
+							<button class="install-tab active" data-client="claude-code">Claude Code</button>
+							<button class="install-tab" data-client="codex">Codex</button>
+							<button class="install-tab" data-client="antigravity">Antigravity</button>
+							<button class="install-tab" data-client="opencode">Opencode</button>
+						</div>
+					</div>
+					<div class="demo-group">
+						<span class="demo-group-label">JSON config</span>
+						<div class="demo-tabs">
+							<button class="install-tab" data-client="claude-desktop">Claude Desktop</button>
+							<button class="install-tab" data-client="cursor">Cursor</button>
+							<button class="install-tab" data-client="windsurf">Windsurf</button>
+							<button class="install-tab" data-client="vscode">VS Code Copilot</button>
+						</div>
+					</div>
+				</div>
+				<div class="terminal install-terminal">
 					<div class="terminal-header">
 						<span class="terminal-dot r"></span>
 						<span class="terminal-dot y"></span>
 						<span class="terminal-dot g"></span>
-						<span class="terminal-title">install</span>
+						<span class="terminal-title" id="install-title">install</span>
+						<button class="copy-btn" id="install-copy" aria-label="Copy to clipboard">
+							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+							<span>copy</span>
+						</button>
 					</div>
-					<div class="terminal-body" style="font-size:0.85rem;line-height:1.8">
-						<span class="t-cm"># Add to Claude Code / Codex (one command)</span><br/>
-						<span class="t-fn">claude</span> mcp add android-agent <span class="t-op">--</span> uvx <span class="t-op">--from</span> ghost-in-the-droid android-agent-mcp<br/>
-						<br/>
-						<span class="t-cm"># Or any MCP client config (Cursor, VS Code, Windsurf, Claude Desktop)</span><br/>
-						<span class="t-op">{</span><span class="t-str">"command"</span><span class="t-op">:</span> <span class="t-str">"uvx"</span><span class="t-op">,</span> <span class="t-str">"args"</span><span class="t-op">:</span> <span class="t-op">[</span><span class="t-str">"--from"</span><span class="t-op">,</span> <span class="t-str">"ghost-in-the-droid"</span><span class="t-op">,</span> <span class="t-str">"android-agent-mcp"</span><span class="t-op">]}</span><br/>
+					<div class="terminal-body install-panel active" data-key="claude-code" style="font-size:0.85rem;line-height:1.8">
+						<span class="t-fn">claude</span> mcp add android-agent <span class="t-op">--</span> uvx <span class="t-op">--from</span> ghost-in-the-droid android-agent-mcp
+					</div>
+					<div class="terminal-body install-panel" data-key="codex" style="font-size:0.85rem;line-height:1.8">
+						<span class="t-fn">codex</span> mcp add android-agent <span class="t-op">--</span> uvx <span class="t-op">--from</span> ghost-in-the-droid android-agent-mcp
+					</div>
+					<div class="terminal-body install-panel" data-key="antigravity" style="font-size:0.85rem;line-height:1.8">
+						<span class="t-fn">agy</span> mcp add android-agent <span class="t-op">--</span> uvx <span class="t-op">--from</span> ghost-in-the-droid android-agent-mcp
+					</div>
+					<div class="terminal-body install-panel" data-key="opencode" style="font-size:0.85rem;line-height:1.8">
+						<span class="t-fn">opencode</span> mcp add android-agent <span class="t-op">--</span> uvx <span class="t-op">--from</span> ghost-in-the-droid android-agent-mcp
+					</div>
+					<div class="terminal-body install-panel" data-key="claude-desktop" style="font-size:0.8rem;line-height:1.7">
+						<span class="t-cm"># macOS: ~/Library/Application Support/Claude/claude_desktop_config.json</span><br/>
+						<span class="t-cm"># Windows: %APPDATA%\Claude\claude_desktop_config.json</span><br/>
+						<span class="t-op">{</span><br/>
+						&nbsp;&nbsp;<span class="t-str">"mcpServers"</span><span class="t-op">:</span> <span class="t-op">{</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"android-agent"</span><span class="t-op">:</span> <span class="t-op">{</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"command"</span><span class="t-op">:</span> <span class="t-str">"uvx"</span><span class="t-op">,</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"args"</span><span class="t-op">:</span> <span class="t-op">[</span><span class="t-str">"--from"</span><span class="t-op">,</span> <span class="t-str">"ghost-in-the-droid"</span><span class="t-op">,</span> <span class="t-str">"android-agent-mcp"</span><span class="t-op">]</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-op">}</span><br/>
+						&nbsp;&nbsp;<span class="t-op">}</span><br/>
+						<span class="t-op">}</span>
+					</div>
+					<div class="terminal-body install-panel" data-key="cursor" style="font-size:0.8rem;line-height:1.7">
+						<span class="t-cm"># Save as .cursor/mcp.json in your project (or ~/.cursor/mcp.json globally)</span><br/>
+						<span class="t-op">{</span><br/>
+						&nbsp;&nbsp;<span class="t-str">"mcpServers"</span><span class="t-op">:</span> <span class="t-op">{</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"android-agent"</span><span class="t-op">:</span> <span class="t-op">{</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"command"</span><span class="t-op">:</span> <span class="t-str">"uvx"</span><span class="t-op">,</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"args"</span><span class="t-op">:</span> <span class="t-op">[</span><span class="t-str">"--from"</span><span class="t-op">,</span> <span class="t-str">"ghost-in-the-droid"</span><span class="t-op">,</span> <span class="t-str">"android-agent-mcp"</span><span class="t-op">]</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-op">}</span><br/>
+						&nbsp;&nbsp;<span class="t-op">}</span><br/>
+						<span class="t-op">}</span>
+					</div>
+					<div class="terminal-body install-panel" data-key="windsurf" style="font-size:0.8rem;line-height:1.7">
+						<span class="t-cm"># Save as mcp_config.json in your Windsurf config directory</span><br/>
+						<span class="t-op">{</span><br/>
+						&nbsp;&nbsp;<span class="t-str">"mcpServers"</span><span class="t-op">:</span> <span class="t-op">{</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"android-agent"</span><span class="t-op">:</span> <span class="t-op">{</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"command"</span><span class="t-op">:</span> <span class="t-str">"uvx"</span><span class="t-op">,</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"args"</span><span class="t-op">:</span> <span class="t-op">[</span><span class="t-str">"--from"</span><span class="t-op">,</span> <span class="t-str">"ghost-in-the-droid"</span><span class="t-op">,</span> <span class="t-str">"android-agent-mcp"</span><span class="t-op">]</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-op">}</span><br/>
+						&nbsp;&nbsp;<span class="t-op">}</span><br/>
+						<span class="t-op">}</span>
+					</div>
+					<div class="terminal-body install-panel" data-key="vscode" style="font-size:0.8rem;line-height:1.7">
+						<span class="t-cm"># Save as .vscode/mcp.json — note the "servers" key</span><br/>
+						<span class="t-op">{</span><br/>
+						&nbsp;&nbsp;<span class="t-str">"servers"</span><span class="t-op">:</span> <span class="t-op">{</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"android-agent"</span><span class="t-op">:</span> <span class="t-op">{</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"command"</span><span class="t-op">:</span> <span class="t-str">"uvx"</span><span class="t-op">,</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-str">"args"</span><span class="t-op">:</span> <span class="t-op">[</span><span class="t-str">"--from"</span><span class="t-op">,</span> <span class="t-str">"ghost-in-the-droid"</span><span class="t-op">,</span> <span class="t-str">"android-agent-mcp"</span><span class="t-op">]</span><br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-op">}</span><br/>
+						&nbsp;&nbsp;<span class="t-op">}</span><br/>
+						<span class="t-op">}</span>
 					</div>
 				</div>
-				<p style="color:#555;font-size:0.8rem">Plug in a phone with USB debugging, run the install, and your AI agent can control it immediately.</p>
+				<p class="install-note">First time? uvx installs on demand — no clone needed. Plug in a phone with USB debugging and your agent can control it immediately. <a href="/features/mcp-clients/">Other clients →</a></p>
 			</div>
 		</div>
 	</section>
@@ -1027,10 +1125,6 @@
 					<div class="stat-value">3</div>
 					<div class="stat-label">On-device engines</div>
 				</div>
-				<div>
-					<div class="stat-value">99.1%</div>
-					<div class="stat-label">AndroidWorld <span style="opacity:0.6;font-size:0.75em">(sneak peek)</span></div>
-				</div>
 			</div>
 		</div>
 	</section>
@@ -1183,6 +1277,68 @@
 			// Touch devices get no hover — always show controls there
 			if (window.matchMedia('(hover: none)').matches) reel.setAttribute('controls', '');
 		}
+	})();
+	</script>
+	<script>
+	(function() {
+		const tabs = document.querySelectorAll('.install-tab');
+		const panels = document.querySelectorAll('.install-panel');
+		const title = document.getElementById('install-title');
+		const copyBtn = document.getElementById('install-copy');
+		if (!copyBtn) return;
+		const titles = {
+			'claude-code': 'claude-code',
+			'codex': 'codex',
+			'antigravity': 'antigravity',
+			'opencode': 'opencode',
+			'claude-desktop': 'claude_desktop_config.json',
+			'cursor': '.cursor/mcp.json',
+			'windsurf': 'mcp_config.json',
+			'vscode': '.vscode/mcp.json',
+		};
+		const JSON_STD = '{\n  "mcpServers": {\n    "android-agent": {\n      "command": "uvx",\n      "args": ["--from", "ghost-in-the-droid", "android-agent-mcp"]\n    }\n  }\n}';
+		const JSON_VSC = '{\n  "servers": {\n    "android-agent": {\n      "command": "uvx",\n      "args": ["--from", "ghost-in-the-droid", "android-agent-mcp"]\n    }\n  }\n}';
+		const payloads = {
+			'claude-code': 'claude mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp',
+			'codex': 'codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp',
+			'antigravity': 'agy mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp',
+			'opencode': 'opencode mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp',
+			'claude-desktop': JSON_STD,
+			'cursor': JSON_STD,
+			'windsurf': JSON_STD,
+			'vscode': JSON_VSC,
+		};
+		let current = 'claude-code';
+		title.textContent = titles[current];
+		tabs.forEach(function(tab) {
+			tab.addEventListener('click', function() {
+				current = tab.dataset.client;
+				tabs.forEach(function(t) { t.classList.remove('active'); });
+				tab.classList.add('active');
+				panels.forEach(function(p) { p.classList.toggle('active', p.dataset.key === current); });
+				title.textContent = titles[current] || current;
+			});
+		});
+		copyBtn.addEventListener('click', async function() {
+			const text = payloads[current];
+			try {
+				await navigator.clipboard.writeText(text);
+			} catch (e) {
+				const ta = document.createElement('textarea');
+				ta.value = text;
+				document.body.appendChild(ta);
+				ta.select();
+				document.execCommand('copy');
+				ta.remove();
+			}
+			copyBtn.classList.add('copied');
+			const label = copyBtn.querySelector('span');
+			label.textContent = 'copied!';
+			setTimeout(function() {
+				copyBtn.classList.remove('copied');
+				label.textContent = 'copy';
+			}, 1400);
+		});
 	})();
 	</script>
 	<script>
