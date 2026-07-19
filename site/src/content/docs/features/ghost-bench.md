@@ -100,7 +100,7 @@ Results are persisted as one JSON file per run under `gitd/benchmarks/results/{r
 - You want reproducible, objective pass/fail rather than eyeballing chats
 
 **Don't lean on it when:**
-- You need broad app coverage — it's 14 system/navigation tasks, not a full app-automation suite (the framework is pluggable; [AndroidWorld](https://github.com/google-research/android_world) is anticipated as a future suite)
+- You need broad app coverage — it's 14 system/navigation tasks, not a full app-automation suite. For that, we ship [AndroidWorld](https://github.com/google-research/android_world) support alongside Ghost Bench — early result: **115 of 116 tasks passed (99.1%)** driven by Claude Code, on the unmodified upstream harness. Treat as a preview; full trajectories and methodology writeup coming.
 - You need partial credit — scoring is strictly binary
 - You expect a hard step cap — `max_steps` is **advisory only**; the runner doesn't abort a task at that count (the 300s per-task HTTP timeout is the real ceiling)
 

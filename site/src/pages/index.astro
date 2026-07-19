@@ -11,12 +11,11 @@
 	<meta name="description" content="Summon a ghost into your Android. Open-source framework for controlling real phones via ADB. No root required. No cloud dependency. Pure automation." />
 	<meta property="og:title" content="Ghost in the Droid — Android Body for AI Agents" />
 	<meta property="og:description" content="Open-source Python framework for automating Android devices. Build skills, manage phone farms, zero cloud dependency." />
-	<meta property="og:image" content="https://ghostinthedroid.com/mascot/40-lineup-banner.png" />
-	<meta property="og:url" content="https://ghostinthedroid.com/" />
+	<meta property="og:image" content="/mascot/40-lineup-banner.png" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content="Ghost in the Droid" />
-	<meta name="twitter:image" content="https://ghostinthedroid.com/mascot/40-lineup-banner.png" />
+	<meta name="twitter:image" content="/mascot/40-lineup-banner.png" />
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -276,6 +275,72 @@
 		.t-op { color: #89ddff; }
 		.t-var { color: #e8e8e8; }
 
+		/* ═══════════ WORKS-WITH STRIP ═══════════ */
+		.hero-works {
+			margin-top: 2.25rem;
+			display: flex;
+			flex-direction: column;
+			gap: 0.4rem;
+			animation: fade-up 0.6s ease-out 0.4s both;
+		}
+		.works-line {
+			font-size: 0.78rem;
+			font-weight: 300;
+			color: #56605b;
+			letter-spacing: 0.2px;
+		}
+		.works-label {
+			display: inline-block;
+			min-width: 6.4rem;
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.65rem;
+			font-weight: 500;
+			text-transform: uppercase;
+			letter-spacing: 1.2px;
+			color: #47554d;
+		}
+		.works-line a {
+			color: #7f8d86;
+			transition: color 0.2s;
+			white-space: nowrap;
+		}
+		.works-line a:hover { color: var(--accent); }
+		.works-plain { color: #7f8d86; white-space: nowrap; }
+		.works-sep { color: #2e3531; margin: 0 0.3rem; }
+		@media (max-width: 768px) {
+			.works-label { display: block; min-width: 0; margin-bottom: 0.15rem; }
+			.works-line { margin-bottom: 0.35rem; }
+		}
+
+		/* ═══════════ HERO REEL ═══════════ */
+		.reel-section { padding: 4rem 0 2rem; }
+		.reel-section .section-label,
+		.reel-section .section-title { text-align: center; }
+		.reel-section .section-sub {
+			text-align: center;
+			margin-left: auto;
+			margin-right: auto;
+			margin-bottom: 2.5rem;
+		}
+		.reel-player {
+			position: relative;
+			border-radius: var(--radius);
+			overflow: hidden;
+			border: 1px solid var(--border);
+			background: #000;
+			aspect-ratio: 16 / 9;
+			box-shadow: 0 20px 60px rgba(0,0,0,0.5), var(--accent-glow);
+			transition: border-color 0.3s;
+		}
+		.reel-player:hover { border-color: var(--accent-mid); }
+		.reel-player video {
+			position: absolute;
+			inset: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
 		/* ═══════════ DEMO VIDEO TOGGLE ═══════════ */
 		.demo-section { padding: 2rem 0 6rem; }
 		.demo-header {
@@ -325,6 +390,26 @@
 			color: #050505;
 			background: var(--accent);
 			font-weight: 600;
+		}
+		.demo-groups {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 1.25rem 2rem;
+			margin-bottom: 2rem;
+			justify-content: center;
+		}
+		.demo-group {
+			display: flex;
+			flex-direction: column;
+			gap: 0.45rem;
+		}
+		.demo-group-label {
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.65rem;
+			font-weight: 500;
+			text-transform: uppercase;
+			letter-spacing: 1.5px;
+			color: var(--accent);
 		}
 		.demo-player {
 			position: relative;
@@ -509,7 +594,7 @@
 		}
 		.stats-grid {
 			display: grid;
-			grid-template-columns: repeat(4, 1fr);
+			grid-template-columns: repeat(5, 1fr);
 			gap: 2rem;
 			text-align: center;
 		}
@@ -619,7 +704,6 @@
 		<div class="nav-links">
 			<a href="/getting-started/introduction/">Docs</a>
 			<a href="/skills/">Skill Hub</a>
-			<a href="http://localhost:6175" target="_blank">Dashboard</a>
 			<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
 			<a href="/getting-started/installation/" class="nav-cta">Get Started</a>
 		</div>
@@ -654,6 +738,28 @@
 							<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
 							View on GitHub
 						</a>
+					</div>
+					<div class="hero-works">
+						<div class="works-line">
+							<span class="works-label">Works with</span>
+							<a href="https://langchain.com">LangChain</a> <span class="works-sep">·</span><a href="https://llamaindex.ai">LlamaIndex</a> <span class="works-sep">·</span><a href="https://modelcontextprotocol.io">MCP</a>
+						</div>
+						<div class="works-line">
+							<span class="works-label">Drive with</span>
+							<a href="https://claude.com/product/claude-code">Claude Code</a> <span class="works-sep">·</span><a href="https://github.com/openai/codex">Codex</a> <span class="works-sep">·</span><a href="https://antigravity.google">Antigravity</a> <span class="works-sep">·</span><a href="https://cursor.com">Cursor</a> <span class="works-sep">·</span><a href="https://opencode.ai">Opencode</a> <span class="works-sep">·</span><a href="https://claude.com/download">Claude Desktop</a>
+						</div>
+						<div class="works-line">
+							<span class="works-label">Powered by</span>
+							<a href="https://anthropic.com">Anthropic API</a> <span class="works-sep">·</span><a href="https://openai.com">OpenAI</a> <span class="works-sep">·</span><a href="https://openrouter.ai">OpenRouter</a> <span class="works-sep">·</span><a href="https://ollama.com">Ollama</a> <span class="works-sep">·</span><a href="https://vllm.ai">vLLM</a>
+						</div>
+						<div class="works-line">
+							<span class="works-label">Runs on</span>
+							<a href="/features/on-device-llm/">iOS</a> <span class="works-sep">·</span><a href="/getting-started/connect-phone/">Android</a> <span class="works-sep">·</span><a href="/features/emulator/">Android&nbsp;Emulator</a> <span class="works-sep">·</span><span class="works-plain">Your&nbsp;PC</span>
+						</div>
+						<div class="works-line">
+							<span class="works-label">On-device</span>
+							<a href="https://github.com/ggml-org/llama.cpp">llama.cpp</a> <span class="works-sep">·</span><a href="https://ai.google.dev/edge/mediapipe">MediaPipe</a> <span class="works-sep">·</span><a href="https://github.com/ml-explore/mlx">MLX</a>
+						</div>
 					</div>
 				</div>
 				<div class="hero-ghost" style="animation: fade-up 0.6s ease-out 0.3s both">
@@ -691,7 +797,7 @@
 		<div class="container">
 			<div style="max-width:720px;margin:0 auto;text-align:center">
 				<h2 style="font-size:1.4rem;font-weight:700;color:var(--text-primary);margin-bottom:0.5rem">Give your AI agent an Android body</h2>
-				<p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem">35 MCP tools — tap, swipe, type, screenshot, OCR, launch apps, run skills. Works with Claude, Cursor, VS Code Copilot, Windsurf.</p>
+				<p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem">62 MCP tools — tap, swipe, type, screenshot, OCR, launch apps, run skills. Works with Claude, Cursor, VS Code Copilot, Windsurf.</p>
 				<div class="terminal" style="text-align:left;margin-bottom:1rem">
 					<div class="terminal-header">
 						<span class="terminal-dot r"></span>
@@ -712,26 +818,70 @@
 		</div>
 	</section>
 
+	<!-- HERO REEL — master sizzle with VO -->
+	<section class="reel-section" style="position:relative;z-index:1">
+		<div class="container">
+			<div class="section-label">The Reel</div>
+			<h2 class="section-title">Give any AI agent a real phone</h2>
+			<p class="section-sub">The 32-second master reel. Real devices, real agents, one voiceover. Hover for sound.</p>
+			<div class="reel-player">
+				<video
+					id="hero-reel"
+					src="/showcase/hero-reel.webm"
+					poster="/showcase/hero-poster.png"
+					autoplay muted loop playsinline preload="metadata"
+				></video>
+			</div>
+		</div>
+	</section>
+
 	<!-- DEMO VIDEOS -->
 	<section class="demo-section" style="position:relative;z-index:1">
 		<div class="container">
-			<div class="demo-header">
+			<div class="demo-header" style="justify-content:center;text-align:center">
 				<div>
 					<h2>See the ghost in action</h2>
-					<p>Watch it navigate real apps on a real phone. No scripted mockups.</p>
+					<p>Nine demos. Real phones, real agents. No scripted mockups.</p>
 				</div>
-				<div class="demo-tabs">
-					<button class="demo-tab active" data-video="reddit">Reddit Search & Comment</button>
-					<button class="demo-tab" data-video="amazon">Product Search</button>
-					<button class="demo-tab" data-video="booking">Hotel Search</button>
+			</div>
+			<div class="demo-groups">
+				<div class="demo-group">
+					<span class="demo-group-label">MCP Clients</span>
+					<div class="demo-tabs">
+						<button class="demo-tab active" data-video="mcp-claude-code-tui">Claude Code</button>
+						<button class="demo-tab" data-video="mcp-codex-tui">Codex</button>
+						<button class="demo-tab" data-video="mcp-agy-tui">Antigravity</button>
+					</div>
+				</div>
+				<div class="demo-group">
+					<span class="demo-group-label">Interfaces</span>
+					<div class="demo-tabs">
+						<button class="demo-tab" data-video="ghost-cli">Ghost CLI</button>
+						<button class="demo-tab" data-video="langchain">LangChain</button>
+						<button class="demo-tab" data-video="web-chat-gui">Web Chat</button>
+					</div>
+				</div>
+				<div class="demo-group">
+					<span class="demo-group-label">On-Device + iOS</span>
+					<div class="demo-tabs">
+						<button class="demo-tab" data-video="on-device-android">Android</button>
+						<button class="demo-tab" data-video="on-device-ios">iPhone</button>
+						<button class="demo-tab" data-video="iphone-duolingo">Duolingo</button>
+					</div>
 				</div>
 			</div>
 			<div class="demo-player">
-				<video src="/demo/reddit.mp4" class="active" autoplay muted loop playsinline preload="auto"></video>
-				<video src="/demo/amazon.mp4" muted loop playsinline preload="none"></video>
-				<video src="/demo/booking.mp4" muted loop playsinline preload="none"></video>
+				<video data-key="mcp-claude-code-tui" src="/showcase/mcp-claude-code-tui/demo.webm" class="active" autoplay muted loop playsinline preload="auto"></video>
+				<video data-key="mcp-codex-tui" src="/showcase/mcp-codex-tui/demo.webm" muted loop playsinline preload="none"></video>
+				<video data-key="mcp-agy-tui" src="/showcase/mcp-agy-tui/demo.webm" muted loop playsinline preload="none"></video>
+				<video data-key="ghost-cli" src="/showcase/ghost-cli/demo.webm" muted loop playsinline preload="none"></video>
+				<video data-key="langchain" src="/showcase/langchain/demo.webm" muted loop playsinline preload="none"></video>
+				<video data-key="web-chat-gui" src="/showcase/web-chat-gui/demo.webm" muted loop playsinline preload="none"></video>
+				<video data-key="on-device-android" src="/showcase/on-device-android/demo.webm" muted loop playsinline preload="none"></video>
+				<video data-key="on-device-ios" src="/showcase/on-device-ios/demo.webm" muted loop playsinline preload="none"></video>
+				<video data-key="iphone-duolingo" src="/showcase/iphone-duolingo/demo.webm" muted loop playsinline preload="none"></video>
 			</div>
-			<div class="demo-subtitle" id="demo-sub">The ghost searches Reddit, finds a post, and leaves a comment.</div>
+			<div class="demo-subtitle" id="demo-sub">Claude Code drives the phone. Type in the TUI, watch it act.</div>
 		</div>
 	</section>
 
@@ -740,7 +890,7 @@
 		<div class="container">
 			<div class="section-label">Capabilities</div>
 			<h2 class="section-title">The ghost sees. The ghost taps. The ghost never stops.</h2>
-			<p class="section-sub">From a single tap to a full phone farm. No root. No cloud. Pure ADB.</p>
+			<p class="section-sub">From a single tap to a full phone farm. Android or iPhone. Cloud brain or the phone itself.</p>
 
 			<div class="feature-row">
 				<div class="feature-img">
@@ -749,7 +899,7 @@
 				<div class="feature-text">
 					<span class="feature-tag">Device Control</span>
 					<h3>The ghost taps what you'd tap</h3>
-					<p>50+ ADB methods — tap, swipe, type, clipboard, screenshots. Works on any Android 5.0+ phone via USB. The ghost doesn't install anything. It possesses through the debug bridge.</p>
+					<p>62 MCP tools — tap, swipe, type, clipboard, screenshots, browser primitives, TTS, camera. Works on any Android 5.0+ phone via USB or Wi-Fi ADB. Works on iPhone via WebDriverAgent. The ghost doesn't install anything on your device. It possesses through the debug bridge (Android) or the WDA tunnel (iOS).</p>
 				</div>
 			</div>
 
@@ -760,7 +910,7 @@
 				<div class="feature-text">
 					<span class="feature-tag">Screen Reading</span>
 					<h3>The ghost sees what you see</h3>
-					<p>Read the screen via XML dump, screenshot OCR, or live MJPEG/WebRTC stream. Find any element by text, ID, or position. The ghost reads every pixel.</p>
+					<p>Read the screen via UIAutomator XML on Android, XCTest accessibility tree on iPhone, OCR, or a live MJPEG / WebRTC stream in your browser. Find any element by text, id, or position. The ghost reads every pixel — whichever platform.</p>
 				</div>
 			</div>
 
@@ -771,7 +921,7 @@
 				<div class="feature-text">
 					<span class="feature-tag">Skill System</span>
 					<h3>Forge reusable skills for any app</h3>
-					<p>YAML-defined UI elements, Python actions with precondition checks, multi-step workflows. TikTok, Instagram, Gmail out of the box. Crack any app. Forge a skill. Share it with the world.</p>
+					<p>YAML-defined UI elements per platform (elements.yaml for Android, elements_ios.yaml for iOS). Python actions with precondition checks. Multi-step workflows that chain. Ships with TikTok, Play Store, Chrome News. Crack any app. Forge a skill. Share it on the Skill Hub.</p>
 				</div>
 			</div>
 
@@ -782,7 +932,7 @@
 				<div class="feature-text">
 					<span class="feature-tag">Phone Farm</span>
 					<h3>One ghost is useful. A hundred are unstoppable.</h3>
-					<p>Multi-device management with per-phone job queues, priority scheduling, WebRTC streaming, and a full dashboard. One USB hub. Five phones. Infinite automation.</p>
+					<p>Multi-device management with per-phone job queues, priority scheduling, WebRTC streaming, and a full dashboard. USB, wireless, Docker+KVM Android emulator pools, Tailscale-driven iPhone fleets. One box. Ten phones. Zero cloud.</p>
 				</div>
 			</div>
 
@@ -792,8 +942,8 @@
 				</div>
 				<div class="feature-text">
 					<span class="feature-tag">Stealth</span>
-					<h3>No root. No cloud. No trace.</h3>
-					<p>Gaussian tap jitter, variable-speed swipes, and character-by-character typing make automation look human. Optional companion app adds accessibility + screen streaming. Everything runs locally — nothing phones home.</p>
+					<h3>No root. No cloud. No trace. Airplane mode works.</h3>
+					<p>Gaussian tap jitter, variable-speed swipes, character-by-character typing. No root, no accessibility service, nothing installed by default. Optional companion app on Android for WebRTC + 30x quicker reads. On-device mode runs the model INSIDE the phone — the model file, the tool loop, the agent — nothing leaves. Airplane mode is a supported deployment.</p>
 				</div>
 			</div>
 
@@ -804,7 +954,7 @@
 				<div class="feature-text">
 					<span class="feature-tag">AI Agent Body</span>
 					<h3>Your agent can think. Now it can touch.</h3>
-					<p>MCP server turns any LLM into a phone operator. Claude, GPT, local models — give them hands. The ghost is the bridge between thought and tap.</p>
+					<p>MCP server exposes 62 tools. LangChain + LlamaIndex adapters wrap the same surface behind a fail-closed allow-list. Point Claude Code, Codex, Antigravity, Cursor, Opencode, or a model running inside the phone itself at it — your agent grows hands. The ghost is the bridge between thought and tap.</p>
 				</div>
 			</div>
 
@@ -862,20 +1012,24 @@
 		<div class="container">
 			<div class="stats-grid">
 				<div>
-					<div class="stat-value">22,000+</div>
-					<div class="stat-label">Profiles scraped</div>
+					<div class="stat-value">62</div>
+					<div class="stat-label">MCP tools</div>
 				</div>
 				<div>
-					<div class="stat-value">1,000+</div>
-					<div class="stat-label">Jobs completed</div>
+					<div class="stat-value">6</div>
+					<div class="stat-label">LLM backends</div>
 				</div>
 				<div>
-					<div class="stat-value">50+</div>
-					<div class="stat-label">Device methods</div>
+					<div class="stat-value">2</div>
+					<div class="stat-label">Platforms — Android + iOS</div>
 				</div>
 				<div>
-					<div class="stat-value">9</div>
-					<div class="stat-label">Dashboard tabs</div>
+					<div class="stat-value">3</div>
+					<div class="stat-label">On-device engines</div>
+				</div>
+				<div>
+					<div class="stat-value">99.1%</div>
+					<div class="stat-label">AndroidWorld <span style="opacity:0.6;font-size:0.75em">(sneak peek)</span></div>
 				</div>
 			</div>
 		</div>
@@ -1017,13 +1171,35 @@
 	</script>
 	<script>
 	(function() {
+		// Hero reel: show controls on hover so visitors can unmute the VO
+		const reel = document.getElementById('hero-reel');
+		if (reel) {
+			const wrap = reel.parentElement;
+			wrap.addEventListener('mouseenter', function() { reel.setAttribute('controls', ''); });
+			wrap.addEventListener('mouseleave', function() {
+				if (!reel.muted) return; // keep controls once unmuted
+				reel.removeAttribute('controls');
+			});
+			// Touch devices get no hover — always show controls there
+			if (window.matchMedia('(hover: none)').matches) reel.setAttribute('controls', '');
+		}
+	})();
+	</script>
+	<script>
+	(function() {
 		const tabs = document.querySelectorAll('.demo-tab');
 		const videos = document.querySelectorAll('.demo-player video');
 		const sub = document.getElementById('demo-sub');
 		const subs = {
-			reddit: 'The ghost searches Reddit, finds a post, and leaves a comment.',
-			amazon: 'The ghost searches for a product on Amazon, browses results and reviews.',
-			booking: 'The ghost searches for a hotel on Booking, picks dates and filters results.',
+			'mcp-claude-code-tui': 'Claude Code drives the phone. Type in the TUI, watch it act.',
+			'mcp-codex-tui': 'Codex operating a real phone over MCP.',
+			'mcp-agy-tui': 'Google Antigravity, same 62-tool body.',
+			'ghost-cli': 'ghost "check reddit" --device asus — one line, real phone.',
+			'langchain': 'Ghost tools inside a LangChain agent.',
+			'web-chat-gui': 'Chat in your browser, it drives the phone.',
+			'on-device-android': 'Model runs INSIDE the app. Airplane mode.',
+			'on-device-ios': 'Your iPhone talks to itself.',
+			'iphone-duolingo': 'Ghost does the Duolingo lesson. Streak lives.',
 		};
 		tabs.forEach(function(tab) {
 			tab.addEventListener('click', function() {
@@ -1031,12 +1207,14 @@
 				tabs.forEach(function(t) { t.classList.remove('active'); });
 				tab.classList.add('active');
 				videos.forEach(function(v) {
-					if (v.src.includes(target)) {
+					if (v.dataset.key === target) {
 						v.classList.add('active');
+						v.currentTime = 0; // clean restart, never resume mid-scene
 						v.play();
 					} else {
 						v.classList.remove('active');
 						v.pause();
+						v.currentTime = 0;
 					}
 				});
 				sub.textContent = subs[target] || '';
