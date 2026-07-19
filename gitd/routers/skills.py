@@ -297,14 +297,39 @@ def api_skill_runs(device: str = "", skill: str = "", limit: int = 50, db: Sessi
             "target_name": r.target_name,
             "app_version": r.app_version,
             "status": r.status,
+            "kind": r.kind,
             "duration_ms": r.duration_ms,
             "error_msg": r.error_msg,
             "started_at": r.started_at,
             "finished_at": r.finished_at,
             "is_verify": bool(r.is_verify),
+            "checkpoint": json.loads(r.checkpoint_json) if r.checkpoint_json else None,
         }
         for r in rows
     ]
+
+
+@router.post("/runs/{run_id}/resume", summary="Resume Or Abort A Checkpoint")
+def api_skill_run_resume(run_id: int, data: dict = Body({}), db: Session = Depends(get_db)):
+    """Clear (or abort) a human-in-the-loop checkpoint a running skill is blocked on.
+
+    The checkpoint step polls this signal from its subprocess. `action`:
+    'resume' (default) clears the gate so the skill continues; 'abort' cancels
+    the run cleanly instead of waiting out the timeout.
+    """
+    from gitd.models.skill_compat import SkillRun
+
+    action = (data.get("action") or "resume").strip().lower()
+    if action not in ("resume", "abort"):
+        raise HTTPException(status_code=400, detail="action must be 'resume' or 'abort'")
+    row = db.get(SkillRun, run_id)
+    if not row:
+        raise HTTPException(status_code=404, detail=f"run {run_id} not found")
+    if row.status != "awaiting_human":
+        raise HTTPException(status_code=409, detail=f"run {run_id} is not awaiting_human (status={row.status})")
+    row.resume_signal = action
+    db.commit()
+    return {"ok": True, "run_id": run_id, "action": action}
 
 
 @router.get("/{name}", summary="Get Skill Detail")

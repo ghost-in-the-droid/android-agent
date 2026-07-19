@@ -20,7 +20,15 @@ class SkillRun(Base):
     target_type: Mapped[str] = mapped_column(Text, nullable=False)  # 'workflow', 'action', or 'guidance'
     target_name: Mapped[str] = mapped_column(Text, nullable=False)  # e.g. 'send_dm', 'open_app'
     app_version: Mapped[Optional[str]] = mapped_column(Text)  # installed app version at runtime
-    status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'running'"))  # running/ok/fail
+    status: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("'running'"))
+    # status values: running / ok / fail / awaiting_human / timed_out / aborted
+    # ── Human-in-the-loop checkpoint control channel (shared-DB signalling) ──
+    # resume_signal is written by POST /api/skills/runs/{id}/resume and polled by
+    # the checkpoint step running in the _run_skill.py subprocess: 'resume' clears
+    # the gate, 'abort' cancels the run. checkpoint_json holds what's being waited
+    # on ({reason, prompt, success, timeout_s, entered_at}) for the UI banner.
+    resume_signal: Mapped[Optional[str]] = mapped_column(Text)  # 'resume' | 'abort' | None
+    checkpoint_json: Mapped[Optional[str]] = mapped_column(Text)
     duration_ms: Mapped[Optional[float]] = mapped_column(Float)
     error_msg: Mapped[Optional[str]] = mapped_column(Text)
     params_json: Mapped[Optional[str]] = mapped_column(Text)  # input params snapshot

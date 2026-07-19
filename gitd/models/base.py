@@ -56,6 +56,9 @@ def get_db() -> Generator[Session, None, None]:
 _ADDITIVE_COLUMNS = [
     ("skill_runs", "kind", "TEXT NOT NULL DEFAULT 'hard'"),
     ("skill_compat", "kind", "TEXT NOT NULL DEFAULT 'hard'"),
+    # Human-in-the-loop checkpoint control channel (feat/checkpoint-step)
+    ("skill_runs", "resume_signal", "TEXT"),
+    ("skill_runs", "checkpoint_json", "TEXT"),
 ]
 
 
