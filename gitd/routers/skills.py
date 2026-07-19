@@ -78,6 +78,8 @@ def _load_all_skills() -> dict:
                     "name": meta.get("name", d.name),
                     "description": meta.get("description", ""),
                     "version": meta.get("version", "0.0.0"),
+                    "kind": meta.get("kind", "hard"),
+                    "has_guidance": (d / "guidance.md").exists(),
                     "app_package": meta.get("app_package", ""),
                     "android_package": skill_android_package(meta),
                     "ios_bundle_id": skill_ios_bundle_id(meta),
@@ -335,6 +337,10 @@ def api_skill_detail(name: str):
         elem_path = _SKILLS_DIR / name / "elements.yaml"
         if elem_path.exists():
             info["elements"] = yaml.safe_load(elem_path.read_text()) or {}
+        # Soft skills carry markdown guidance instead of actions/workflows.
+        guidance_path = _SKILLS_DIR / name / "guidance.md"
+        if guidance_path.exists():
+            info["guidance"] = guidance_path.read_text()
     except Exception as e:
         info["load_error"] = str(e)
     return info
