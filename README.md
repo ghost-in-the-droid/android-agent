@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.ghost-in-the-droid/android-agent -->
 <p align="center">
   <img src="docs/assets/mascot/12-the-tap.png" alt="Ghost tapping a phone" width="200" />
 </p>
