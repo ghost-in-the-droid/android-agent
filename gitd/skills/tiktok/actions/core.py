@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+
 from gitd.skills.base import Action, ActionResult
 
 TIKTOK_PKG = "com.zhiliaoapp.musically"

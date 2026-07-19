@@ -1,7 +1,8 @@
 """TikTok Upload Video workflow — wraps the existing upload bot logic."""
 
-from gitd.skills.base import Workflow, Action, ActionResult
 import logging
+
+from gitd.skills.base import Action, ActionResult, Workflow
 
 log = logging.getLogger(__name__)
 

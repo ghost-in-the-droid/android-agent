@@ -10,14 +10,14 @@ so the first iOS milestone does not need the Python Appium client package.
 from __future__ import annotations
 
 import base64
-import html
 import contextlib
 import fcntl
+import html
 import json
 import os
 import re
-import signal
 import shlex
+import signal
 import subprocess
 import threading
 import time

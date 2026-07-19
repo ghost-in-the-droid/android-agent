@@ -19,13 +19,11 @@ Usage:
 import argparse
 import json
 import re
-import sys
 import time
 from collections import Counter
 from pathlib import Path
 
-
-from gitd.bots.common.adb import Device, TIKTOK_PKG
+from gitd.bots.common.adb import TIKTOK_PKG, Device
 
 RID_MAPS_DIR = Path(__file__).parent / "rid_maps"
 PKG_PREFIX = f"{TIKTOK_PKG}:id/"

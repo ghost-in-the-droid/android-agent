@@ -142,6 +142,51 @@ async function loadCompat() {
   try { compat.value = await api('/api/skills/compat') } catch { compat.value = [] }
 }
 
+/* ── Checkpoint / awaiting-human gates ───────────────────────────────── */
+interface CheckpointInfo {
+  reason: 'captcha' | 'sms' | 'email' | 'login' | 'generic'
+  prompt: string
+  success?: Record<string, any>
+  timeout_s?: number
+}
+interface SkillRun {
+  id: number
+  device_serial: string
+  skill_name: string
+  status: string
+  kind?: string
+  checkpoint?: CheckpointInfo | null
+}
+const awaitingRuns = ref<SkillRun[]>([])
+let awaitingTimer: ReturnType<typeof setInterval> | null = null
+
+const REASON_LABELS: Record<string, string> = {
+  captcha: 'CAPTCHA', sms: 'SMS CODE', email: 'EMAIL CODE', login: 'LOGIN / 2FA', generic: 'ACTION NEEDED'
+}
+function reasonLabel(cp?: CheckpointInfo | null): string {
+  return REASON_LABELS[cp?.reason || 'generic'] || 'ACTION NEEDED'
+}
+
+async function loadAwaitingRuns() {
+  try {
+    const runs = await api<SkillRun[]>('/api/skills/runs?limit=50')
+    awaitingRuns.value = (runs || []).filter(r => r.status === 'awaiting_human')
+  } catch { /* transient poll failure — keep last known list */ }
+}
+
+async function resolveCheckpoint(run: SkillRun, action: 'resume' | 'abort') {
+  // Optimistically remove so the banner disappears immediately.
+  awaitingRuns.value = awaitingRuns.value.filter(r => r.id !== run.id)
+  try {
+    await api(`/api/skills/runs/${run.id}/resume`, {
+      method: 'POST', body: JSON.stringify({ action })
+    })
+  } catch {
+    // 409 = run already moved on, or transient error — just re-sync from server.
+  }
+  await loadAwaitingRuns()
+}
+
 async function load() {
   loading.value = true
   try {
@@ -275,15 +320,39 @@ function switchTab(tab: 'installed' | 'browse') {
 
 onMounted(() => {
   load()
+  loadAwaitingRuns()
+  awaitingTimer = setInterval(loadAwaitingRuns, 3000)
   window.addEventListener('popstate', onPopState)
 })
 onUnmounted(() => {
+  if (awaitingTimer) { clearInterval(awaitingTimer); awaitingTimer = null }
   window.removeEventListener('popstate', onPopState)
 })
 </script>
 
 <template>
   <div class="sh-root">
+
+    <!-- ============================================================ -->
+    <!-- CHECKPOINT / AWAITING-HUMAN BANNERS                          -->
+    <!-- ============================================================ -->
+    <div v-if="awaitingRuns.length" class="sh-checkpoint-stack">
+      <div v-for="run in awaitingRuns" :key="run.id" class="sh-checkpoint-banner">
+        <span class="sh-checkpoint-icon">&#9208;</span>
+        <div class="sh-checkpoint-body">
+          <div class="sh-checkpoint-head">
+            <span class="sh-checkpoint-reason">{{ reasonLabel(run.checkpoint) }}</span>
+            <span class="sh-checkpoint-skill">{{ run.skill_name }}</span>
+            <span class="sh-checkpoint-device">{{ run.device_serial }}</span>
+          </div>
+          <div class="sh-checkpoint-prompt">{{ run.checkpoint?.prompt || 'Waiting for a human to clear this gate.' }}</div>
+        </div>
+        <div class="sh-checkpoint-actions">
+          <button class="sh-checkpoint-resume" @click="resolveCheckpoint(run, 'resume')">Resume</button>
+          <button class="sh-checkpoint-abort" @click="resolveCheckpoint(run, 'abort')">Abort</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ============================================================ -->
     <!-- DETAIL VIEW                                                   -->
@@ -662,6 +731,102 @@ onUnmounted(() => {
   --_accent: var(--accent, #6366f1);
   --_border: var(--border, #30363d);
   color: var(--_text-1);
+}
+
+/* ── Checkpoint / awaiting-human banners ──────────────────────────── */
+.sh-checkpoint-stack {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.sh-checkpoint-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #f59e0b66;
+  background: linear-gradient(90deg, color-mix(in srgb, #f59e0b 22%, transparent), color-mix(in srgb, #f59e0b 10%, transparent));
+  box-shadow: 0 4px 16px color-mix(in srgb, #f59e0b 18%, transparent);
+}
+.sh-checkpoint-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+  color: #fbbf24;
+}
+.sh-checkpoint-body {
+  flex: 1;
+  min-width: 0;
+}
+.sh-checkpoint-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+.sh-checkpoint-reason {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 2px 9px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, #f59e0b 30%, transparent);
+  color: #fde68a;
+}
+.sh-checkpoint-skill {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--_text-1);
+}
+.sh-checkpoint-device {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--_text-3);
+}
+.sh-checkpoint-prompt {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--_text-2);
+  word-break: break-word;
+}
+.sh-checkpoint-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.sh-checkpoint-resume {
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 7px;
+  border: none;
+  background: #22c55e;
+  color: #04140a;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.sh-checkpoint-resume:hover {
+  opacity: 0.85;
+}
+.sh-checkpoint-abort {
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 7px;
+  border: 1px solid #ef444466;
+  background: #ef444418;
+  color: #f87171;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sh-checkpoint-abort:hover {
+  background: #ef444433;
 }
 
 /* ── Browse view ──────────────────────────────────────────────────── */

@@ -1,7 +1,8 @@
 """Play Store workflows."""
 
-from gitd.skills.base import Workflow, Action
-from .actions.core import OpenStore, SearchApp, InstallApp
+from gitd.skills.base import Action, Workflow
+
+from .actions.core import SearchApp
 
 
 class InstallByName(Workflow):
@@ -34,6 +35,7 @@ class _TapFirstResult(Action):
 
     def execute(self):
         import time
+
         from gitd.skills.base import ActionResult
 
         xml = self.device.dump_xml()

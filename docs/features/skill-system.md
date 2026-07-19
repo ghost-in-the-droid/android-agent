@@ -8,12 +8,28 @@ Formal abstraction for Android automation. A Skill is a reusable, shareable pack
 
 Every skill declares a `kind` in `skill.yaml` (absent ⇒ `hard`, so existing skills are unaffected):
 
-- **HARD skill** — deterministic, zero-LLM replay. Has `workflows/recorded.json` (a flat step list) run by `RecordedWorkflow`/`RecordedStepAction`, or coded `Action`/`Workflow` classes. This is the classic skill above. Recorded steps support `launch`, `tap` (by `x,y`, `element_idx`, or a `text`/`resource_id`/`content_desc` locator that re-finds the element each run), `type`, `key`, `back`, `home`, `swipe`, `long_press`, `open_url`, `launch_intent`, and `wait`.
+- **HARD skill** — deterministic, zero-LLM replay. Has `workflows/recorded.json` (a flat step list) run by `RecordedWorkflow`/`RecordedStepAction`, or coded `Action`/`Workflow` classes. This is the classic skill above. Recorded steps support `launch`, `tap` (by `x,y`, `element_idx`, or a `text`/`resource_id`/`content_desc` locator that re-finds the element each run), `type`, `key`, `back`, `home`, `swipe`, `long_press`, `open_url`, `launch_intent`, `checkpoint` (see below), and `wait`.
 - **SOFT skill** — LLM-facing guidance, not replay. Has a `guidance.md` (markdown "what to watch out for") and **no steps**. It is surfaced to an agent **on demand**: `list_skills` advertises `kind` + `guidance_available`; calling `run_skill`/`run_workflow` on a soft skill returns its guidance text (no device execution). Soft guidance is never auto-injected into the prompt.
 
 Both kinds share the same `skill.yaml` metadata (`app_package`, `platforms`, `popup_detectors`) and both flow through the same **compatibility matrix** (`SkillRun`/`SkillCompat`, now carrying `kind`). A soft skill's `--verify` is a **smoke check** (guidance present + target app installed on the device), so the tested/untested matrix stays meaningful for both.
 
 Writers: `create_recorded_skill(kind="hard", ...)` and `create_soft_skill(...)` in `services/skill_creation.py`.
+
+## Checkpoints (human-in-the-loop)
+
+Some flows hit a gate a bot must not clear on its own — a captcha, an SMS code, an email code, a login/2FA prompt. A **checkpoint** step (inside a hard skill; it is a step type, *not* a third skill kind) suspends the run there and hands control to a human:
+
+```json
+{"action": "checkpoint", "reason": "captcha", "prompt": "Solve the puzzle, I'll continue",
+ "success": {"url_contains": "/inbox"}, "timeout_s": 600}
+```
+
+- `reason` ∈ `captcha | sms | email | login | generic`. `prompt` (supports `{placeholder}` substitution) is shown to the human.
+- On entry the run is marked **`awaiting_human`**, an `AWAITING HUMAN` line is written to the run log, and the dashboard surfaces a banner (with the live stream) offering **Resume** / **Abort**.
+- It resumes when **whichever fires first**: a human `POST /api/skills/runs/{id}/resume` (`{"action":"resume"}`, always available), or the optional `success` auto-detect (`url_contains` / `screen_has`) — so e.g. a captcha that auto-transitions signup→inbox self-resumes with no click. The manual override is checked first each cycle, so an ambiguous auto-signal can never strand the run.
+- `timeout_s` defaults to **600s**; `0`/null waits **indefinitely**. On expiry the run ends **`timed_out`** — resumable/retryable, never a silent pass or fail. A human can also `POST {"action":"abort"}` to cancel cleanly (**`aborted`**). Neither status is downgraded to `fail`.
+
+Engine: `skills/checkpoint.py` (the dependency-injected poll loop + `screen_condition_met`) driven by `RecordedStepAction`, over the shared-DB control channel on `SkillRun` (`resume_signal` + `checkpoint_json`). v1 is authored-only; the step schema is designed so `draft_skill` can emit a checkpoint node in a later trace-capture pass.
 
 ## Creating Skills from a Chat
 

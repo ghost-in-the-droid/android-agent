@@ -1,6 +1,7 @@
 """Base skill — shared actions any app can use."""
 
 from pathlib import Path
+
 from gitd.skills.base import Skill
 
 _SKILL_DIR = Path(__file__).parent
@@ -9,15 +10,15 @@ _SKILL_DIR = Path(__file__).parent
 def load() -> Skill:
     """Load the base skill with shared actions."""
     from gitd.skills._base.actions import (
-        TapElement,
-        SwipeDirection,
-        TypeText,
-        WaitForElement,
-        LaunchApp,
-        TakeScreenshot,
         DismissPopup,
+        LaunchApp,
         PressBack,
         PressHome,
+        SwipeDirection,
+        TakeScreenshot,
+        TapElement,
+        TypeText,
+        WaitForElement,
     )
 
     skill = Skill(_SKILL_DIR)
