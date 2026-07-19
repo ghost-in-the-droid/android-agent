@@ -1,4 +1,5 @@
 """TikTok iOS smoke skill."""
+
 from pathlib import Path
 
 from gitd.skills.base import Skill

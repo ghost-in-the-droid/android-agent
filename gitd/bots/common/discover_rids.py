@@ -15,6 +15,7 @@ Usage:
     # Save directly to rid_maps/:
     python3 -m gitd.bots.common.discover_rids --device <your-serial> --save
 """
+
 import argparse
 import json
 import re
@@ -33,7 +34,7 @@ PKG_PREFIX = f"{TIKTOK_PKG}:id/"
 def extract_rids(xml: str) -> list[dict]:
     """Extract all TikTok resource-id nodes with their attributes."""
     results = []
-    for m in re.finditer(r'<node[^>]+/?>', xml):
+    for m in re.finditer(r"<node[^>]+/?>", xml):
         node = m.group()
         rid_m = re.search(r'resource-id="([^"]*)"', node)
         if not rid_m or TIKTOK_PKG not in rid_m.group(1):
@@ -46,13 +47,15 @@ def extract_rids(xml: str) -> list[dict]:
         bounds_m = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node)
         click_m = re.search(r'clickable="(true|false)"', node)
 
-        results.append({
-            "rid": short,
-            "text": text_m.group(1) if text_m else "",
-            "desc": desc_m.group(1) if desc_m else "",
-            "bounds": [int(bounds_m.group(i)) for i in range(1, 5)] if bounds_m else [],
-            "clickable": click_m.group(1) == "true" if click_m else False,
-        })
+        results.append(
+            {
+                "rid": short,
+                "text": text_m.group(1) if text_m else "",
+                "desc": desc_m.group(1) if desc_m else "",
+                "bounds": [int(bounds_m.group(i)) for i in range(1, 5)] if bounds_m else [],
+                "clickable": click_m.group(1) == "true" if click_m else False,
+            }
+        )
     return results
 
 
@@ -106,8 +109,7 @@ def discover(dev: Device, navigate: bool = True) -> dict:
         print("\n[discover] Screen: HOME")
         dev.adb("shell", "am", "force-stop", TIKTOK_PKG)
         time.sleep(1)
-        dev.adb("shell", "am", "start", "-n",
-                f"{TIKTOK_PKG}/com.ss.android.ugc.aweme.splash.SplashActivity")
+        dev.adb("shell", "am", "start", "-n", f"{TIKTOK_PKG}/com.ss.android.ugc.aweme.splash.SplashActivity")
         time.sleep(5)
         xml = dev.dump_xml()
         rids = extract_rids(xml)
@@ -120,7 +122,7 @@ def discover(dev: Device, navigate: bool = True) -> dict:
         print("\n[discover] Screen: SEARCH INPUT")
         # Tap search icon (use guess or content-desc)
         search_node = None
-        for node_str in re.findall(r'<node[^>]+/?>', xml):
+        for node_str in re.findall(r"<node[^>]+/?>", xml):
             if 'content-desc="Search"' in node_str:
                 bounds_m = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node_str)
                 if bounds_m:
@@ -148,7 +150,7 @@ def discover(dev: Device, navigate: bool = True) -> dict:
         time.sleep(0.5)
         # Tap Search button
         xml = dev.dump_xml()
-        for node_str in re.findall(r'<node[^>]+/?>', xml):
+        for node_str in re.findall(r"<node[^>]+/?>", xml):
             text_m = re.search(r'\btext="Search"', node_str)
             click_m = re.search(r'clickable="true"', node_str)
             if text_m and click_m:
@@ -171,7 +173,7 @@ def discover(dev: Device, navigate: bool = True) -> dict:
 
         # ── Users tab ────────────────────────────────────────────────────
         print("\n[discover] Screen: USERS TAB")
-        for node_str in re.findall(r'<node[^>]+/?>', xml):
+        for node_str in re.findall(r"<node[^>]+/?>", xml):
             if 'text="Users"' in node_str:
                 bounds_m = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node_str)
                 if bounds_m and int(bounds_m.group(4)) < 350:
@@ -192,12 +194,11 @@ def discover(dev: Device, navigate: bool = True) -> dict:
         print("\n[discover] Screen: PROFILE")
         dev.adb("shell", "am", "force-stop", TIKTOK_PKG)
         time.sleep(1)
-        dev.adb("shell", "am", "start", "-n",
-                f"{TIKTOK_PKG}/com.ss.android.ugc.aweme.splash.SplashActivity")
+        dev.adb("shell", "am", "start", "-n", f"{TIKTOK_PKG}/com.ss.android.ugc.aweme.splash.SplashActivity")
         time.sleep(5)
         # Tap Profile tab
         xml = dev.dump_xml()
-        for node_str in re.findall(r'<node[^>]+/?>', xml):
+        for node_str in re.findall(r"<node[^>]+/?>", xml):
             if 'text="Profile"' in node_str:
                 bounds_m = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node_str)
                 if bounds_m and int(bounds_m.group(2)) > 2000:
@@ -232,9 +233,9 @@ def discover(dev: Device, navigate: bool = True) -> dict:
                 "node_count": len(nodes),
                 "unique_rids": list(set(r["rid"] for r in nodes)),
                 "nodes_with_text": [
-                    {"rid": r["rid"], "text": r["text"], "desc": r["desc"],
-                     "bounds": r["bounds"]}
-                    for r in nodes if r["text"] or r["desc"]
+                    {"rid": r["rid"], "text": r["text"], "desc": r["desc"], "bounds": r["bounds"]}
+                    for r in nodes
+                    if r["text"] or r["desc"]
                 ],
             }
             for screen, nodes in screens.items()
@@ -250,10 +251,8 @@ def discover(dev: Device, navigate: bool = True) -> dict:
 def main():
     ap = argparse.ArgumentParser(description="Discover TikTok RIDs for a new version")
     ap.add_argument("--device", required=True, help="ADB device serial")
-    ap.add_argument("--screen", default=None,
-                    help="'current' to dump current screen only (no navigation)")
-    ap.add_argument("--save", action="store_true",
-                    help="Save directly to rid_maps/ (still needs human review)")
+    ap.add_argument("--screen", default=None, help="'current' to dump current screen only (no navigation)")
+    ap.add_argument("--save", action="store_true", help="Save directly to rid_maps/ (still needs human review)")
     ap.add_argument("--json", action="store_true", help="Output raw JSON")
     args = ap.parse_args()
 
@@ -275,8 +274,7 @@ def main():
                 print(f"  {name:30s} → {rid}")
 
         for screen, data in result["screens"].items():
-            print(f"\n[{screen}] {data['node_count']} nodes, "
-                  f"{len(data['unique_rids'])} unique RIDs")
+            print(f"\n[{screen}] {data['node_count']} nodes, {len(data['unique_rids'])} unique RIDs")
             if data["nodes_with_text"]:
                 print("  Nodes with text/desc:")
                 for n in data["nodes_with_text"][:15]:
@@ -291,18 +289,41 @@ def main():
             "version": version,
             "package": TIKTOK_PKG,
             "verified_device": args.device,
-            "rids": {**{k: "TODO" for k in [
-                "search_icon", "search_box", "suggestion_row", "more_btn",
-                "filter_chip", "profile_tab", "profile_handle",
-                "profile_display_name", "profile_stat_value",
-                "profile_stat_label", "profile_video_views",
-                "drafts_banner", "drafts_grid_tile",
-                "user_handle", "user_stats", "user_display_name",
-                "tile_handle", "tile_caption", "tile_likes", "tile_time",
-                "tile_ad_label", "video_handle", "video_avatar",
-                "video_likes", "video_comments", "video_favorites",
-                "video_shares",
-            ]}, **result["auto_guesses"]},
+            "rids": {
+                **{
+                    k: "TODO"
+                    for k in [
+                        "search_icon",
+                        "search_box",
+                        "suggestion_row",
+                        "more_btn",
+                        "filter_chip",
+                        "profile_tab",
+                        "profile_handle",
+                        "profile_display_name",
+                        "profile_stat_value",
+                        "profile_stat_label",
+                        "profile_video_views",
+                        "drafts_banner",
+                        "drafts_grid_tile",
+                        "user_handle",
+                        "user_stats",
+                        "user_display_name",
+                        "tile_handle",
+                        "tile_caption",
+                        "tile_likes",
+                        "tile_time",
+                        "tile_ad_label",
+                        "video_handle",
+                        "video_avatar",
+                        "video_likes",
+                        "video_comments",
+                        "video_favorites",
+                        "video_shares",
+                    ]
+                },
+                **result["auto_guesses"],
+            },
         }
         out_path.write_text(json.dumps(template, indent=2) + "\n")
         print(f"\nSaved template → {out_path}")

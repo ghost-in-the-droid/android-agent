@@ -240,6 +240,7 @@ def create_tables(conn: sqlite3.Connection):
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
+
 def _now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -282,22 +283,21 @@ def _parse_metric(val) -> int | None:
 
 # ── Influencers ───────────────────────────────────────────────────────────────
 
+
 def get_influencer_id(conn: sqlite3.Connection, handle: str) -> int | None:
-    row = conn.execute(
-        "SELECT id FROM influencers WHERE handle = ?", (handle.strip(),)
-    ).fetchone()
+    row = conn.execute("SELECT id FROM influencers WHERE handle = ?", (handle.strip(),)).fetchone()
     return row["id"] if row else None
 
 
-def upsert_influencer(conn: sqlite3.Connection, row: dict,
-                      labels: list | None = None) -> int | None:
+def upsert_influencer(conn: sqlite3.Connection, row: dict, labels: list | None = None) -> int | None:
     handle = (row.get("handle") or "").strip()
     if not handle:
         return None
     followers = _parse_int(row.get("followers") or row.get("followers_n"))
     following = _parse_int(row.get("following") or row.get("following_n"))
     total_likes = _parse_int(row.get("total_likes") or row.get("likes") or row.get("likes_n"))
-    conn.execute("""
+    conn.execute(
+        """
         INSERT INTO influencers
             (handle, display_name, platform, profile_url,
              followers, following, total_likes,
@@ -326,26 +326,28 @@ def upsert_influencer(conn: sqlite3.Connection, row: dict,
             source_query    = COALESCE(excluded.source_query,    source_query),
             scraped_at      = COALESCE(excluded.scraped_at,      scraped_at),
             updated_at      = :updated_at
-    """, {
-        "handle":          handle,
-        "display_name":    row.get("display_name") or None,
-        "platform":        row.get("platform") or "TikTok",
-        "profile_url":     row.get("profile_url") or None,
-        "followers":       followers,
-        "following":       following,
-        "total_likes":     total_likes,
-        "bio":             row.get("bio") or None,
-        "niche":           row.get("niche") or None,
-        "pet_focus":       row.get("pet_focus") or None,
-        "caption":         row.get("caption") or None,
-        "top_views":       row.get("top_views") or None,
-        "avg_views":       row.get("avg_views") or None,
-        "num_videos":      row.get("num_videos") or None,
-        "screenshot_path": row.get("screenshot") or row.get("screenshot_path") or None,
-        "source_query":    row.get("query") or row.get("source_query") or None,
-        "scraped_at":      row.get("scraped_at") or None,
-        "updated_at":      _now(),
-    })
+    """,
+        {
+            "handle": handle,
+            "display_name": row.get("display_name") or None,
+            "platform": row.get("platform") or "TikTok",
+            "profile_url": row.get("profile_url") or None,
+            "followers": followers,
+            "following": following,
+            "total_likes": total_likes,
+            "bio": row.get("bio") or None,
+            "niche": row.get("niche") or None,
+            "pet_focus": row.get("pet_focus") or None,
+            "caption": row.get("caption") or None,
+            "top_views": row.get("top_views") or None,
+            "avg_views": row.get("avg_views") or None,
+            "num_videos": row.get("num_videos") or None,
+            "screenshot_path": row.get("screenshot") or row.get("screenshot_path") or None,
+            "source_query": row.get("query") or row.get("source_query") or None,
+            "scraped_at": row.get("scraped_at") or None,
+            "updated_at": _now(),
+        },
+    )
     conn.commit()
     inf_id = get_influencer_id(conn, handle)
     if inf_id and labels:
@@ -363,20 +365,23 @@ def upsert_influencer(conn: sqlite3.Connection, row: dict,
 
 # ── Outreach ──────────────────────────────────────────────────────────────────
 
-def upsert_outreach(conn: sqlite3.Connection, influencer_id: int,
-                    status: str = "not_contacted",
-                    strategy_id: int | None = None,
-                    deal_status: str | None = None,
-                    notes: str | None = None,
-                    contacted_at: str | None = None,
-                    source: str = "bot",
-                    source_account: str | None = None):
+
+def upsert_outreach(
+    conn: sqlite3.Connection,
+    influencer_id: int,
+    status: str = "not_contacted",
+    strategy_id: int | None = None,
+    deal_status: str | None = None,
+    notes: str | None = None,
+    contacted_at: str | None = None,
+    source: str = "bot",
+    source_account: str | None = None,
+):
     now = _now()
-    existing = conn.execute(
-        "SELECT id FROM outreach_log WHERE influencer_id = ?", (influencer_id,)
-    ).fetchone()
+    existing = conn.execute("SELECT id FROM outreach_log WHERE influencer_id = ?", (influencer_id,)).fetchone()
     if existing:
-        conn.execute("""
+        conn.execute(
+            """
             UPDATE outreach_log SET
                 status         = ?,
                 strategy_id    = COALESCE(?, strategy_id),
@@ -387,23 +392,24 @@ def upsert_outreach(conn: sqlite3.Connection, influencer_id: int,
                 source_account = COALESCE(?, source_account),
                 updated_at     = ?
             WHERE influencer_id = ?
-        """, (status, strategy_id, deal_status, notes, contacted_at,
-              source, source_account, now, influencer_id))
+        """,
+            (status, strategy_id, deal_status, notes, contacted_at, source, source_account, now, influencer_id),
+        )
     else:
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO outreach_log
                 (influencer_id, strategy_id, status, deal_status, notes,
                  contacted_at, source, source_account, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (influencer_id, strategy_id, status, deal_status, notes,
-              contacted_at, source, source_account, now, now))
+        """,
+            (influencer_id, strategy_id, status, deal_status, notes, contacted_at, source, source_account, now, now),
+        )
     conn.commit()
 
 
 def get_all_strategies(conn: sqlite3.Connection) -> list[dict]:
-    rows = conn.execute(
-        "SELECT * FROM outreach_strategies WHERE is_active = 1 ORDER BY id"
-    ).fetchall()
+    rows = conn.execute("SELECT * FROM outreach_strategies WHERE is_active = 1 ORDER BY id").fetchall()
     return [dict(r) for r in rows]
 
 
@@ -414,12 +420,16 @@ def seed_default_strategies(conn: sqlite3.Connection):
     conn.executemany(
         "INSERT INTO outreach_strategies (name, description, message_template) VALUES (?, ?, ?)",
         [
-            ("Generic friendly",
-             "Friendly intro template — customize for your use case",
-             "Hi {name}! Reaching out about a collab — let me know if interested."),
-            ("Generic collab",
-             "Direct collaboration ask — replace with your own messaging",
-             "Hey {name}! Would you be open to a small collab? Happy to share details."),
+            (
+                "Generic friendly",
+                "Friendly intro template — customize for your use case",
+                "Hi {name}! Reaching out about a collab — let me know if interested.",
+            ),
+            (
+                "Generic collab",
+                "Direct collaboration ask — replace with your own messaging",
+                "Hey {name}! Would you be open to a small collab? Happy to share details.",
+            ),
         ],
     )
     conn.commit()
@@ -427,42 +437,61 @@ def seed_default_strategies(conn: sqlite3.Connection):
 
 # ── Crawl runs ────────────────────────────────────────────────────────────────
 
-def create_crawl_run(conn: sqlite3.Connection, run_hex: str,
-                     name: str | None, labels: list,
-                     query: str, tab: str) -> int:
-    cur = conn.execute("""
+
+def create_crawl_run(
+    conn: sqlite3.Connection, run_hex: str, name: str | None, labels: list, query: str, tab: str
+) -> int:
+    cur = conn.execute(
+        """
         INSERT INTO crawl_runs (run_hex, name, labels, query, tab, started_at)
         VALUES (?, ?, ?, ?, ?, ?)
-    """, (run_hex, name or None, json.dumps(labels or []), query, tab, _now()))
+    """,
+        (run_hex, name or None, json.dumps(labels or []), query, tab, _now()),
+    )
     conn.commit()
     return cur.lastrowid
 
 
-def update_crawl_run(conn: sqlite3.Connection, run_id: int,
-                     tiles_processed: int = 0,
-                     influencers_new: int = 0,
-                     influencers_known: int = 0):
-    conn.execute("""
+def update_crawl_run(
+    conn: sqlite3.Connection,
+    run_id: int,
+    tiles_processed: int = 0,
+    influencers_new: int = 0,
+    influencers_known: int = 0,
+):
+    conn.execute(
+        """
         UPDATE crawl_runs
         SET ended_at=?, tiles_processed=?, influencers_new=?, influencers_known=?
         WHERE id=?
-    """, (_now(), tiles_processed, influencers_new, influencers_known, run_id))
+    """,
+        (_now(), tiles_processed, influencers_new, influencers_known, run_id),
+    )
     conn.commit()
 
 
 # ── Content posts ─────────────────────────────────────────────────────────────
 
-def create_content_post(conn: sqlite3.Connection, video_id: int, action: str,
-                        caption: str = "", hashtags: str = "", device: str = "",
-                        inject_tts: bool = False,
-                        draft_position: int | None = None) -> int:
-    cur = conn.execute("""
+
+def create_content_post(
+    conn: sqlite3.Connection,
+    video_id: int,
+    action: str,
+    caption: str = "",
+    hashtags: str = "",
+    device: str = "",
+    inject_tts: bool = False,
+    draft_position: int | None = None,
+) -> int:
+    cur = conn.execute(
+        """
         INSERT INTO content_posts
             (video_id, action, caption_used, hashtags_used, device, inject_tts,
              status, draft_position)
         VALUES (?, ?, ?, ?, ?, ?, 'uploading', ?)
-    """, (video_id, action, caption or None, hashtags or None,
-          device or None, 1 if inject_tts else 0, draft_position))
+    """,
+        (video_id, action, caption or None, hashtags or None, device or None, 1 if inject_tts else 0, draft_position),
+    )
     conn.commit()
     return cur.lastrowid
 
@@ -485,9 +514,10 @@ def update_content_video_status(conn: sqlite3.Connection, vid_id: int, status: s
 
 # ── Post analytics ────────────────────────────────────────────────────────────
 
-def save_post_analytics(conn: sqlite3.Connection, post_data: dict,
-                        account: str | None = None,
-                        post_index: int | None = None) -> int:
+
+def save_post_analytics(
+    conn: sqlite3.Connection, post_data: dict, account: str | None = None, post_index: int | None = None
+) -> int:
     now = _now()
     posted_on = post_data.get("posted_on", "")
 
@@ -495,8 +525,7 @@ def save_post_analytics(conn: sqlite3.Connection, post_data: dict,
     if posted_on:
         _clean = posted_on.replace("Posted on", "").strip()
         iso_prefix = None
-        for fmt in ("%b %d, %Y, %I:%M %p", "%b %d,%Y,%I:%M%p",
-                    "%b %d, %Y, %I:%M%p", "%b %d,%Y, %I:%M %p"):
+        for fmt in ("%b %d, %Y, %I:%M %p", "%b %d,%Y,%I:%M%p", "%b %d, %Y, %I:%M%p", "%b %d,%Y, %I:%M %p"):
             try:
                 dt = datetime.strptime(_clean, fmt)
                 iso_prefix = dt.strftime("%Y-%m-%d %H:%M")
@@ -512,45 +541,60 @@ def save_post_analytics(conn: sqlite3.Connection, post_data: dict,
             ).fetchone()
             if row:
                 cp_id = row[0]
-                conn.execute("""
+                conn.execute(
+                    """
                     UPDATE content_posts SET
                         views=?, likes=?, comments=?, shares=?, last_scraped_at=?
                     WHERE id=?
-                """, (_parse_metric(post_data.get("video_views")),
-                      _parse_metric(post_data.get("likes")),
-                      _parse_metric(post_data.get("comments")),
-                      _parse_metric(post_data.get("shares")),
-                      now, cp_id))
+                """,
+                    (
+                        _parse_metric(post_data.get("video_views")),
+                        _parse_metric(post_data.get("likes")),
+                        _parse_metric(post_data.get("comments")),
+                        _parse_metric(post_data.get("shares")),
+                        now,
+                        cp_id,
+                    ),
+                )
 
-    cur = conn.execute("""
+    cur = conn.execute(
+        """
         INSERT INTO post_analytics
             (posted_on, post_index, content_post_id, account,
              video_views, likes, comments, shares, bookmarks,
              avg_watch_time, watched_full_pct, new_followers,
              traffic_sources_json, viewers_json, engagement_json, scraped_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (posted_on, post_index, cp_id, account,
-          _parse_metric(post_data.get("video_views")),
-          _parse_metric(post_data.get("likes")),
-          _parse_metric(post_data.get("comments")),
-          _parse_metric(post_data.get("shares")),
-          _parse_metric(post_data.get("bookmarks")),
-          post_data.get("avg_watch_time"),
-          post_data.get("watched_full_pct"),
-          _parse_metric(post_data.get("new_followers")),
-          json.dumps(post_data.get("traffic_sources", {})),
-          json.dumps(post_data.get("viewers", {})),
-          json.dumps(post_data.get("engagement", {})),
-          now))
+    """,
+        (
+            posted_on,
+            post_index,
+            cp_id,
+            account,
+            _parse_metric(post_data.get("video_views")),
+            _parse_metric(post_data.get("likes")),
+            _parse_metric(post_data.get("comments")),
+            _parse_metric(post_data.get("shares")),
+            _parse_metric(post_data.get("bookmarks")),
+            post_data.get("avg_watch_time"),
+            post_data.get("watched_full_pct"),
+            _parse_metric(post_data.get("new_followers")),
+            json.dumps(post_data.get("traffic_sources", {})),
+            json.dumps(post_data.get("viewers", {})),
+            json.dumps(post_data.get("engagement", {})),
+            now,
+        ),
+    )
     conn.commit()
     return cur.lastrowid
 
 
 # ── Inbox snapshots ──────────────────────────────────────────────────────────
 
-def save_inbox_snapshot(conn: sqlite3.Connection, result: dict,
-                        device: str | None = None,
-                        account: str | None = None) -> int:
+
+def save_inbox_snapshot(
+    conn: sqlite3.Connection, result: dict, device: str | None = None, account: str | None = None
+) -> int:
     """Persist inbox scan results. Returns snapshot_id.
 
     result = {replies: [{handle, last_msg, unread, time_str}],
@@ -559,19 +603,28 @@ def save_inbox_snapshot(conn: sqlite3.Connection, result: dict,
     now = _now()
     new_replies = 0
 
-    cur = conn.execute("""
+    cur = conn.execute(
+        """
         INSERT INTO inbox_snapshots
             (scanned_at, total, reply_count, seen_count, sent_count, failed_count, device, account)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (now, result["total"], len(result["replies"]), len(result.get("seen", [])),
-          result["sent"], result["failed"], device, account))
+    """,
+        (
+            now,
+            result["total"],
+            len(result["replies"]),
+            len(result.get("seen", [])),
+            result["sent"],
+            result["failed"],
+            device,
+            account,
+        ),
+    )
     snap_id = cur.lastrowid
 
     for entry in result["replies"]:
         handle = entry["handle"]
-        existing = conn.execute(
-            "SELECT id FROM inbox_replies WHERE handle = ?", (handle,)
-        ).fetchone()
+        existing = conn.execute("SELECT id FROM inbox_replies WHERE handle = ?", (handle,)).fetchone()
 
         inf_id = get_influencer_id(conn, handle)
         outreach_upd = 0
@@ -583,62 +636,72 @@ def save_inbox_snapshot(conn: sqlite3.Connection, result: dict,
                 pass
 
         if existing:
-            conn.execute("""
+            conn.execute(
+                """
                 UPDATE inbox_replies SET last_msg=?, status='reply', unread=?,
                     last_seen_at=?, snapshot_id=?, influencer_id=COALESCE(?, influencer_id),
                     outreach_updated=MAX(outreach_updated, ?)
                 WHERE handle=?
-            """, (entry["last_msg"], entry.get("unread", 0), now, snap_id,
-                  inf_id, outreach_upd, handle))
+            """,
+                (entry["last_msg"], entry.get("unread", 0), now, snap_id, inf_id, outreach_upd, handle),
+            )
         else:
             new_replies += 1
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO inbox_replies
                     (handle, last_msg, status, unread, influencer_id, outreach_updated,
                      needs_reply, first_seen_at, last_seen_at, snapshot_id)
                 VALUES (?, ?, 'reply', ?, ?, ?, 1, ?, ?, ?)
-            """, (handle, entry["last_msg"], entry.get("unread", 0),
-                  inf_id, outreach_upd, now, now, snap_id))
+            """,
+                (handle, entry["last_msg"], entry.get("unread", 0), inf_id, outreach_upd, now, now, snap_id),
+            )
 
     for entry in result.get("seen", []):
         handle = entry["handle"]
-        existing = conn.execute(
-            "SELECT id, status FROM inbox_replies WHERE handle = ?", (handle,)
-        ).fetchone()
+        existing = conn.execute("SELECT id, status FROM inbox_replies WHERE handle = ?", (handle,)).fetchone()
         inf_id = get_influencer_id(conn, handle)
 
         if existing:
             if existing["status"] != "reply":
-                conn.execute("""
+                conn.execute(
+                    """
                     UPDATE inbox_replies SET last_msg=?, unread=?,
                         last_seen_at=?, snapshot_id=?, influencer_id=COALESCE(?, influencer_id)
                     WHERE handle=?
-                """, (entry["last_msg"], entry.get("unread", 0), now, snap_id, inf_id, handle))
+                """,
+                    (entry["last_msg"], entry.get("unread", 0), now, snap_id, inf_id, handle),
+                )
         else:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO inbox_replies
                     (handle, last_msg, status, unread, influencer_id, outreach_updated,
                      needs_reply, first_seen_at, last_seen_at, snapshot_id)
                 VALUES (?, ?, 'seen', ?, ?, 0, 0, ?, ?, ?)
-            """, (handle, entry["last_msg"], entry.get("unread", 0),
-                  inf_id, now, now, snap_id))
+            """,
+                (handle, entry["last_msg"], entry.get("unread", 0), inf_id, now, now, snap_id),
+            )
 
     conn.execute("UPDATE inbox_snapshots SET new_replies=? WHERE id=?", (new_replies, snap_id))
     conn.commit()
-    print(f"[db] Inbox snapshot #{snap_id}: {result['total']} total, "
-          f"{len(result['replies'])} replies ({new_replies} new), "
-          f"{len(result.get('seen', []))} seen")
+    print(
+        f"[db] Inbox snapshot #{snap_id}: {result['total']} total, "
+        f"{len(result['replies'])} replies ({new_replies} new), "
+        f"{len(result.get('seen', []))} seen"
+    )
     return snap_id
+
 
 # ─────────────────────────────────────────────────────────────────────
 # Marketing agent / content plan / styles support (added 2026-05-28)
 # ─────────────────────────────────────────────────────────────────────
 
+
 def generate_themes_catalog(conn: sqlite3.Connection) -> list[dict]:
     """Generate compact catalog for agent context (no full prompts)."""
     rows = conn.execute(
-        'SELECT id, display_name, category, description '
-        'FROM styles WHERE is_active=1 ORDER BY id'
+        "SELECT id, display_name, category, description FROM styles WHERE is_active=1 ORDER BY id"
     ).fetchall()
     return [dict(r) for r in rows]
 
@@ -646,26 +709,26 @@ def generate_themes_catalog(conn: sqlite3.Connection) -> list[dict]:
 def generate_images_catalog(conn: sqlite3.Connection) -> list[dict]:
     """Compact catalog for agent context."""
     rows = conn.execute(
-        'SELECT id, pet_type, pet_name, description, source_handle '
+        "SELECT id, pet_type, pet_name, description, source_handle "
         'FROM input_images WHERE is_active=1 AND public_url IS NOT NULL AND public_url <> "" '
-        'ORDER BY id'
+        "ORDER BY id"
     ).fetchall()
     return [dict(r) for r in rows]
 
 
 def get_style(conn: sqlite3.Connection, style_id: str) -> dict | None:
-    row = conn.execute('SELECT * FROM styles WHERE id=?', (style_id,)).fetchone()
+    row = conn.execute("SELECT * FROM styles WHERE id=?", (style_id,)).fetchone()
     return dict(row) if row else None
 
 
 def create_content_plan(conn: sqlite3.Connection, **kwargs) -> int:
     now = _now()
-    kwargs.setdefault('created_at', now)
-    kwargs.setdefault('updated_at', now)
-    kwargs.setdefault('status', 'planned')
-    cols = ', '.join(kwargs.keys())
-    placeholders = ', '.join(f':{k}' for k in kwargs.keys())
-    cur = conn.execute(f'INSERT INTO content_plan ({cols}) VALUES ({placeholders})', kwargs)
+    kwargs.setdefault("created_at", now)
+    kwargs.setdefault("updated_at", now)
+    kwargs.setdefault("status", "planned")
+    cols = ", ".join(kwargs.keys())
+    placeholders = ", ".join(f":{k}" for k in kwargs.keys())
+    cur = conn.execute(f"INSERT INTO content_plan ({cols}) VALUES ({placeholders})", kwargs)
     conn.commit()
     return cur.lastrowid
 
@@ -673,19 +736,19 @@ def create_content_plan(conn: sqlite3.Connection, **kwargs) -> int:
 def update_content_plan(conn: sqlite3.Connection, plan_id: int, **kwargs):
     if not kwargs:
         return
-    kwargs['updated_at'] = _now()
-    sets = ', '.join(f'{k}=?' for k in kwargs)
-    conn.execute(f'UPDATE content_plan SET {sets} WHERE id=?', (*kwargs.values(), plan_id))
+    kwargs["updated_at"] = _now()
+    sets = ", ".join(f"{k}=?" for k in kwargs)
+    conn.execute(f"UPDATE content_plan SET {sets} WHERE id=?", (*kwargs.values(), plan_id))
     conn.commit()
 
 
 def create_agent_run(conn: sqlite3.Connection, **kwargs) -> int:
     now = _now()
-    kwargs.setdefault('created_at', now)
-    kwargs.setdefault('status', 'running')
-    cols = ', '.join(kwargs.keys())
-    placeholders = ', '.join(f':{k}' for k in kwargs.keys())
-    cur = conn.execute(f'INSERT INTO agent_runs ({cols}) VALUES ({placeholders})', kwargs)
+    kwargs.setdefault("created_at", now)
+    kwargs.setdefault("status", "running")
+    cols = ", ".join(kwargs.keys())
+    placeholders = ", ".join(f":{k}" for k in kwargs.keys())
+    cur = conn.execute(f"INSERT INTO agent_runs ({cols}) VALUES ({placeholders})", kwargs)
     conn.commit()
     return cur.lastrowid
 
@@ -693,57 +756,64 @@ def create_agent_run(conn: sqlite3.Connection, **kwargs) -> int:
 def update_agent_run(conn: sqlite3.Connection, run_id: int, **kwargs):
     if not kwargs:
         return
-    sets = ', '.join(f'{k}=?' for k in kwargs)
-    conn.execute(f'UPDATE agent_runs SET {sets} WHERE id=?', (*kwargs.values(), run_id))
+    sets = ", ".join(f"{k}=?" for k in kwargs)
+    conn.execute(f"UPDATE agent_runs SET {sets} WHERE id=?", (*kwargs.values(), run_id))
     conn.commit()
 
 
-def sync_styles_from_prompts_ts(conn: sqlite3.Connection,
-                                prompts_ts_path: str | Path | None = None):
+def sync_styles_from_prompts_ts(conn: sqlite3.Connection, prompts_ts_path: str | Path | None = None):
     """Parse prompts.ts and upsert all templates into styles table.
     Preserves manual edits to description/category/tags — only updates
     prompt_text + inputs on sync."""
     import re as _re
+
     if prompts_ts_path is None:
-        prompts_ts_path = Path(__file__).resolve().parent / 'functions' / 'src' / 'prompts.ts'
+        prompts_ts_path = Path(__file__).resolve().parent / "functions" / "src" / "prompts.ts"
     content = Path(prompts_ts_path).read_text()
     now = _now()
     count = 0
 
-    for m in _re.finditer(r'\[GenerationTemplateName\.(\w+)\]:\s*\{', content):
+    for m in _re.finditer(r"\[GenerationTemplateName\.(\w+)\]:\s*\{", content):
         enum_name = m.group(1)
         start = m.end()
-        depth = 1; pos = start
+        depth = 1
+        pos = start
         while pos < len(content) and depth > 0:
-            if   content[pos] == '{': depth += 1
-            elif content[pos] == '}': depth -= 1
+            if content[pos] == "{":
+                depth += 1
+            elif content[pos] == "}":
+                depth -= 1
             pos += 1
-        block = content[start:pos - 1]
+        block = content[start : pos - 1]
 
         pm = _re.search(r'prompt:\s*"((?:[^"\\]|\\.)*)"', block)
-        prompt = pm.group(1).replace('\\"', '"') if pm else ''
+        prompt = pm.group(1).replace('\\"', '"') if pm else ""
 
         inputs = []
-        if 'inputs:' in block:
+        if "inputs:" in block:
             for im in _re.finditer(
                 r'\{[^}]*?label:\s*[\'"](\w+)[\'"]'
                 r'(?:[^}]*?templateString:\s*[\'"]([^\'"]*)[\'"])?'
                 r'(?:[^}]*?fallbackString:\s*[\'"]([^\'"]*)[\'"])?[^}]*?\}',
-                block, _re.DOTALL
+                block,
+                _re.DOTALL,
             ):
-                inputs.append({
-                    'label':          im.group(1),
-                    'templateString': im.group(2) or '',
-                    'fallbackString': im.group(3) or '',
-                })
+                inputs.append(
+                    {
+                        "label": im.group(1),
+                        "templateString": im.group(2) or "",
+                        "fallbackString": im.group(3) or "",
+                    }
+                )
             seen: set = set()
-            inputs = [i for i in inputs if not (i['label'] in seen or seen.add(i['label']))]
+            inputs = [i for i in inputs if not (i["label"] in seen or seen.add(i["label"]))]
 
         key = _enum_to_key(enum_name)
         display = _enum_to_display(enum_name)
-        inputs_json = json.dumps(inputs) if inputs else '[]'
+        inputs_json = json.dumps(inputs) if inputs else "[]"
 
-        conn.execute("""
+        conn.execute(
+            """
             INSERT INTO styles (id, display_name, prompt_text, inputs_json, synced_from_website_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
@@ -753,22 +823,32 @@ def sync_styles_from_prompts_ts(conn: sqlite3.Connection,
                                     THEN excluded.display_name ELSE styles.display_name END,
                 synced_from_website_at = excluded.synced_from_website_at,
                 updated_at = excluded.updated_at
-        """, (key, display, prompt, inputs_json, now, now))
+        """,
+            (key, display, prompt, inputs_json, now, now),
+        )
         count += 1
 
     conn.commit()
-    print(f'[db] Synced {count} styles from prompts.ts')
+    print(f"[db] Synced {count} styles from prompts.ts")
     return count
 
 
-def upsert_gen_job(conn: sqlite3.Connection, task_id: str, *,
-                   template_key: str = '', image_url: str = '',
-                   prompt_used: str = '', aspect: str = '9:16',
-                   status: str = 'pending', output_url: str | None = None,
-                   output_filename: str | None = None,
-                   error_msg: str | None = None) -> None:
+def upsert_gen_job(
+    conn: sqlite3.Connection,
+    task_id: str,
+    *,
+    template_key: str = "",
+    image_url: str = "",
+    prompt_used: str = "",
+    aspect: str = "9:16",
+    status: str = "pending",
+    output_url: str | None = None,
+    output_filename: str | None = None,
+    error_msg: str | None = None,
+) -> None:
     now = _now()
-    conn.execute("""
+    conn.execute(
+        """
         INSERT INTO gen_jobs
             (task_id, template_key, image_url, prompt_used, aspect,
              status, output_url, output_filename, error_msg, created_at, updated_at)
@@ -779,6 +859,19 @@ def upsert_gen_job(conn: sqlite3.Connection, task_id: str, *,
             output_filename = COALESCE(excluded.output_filename, output_filename),
             error_msg       = COALESCE(excluded.error_msg,       error_msg),
             updated_at      = excluded.updated_at
-    """, (task_id, template_key, image_url, prompt_used, aspect,
-          status, output_url, output_filename, error_msg, now, now))
+    """,
+        (
+            task_id,
+            template_key,
+            image_url,
+            prompt_used,
+            aspect,
+            status,
+            output_url,
+            output_filename,
+            error_msg,
+            now,
+            now,
+        ),
+    )
     conn.commit()

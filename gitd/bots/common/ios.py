@@ -6,6 +6,7 @@ agent layer: screenshot, XML dump, tap, swipe, type, app launch, and simple XML
 helpers.  The implementation talks directly to Appium's W3C WebDriver HTTP API
 so the first iOS milestone does not need the Python Appium client package.
 """
+
 from __future__ import annotations
 
 import base64
@@ -1115,16 +1116,16 @@ def _looks_like_ios_identifier(s: str) -> bool:
     """
     if not s or any(ch.isspace() for ch in s):
         return False
-    if "<" in s or ">" in s:              # generics: BaseCell<...>
+    if "<" in s or ">" in s:  # generics: BaseCell<...>
         return True
-    if s.startswith("_Tt"):               # mangled Swift type
+    if s.startswith("_Tt"):  # mangled Swift type
         return True
-    if "__" in s:                         # snake view id: a__b__c
+    if "__" in s:  # snake view id: a__b__c
         return True
-    if re.search(r"[a-z][A-Z]", s):       # camelCase/PascalCase hump: HomeScreenView
+    if re.search(r"[a-z][A-Z]", s):  # camelCase/PascalCase hump: HomeScreenView
         return True
     if "." in s and any(c.isupper() for c in s) and any(c.islower() for c in s):
-        return True                       # mixed-case module path: Home_Impl.HomeScreenView
+        return True  # mixed-case module path: Home_Impl.HomeScreenView
     return False
 
 
@@ -1262,7 +1263,9 @@ def _reap_stale_wda_builds() -> None:
     with contextlib.suppress(Exception):
         subprocess.run(
             ["pkill", "-9", "-f", "xcodebuild.*WebDriverAgent"],
-            timeout=5, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=5,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
 
@@ -1547,7 +1550,8 @@ class IOSDevice:
                     # makes tap-to-control feel frozen. Disable it for responsiveness;
                     # the per-action delays already provide settle. Override via
                     # IOS_WAIT_FOR_QUIESCENCE=1 if a flow needs idle-waiting.
-                    "appium:shouldWaitForQuiescence": os.getenv("IOS_WAIT_FOR_QUIESCENCE", "").strip().lower() in ("1", "true", "yes"),
+                    "appium:shouldWaitForQuiescence": os.getenv("IOS_WAIT_FOR_QUIESCENCE", "").strip().lower()
+                    in ("1", "true", "yes"),
                 }
                 if self.platform_version:
                     always_match["appium:platformVersion"] = self.platform_version
@@ -1555,7 +1559,11 @@ class IOSDevice:
                     always_match["appium:webDriverAgentUrl"] = self.wda_url
                 if self.browser_name:
                     always_match["browserName"] = self.browser_name
-                elif self.bundle_id and os.getenv("IOS_LAUNCH_BUNDLE_ON_SESSION", "").strip().lower() not in ("0", "false", "no"):
+                elif self.bundle_id and os.getenv("IOS_LAUNCH_BUNDLE_ON_SESSION", "").strip().lower() not in (
+                    "0",
+                    "false",
+                    "no",
+                ):
                     # main's contract: appium:bundleId is present in the session
                     # caps by default, which makes Appium FOREGROUND that app on
                     # session (re)creation. On-device, that auto-launch can yank a
@@ -1661,9 +1669,7 @@ class IOSDevice:
             return self._request("GET", self._session_path("/wda/activeAppInfo"))
         if name == "pressButton":
             return self._request("POST", self._session_path("/wda/pressButton"), {"name": args.get("name")})
-        raise IOSBackendError(
-            f"mobile: {name} has no WDA-native equivalent in direct mode (IOS_WDA_DIRECT=1)"
-        )
+        raise IOSBackendError(f"mobile: {name} has no WDA-native equivalent in direct mode (IOS_WDA_DIRECT=1)")
 
     def _execute_script(self, script: str, args: list[Any] | None = None) -> Any:
         return self._request("POST", self._session_path("/execute/sync"), {"script": script, "args": args or []})
@@ -2229,11 +2235,15 @@ class IOSDevice:
 
     def _find_browser_prompt_action_node(self, xml: str) -> str | None:
         for node in self.nodes(xml):
-            label = re.sub(
-                r"\s+",
-                " ",
-                f"{self.node_text(node)} {self.node_content_desc(node)} {self.node_rid(node)}",
-            ).strip().lower()
+            label = (
+                re.sub(
+                    r"\s+",
+                    " ",
+                    f"{self.node_text(node)} {self.node_content_desc(node)} {self.node_rid(node)}",
+                )
+                .strip()
+                .lower()
+            )
             if not label:
                 continue
             cls = _node_attr(node, "class").lower()
@@ -2821,7 +2831,9 @@ class IOSDevice:
             "ok": reachable,
             "platform": "ios",
             "issue": "start_appium",
-            "message": "Appium started." if reachable else "Appium start command was launched but /status is not reachable yet.",
+            "message": "Appium started."
+            if reachable
+            else "Appium start command was launched but /status is not reachable yet.",
             "pid": proc.pid,
             "command": command,
             "log_path": log_path,
@@ -3411,16 +3423,9 @@ def classify_ios_error(exc: Exception) -> tuple[str, str]:
         or "ui automation" in lower
     ):
         return "locked", f"Device is locked, not trusted, or blocked by iOS automation permissions: {message}"
-    if (
-        "remote xpc" in lower
-        or "remotexpc" in lower
-        or "could not find the expected device" in lower
-    ):
+    if "remote xpc" in lower or "remotexpc" in lower or "could not find the expected device" in lower:
         return "remote_xpc_tunnel_unavailable", f"RemoteXPC tunnel or usbmux device listing is unavailable: {message}"
-    if (
-        "could not create appium ios session" in lower
-        and ("read timed out" in lower or "timed out" in lower)
-    ):
+    if "could not create appium ios session" in lower and ("read timed out" in lower or "timed out" in lower):
         return "wda_launch_timeout", f"WebDriverAgent session creation timed out: {message}"
     if "connection refused" in lower or "failed to establish" in lower or "timed out" in lower:
         return "appium_down", f"Appium is unreachable: {message}"

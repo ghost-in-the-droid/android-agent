@@ -7,6 +7,7 @@ Usage:
         --device <your-serial> \
         --max-depth 3
 """
+
 from __future__ import annotations
 
 import argparse
@@ -32,10 +33,12 @@ log = logging.getLogger(__name__)
 
 # ── State representation ─────────────────────────────────────────────────────
 
+
 @dataclass
 class AppState:
     """A snapshot of the app's UI state."""
-    state_id: str                          # hash of xml structure
+
+    state_id: str  # hash of xml structure
     screenshot_path: str = ""
     xml_path: str = ""
     elements: list[dict] = field(default_factory=list)
@@ -48,6 +51,7 @@ class AppState:
 
 
 # ── XML parsing ──────────────────────────────────────────────────────────────
+
 
 def _parse_bounds(bounds_str: str) -> tuple[int, int, int, int] | None:
     """Parse '[x1,y1][x2,y2]' → (x1, y1, x2, y2)."""
@@ -71,9 +75,7 @@ def extract_interactive_elements(xml_str: str) -> list[dict]:
         return elements
 
     # Check if any node has clickable=true — if none, use heuristic mode
-    has_any_clickable = any(
-        n.get("clickable", "false") == "true" for n in root.iter()
-    )
+    has_any_clickable = any(n.get("clickable", "false") == "true" for n in root.iter())
 
     idx = 0
     for node in root.iter():
@@ -108,18 +110,20 @@ def extract_interactive_elements(xml_str: str) -> list[dict]:
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
         idx += 1
 
-        elements.append({
-            "idx": idx,
-            "class": node.get("class", ""),
-            "text": node.get("text", ""),
-            "content_desc": node.get("content-desc", ""),
-            "resource_id": node.get("resource-id", ""),
-            "bounds": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
-            "center": {"x": cx, "y": cy},
-            "clickable": clickable,
-            "scrollable": scrollable,
-            "editable": editable,
-        })
+        elements.append(
+            {
+                "idx": idx,
+                "class": node.get("class", ""),
+                "text": node.get("text", ""),
+                "content_desc": node.get("content-desc", ""),
+                "resource_id": node.get("resource-id", ""),
+                "bounds": {"x1": x1, "y1": y1, "x2": x2, "y2": y2},
+                "center": {"x": cx, "y": cy},
+                "clickable": clickable,
+                "scrollable": scrollable,
+                "editable": editable,
+            }
+        )
 
     return elements
 
@@ -152,11 +156,19 @@ def ios_state_hash(package: str, activity: str, xml_str: str, screenshot: bytes 
 
 # ── Explorer ─────────────────────────────────────────────────────────────────
 
+
 class AppExplorer:
     """BFS explorer that navigates through an app's UI states."""
 
-    def __init__(self, dev: Any, package: str, output_dir: str, max_depth: int = 3,
-                 max_states: int = 50, settle_time: float = 1.5):
+    def __init__(
+        self,
+        dev: Any,
+        package: str,
+        output_dir: str,
+        max_depth: int = 3,
+        max_states: int = 50,
+        settle_time: float = 1.5,
+    ):
         self.dev = dev
         self.package = package
         self.output_dir = Path(output_dir)
@@ -178,7 +190,7 @@ class AppExplorer:
 
     def _log_progress(self, msg: str):
         """Append a timestamped message to the progress log."""
-        ts = time.strftime('%H:%M:%S')
+        ts = time.strftime("%H:%M:%S")
         self._log_lines.append(f"[{ts}] {msg}")
         # Keep only last 30 lines
         if len(self._log_lines) > 30:
@@ -222,9 +234,10 @@ class AppExplorer:
                 return "unknown"
         try:
             out = subprocess.check_output(
-                ["adb", "-s", self.dev.serial, "shell",
-                 "dumpsys", "activity", "activities"],
-                timeout=5, text=True, stderr=subprocess.DEVNULL
+                ["adb", "-s", self.dev.serial, "shell", "dumpsys", "activity", "activities"],
+                timeout=5,
+                text=True,
+                stderr=subprocess.DEVNULL,
             )
             for line in out.splitlines():
                 if "mResumedActivity" in line or "topResumedActivity" in line:
@@ -244,14 +257,24 @@ class AppExplorer:
             time.sleep(self.settle_time)
             return
         subprocess.run(
-            ["adb", "-s", self.dev.serial, "shell", "am", "force-stop", self.package],
-            timeout=5, capture_output=True
+            ["adb", "-s", self.dev.serial, "shell", "am", "force-stop", self.package], timeout=5, capture_output=True
         )
         time.sleep(0.5)
         subprocess.run(
-            ["adb", "-s", self.dev.serial, "shell",
-             "monkey", "-p", self.package, "-c", "android.intent.category.LAUNCHER", "1"],
-            timeout=15, capture_output=True
+            [
+                "adb",
+                "-s",
+                self.dev.serial,
+                "shell",
+                "monkey",
+                "-p",
+                self.package,
+                "-c",
+                "android.intent.category.LAUNCHER",
+                "1",
+            ],
+            timeout=15,
+            capture_output=True,
         )
         time.sleep(8)  # Apps need time to load past splash/animations
 
@@ -267,10 +290,7 @@ class AppExplorer:
     def _screenshot_bytes(self) -> bytes:
         if self.platform == "ios":
             return self.dev.take_screenshot()
-        return subprocess.check_output(
-            ["adb", "-s", self.dev.serial, "exec-out", "screencap", "-p"],
-            timeout=10
-        )
+        return subprocess.check_output(["adb", "-s", self.dev.serial, "exec-out", "screencap", "-p"], timeout=10)
 
     def _capture_state(self, depth: int) -> AppState | None:
         """Dump XML + screenshot, create AppState if new."""
@@ -325,7 +345,9 @@ class AppExplorer:
         self.states[state_id] = state
         log.info(f"  New state {state_id} | depth={depth} | {len(elements)} elements | {activity}")
         clickable_count = sum(1 for e in elements if e.get("clickable"))
-        self._log_progress(f"State {len(self.states)}: {activity or state_id} — {len(elements)} elements ({clickable_count} clickable)")
+        self._log_progress(
+            f"State {len(self.states)}: {activity or state_id} — {len(elements)} elements ({clickable_count} clickable)"
+        )
         self._write_progress(depth)
         return state
 
@@ -383,7 +405,7 @@ class AppExplorer:
                 cx, cy = elem["center"]["x"], elem["center"]["y"]
                 label = elem.get("text") or elem.get("content_desc") or elem.get("resource_id") or f"({cx},{cy})"
                 log.info(f"  Tapping [{elem['idx']}] {label}")
-                self._log_progress(f"Tapping element #{elem['idx']} \"{label}\"")
+                self._log_progress(f'Tapping element #{elem["idx"]} "{label}"')
                 self._write_progress(depth)
 
                 # Tap the element
@@ -397,7 +419,9 @@ class AppExplorer:
                     state.transitions[elem_key] = new_state.state_id
 
                     # If genuinely new, add to queue
-                    if new_state.state_id != state_id and (new_state.state_id, depth + 1) not in [(s, d) for s, d in self.queue]:
+                    if new_state.state_id != state_id and (new_state.state_id, depth + 1) not in [
+                        (s, d) for s, d in self.queue
+                    ]:
                         self.queue.append((new_state.state_id, depth + 1))
                 else:
                     state.transitions[elem_key] = "error"
@@ -440,11 +464,13 @@ class AppExplorer:
         # Save graph
         graph_path = self.output_dir / "state_graph.json"
         graph_path.write_text(json.dumps(graph, indent=2))
-        log.info(f"Done! {len(self.states)} states, "
-                 f"{sum(len(s.transitions) for s in self.states.values())} transitions")
+        log.info(
+            f"Done! {len(self.states)} states, {sum(len(s.transitions) for s in self.states.values())} transitions"
+        )
         log.info(f"State graph saved to {graph_path}")
-        self._log_progress(f"Done! {len(self.states)} states, "
-                           f"{sum(len(s.transitions) for s in self.states.values())} transitions")
+        self._log_progress(
+            f"Done! {len(self.states)} states, {sum(len(s.transitions) for s in self.states.values())} transitions"
+        )
         self._write_progress(self.max_depth)
         # Clean up progress.json after writing final state_graph.json
         progress_path = self.output_dir / "progress.json"
@@ -457,6 +483,7 @@ class AppExplorer:
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(description="Auto Skill Creator — BFS app explorer")

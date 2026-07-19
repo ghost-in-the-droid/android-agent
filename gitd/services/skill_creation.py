@@ -47,9 +47,7 @@ def _platform_list(platforms: Any, *, app_package: str, ios_bundle_id: str) -> l
     return ["ios"] if ios_bundle_id and not app_package else ["android"]
 
 
-def _platform_meta(
-    app_package: str, android_package: str | None, ios_bundle_id: str, platforms: Any
-) -> dict[str, Any]:
+def _platform_meta(app_package: str, android_package: str | None, ios_bundle_id: str, platforms: Any) -> dict[str, Any]:
     """Compute the platform-aware skill.yaml fields shared by every skill kind."""
     app_package = app_package or ""
     android_package_source = android_package if android_package is not None else app_package

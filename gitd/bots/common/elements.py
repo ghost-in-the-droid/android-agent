@@ -17,6 +17,7 @@ Usage:
 RID maps live in rid_maps/*.json, one per known TikTok version.
 Unknown versions fall back to the latest known map + print a warning.
 """
+
 from __future__ import annotations
 
 import json
@@ -36,11 +37,12 @@ PACKAGES = {
 @dataclass
 class Element:
     """A UI element with a prioritized resolution chain."""
+
     name: str
-    desc: str | None = None          # content-desc (most stable)
-    text: str | None = None          # visible text
-    rid_key: str | None = None       # key into version JSON
-    fallback_xy: tuple | None = None # last-resort pixel coords
+    desc: str | None = None  # content-desc (most stable)
+    text: str | None = None  # visible text
+    rid_key: str | None = None  # key into version JSON
+    fallback_xy: tuple | None = None  # last-resort pixel coords
     bounds_check: Callable | None = None  # e.g. lambda b: b[1] < 200
 
 
@@ -50,46 +52,40 @@ class Element:
 
 TIKTOK = {
     # ── Home / Navigation ────────────────────────────────────────────────
-    "search_icon":    Element("search_icon",    desc="Search", rid_key="search_icon",
-                              fallback_xy=(1011, 129), bounds_check=lambda b: b[1] < 250),
-    "search_box":     Element("search_box",     rid_key="search_box"),
-    "search_button":  Element("search_button",  text="Search",
-                              bounds_check=lambda b: b[1] < 200),
+    "search_icon": Element(
+        "search_icon", desc="Search", rid_key="search_icon", fallback_xy=(1011, 129), bounds_check=lambda b: b[1] < 250
+    ),
+    "search_box": Element("search_box", rid_key="search_box"),
+    "search_button": Element("search_button", text="Search", bounds_check=lambda b: b[1] < 200),
     "suggestion_row": Element("suggestion_row", rid_key="suggestion_row"),
-    "profile_tab":    Element("profile_tab",    text="Profile",
-                              fallback_xy=(972, 2244)),
-    "more_btn":       Element("more_btn",       rid_key="more_btn"),
-    "filter_chip":    Element("filter_chip",    rid_key="filter_chip"),
-
+    "profile_tab": Element("profile_tab", text="Profile", fallback_xy=(972, 2244)),
+    "more_btn": Element("more_btn", rid_key="more_btn"),
+    "filter_chip": Element("filter_chip", rid_key="filter_chip"),
     # ── Profile page ─────────────────────────────────────────────────────
-    "profile_handle":       Element("profile_handle",       rid_key="profile_handle"),
+    "profile_handle": Element("profile_handle", rid_key="profile_handle"),
     "profile_display_name": Element("profile_display_name", rid_key="profile_display_name"),
-    "profile_stat_value":   Element("profile_stat_value",   rid_key="profile_stat_value"),
-    "profile_stat_label":   Element("profile_stat_label",   rid_key="profile_stat_label"),
-    "profile_video_views":  Element("profile_video_views",  rid_key="profile_video_views"),
-    "drafts_banner":        Element("drafts_banner",        text="Drafts:",
-                                    rid_key="drafts_banner"),
-    "drafts_grid_tile":     Element("drafts_grid_tile",     rid_key="drafts_grid_tile"),
-
+    "profile_stat_value": Element("profile_stat_value", rid_key="profile_stat_value"),
+    "profile_stat_label": Element("profile_stat_label", rid_key="profile_stat_label"),
+    "profile_video_views": Element("profile_video_views", rid_key="profile_video_views"),
+    "drafts_banner": Element("drafts_banner", text="Drafts:", rid_key="drafts_banner"),
+    "drafts_grid_tile": Element("drafts_grid_tile", rid_key="drafts_grid_tile"),
     # ── Users tab ────────────────────────────────────────────────────────
-    "user_handle":       Element("user_handle",       rid_key="user_handle"),
-    "user_stats":        Element("user_stats",        rid_key="user_stats"),
+    "user_handle": Element("user_handle", rid_key="user_handle"),
+    "user_stats": Element("user_stats", rid_key="user_stats"),
     "user_display_name": Element("user_display_name", rid_key="user_display_name"),
-
     # ── Top tab tiles ────────────────────────────────────────────────────
-    "tile_handle":   Element("tile_handle",   rid_key="tile_handle"),
-    "tile_caption":  Element("tile_caption",  rid_key="tile_caption"),
-    "tile_likes":    Element("tile_likes",    rid_key="tile_likes"),
-    "tile_time":     Element("tile_time",     rid_key="tile_time"),
+    "tile_handle": Element("tile_handle", rid_key="tile_handle"),
+    "tile_caption": Element("tile_caption", rid_key="tile_caption"),
+    "tile_likes": Element("tile_likes", rid_key="tile_likes"),
+    "tile_time": Element("tile_time", rid_key="tile_time"),
     "tile_ad_label": Element("tile_ad_label", rid_key="tile_ad_label"),
-
     # ── Full-screen video ────────────────────────────────────────────────
-    "video_handle":    Element("video_handle",    rid_key="video_handle"),
-    "video_avatar":    Element("video_avatar",    rid_key="video_avatar"),
-    "video_likes":     Element("video_likes",     rid_key="video_likes"),
-    "video_comments":  Element("video_comments",  rid_key="video_comments"),
+    "video_handle": Element("video_handle", rid_key="video_handle"),
+    "video_avatar": Element("video_avatar", rid_key="video_avatar"),
+    "video_likes": Element("video_likes", rid_key="video_likes"),
+    "video_comments": Element("video_comments", rid_key="video_comments"),
     "video_favorites": Element("video_favorites", rid_key="video_favorites"),
-    "video_shares":    Element("video_shares",    rid_key="video_shares"),
+    "video_shares": Element("video_shares", rid_key="video_shares"),
 }
 
 
@@ -110,10 +106,10 @@ class ElementResolver:
         resolver.tap_element("search_icon", xml, dev, delay=1.0)
     """
 
-    _cache: dict[str, 'ElementResolver'] = {}
+    _cache: dict[str, "ElementResolver"] = {}
 
     @classmethod
-    def for_device(cls, dev, app: str = "tiktok") -> 'ElementResolver':
+    def for_device(cls, dev, app: str = "tiktok") -> "ElementResolver":
         """Get or create a resolver for this device + app combo."""
         pkg = PACKAGES[app]
         ver = dev.get_app_version(pkg)

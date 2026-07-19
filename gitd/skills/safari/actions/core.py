@@ -1,4 +1,5 @@
 """iOS browser demo actions."""
+
 from __future__ import annotations
 
 import os

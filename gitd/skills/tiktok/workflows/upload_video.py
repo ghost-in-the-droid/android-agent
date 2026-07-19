@@ -1,4 +1,5 @@
 """TikTok Upload Video workflow — wraps the existing upload bot logic."""
+
 from gitd.skills.base import Workflow, Action, ActionResult
 import logging
 
@@ -7,11 +8,21 @@ log = logging.getLogger(__name__)
 
 class UploadVideoAction(Action):
     """Delegates to the existing upload.py logic."""
-    name = 'upload_video_action'
-    description = 'Upload a video to TikTok with caption and hashtags'
 
-    def __init__(self, device, elements, *, video_path: str = '', caption: str = '',
-                 hashtags: str = '', as_draft: bool = False, **kwargs):
+    name = "upload_video_action"
+    description = "Upload a video to TikTok with caption and hashtags"
+
+    def __init__(
+        self,
+        device,
+        elements,
+        *,
+        video_path: str = "",
+        caption: str = "",
+        hashtags: str = "",
+        as_draft: bool = False,
+        **kwargs,
+    ):
         super().__init__(device, elements)
         self.video_path = video_path
         self.caption = caption
@@ -21,9 +32,12 @@ class UploadVideoAction(Action):
     def execute(self) -> ActionResult:
         try:
             from gitd.bots.tiktok.upload import upload_video
+
             result = upload_video(
-                self.device, self.video_path,
-                caption=self.caption, hashtags=self.hashtags,
+                self.device,
+                self.video_path,
+                caption=self.caption,
+                hashtags=self.hashtags,
                 as_draft=self.as_draft,
             )
             return ActionResult(success=bool(result), data={"result": str(result)})
@@ -34,11 +48,20 @@ class UploadVideoAction(Action):
 
 
 class UploadVideo(Workflow):
-    name = 'upload_video'
-    description = 'Upload a video to TikTok with caption and hashtags'
+    name = "upload_video"
+    description = "Upload a video to TikTok with caption and hashtags"
 
-    def __init__(self, device, elements, *, video_path: str = '', caption: str = '',
-                 hashtags: str = '', as_draft: bool = False, **kwargs):
+    def __init__(
+        self,
+        device,
+        elements,
+        *,
+        video_path: str = "",
+        caption: str = "",
+        hashtags: str = "",
+        as_draft: bool = False,
+        **kwargs,
+    ):
         super().__init__(device, elements)
         self.video_path = video_path
         self.caption = caption
@@ -48,7 +71,8 @@ class UploadVideo(Workflow):
     def steps(self) -> list[Action]:
         return [
             UploadVideoAction(
-                self.device, self.elements,
+                self.device,
+                self.elements,
                 video_path=self.video_path,
                 caption=self.caption,
                 hashtags=self.hashtags,

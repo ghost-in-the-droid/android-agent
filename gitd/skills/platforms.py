@@ -1,4 +1,5 @@
 """Platform compatibility helpers for automation skills."""
+
 from __future__ import annotations
 
 from typing import Any

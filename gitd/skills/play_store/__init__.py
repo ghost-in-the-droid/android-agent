@@ -1,8 +1,14 @@
 """Play Store skill — install, uninstall, update apps via Google Play."""
+
 from pathlib import Path
 from gitd.skills.base import Skill
 from .actions.core import (
-    OpenStore, SearchApp, InstallApp, UninstallApp, UpdateApp, CheckVersion,
+    OpenStore,
+    SearchApp,
+    InstallApp,
+    UninstallApp,
+    UpdateApp,
+    CheckVersion,
 )
 from .workflows import InstallByName
 

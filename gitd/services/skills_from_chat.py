@@ -31,12 +31,7 @@ def latest_conversation_id(device: str) -> str | None:
 
     db = SessionLocal()
     try:
-        conv = (
-            db.query(ChatConversation)
-            .filter_by(device=device)
-            .order_by(ChatConversation.updated_at.desc())
-            .first()
-        )
+        conv = db.query(ChatConversation).filter_by(device=device).order_by(ChatConversation.updated_at.desc()).first()
         return conv.id if conv else None
     finally:
         db.close()
