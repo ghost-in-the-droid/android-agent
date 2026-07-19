@@ -4,6 +4,26 @@
 
 Formal abstraction for Android automation. A Skill is a reusable, shareable package of Actions (atomic ADB operations with pre/post-condition validation and retry logic) and Workflows (composed action sequences that stop on first failure) for a specific app. Each skill includes YAML metadata, UI element definitions with fallback locator chains, and a directory structure that can be loaded dynamically by the server and executed via the job scheduler.
 
+## Skill Kinds: Hard vs Soft
+
+Every skill declares a `kind` in `skill.yaml` (absent ⇒ `hard`, so existing skills are unaffected):
+
+- **HARD skill** — deterministic, zero-LLM replay. Has `workflows/recorded.json` (a flat step list) run by `RecordedWorkflow`/`RecordedStepAction`, or coded `Action`/`Workflow` classes. This is the classic skill above. Recorded steps support `launch`, `tap` (by `x,y`, `element_idx`, or a `text`/`resource_id`/`content_desc` locator that re-finds the element each run), `type`, `key`, `back`, `home`, `swipe`, `long_press`, `open_url`, `launch_intent`, and `wait`.
+- **SOFT skill** — LLM-facing guidance, not replay. Has a `guidance.md` (markdown "what to watch out for") and **no steps**. It is surfaced to an agent **on demand**: `list_skills` advertises `kind` + `guidance_available`; calling `run_skill`/`run_workflow` on a soft skill returns its guidance text (no device execution). Soft guidance is never auto-injected into the prompt.
+
+Both kinds share the same `skill.yaml` metadata (`app_package`, `platforms`, `popup_detectors`) and both flow through the same **compatibility matrix** (`SkillRun`/`SkillCompat`, now carrying `kind`). A soft skill's `--verify` is a **smoke check** (guidance present + target app installed on the device), so the tested/untested matrix stays meaningful for both.
+
+Writers: `create_recorded_skill(kind="hard", ...)` and `create_soft_skill(...)` in `services/skill_creation.py`.
+
+## Creating Skills from a Chat
+
+An agent chat's action trace can be crystallized into a skill mid-conversation — the agent (or the user) says *"summarize what we did into a skill"*:
+
+- **Agent tools** `draft_skill` (distils the session's tool-call trace into draft recorded steps — correct coords/args, noise like screenshots/OCR dropped) and `save_skill` (`kind="hard"` commits the reviewed steps; `kind="soft"` stores guidance). Available on every provider (native + on-device in the chat loop; `claude-code` via the MCP tools of the same name).
+- **REST**: `POST /api/skills/draft-from-chat {conversation_id}` (preview, no write) and `POST /api/skills/save-from-chat {conversation_id, kind, name, ...}` — power the "Save as skill" button in the chat UI.
+
+The distiller lives in `skills/trace_to_steps.py`; the orchestration in `services/skills_from_chat.py`. The flow is **draft → review → commit**: the distiller guarantees correct captured values, and the LLM/user prunes, renames, parameterizes (`{placeholder}`), or upgrades brittle coordinate taps to locator taps before saving.
+
 ## Current State
 
 **Working:**

@@ -12,6 +12,7 @@ Usage:
     recorder.load("my_macro.json")
     recorder.replay()
 """
+
 from __future__ import annotations
 
 import json
@@ -29,8 +30,9 @@ log = logging.getLogger(__name__)
 @dataclass
 class MacroStep:
     """Single recorded action."""
-    action: str               # tap, swipe, type, back, home, wait
-    timestamp: float = 0.0    # seconds since recording start
+
+    action: str  # tap, swipe, type, back, home, wait
+    timestamp: float = 0.0  # seconds since recording start
     params: dict = field(default_factory=dict)  # action-specific params
     element_info: dict | None = None  # optional element context from XML
 
@@ -45,6 +47,7 @@ class MacroStep:
 @dataclass
 class Macro:
     """A recorded sequence of actions."""
+
     name: str
     steps: list[MacroStep] = field(default_factory=list)
     device_serial: str = ""
@@ -223,13 +226,12 @@ class MacroRecorder:
             action = step.action
             p = step.params
 
-            log.info(f"  [{i+1}/{len(macro.steps)}] {action} {p}")
+            log.info(f"  [{i + 1}/{len(macro.steps)}] {action} {p}")
 
             if action == "tap":
                 self.dev.tap(p["x"], p["y"], delay=0)
             elif action == "swipe":
-                self.dev.swipe(p["x1"], p["y1"], p["x2"], p["y2"],
-                              ms=p.get("ms", 500), delay=0)
+                self.dev.swipe(p["x1"], p["y1"], p["x2"], p["y2"], ms=p.get("ms", 500), delay=0)
             elif action == "type":
                 if is_ios_ref(getattr(self.dev, "serial", "")) and hasattr(self.dev, "type_text"):
                     self.dev.type_text(p["text"])

@@ -8,6 +8,7 @@ iOS support is feature-gated (dev-only for one release cycle): when
 ``ios:`` refs raise NotImplementedError and iOS devices are excluded from
 discovery. The Android path is unaffected either way.
 """
+
 from __future__ import annotations
 
 import os

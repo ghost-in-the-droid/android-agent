@@ -5,6 +5,7 @@ Action  — single atomic UI operation (tap, type, navigate) with pre/post condi
 Workflow — composed sequence of Actions with retry and error handling
 Skill   — loads skill.yaml, registers actions + workflows for an app
 """
+
 from __future__ import annotations
 
 import time
@@ -29,10 +30,11 @@ log = logging.getLogger(__name__)
 
 
 def _device_is_ios(device: Any) -> bool:
-    return is_ios_ref(getattr(device, 'serial', str(device)))
+    return is_ios_ref(getattr(device, "serial", str(device)))
 
 
 # ── Result ────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ActionResult:
@@ -47,9 +49,11 @@ class ActionResult:
 
 # ── Element locator ───────────────────────────────────────────────────────────
 
+
 @dataclass
 class Element:
     """UI element with fallback locator chain."""
+
     name: str
     # Locator chain — tried in order until one matches
     content_desc: str | None = None
@@ -66,12 +70,12 @@ class Element:
             xml = device.dump_xml()
         # Try each locator in priority order
         for key, attr in [
-            (self.content_desc, 'content-desc'),
-            (self.text, 'text'),
-            (self.resource_id, 'resource-id'),
+            (self.content_desc, "content-desc"),
+            (self.text, "text"),
+            (self.resource_id, "resource-id"),
         ]:
             if key:
-                bounds = device.find_bounds(xml, **{attr.replace('-', '_'): key})
+                bounds = device.find_bounds(xml, **{attr.replace("-", "_"): key})
                 if bounds:
                     return device.bounds_center(bounds)
         # Fallback to class name
@@ -88,22 +92,23 @@ class Element:
     def from_dict(cls, name: str, d: dict) -> Element:
         return cls(
             name=name,
-            content_desc=d.get('content_desc'),
-            text=d.get('text'),
-            resource_id=d.get('resource_id'),
-            class_name=d.get('class_name') or d.get('class'),
-            x=d.get('x'),
-            y=d.get('y'),
+            content_desc=d.get("content_desc"),
+            text=d.get("text"),
+            resource_id=d.get("resource_id"),
+            class_name=d.get("class_name") or d.get("class"),
+            x=d.get("x"),
+            y=d.get("y"),
         )
 
 
 # ── Action ────────────────────────────────────────────────────────────────────
 
+
 class Action(ABC):
     """Single atomic UI operation with pre/post conditions."""
 
-    name: str = 'unnamed_action'
-    description: str = ''
+    name: str = "unnamed_action"
+    description: str = ""
     max_retries: int = 2
     retry_delay: float = 1.0
 
@@ -133,8 +138,9 @@ class Action(ABC):
         t0 = time.time()
 
         if not self.precondition():
-            return ActionResult(success=False, error=f'{self.name}: precondition failed',
-                                duration_ms=(time.time() - t0) * 1000)
+            return ActionResult(
+                success=False, error=f"{self.name}: precondition failed", duration_ms=(time.time() - t0) * 1000
+            )
 
         last_error = None
         last_data = {}
@@ -145,22 +151,21 @@ class Action(ABC):
                     result.duration_ms = (time.time() - t0) * 1000
                     return result
                 if not result:
-                    last_error = result.error or f'{self.name}: execute returned failure'
+                    last_error = result.error or f"{self.name}: execute returned failure"
                     last_data = result.data
                 else:
-                    last_error = f'{self.name}: postcondition failed'
+                    last_error = f"{self.name}: postcondition failed"
                     last_data = result.data
                     self.rollback()
             except Exception as e:
-                last_error = f'{self.name}: {e}'
+                last_error = f"{self.name}: {e}"
                 last_data = {}
-                log.warning(f'Action {self.name} attempt {attempt} failed: {e}')
+                log.warning(f"Action {self.name} attempt {attempt} failed: {e}")
 
             if attempt < self.max_retries:
                 time.sleep(self.retry_delay)
 
-        return ActionResult(success=False, error=last_error, data=last_data,
-                            duration_ms=(time.time() - t0) * 1000)
+        return ActionResult(success=False, error=last_error, data=last_data, duration_ms=(time.time() - t0) * 1000)
 
     def find_element(self, name: str, xml: str | None = None) -> tuple[int, int] | None:
         """Convenience: find a named element from this action's element registry."""
@@ -178,14 +183,15 @@ class EngineConfig:
     Set at class level (Workflow.engine = EngineConfig(...)), at instance level
     (wf.engine.back_count = 10), or per-run via _run_skill.py CLI flags.
     """
-    back_count: int = 10              # how many Back presses during reset phase
-    back_delay: float = 0.3           # delay between back presses (seconds)
-    home_settle: float = 1.0          # sleep after Home press
-    launch_settle: float = 2.0        # sleep after app launch
-    step_settle: float = 0.0          # extra sleep after each step (on top of action's own)
-    popup_chain_max: int = 3          # max chained popup dismissals per check
-    auto_launch: bool = True          # run the startup sequence (wake, home, launch)
-    skip_popup_detect: bool = False   # disable all popup detection between steps
+
+    back_count: int = 10  # how many Back presses during reset phase
+    back_delay: float = 0.3  # delay between back presses (seconds)
+    home_settle: float = 1.0  # sleep after Home press
+    launch_settle: float = 2.0  # sleep after app launch
+    step_settle: float = 0.0  # extra sleep after each step (on top of action's own)
+    popup_chain_max: int = 3  # max chained popup dismissals per check
+    auto_launch: bool = True  # run the startup sequence (wake, home, launch)
+    skip_popup_detect: bool = False  # disable all popup detection between steps
 
 
 # Default engine config — change this to affect all workflows globally
@@ -193,6 +199,7 @@ DEFAULT_ENGINE = EngineConfig()
 
 
 # ── Workflow ──────────────────────────────────────────────────────────────────
+
 
 class Workflow:
     """Composed sequence of Actions with the standard execution engine lifecycle:
@@ -208,16 +215,16 @@ class Workflow:
     N) Step N → popup detect
     """
 
-    name: str = 'unnamed_workflow'
-    description: str = ''
-    app_package: str = ''             # set by Skill.get_workflow() from metadata
+    name: str = "unnamed_workflow"
+    description: str = ""
+    app_package: str = ""  # set by Skill.get_workflow() from metadata
     engine: EngineConfig | None = None  # per-class override; falls back to DEFAULT_ENGINE
 
     def __init__(self, device: Device, elements: dict[str, Element] | None = None):
         self.device = device
         self.elements = elements or {}
         self.results: list[ActionResult] = []
-        self._popup_detectors: list[dict] | None = None   # set by Skill.get_workflow()
+        self._popup_detectors: list[dict] | None = None  # set by Skill.get_workflow()
         # Instance-level engine config — copy from class or global default
         if self.engine is None:
             self.engine = EngineConfig(**vars(DEFAULT_ENGINE))
@@ -233,20 +240,20 @@ class Workflow:
         cfg = self.engine
         dev = self.device
         if _device_is_ios(dev):
-            log.info(f'[{self.name}] Returning iOS device to Home')
+            log.info(f"[{self.name}] Returning iOS device to Home")
             try:
-                dev.press_key('HOME')
+                dev.press_key("HOME")
             except Exception:
                 pass
             time.sleep(cfg.home_settle)
             return
-        log.info(f'[{self.name}] Waking screen, back ×{cfg.back_count}')
-        dev.adb('shell', 'input', 'keyevent', 'KEYCODE_WAKEUP')
+        log.info(f"[{self.name}] Waking screen, back ×{cfg.back_count}")
+        dev.adb("shell", "input", "keyevent", "KEYCODE_WAKEUP")
         time.sleep(0.5)
         for _ in range(cfg.back_count):
             dev.back(delay=cfg.back_delay)
         time.sleep(0.5)
-        dev.adb('shell', 'input', 'keyevent', 'KEYCODE_HOME')
+        dev.adb("shell", "input", "keyevent", "KEYCODE_HOME")
         time.sleep(cfg.home_settle)
 
     def _launch_app(self):
@@ -254,27 +261,26 @@ class Workflow:
         if not self.app_package:
             return
         dev = self.device
-        log.info(f'[{self.name}] Launching {self.app_package}')
+        log.info(f"[{self.name}] Launching {self.app_package}")
         if _device_is_ios(dev):
             dev.launch_app(self.app_package)
             time.sleep(self.engine.launch_settle)
             return
-        dev.adb('shell', 'monkey', '-p', self.app_package,
-                '-c', 'android.intent.category.LAUNCHER', '1')
+        dev.adb("shell", "monkey", "-p", self.app_package, "-c", "android.intent.category.LAUNCHER", "1")
         time.sleep(self.engine.launch_settle)
 
-    def _dismiss_popups(self, step_name: str = '') -> bool:
+    def _dismiss_popups(self, step_name: str = "") -> bool:
         """Phase 4+: Run popup detectors. Returns True if something was dismissed."""
         if self.engine.skip_popup_detect:
             return False
         xml = self.device.dump_xml()
         if not xml:
             return False
-        if not hasattr(self.device, 'dismiss_popups'):
+        if not hasattr(self.device, "dismiss_popups"):
             return False
         dismissed = self.device.dismiss_popups(xml, popups=self._popup_detectors)
         if dismissed:
-            log.info(f'[{self.name}] Popup dismissed after {step_name or "startup"}')
+            log.info(f"[{self.name}] Popup dismissed after {step_name or 'startup'}")
             time.sleep(0.5)
             for _ in range(self.engine.popup_chain_max - 1):
                 xml = self.device.dump_xml()
@@ -287,13 +293,15 @@ class Workflow:
         """Return compact, serializable action results for scheduler/API evidence."""
         out: list[dict[str, Any]] = []
         for action, result in zip(steps, self.results, strict=False):
-            out.append({
-                'name': action.name,
-                'success': result.success,
-                'data': result.data,
-                'error': result.error,
-                'duration_ms': result.duration_ms,
-            })
+            out.append(
+                {
+                    "name": action.name,
+                    "success": result.success,
+                    "data": result.data,
+                    "error": result.error,
+                    "duration_ms": result.duration_ms,
+                }
+            )
         return out
 
     def run(self) -> ActionResult:
@@ -311,17 +319,19 @@ class Workflow:
         # Execute steps with popup detection between each
         steps = self.steps()
         for action in steps:
-            log.info(f'[{self.name}] Running: {action.name}')
+            log.info(f"[{self.name}] Running: {action.name}")
             result = action.run()
             self.results.append(result)
             if not result:
-                log.error(f'[{self.name}] Failed at: {action.name} — {result.error}')
+                log.error(f"[{self.name}] Failed at: {action.name} — {result.error}")
                 return ActionResult(
                     success=False,
-                    error=f'Workflow {self.name} failed at step {action.name}: {result.error}',
-                    data={'completed_steps': len(self.results) - 1,
-                          'failed_step': action.name,
-                          'step_results': self._step_results_data(steps)},
+                    error=f"Workflow {self.name} failed at step {action.name}: {result.error}",
+                    data={
+                        "completed_steps": len(self.results) - 1,
+                        "failed_step": action.name,
+                        "step_results": self._step_results_data(steps),
+                    },
                     duration_ms=(time.time() - t0) * 1000,
                 )
             # Popup detection after each step
@@ -331,8 +341,7 @@ class Workflow:
 
         return ActionResult(
             success=True,
-            data={'completed_steps': len(self.results),
-                  'step_results': self._step_results_data(steps)},
+            data={"completed_steps": len(self.results), "step_results": self._step_results_data(steps)},
             duration_ms=(time.time() - t0) * 1000,
         )
 
@@ -349,24 +358,52 @@ class RecordedStepAction(Action):
     def __init__(self, device: Device, step: dict, step_index: int):
         super().__init__(device)
         self._step = step
-        self.name = f'step_{step_index + 1}_{step.get("action", "unknown")}'
-        self.description = step.get('description', step.get('action', ''))
+        self.name = f"step_{step_index + 1}_{step.get('action', 'unknown')}"
+        self.description = step.get("description", step.get("action", ""))
 
     def execute(self) -> ActionResult:
         step = self._step
-        action = step.get('action', '')
+        action = step.get("action", "")
 
-        if action in ('launch', 'open_app'):
-            pkg = step.get('package', '')
+        if action in ("launch", "open_app"):
+            pkg = step.get("package", "")
             if pkg:
-                if _device_is_ios(self.device) and hasattr(self.device, 'launch_app'):
+                if _device_is_ios(self.device) and hasattr(self.device, "launch_app"):
                     self.device.launch_app(pkg)
                 else:
-                    self.device.adb('shell', 'am', 'start', '-a', 'android.intent.action.MAIN',
-                                    '-c', 'android.intent.category.LAUNCHER', pkg)
-        elif action == 'tap' and step.get('element_idx') is not None:
+                    self.device.adb(
+                        "shell",
+                        "am",
+                        "start",
+                        "-a",
+                        "android.intent.action.MAIN",
+                        "-c",
+                        "android.intent.category.LAUNCHER",
+                        pkg,
+                    )
+        elif action == "tap" and any(step.get(k) for k in ("text", "resource_id", "content_desc", "class_name")):
+            # Locator-based tap — re-find the element on each run so the skill
+            # survives minor UI shifts instead of hard-coding pixel coords.
+            # Falls back to captured x/y if the locator no longer resolves.
+            el = Element(
+                name="tap",
+                text=step.get("text"),
+                resource_id=step.get("resource_id"),
+                content_desc=step.get("content_desc"),
+                class_name=step.get("class_name"),
+            )
+            coord = el.find(self.device)
+            if coord:
+                self.device.tap(coord[0], coord[1])
+            elif step.get("x") is not None and step.get("y") is not None:
+                self.device.tap(step["x"], step["y"])
+            else:
+                locator = step.get("text") or step.get("resource_id") or step.get("content_desc")
+                return ActionResult(success=False, error=f"tap locator not found: {locator}")
+        elif action == "tap" and step.get("element_idx") is not None:
             import re
             import xml.etree.ElementTree as ET
+
             xml_str = self.device.dump_xml()
             if xml_str:
                 root = ET.fromstring(xml_str)
@@ -374,18 +411,17 @@ class RecordedStepAction(Action):
                 target = [None]
 
                 def _find(node):
-                    text = node.get('text', '') or ''
-                    desc = node.get('content-desc', '') or ''
-                    rid = node.get('resource-id', '') or ''
-                    clickable = node.get('clickable', '') == 'true'
+                    text = node.get("text", "") or ""
+                    desc = node.get("content-desc", "") or ""
+                    rid = node.get("resource-id", "") or ""
+                    clickable = node.get("clickable", "") == "true"
                     if text or desc or rid or clickable:
                         idx_counter[0] += 1
-                        if idx_counter[0] == step['element_idx']:
-                            bounds = node.get('bounds', '')
-                            m = re.findall(r'\[(\d+),(\d+)\]', bounds)
+                        if idx_counter[0] == step["element_idx"]:
+                            bounds = node.get("bounds", "")
+                            m = re.findall(r"\[(\d+),(\d+)\]", bounds)
                             if len(m) == 2:
-                                target[0] = ((int(m[0][0]) + int(m[1][0])) // 2,
-                                             (int(m[0][1]) + int(m[1][1])) // 2)
+                                target[0] = ((int(m[0][0]) + int(m[1][0])) // 2, (int(m[0][1]) + int(m[1][1])) // 2)
                             return
                     for child in node:
                         if target[0]:
@@ -399,51 +435,71 @@ class RecordedStepAction(Action):
                 if target[0]:
                     self.device.tap(target[0][0], target[0][1])
                 else:
-                    return ActionResult(success=False, error=f'element_idx {step["element_idx"]} not found')
-        elif action == 'tap' and step.get('x') and step.get('y'):
-            self.device.tap(step['x'], step['y'])
-        elif action == 'type' and step.get('text'):
-            text = step['text']
-            if _device_is_ios(self.device) and hasattr(self.device, 'type_text'):
+                    return ActionResult(success=False, error=f"element_idx {step['element_idx']} not found")
+        elif action == "tap" and step.get("x") and step.get("y"):
+            self.device.tap(step["x"], step["y"])
+        elif action == "type" and step.get("text"):
+            text = step["text"]
+            if _device_is_ios(self.device) and hasattr(self.device, "type_text"):
                 self.device.type_text(text)
             elif all(ord(c) < 128 for c in text):
-                self.device.adb('shell', 'input', 'text', text.replace(' ', '%s'))
+                self.device.adb("shell", "input", "text", text.replace(" ", "%s"))
             else:
                 self.device.type_unicode(text)
-        elif action == 'back':
+        elif action == "back":
             self.device.back()
-        elif action == 'home':
-            if _device_is_ios(self.device) and hasattr(self.device, 'press_key'):
-                self.device.press_key('HOME')
+        elif action == "home":
+            if _device_is_ios(self.device) and hasattr(self.device, "press_key"):
+                self.device.press_key("HOME")
             else:
-                self.device.adb('shell', 'input', 'keyevent', 'KEYCODE_HOME')
-        elif action == 'swipe':
-            self.device.swipe(step.get('x1', 0), step.get('y1', 0),
-                              step.get('x2', 0), step.get('y2', 0))
-        elif action == 'wait':
-            time.sleep(step.get('seconds', 2))
-        elif action == 'key':
-            key = step.get('key', '')
+                self.device.adb("shell", "input", "keyevent", "KEYCODE_HOME")
+        elif action == "swipe":
+            self.device.swipe(step.get("x1", 0), step.get("y1", 0), step.get("x2", 0), step.get("y2", 0))
+        elif action == "wait":
+            time.sleep(step.get("seconds", 2))
+        elif action == "key":
+            key = step.get("key", "")
             if key:
-                if _device_is_ios(self.device) and hasattr(self.device, 'press_key'):
+                if _device_is_ios(self.device) and hasattr(self.device, "press_key"):
                     self.device.press_key(key)
-                elif not key.startswith('KEYCODE_'):
-                    key = 'KEYCODE_' + key
-                    self.device.adb('shell', 'input', 'keyevent', key)
+                elif not key.startswith("KEYCODE_"):
+                    key = "KEYCODE_" + key
+                    self.device.adb("shell", "input", "keyevent", key)
                 else:
-                    self.device.adb('shell', 'input', 'keyevent', key)
+                    self.device.adb("shell", "input", "keyevent", key)
+        elif action == "long_press":
+            x, y = step.get("x"), step.get("y")
+            if x is not None and y is not None:
+                self.device.long_press(x, y, duration_ms=step.get("duration_ms", 1000))
+        elif action == "open_url":
+            url = step.get("url", "")
+            if url:
+                from gitd.services.browser import open_url as _open_url
+
+                _open_url(self.device.serial, url, bundle_id=step.get("bundle_id") or None)
+        elif action == "launch_intent":
+            from gitd.services import device_context as _ctx
+
+            _ctx.launch_intent(
+                self.device.serial,
+                action=step.get("intent_action", ""),
+                data=step.get("data", ""),
+                package=step.get("package", ""),
+                component=step.get("component", ""),
+                extras=step.get("extras") or None,
+            )
         else:
-            log.warning(f'Unknown recorded action: {action}')
+            log.warning(f"Unknown recorded action: {action}")
 
         time.sleep(1.0)  # settle time between steps
-        return ActionResult(success=True, data={'action': action})
+        return ActionResult(success=True, data={"action": action})
 
 
 class RecordedWorkflow(Workflow):
     """Wraps a recorded.json step list as a proper Workflow that runs through the engine."""
 
-    name = 'recorded'
-    description = 'Replay recorded steps'
+    name = "recorded"
+    description = "Replay recorded steps"
 
     def __init__(self, device: Device, recorded_steps: list[dict], params: dict | None = None):
         super().__init__(device)
@@ -455,15 +511,16 @@ class RecordedWorkflow(Workflow):
         for i, step in enumerate(self._raw_steps):
             # Resolve parameter placeholders
             resolved = dict(step)
-            for field in ('text', 'package', 'description', 'goal'):
+            for field in ("text", "package", "description", "goal"):
                 if isinstance(resolved.get(field), str):
                     for k, v in self._params.items():
-                        resolved[field] = resolved[field].replace(f'{{{k}}}', str(v))
+                        resolved[field] = resolved[field].replace(f"{{{k}}}", str(v))
             actions.append(RecordedStepAction(self.device, resolved, i))
         return actions
 
 
 # ── Skill ─────────────────────────────────────────────────────────────────────
+
 
 class Skill:
     """Loads skill.yaml, registers actions + workflows for an app."""
@@ -481,15 +538,17 @@ class Skill:
         self._load_elements()
 
     def _load_metadata(self):
-        path = self.skill_dir / 'skill.yaml'
+        path = self.skill_dir / "skill.yaml"
         if path.exists():
             self.metadata = yaml.safe_load(path.read_text()) or {}
-            self.popup_detectors = self.metadata.get('popup_detectors', [])
-            log.info(f'Loaded skill: {self.metadata.get("name", self.skill_dir.name)}'
-                     f' ({len(self.popup_detectors)} popup detectors)')
+            self.popup_detectors = self.metadata.get("popup_detectors", [])
+            log.info(
+                f"Loaded skill: {self.metadata.get('name', self.skill_dir.name)}"
+                f" ({len(self.popup_detectors)} popup detectors)"
+            )
 
     def _load_elements(self):
-        self.elements = self._load_elements_file('elements.yaml')
+        self.elements = self._load_elements_file("elements.yaml")
 
     def _load_elements_file(self, filename: str) -> dict[str, Element]:
         path = self.skill_dir / filename
@@ -498,22 +557,22 @@ class Skill:
             raw = yaml.safe_load(path.read_text()) or {}
             for name, locators in raw.items():
                 elements[name] = Element.from_dict(name, locators)
-            log.info(f'Loaded {len(elements)} elements from {filename} for {self.name}')
+            log.info(f"Loaded {len(elements)} elements from {filename} for {self.name}")
         self._elements_by_file[filename] = elements
         return elements
 
     def _elements_for_device(self, device: Device | None) -> dict[str, Element]:
         if device and _device_is_ios(device):
-            if 'elements_ios.yaml' not in self._elements_by_file:
-                self._load_elements_file('elements_ios.yaml')
-            ios_elements = self._elements_by_file.get('elements_ios.yaml', {})
+            if "elements_ios.yaml" not in self._elements_by_file:
+                self._load_elements_file("elements_ios.yaml")
+            ios_elements = self._elements_by_file.get("elements_ios.yaml", {})
             if ios_elements:
                 return ios_elements
         return self.elements
 
     @property
     def name(self) -> str:
-        return self.metadata.get('name', self.skill_dir.name)
+        return self.metadata.get("name", self.skill_dir.name)
 
     @property
     def app_package(self) -> str:
@@ -533,7 +592,7 @@ class Skill:
 
     @property
     def version(self) -> str:
-        return self.metadata.get('version', '0.0.0')
+        return self.metadata.get("version", "0.0.0")
 
     def register_action(self, action_cls: type[Action]):
         self._actions[action_cls.name] = action_cls
@@ -559,11 +618,11 @@ class Skill:
             return cls
         wf = cls(device, self._elements_for_device(device), **kwargs)
         wf._popup_detectors = self.popup_detectors or None
-        wf.app_package = skill_target_for_device(self.metadata, getattr(device, 'serial', str(device))) or ''
+        wf.app_package = skill_target_for_device(self.metadata, getattr(device, "serial", str(device))) or ""
         return wf
 
     def supports_device(self, device: Device | str | None) -> bool:
-        serial = getattr(device, 'serial', device)
+        serial = getattr(device, "serial", device)
         return skill_supports_device(self.metadata, str(serial) if serial else None)
 
     def list_actions(self) -> list[str]:

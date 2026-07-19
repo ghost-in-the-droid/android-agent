@@ -1,4 +1,5 @@
 """TikTok iOS actions backed by normalized WDA XML."""
+
 from __future__ import annotations
 
 import re

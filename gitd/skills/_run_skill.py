@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Run a skill action or workflow from the job queue."""
+
 import argparse
 import json
 import sys
@@ -20,7 +21,7 @@ def _load_skill_metadata(skill: str) -> dict:
     try:
         import yaml
 
-        meta_path = Path(__file__).parent / skill / 'skill.yaml'
+        meta_path = Path(__file__).parent / skill / "skill.yaml"
         if meta_path.exists():
             return yaml.safe_load(meta_path.read_text()) or {}
     except Exception:
@@ -30,18 +31,28 @@ def _load_skill_metadata(skill: str) -> dict:
 
 # ── Skill run tracking ──────────────────────────────────────────────────
 
-def _record_start(device: str, skill: str, target_type: str, target_name: str,
-                  params: dict, is_verify: bool = False) -> int | None:
+
+def _record_start(
+    device: str,
+    skill: str,
+    target_type: str,
+    target_name: str,
+    params: dict,
+    is_verify: bool = False,
+    kind: str = "hard",
+) -> int | None:
     """Insert a skill_runs row at start. Returns row id or None on error."""
     try:
         from gitd.models.base import SessionLocal
         from gitd.models.skill_compat import SkillRun
+
         db = SessionLocal()
         # Try to get app version
         app_ver = None
         try:
             import yaml
-            meta_path = Path(__file__).parent / skill / 'skill.yaml'
+
+            meta_path = Path(__file__).parent / skill / "skill.yaml"
             if meta_path.exists():
                 meta = yaml.safe_load(meta_path.read_text()) or {}
                 pkg = skill_target_for_device(meta, device)
@@ -50,9 +61,13 @@ def _record_start(device: str, skill: str, target_type: str, target_name: str,
         except Exception:
             pass
         row = SkillRun(
-            device_serial=device, skill_name=skill,
-            target_type=target_type, target_name=target_name,
-            app_version=app_ver, status='running',
+            device_serial=device,
+            skill_name=skill,
+            kind=kind,
+            target_type=target_type,
+            target_name=target_name,
+            app_version=app_ver,
+            status="running",
             params_json=json.dumps(params) if params else None,
             is_verify=1 if is_verify else 0,
         )
@@ -62,12 +77,11 @@ def _record_start(device: str, skill: str, target_type: str, target_name: str,
         db.close()
         return rid
     except Exception as e:
-        print(f'[tracking] start failed: {e}', file=sys.stderr)
+        print(f"[tracking] start failed: {e}", file=sys.stderr)
         return None
 
 
-def _record_finish(run_id: int | None, success: bool, duration_ms: float,
-                   error: str | None = None):
+def _record_finish(run_id: int | None, success: bool, duration_ms: float, error: str | None = None):
     """Update skill_runs row and upsert skill_compat aggregate."""
     if run_id is None:
         return
@@ -75,10 +89,11 @@ def _record_finish(run_id: int | None, success: bool, duration_ms: float,
         from sqlalchemy import text as sql_text
         from gitd.models.base import SessionLocal
         from gitd.models.skill_compat import SkillRun
+
         db = SessionLocal()
         row = db.get(SkillRun, run_id)
         if row:
-            row.status = 'ok' if success else 'fail'
+            row.status = "ok" if success else "fail"
             row.duration_ms = duration_ms
             row.error_msg = error[:500] if error else None
             row.finished_at = db.execute(sql_text("SELECT datetime('now')")).scalar()
@@ -87,57 +102,89 @@ def _record_finish(run_id: int | None, success: bool, duration_ms: float,
             _upsert_compat(db, row)
         db.close()
     except Exception as e:
-        print(f'[tracking] finish failed: {e}', file=sys.stderr)
+        print(f"[tracking] finish failed: {e}", file=sys.stderr)
 
 
 def _upsert_compat(db, run):
     """Update the skill_compat aggregate row for this device+skill+target."""
     from sqlalchemy import text as sql_text
     from gitd.models.skill_compat import SkillCompat
-    row = db.query(SkillCompat).filter_by(
-        device_serial=run.device_serial, skill_name=run.skill_name,
-        target_type=run.target_type, target_name=run.target_name,
-    ).first()
+
+    row = (
+        db.query(SkillCompat)
+        .filter_by(
+            device_serial=run.device_serial,
+            skill_name=run.skill_name,
+            target_type=run.target_type,
+            target_name=run.target_name,
+        )
+        .first()
+    )
     now = db.execute(sql_text("SELECT datetime('now')")).scalar()
     if row:
         row.run_count += 1
-        if run.status == 'ok':
+        if run.status == "ok":
             row.ok_count += 1
         else:
             row.fail_count += 1
         row.status = run.status
+        row.kind = run.kind
         row.app_version = run.app_version
         row.last_run_at = now
-        row.last_error = run.error_msg if run.status == 'fail' else row.last_error
+        row.last_error = run.error_msg if run.status == "fail" else row.last_error
     else:
         row = SkillCompat(
-            device_serial=run.device_serial, skill_name=run.skill_name,
-            target_type=run.target_type, target_name=run.target_name,
-            app_version=run.app_version, status=run.status,
+            device_serial=run.device_serial,
+            skill_name=run.skill_name,
+            kind=run.kind,
+            target_type=run.target_type,
+            target_name=run.target_name,
+            app_version=run.app_version,
+            status=run.status,
             last_run_at=now,
-            last_error=run.error_msg if run.status == 'fail' else None,
+            last_error=run.error_msg if run.status == "fail" else None,
             run_count=1,
-            ok_count=1 if run.status == 'ok' else 0,
-            fail_count=1 if run.status == 'fail' else 0,
+            ok_count=1 if run.status == "ok" else 0,
+            fail_count=1 if run.status == "fail" else 0,
         )
         db.add(row)
     db.commit()
 
 
+def _soft_smoke_check(skill: str, meta: dict, device: str, skills_dir: Path | None = None) -> tuple[bool, str | None]:
+    """Verify a SOFT skill: guidance present + target app reachable on the device.
+
+    Soft skills have no runnable steps, so 'verify' is a smoke check that keeps
+    the compatibility matrix meaningful (tested/untested) for them too.
+    """
+    base = skills_dir if skills_dir is not None else Path(__file__).parent
+    guidance = Path(base) / skill / "guidance.md"
+    if not guidance.exists() or not guidance.read_text().strip():
+        return False, "guidance.md missing or empty"
+    pkg = skill_target_for_device(meta, device)
+    if pkg:
+        try:
+            if not get_device(device).get_app_version(pkg):
+                return False, f"target app not installed: {pkg}"
+        except Exception as e:
+            return False, f"app check failed: {e}"
+    return True, None
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--skill', required=True)
-    parser.add_argument('--workflow', default='')
-    parser.add_argument('--action', default='')
-    parser.add_argument('--device', required=True)
-    parser.add_argument('--params', default='{}')
-    parser.add_argument('--verify', action='store_true', help='Mark as verification run')
+    parser.add_argument("--skill", required=True)
+    parser.add_argument("--workflow", default="")
+    parser.add_argument("--action", default="")
+    parser.add_argument("--device", required=True)
+    parser.add_argument("--params", default="{}")
+    parser.add_argument("--verify", action="store_true", help="Mark as verification run")
     # Engine config overrides
-    parser.add_argument('--back-count', type=int, default=None, help='Back presses during reset (default: 10)')
-    parser.add_argument('--no-launch', action='store_true', help='Skip wake/home/launch startup')
-    parser.add_argument('--no-popup', action='store_true', help='Skip popup detection between steps')
-    parser.add_argument('--step-settle', type=float, default=None, help='Extra sleep after each step (seconds)')
-    parser.add_argument('--launch-settle', type=float, default=None, help='Sleep after app launch (seconds)')
+    parser.add_argument("--back-count", type=int, default=None, help="Back presses during reset (default: 10)")
+    parser.add_argument("--no-launch", action="store_true", help="Skip wake/home/launch startup")
+    parser.add_argument("--no-popup", action="store_true", help="Skip popup detection between steps")
+    parser.add_argument("--step-settle", type=float, default=None, help="Extra sleep after each step (seconds)")
+    parser.add_argument("--launch-settle", type=float, default=None, help="Sleep after app launch (seconds)")
     args = parser.parse_args()
 
     import importlib
@@ -149,59 +196,73 @@ def main():
         print(skill_platform_error_text(args.skill, skill_meta, args.device), file=sys.stderr)
         sys.exit(2)
 
+    kind = skill_meta.get("kind", "hard")
+
+    # SOFT skills have no runnable steps — a run/verify is a guidance smoke check.
+    if kind == "soft":
+        run_id = _record_start(
+            args.device, args.skill, "guidance", "guidance", params, is_verify=args.verify, kind="soft"
+        )
+        t0 = _time.time()
+        ok, err = _soft_smoke_check(args.skill, skill_meta, args.device)
+        _record_finish(run_id, ok, (_time.time() - t0) * 1000, err)
+        print(f'Soft skill "{args.skill}" smoke check: {"ok" if ok else "fail"}' + (f" ({err})" if err else ""))
+        sys.exit(0 if ok else 1)
+
     dev = get_device(args.device)
 
     # Build engine config from CLI flags
     from gitd.skills.base import EngineConfig
+
     engine_overrides = {}
     if args.back_count is not None:
-        engine_overrides['back_count'] = args.back_count
+        engine_overrides["back_count"] = args.back_count
     if args.no_launch:
-        engine_overrides['auto_launch'] = False
+        engine_overrides["auto_launch"] = False
     if args.no_popup:
-        engine_overrides['skip_popup_detect'] = True
+        engine_overrides["skip_popup_detect"] = True
     if args.step_settle is not None:
-        engine_overrides['step_settle'] = args.step_settle
+        engine_overrides["step_settle"] = args.step_settle
     if args.launch_settle is not None:
-        engine_overrides['launch_settle'] = args.launch_settle
+        engine_overrides["launch_settle"] = args.launch_settle
     engine_cfg = EngineConfig(**engine_overrides) if engine_overrides else None
 
-    target_type = 'workflow' if args.workflow else 'action'
+    target_type = "workflow" if args.workflow else "action"
     target_name = args.workflow or args.action
-    run_id = _record_start(args.device, args.skill, target_type, target_name, params, is_verify=args.verify)
+    run_id = _record_start(args.device, args.skill, target_type, target_name, params, is_verify=args.verify, kind=kind)
     t0 = _time.time()
 
     # Check for recorded skill (has workflows/recorded.json instead of Python classes)
     skill_dir = Path(__file__).parent / args.skill
-    recorded_path = skill_dir / 'workflows' / 'recorded.json'
-    if args.workflow == 'recorded' and recorded_path.exists():
+    recorded_path = skill_dir / "workflows" / "recorded.json"
+    if args.workflow == "recorded" and recorded_path.exists():
         from gitd.skills.base import RecordedWorkflow
         import yaml
 
         steps = json.loads(recorded_path.read_text())
-        print(f'Running {len(steps)} recorded steps for {args.skill} through execution engine')
+        print(f"Running {len(steps)} recorded steps for {args.skill} through execution engine")
 
         wf = RecordedWorkflow(dev, steps, params)
         # Load popup detectors + app_package from skill.yaml
-        meta_path = skill_dir / 'skill.yaml'
+        meta_path = skill_dir / "skill.yaml"
         if meta_path.exists():
             meta = yaml.safe_load(meta_path.read_text()) or {}
-            wf.app_package = skill_target_for_device(meta, args.device) or ''
-            wf._popup_detectors = meta.get('popup_detectors') or None
+            wf.app_package = skill_target_for_device(meta, args.device) or ""
+            wf._popup_detectors = meta.get("popup_detectors") or None
         if engine_cfg:
             wf.engine = engine_cfg
 
         result = wf.run()
         dur = (_time.time() - t0) * 1000
         _record_finish(run_id, result.success, dur, result.error)
-        print(f'Result: success={result.success} duration={result.duration_ms:.0f}ms')
+        print(f"Result: success={result.success} duration={result.duration_ms:.0f}ms")
         if result.error:
-            print(f'Error: {result.error}')
+            print(f"Error: {result.error}")
         sys.exit(0 if result.success else 1)
 
     # Load skill dynamically
     try:
-        mod = importlib.import_module(f'gitd.skills.{args.skill}')
+        mod = importlib.import_module(f"gitd.skills.{args.skill}")
         s = mod.load()
     except (ImportError, AttributeError) as e:
         dur = (_time.time() - t0) * 1000
@@ -209,48 +270,48 @@ def main():
         print(f'Cannot load skill "{args.skill}": {e}', file=sys.stderr)
         sys.exit(1)
 
-    print(f'Loaded skill: {s.name}')
+    print(f"Loaded skill: {s.name}")
 
     if args.workflow:
         wf = s.get_workflow(args.workflow, dev, **params)
         if not wf:
             dur = (_time.time() - t0) * 1000
-            _record_finish(run_id, False, dur, f'Workflow not found: {args.workflow}')
-            print(f'Workflow not found: {args.workflow}', file=sys.stderr)
+            _record_finish(run_id, False, dur, f"Workflow not found: {args.workflow}")
+            print(f"Workflow not found: {args.workflow}", file=sys.stderr)
             sys.exit(1)
         if engine_cfg:
             wf.engine = engine_cfg
-        print(f'Running workflow: {args.workflow} (back_count={wf.engine.back_count})')
+        print(f"Running workflow: {args.workflow} (back_count={wf.engine.back_count})")
         result = wf.run()
         dur = (_time.time() - t0) * 1000
         _record_finish(run_id, result.success, dur, result.error)
-        print(f'Result: success={result.success} duration={result.duration_ms}ms')
+        print(f"Result: success={result.success} duration={result.duration_ms}ms")
         if result.error:
-            print(f'Error: {result.error}')
+            print(f"Error: {result.error}")
         if result.data:
-            print(f'Data: {json.dumps(result.data, default=str)}')
+            print(f"Data: {json.dumps(result.data, default=str)}")
         sys.exit(0 if result.success else 1)
 
     elif args.action:
         action = s.get_action(args.action, dev, **params)
         if not action:
             dur = (_time.time() - t0) * 1000
-            _record_finish(run_id, False, dur, f'Action not found: {args.action}')
-            print(f'Action not found: {args.action}', file=sys.stderr)
+            _record_finish(run_id, False, dur, f"Action not found: {args.action}")
+            print(f"Action not found: {args.action}", file=sys.stderr)
             sys.exit(1)
-        print(f'Running action: {args.action}')
+        print(f"Running action: {args.action}")
         result = action.run()
         dur = (_time.time() - t0) * 1000
         _record_finish(run_id, result.success, dur, result.error)
-        print(f'Result: success={result.success} duration={result.duration_ms}ms')
+        print(f"Result: success={result.success} duration={result.duration_ms}ms")
         if result.error:
-            print(f'Error: {result.error}')
+            print(f"Error: {result.error}")
         sys.exit(0 if result.success else 1)
 
     else:
-        print('Must specify --workflow or --action', file=sys.stderr)
+        print("Must specify --workflow or --action", file=sys.stderr)
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -5,6 +5,7 @@ adb_core.py — Shared ADB + XML primitives for Android automation.
 Single Device class providing tap, swipe, type, screenshot, XML dump,
 and other low-level ADB operations used by skills and bot scripts.
 """
+
 import hashlib, html, json, re, shlex, subprocess, time
 import unicodedata
 from typing import NamedTuple
@@ -92,38 +93,40 @@ class ADBResult(NamedTuple):
 def _stable_port(serial: str, base: int = 18000) -> int:
     """Deterministic port from serial (stable across Python processes)."""
     return base + int(hashlib.md5(serial.encode()).hexdigest()[:3], 16) % 1000
+
+
 from pathlib import Path
 
-TIKTOK_PKG           = "com.zhiliaoapp.musically"
+TIKTOK_PKG = "com.zhiliaoapp.musically"
 TIKTOK_MAIN_ACTIVITY = f"{TIKTOK_PKG}/com.ss.android.ugc.aweme.main.MainActivity"
-TIKTOK_SPLASH        = f"{TIKTOK_PKG}/com.ss.android.ugc.aweme.splash.SplashActivity"
+TIKTOK_SPLASH = f"{TIKTOK_PKG}/com.ss.android.ugc.aweme.splash.SplashActivity"
 
 # Shared resource IDs — verified TikTok v44.3.3, 2026-03-21
 KNOWN_TIKTOK_VERSION = "44.3.3"
-RID_PROFILE_TAB  = f"{TIKTOK_PKG}:id/n19"   # bottom nav Profile icon (was myp)
-RID_SEARCH_ICON  = f"{TIKTOK_PKG}:id/j4d"   # magnifying glass on home (was j29)
-RID_SEARCH_BOX   = f"{TIKTOK_PKG}:id/gti"   # search text input field (was gry)
-RID_SUGGESTION   = f"{TIKTOK_PKG}:id/zg6"   # suggestion row in search (was z_i)
-RID_USERNAME_ROW = f"{TIKTOK_PKG}:id/zef"   # username in Users tab (was z8q)
-RID_FILTER_CHIP  = f"{TIKTOK_PKG}:id/ecp"   # filter chips — TODO verify after update
+RID_PROFILE_TAB = f"{TIKTOK_PKG}:id/n19"  # bottom nav Profile icon (was myp)
+RID_SEARCH_ICON = f"{TIKTOK_PKG}:id/j4d"  # magnifying glass on home (was j29)
+RID_SEARCH_BOX = f"{TIKTOK_PKG}:id/gti"  # search text input field (was gry)
+RID_SUGGESTION = f"{TIKTOK_PKG}:id/zg6"  # suggestion row in search (was z_i)
+RID_USERNAME_ROW = f"{TIKTOK_PKG}:id/zef"  # username in Users tab (was z8q)
+RID_FILTER_CHIP = f"{TIKTOK_PKG}:id/ecp"  # filter chips — TODO verify after update
 
 # Known popups to dismiss (specific patterns checked first)
 _KNOWN_POPUPS = [
-    {"detect": "Continue editing",                "button": "Save draft",  "label": "Draft resume overlay"},
-    {"detect": "connect with people",              "button": "Don\u2019t allow", "label": "Contacts access popup"},
-    {"detect": "access to your Facebook",          "button": "Don't allow",  "label": "Facebook friends access popup"},
-    {"detect": "Make TikTok Shop more relevant", "button": "Select",      "label": "TikTok Shop relevance"},
-    {"detect": "shared collections",                "button": "Not now",     "label": "Shared collections popup"},
-    {"detect": "Turn on notifications",            "button": "Not now",     "label": "Turn on notifications popup"},
-    {"detect": "security checkup",                 "button": "Close",       "label": "Security checkup popup"},
-    {"detect": "Not now",                         "button": "Not now",     "label": "Not now dialog"},
-    {"detect": 'content-desc="Close"',            "button": "Close",       "label": "Close dialog"},
-    {"detect": "Skip",                            "button": "Skip",        "label": "Skip dialog"},
+    {"detect": "Continue editing", "button": "Save draft", "label": "Draft resume overlay"},
+    {"detect": "connect with people", "button": "Don\u2019t allow", "label": "Contacts access popup"},
+    {"detect": "access to your Facebook", "button": "Don't allow", "label": "Facebook friends access popup"},
+    {"detect": "Make TikTok Shop more relevant", "button": "Select", "label": "TikTok Shop relevance"},
+    {"detect": "shared collections", "button": "Not now", "label": "Shared collections popup"},
+    {"detect": "Turn on notifications", "button": "Not now", "label": "Turn on notifications popup"},
+    {"detect": "security checkup", "button": "Close", "label": "Security checkup popup"},
+    {"detect": "Not now", "button": "Not now", "label": "Not now dialog"},
+    {"detect": 'content-desc="Close"', "button": "Close", "label": "Close dialog"},
+    {"detect": "Skip", "button": "Skip", "label": "Skip dialog"},
 ]
 # Generic dismiss words (fallback if no specific popup matched)
 # 'discard' handles the "Discard draft?" dialog that appears when Back is pressed in creation screen
-_DISMISS_WORDS = {'not now', 'skip', 'cancel', 'dismiss', 'later', 'discard'}
-_DISMISS_EXACT = {'cancel', 'dismiss', 'discard', 'save draft', "don\u2019t allow", "don't allow"}
+_DISMISS_WORDS = {"not now", "skip", "cancel", "dismiss", "later", "discard"}
+_DISMISS_EXACT = {"cancel", "dismiss", "discard", "save draft", "don\u2019t allow", "don't allow"}
 
 
 class Device:
@@ -140,7 +143,9 @@ class Device:
         try:
             return subprocess.run(
                 ["adb", "-s", self.serial, *args],
-                capture_output=True, text=True, timeout=timeout,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
             )
         except FileNotFoundError as e:
             raise ADBError(args, 127, "adb executable not found on PATH") from e
@@ -185,8 +190,7 @@ class Device:
         time.sleep(delay)
 
     def swipe(self, x1, y1, x2, y2, ms=500, delay=0.5):
-        self.adb("shell", "input", "swipe",
-                 str(int(x1)), str(int(y1)), str(int(x2)), str(int(y2)), str(ms))
+        self.adb("shell", "input", "swipe", str(int(x1)), str(int(y1)), str(int(x2)), str(int(y2)), str(ms))
         time.sleep(delay)
 
     def back(self, delay=1.0):
@@ -199,8 +203,7 @@ class Device:
 
     def long_press(self, x, y, duration_ms=1000, delay=0.5):
         """Long press at (x, y) for duration_ms milliseconds."""
-        self.adb("shell", "input", "swipe",
-                 str(int(x)), str(int(y)), str(int(x)), str(int(y)), str(duration_ms))
+        self.adb("shell", "input", "swipe", str(int(x)), str(int(y)), str(int(x)), str(int(y)), str(duration_ms))
         time.sleep(delay)
 
     def clipboard_get(self) -> str:
@@ -210,7 +213,7 @@ class Device:
         and returns nonzero; that's a normal "no clipboard" outcome, not an
         error worth raising through every caller.
         """
-        return self.adb_soft("shell", "cmd", "clipboard", "get-text").stdout or ''
+        return self.adb_soft("shell", "cmd", "clipboard", "get-text").stdout or ""
 
     def clipboard_set(self, text: str):
         """Set clipboard text."""
@@ -221,14 +224,16 @@ class Device:
     def pinch_in(self, cx, cy, start_dist=300, end_dist=50, duration_ms=500, delay=0.5):
         """Pinch-to-zoom in (two fingers moving inward)."""
         steps = max(10, duration_ms // 20)
-        self.adb("shell", "input", "swipe",
-                 str(cx - start_dist), str(cy), str(cx - end_dist), str(cy), str(duration_ms))
+        self.adb(
+            "shell", "input", "swipe", str(cx - start_dist), str(cy), str(cx - end_dist), str(cy), str(duration_ms)
+        )
         time.sleep(delay)
 
     def pinch_out(self, cx, cy, start_dist=50, end_dist=300, duration_ms=500, delay=0.5):
         """Pinch-to-zoom out (two fingers moving outward)."""
-        self.adb("shell", "input", "swipe",
-                 str(cx - start_dist), str(cy), str(cx - end_dist), str(cy), str(duration_ms))
+        self.adb(
+            "shell", "input", "swipe", str(cx - start_dist), str(cy), str(cx - end_dist), str(cy), str(duration_ms)
+        )
         time.sleep(delay)
 
     # ── Unicode text input (ADBKeyboard) ───────────────────────────────────
@@ -249,8 +254,7 @@ class Device:
 
         # Broadcast text (handles emoji, CJK, accented chars)
         escaped = text.replace('"', '\\"')
-        self.adb("shell", "am", "broadcast",
-                 "-a", "ADB_INPUT_TEXT", "--es", "msg", f'"{escaped}"')
+        self.adb("shell", "am", "broadcast", "-a", "ADB_INPUT_TEXT", "--es", "msg", f'"{escaped}"')
         time.sleep(delay)
 
         # Restore original IME immediately (stealth: minimize time on ADBKeyboard)
@@ -295,6 +299,7 @@ class Device:
     def stealth_tap(self, x, y, delay=0.6):
         """Tap with Gaussian jitter on coordinates (±5-15px) to appear human."""
         import random
+
         jx = x + random.gauss(0, 8)
         jy = y + random.gauss(0, 8)
         self.tap(int(jx), int(jy), delay=delay)
@@ -302,6 +307,7 @@ class Device:
     def stealth_swipe(self, x1, y1, x2, y2, ms=None, delay=0.5):
         """Swipe with variable speed and slight curve to appear human."""
         import random
+
         ms = ms or random.randint(300, 700)
         # Add slight curve (offset midpoint)
         mid_offset_x = random.randint(-20, 20)
@@ -316,6 +322,7 @@ class Device:
     def stealth_type(self, text: str, delay_range=(0.05, 0.2)):
         """Type text character-by-character with random delays to appear human."""
         import random
+
         for char in text:
             self.adb("shell", "input", "text", char)
             time.sleep(random.uniform(*delay_range))
@@ -339,7 +346,9 @@ class Device:
         try:
             subprocess.run(
                 ["adb", "-s", self.serial, "forward", f"tcp:{local_port}", "tcp:8080"],
-                capture_output=True, timeout=3, check=True,
+                capture_output=True,
+                timeout=3,
+                check=True,
             )
             Device._portal_ports[self.serial] = local_port
             return local_port
@@ -350,14 +359,15 @@ class Device:
     def dump_portal_json(self) -> dict | list | None:
         """Fast UI state via Droidrun Portal HTTP (33ms) or content provider (1.2s)."""
         import urllib.request
+
         # Try HTTP first (37x faster than content provider)
         port = self._ensure_portal_forward()
         if port:
             try:
-                req = urllib.request.urlopen(f'http://localhost:{port}/state', timeout=2)
+                req = urllib.request.urlopen(f"http://localhost:{port}/state", timeout=2)
                 data = json.loads(req.read())
-                if data.get('status') == 'success':
-                    tree = json.loads(data['result']).get('a11y_tree')
+                if data.get("status") == "success":
+                    tree = json.loads(data["result"]).get("a11y_tree")
                     if tree:
                         return tree
             except Exception:
@@ -366,14 +376,24 @@ class Device:
         for authority in ("com.ghostinthedroid.portal", "com.droidrun.portal"):
             try:
                 r = subprocess.run(
-                    ["adb", "-s", self.serial, "shell",
-                     "content", "query", "--uri", f"content://{authority}/state_full"],
-                    capture_output=True, text=True, timeout=5,
+                    [
+                        "adb",
+                        "-s",
+                        self.serial,
+                        "shell",
+                        "content",
+                        "query",
+                        "--uri",
+                        f"content://{authority}/state_full",
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
                 )
-                if 'result=' in r.stdout and '"status":"success"' in r.stdout:
-                    raw = r.stdout.split('result=', 1)[1]
+                if "result=" in r.stdout and '"status":"success"' in r.stdout:
+                    raw = r.stdout.split("result=", 1)[1]
                     data = json.loads(raw)
-                    return data.get('result', {}).get('a11y_tree', {})
+                    return data.get("result", {}).get("a11y_tree", {})
             except Exception:
                 pass
         return None
@@ -381,40 +401,43 @@ class Device:
     def _portal_node_to_xml(self, node: dict, depth: int = 0) -> str:
         """Convert Portal JSON node → uiautomator-compatible XML."""
         # Handle both formats: boundsInScreen (content provider) and bounds string (HTTP)
-        bounds_raw = node.get('boundsInScreen') or node.get('bounds', '')
+        bounds_raw = node.get("boundsInScreen") or node.get("bounds", "")
         if isinstance(bounds_raw, dict):
-            b = f"[{bounds_raw.get('left',0)},{bounds_raw.get('top',0)}][{bounds_raw.get('right',0)},{bounds_raw.get('bottom',0)}]"
-        elif isinstance(bounds_raw, str) and ',' in bounds_raw:
-            parts = [int(x) for x in bounds_raw.replace(' ', '').split(',')]
+            b = f"[{bounds_raw.get('left', 0)},{bounds_raw.get('top', 0)}][{bounds_raw.get('right', 0)},{bounds_raw.get('bottom', 0)}]"
+        elif isinstance(bounds_raw, str) and "," in bounds_raw:
+            parts = [int(x) for x in bounds_raw.replace(" ", "").split(",")]
             b = f"[{parts[0]},{parts[1]}][{parts[2]},{parts[3]}]" if len(parts) == 4 else bounds_raw
         else:
             b = "[0,0][0,0]"
-        text = html.escape(str(node.get('text', '') or ''))
+        text = html.escape(str(node.get("text", "") or ""))
         # Strip class name prefix that Portal puts in text field
-        cls = node.get('className', '')
-        if text == cls.split('.')[-1]:
-            text = ''  # Portal puts className as text for containers
-        desc = html.escape(str(node.get('contentDescription', '') or ''))
-        rid = html.escape(str(node.get('resourceId', '') or ''))
-        clickable = str(node.get('isClickable', False)).lower()
-        children = node.get('children', [])
-        child_xml = ''.join(self._portal_node_to_xml(c, depth + 1) for c in children)
-        return (f'<node index="{depth}" text="{text}" resource-id="{rid}" '
-                f'class="{cls}" content-desc="{desc}" clickable="{clickable}" '
-                f'bounds="{b}">{child_xml}</node>')
+        cls = node.get("className", "")
+        if text == cls.split(".")[-1]:
+            text = ""  # Portal puts className as text for containers
+        desc = html.escape(str(node.get("contentDescription", "") or ""))
+        rid = html.escape(str(node.get("resourceId", "") or ""))
+        clickable = str(node.get("isClickable", False)).lower()
+        children = node.get("children", [])
+        child_xml = "".join(self._portal_node_to_xml(c, depth + 1) for c in children)
+        return (
+            f'<node index="{depth}" text="{text}" resource-id="{rid}" '
+            f'class="{cls}" content-desc="{desc}" clickable="{clickable}" '
+            f'bounds="{b}">{child_xml}</node>'
+        )
 
     def dump_xml(self) -> str:
         """Get UI tree. Tries Droidrun Portal (fast) first, falls back to uiautomator."""
         tree = self.dump_portal_json()
         if tree:
             nodes = tree if isinstance(tree, list) else [tree]
-            inner = ''.join(self._portal_node_to_xml(n) for n in nodes)
+            inner = "".join(self._portal_node_to_xml(n) for n in nodes)
             return f'<?xml version="1.0" encoding="UTF-8"?><hierarchy rotation="0">{inner}</hierarchy>'
         # Fallback: classic uiautomator dump
         self.adb("shell", "uiautomator", "dump", "/sdcard/tt.xml")
         r = subprocess.run(
             ["adb", "-s", self.serial, "exec-out", "cat", "/sdcard/tt.xml"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         return r.stdout
 
@@ -422,16 +445,21 @@ class Device:
 
     def bounds_center(self, bounds_str: str) -> tuple[int, int]:
         """'[x1,y1][x2,y2]' → (cx, cy)"""
-        n = list(map(int, re.findall(r'\d+', bounds_str)))
+        n = list(map(int, re.findall(r"\d+", bounds_str)))
         return (n[0] + n[2]) // 2, (n[1] + n[3]) // 2
 
     def find_bounds(self, xml: str, *, text=None, content_desc=None, resource_id=None, class_name=None) -> str | None:
         """Return bounds string of first node matching the given attribute."""
-        if text:          key, val = "text",         text
-        elif content_desc: key, val = "content-desc", content_desc
-        elif resource_id:  key, val = "resource-id",  resource_id
-        elif class_name:   key, val = "class",        class_name
-        else:              return None
+        if text:
+            key, val = "text", text
+        elif content_desc:
+            key, val = "content-desc", content_desc
+        elif resource_id:
+            key, val = "resource-id", resource_id
+        elif class_name:
+            key, val = "class", class_name
+        else:
+            return None
         m = re.search(rf'<node[^>]*{key}="{re.escape(val)}"[^>]*>', xml)
         if m:
             bm = re.search(r'bounds="([^"]+)"', m.group())
@@ -459,19 +487,19 @@ class Device:
         raise TimeoutError(f"Timed out ({timeout}s) waiting for: {text!r}")
 
     def nodes(self, xml: str) -> list[str]:
-        return re.findall(r'<node[^>]+/?>', xml)
+        return re.findall(r"<node[^>]+/?>", xml)
 
     def node_text(self, node: str) -> str:
         m = re.search(r'\btext="([^"]*)"', node)
-        return html.unescape(m.group(1).strip()) if m else ''
+        return html.unescape(m.group(1).strip()) if m else ""
 
     def node_content_desc(self, node: str) -> str:
         m = re.search(r'content-desc="([^"]*)"', node)
-        return html.unescape(m.group(1).strip()) if m else ''
+        return html.unescape(m.group(1).strip()) if m else ""
 
     def node_rid(self, node: str) -> str:
         m = re.search(r'resource-id="([^"]*)"', node)
-        return m.group(1) if m else ''
+        return m.group(1) if m else ""
 
     def node_bounds(self, node: str) -> tuple | None:
         """Returns (x1, y1, x2, y2) or None."""
@@ -485,10 +513,10 @@ class Device:
         """Filter nodes by rid and/or text (checks both text and content-desc)."""
         out = []
         for node in self.nodes(xml):
-            if rid  and self.node_rid(node) != rid: continue
-            if text and text.lower() not in (
-                self.node_text(node) + self.node_content_desc(node)
-            ).lower(): continue
+            if rid and self.node_rid(node) != rid:
+                continue
+            if text and text.lower() not in (self.node_text(node) + self.node_content_desc(node)).lower():
+                continue
             out.append(node)
         return out
 
@@ -517,15 +545,18 @@ class Device:
         # not an error to raise.
         r = self.adb_soft("shell", "am", "start", "-n", activity, timeout=10)
         time.sleep(2)
-        if not r.ok or "Error" in r.stdout or "Activity not started" in r.stdout \
-                or self.screen_type(self.dump_xml()) == "unknown":
-            self.adb("shell", "monkey", "-p", TIKTOK_PKG, "-c",
-                     "android.intent.category.LAUNCHER", "1", timeout=10)
+        if (
+            not r.ok
+            or "Error" in r.stdout
+            or "Activity not started" in r.stdout
+            or self.screen_type(self.dump_xml()) == "unknown"
+        ):
+            self.adb("shell", "monkey", "-p", TIKTOK_PKG, "-c", "android.intent.category.LAUNCHER", "1", timeout=10)
         time.sleep(3)
         # TikTok sometimes restores a previous creation session — back out until home
         for _ in range(8):
             xml = self.dump_xml()
-            if self.screen_type(xml) == 'home':
+            if self.screen_type(xml) == "home":
                 break
             if self.dismiss_popups(xml):
                 continue
@@ -547,13 +578,15 @@ class Device:
         try:
             raw = subprocess.run(
                 ["adb", "-s", self.serial, "exec-out", "screencap"],
-                capture_output=True, timeout=5,
+                capture_output=True,
+                timeout=5,
             ).stdout
             if len(raw) < 16:
                 return
             import struct
-            w = struct.unpack_from('<I', raw, 0)[0]
-            h = struct.unpack_from('<I', raw, 4)[0]
+
+            w = struct.unpack_from("<I", raw, 0)[0]
+            h = struct.unpack_from("<I", raw, 4)[0]
             hdr = 12  # width(4) + height(4) + format(4)
             scan_max_y = h // 7  # top ~15%
             # Scan rows for a wide red band (the Edit button is ~380px wide)
@@ -589,7 +622,7 @@ class Device:
         b = self.find_bounds(xml, resource_id=RID_PROFILE_TAB)
         self.tap(*self.bounds_center(b) if b else (972, 2214), delay=2.5)
         # Wait for profile indicators
-        PROFILE_INDICATORS = ('"r6p"', 'desc="Videos"', 'desc="Posts"', ':id/r4r')
+        PROFILE_INDICATORS = ('"r6p"', 'desc="Videos"', 'desc="Posts"', ":id/r4r")
         for _ in range(10):
             xml = self.dump_xml()
             if any(ind in xml for ind in PROFILE_INDICATORS):
@@ -612,11 +645,11 @@ class Device:
         for attempt in range(10):
             xml = self.dump_xml()
             b = self.find_bounds(xml, resource_id=f"{TIKTOK_PKG}:id/yfk")
-            if b or 'Drafts:' in xml:
+            if b or "Drafts:" in xml:
                 break
             if any(ind in xml for ind in PROFILE_INDICATORS):
                 self.adb("shell", "am", "force-stop", TIKTOK_PKG)
-                return None   # profile loaded but no banner → 0 drafts
+                return None  # profile loaded but no banner → 0 drafts
             self.dismiss_popups(xml)
             time.sleep(1)
         else:
@@ -650,10 +683,8 @@ class Device:
                 return True
             btn = popup["button"]
             matches = []
-            for m in re.finditer(
-                rf'(?:text|content-desc)="{re.escape(btn)}"[^>]*bounds="([^"]+)"', xml
-            ):
-                nums = list(map(int, re.findall(r'\d+', m.group(1))))
+            for m in re.finditer(rf'(?:text|content-desc)="{re.escape(btn)}"[^>]*bounds="([^"]+)"', xml):
+                nums = list(map(int, re.findall(r"\d+", m.group(1))))
                 matches.append((nums[1], m.group(1)))
             if matches:
                 matches.sort(key=lambda x: x[0])
@@ -664,7 +695,7 @@ class Device:
         for node in self.nodes(xml):
             if 'clickable="true"' not in node:
                 continue
-            label = (self.node_text(node) + ' ' + self.node_content_desc(node)).lower().strip()
+            label = (self.node_text(node) + " " + self.node_content_desc(node)).lower().strip()
             b = self.node_bounds(node)
             if not b or b[3] < 200:
                 continue
@@ -680,7 +711,7 @@ class Device:
                 return True
         # 3. Invisible overlay fallback — some TikTok popups (Family Pairing, promos)
         #    are rendered overlays invisible to uiautomator. Dismiss with Back.
-        if 'Learn more' in xml and 'content-desc=" Learn more"' in xml:
+        if "Learn more" in xml and 'content-desc=" Learn more"' in xml:
             print("[popup] invisible overlay (Learn more visible) — pressing Back")
             self.back(delay=1.0)
             return True
@@ -698,10 +729,10 @@ class Device:
         st = self.screen_type(xml)
 
         # ── Open search ────────────────────────────────────────────────────────
-        if st == 'home':
+        if st == "home":
             nodes = self.find_nodes(xml, rid=RID_SEARCH_ICON)
             self.tap_node(nodes[0], delay=1.0) if nodes else self.tap(1011, 129, delay=1.0)
-        elif st in ('search_results', 'users_tab'):
+        elif st in ("search_results", "users_tab"):
             nodes = self.find_nodes(xml, rid=RID_SEARCH_BOX)
             self.tap_node(nodes[0], delay=1.0) if nodes else self.tap(540, 65, delay=1.0)
         # else already at search_input — proceed directly
@@ -710,7 +741,7 @@ class Device:
         for attempt in range(3):
             for _ in range(6):
                 xml = self.dump_xml()
-                if self.screen_type(xml) == 'search_input':
+                if self.screen_type(xml) == "search_input":
                     break
                 self.dismiss_popups(xml)
                 time.sleep(1.0)
@@ -718,34 +749,35 @@ class Device:
                 # Didn't reach search_input — tap icon again and retry
                 xml = self.dump_xml()
                 cur = self.screen_type(xml)
-                if cur == 'home':
+                if cur == "home":
                     nodes = self.find_nodes(xml, rid=RID_SEARCH_ICON)
                     self.tap_node(nodes[0], delay=1.5) if nodes else self.tap(1011, 129, delay=1.5)
-                elif cur in ('search_results', 'users_tab'):
+                elif cur in ("search_results", "users_tab"):
                     nodes = self.find_nodes(xml, rid=RID_SEARCH_BOX)
                     self.tap_node(nodes[0], delay=1.2) if nodes else self.tap(540, 65, delay=1.2)
                 continue
             break  # reached search_input
 
         # ── Type query ─────────────────────────────────────────────────────────
-        clean = query.lstrip('@')
-        self.adb('shell', 'input', 'keyevent', 'KEYCODE_MOVE_END')
+        clean = query.lstrip("@")
+        self.adb("shell", "input", "keyevent", "KEYCODE_MOVE_END")
         for _ in range(80):
-            self.adb('shell', 'input', 'keyevent', 'KEYCODE_DEL')
+            self.adb("shell", "input", "keyevent", "KEYCODE_DEL")
         for ch in clean:
-            if ch == '#':
-                self.adb('shell', 'input', 'keyevent', 'KEYCODE_POUND')
-            elif ch == ' ':
-                self.adb('shell', 'input', 'text', '%s')
+            if ch == "#":
+                self.adb("shell", "input", "keyevent", "KEYCODE_POUND")
+            elif ch == " ":
+                self.adb("shell", "input", "text", "%s")
             else:
-                self.adb('shell', 'input', 'text', ch)
+                self.adb("shell", "input", "text", ch)
             time.sleep(0.2)
         # Tap "Search" button instead of ENTER (ENTER selects autocomplete)
         xml = self.dump_xml()
-        search_btn = [n for n in self.nodes(xml)
-                      if self.node_text(n) == 'Search'
-                      and 'clickable="true"' in n
-                      and (b := self.node_bounds(n)) and b[1] < 200]
+        search_btn = [
+            n
+            for n in self.nodes(xml)
+            if self.node_text(n) == "Search" and 'clickable="true"' in n and (b := self.node_bounds(n)) and b[1] < 200
+        ]
         if search_btn:
             self.tap_node(search_btn[0], delay=2.5)
         else:
@@ -755,27 +787,34 @@ class Device:
         xml = self.dump_xml()
         for attempt in range(7):
             st = self.screen_type(xml)
-            if st in ('search_results', 'users_tab'):
+            if st in ("search_results", "users_tab"):
                 break
             if self.dismiss_popups(xml):
                 xml = self.dump_xml()
                 continue
-            if st == 'search_input':
-                sugg = [n for n in self.find_nodes(xml, rid=RID_SUGGESTION)
-                        if clean.lower().lstrip('#') in self.node_text(n).lower()]
+            if st == "search_input":
+                sugg = [
+                    n
+                    for n in self.find_nodes(xml, rid=RID_SUGGESTION)
+                    if clean.lower().lstrip("#") in self.node_text(n).lower()
+                ]
                 if sugg:
                     self.tap_node(sugg[0], delay=2.0)
                 else:
                     # Tap the "Search" button (top-right) instead of ENTER
                     # (ENTER selects autocomplete suggestions instead of submitting)
-                    search_btn = [n for n in self.nodes(xml)
-                                  if self.node_text(n) == 'Search'
-                                  and 'clickable="true"' in n
-                                  and (b := self.node_bounds(n)) and b[1] < 200]
+                    search_btn = [
+                        n
+                        for n in self.nodes(xml)
+                        if self.node_text(n) == "Search"
+                        and 'clickable="true"' in n
+                        and (b := self.node_bounds(n))
+                        and b[1] < 200
+                    ]
                     if search_btn:
                         self.tap_node(search_btn[0], delay=2.5)
                     else:
-                        self.adb('shell', 'input', 'keyevent', 'KEYCODE_ENTER')
+                        self.adb("shell", "input", "keyevent", "KEYCODE_ENTER")
                         time.sleep(2.0)
             else:
                 time.sleep(1.5)
@@ -802,25 +841,21 @@ class Device:
         Returns: home | search_input | search_results | users_tab | filters_panel | unknown
         """
         if self.find_nodes(xml, rid=RID_USERNAME_ROW):
-            return 'users_tab'
+            return "users_tab"
         if self.find_nodes(xml, rid=RID_FILTER_CHIP):
-            return 'filters_panel'
-        if any(
-            (b := self.node_bounds(n)) and b[3] < 350
-            for n in self.find_nodes(xml, text='Users')
-        ):
-            return 'search_results'
+            return "filters_panel"
+        if any((b := self.node_bounds(n)) and b[3] < 350 for n in self.find_nodes(xml, text="Users")):
+            return "search_results"
         if self.find_nodes(xml, rid=RID_SEARCH_BOX):
-            return 'search_input'
+            return "search_input"
         if self.find_nodes(xml, rid=RID_SEARCH_ICON):
-            return 'home'
-        return 'unknown'
-
+            return "home"
+        return "unknown"
 
     def check_tiktok_version(self) -> str:
         """Return installed TikTok version. Warn if it differs from KNOWN_TIKTOK_VERSION."""
         out = self.adb("shell", "dumpsys", "package", TIKTOK_PKG, timeout=10)
-        m = re.search(r'versionName=(\S+)', out)
+        m = re.search(r"versionName=(\S+)", out)
         ver = m.group(1) if m else "unknown"
         if ver != KNOWN_TIKTOK_VERSION:
             print(f"[WARN] TikTok version {ver} != expected {KNOWN_TIKTOK_VERSION} — RIDs may be stale!")
@@ -829,7 +864,7 @@ class Device:
     def get_app_version(self, package: str) -> str:
         """Return versionName for any installed package."""
         out = self.adb("shell", "dumpsys", "package", package, timeout=10)
-        m = re.search(r'versionName=(\S+)', out)
+        m = re.search(r"versionName=(\S+)", out)
         return m.group(1) if m else "unknown"
 
     def update_app(self, package: str, timeout: int = 300, log=print) -> str:
@@ -846,21 +881,20 @@ class Device:
         time.sleep(1)
 
         # Open Play Store page for this app
-        self.adb("shell", "am", "start", "-a", "android.intent.action.VIEW",
-                 "-d", f"market://details?id={package}")
+        self.adb("shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", f"market://details?id={package}")
         time.sleep(4)
 
         # Find and tap "Update" button
         xml = self.dump_xml()
         update_node = None
         for node in self.nodes(xml):
-            if self.node_text(node) == 'Update':
+            if self.node_text(node) == "Update":
                 update_node = node
                 break
         if not update_node:
             # Check if already up to date
             for node in self.nodes(xml):
-                if self.node_text(node) == 'Open':
+                if self.node_text(node) == "Open":
                     log(f"[update] Already up to date: {old_ver}")
                     return old_ver
             raise RuntimeError(f"Update button not found for {package}")
@@ -882,7 +916,7 @@ class Device:
             xml = self.dump_xml()
             for node in self.nodes(xml):
                 txt = self.node_text(node)
-                if txt == 'Open':
+                if txt == "Open":
                     new_ver = self.get_app_version(package)
                     log(f"[update] Done! {old_ver} → {new_ver} ({elapsed}s)")
                     return new_ver
@@ -894,6 +928,7 @@ class Device:
 def get_device(serial: str | None = None) -> Device:
     """Return a Device instance. Auto-detects if only one phone connected."""
     import os
+
     serial = serial or os.environ.get("DEVICE")
     if serial:
         return Device(serial)
@@ -905,8 +940,4 @@ def get_device(serial: str | None = None) -> Device:
 
 def list_connected() -> list[str]:
     out = subprocess.run(["adb", "devices"], capture_output=True, text=True).stdout
-    return [
-        line.split()[0]
-        for line in out.splitlines()[1:]
-        if line.strip() and line.split()[-1] == "device"
-    ]
+    return [line.split()[0] for line in out.splitlines()[1:] if line.strip() and line.split()[-1] == "device"]

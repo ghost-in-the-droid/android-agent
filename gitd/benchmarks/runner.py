@@ -223,9 +223,7 @@ def run_benchmark(
     return run
 
 
-def _run_agent(
-    task: Task, model: str, device: str, provider: str, api_base: str, run_id: str
-) -> list[dict]:
+def _run_agent(task: Task, model: str, device: str, provider: str, api_base: str, run_id: str) -> list[dict]:
     """Send task goal to agent chat endpoint and collect SSE events."""
     events: list[dict] = []
     try:

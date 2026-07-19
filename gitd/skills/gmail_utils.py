@@ -8,6 +8,7 @@ Usage:
     for e in entries:
         print(f"{e['sender']}  |  {e['subject']}  |  {e['date']}")
 """
+
 from __future__ import annotations
 
 import re
@@ -22,7 +23,7 @@ GMAIL_PKG = "com.google.android.gm"
 
 # Gmail resource IDs (verified on Samsung SM-A156B, Gmail 2025+)
 RID_SENDERS = f"{GMAIL_PKG}:id/senders"
-RID_DATE    = f"{GMAIL_PKG}:id/date"
+RID_DATE = f"{GMAIL_PKG}:id/date"
 RID_SUBJECT = f"{GMAIL_PKG}:id/subject"
 RID_SNIPPET = f"{GMAIL_PKG}:id/snippet"
 
@@ -43,7 +44,9 @@ class GmailEntry:
 def _adb(serial: str, *args, timeout: int = 15) -> str:
     r = subprocess.run(
         ["adb", "-s", serial, *args],
-        capture_output=True, text=True, timeout=timeout,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
     )
     return r.stdout.strip()
 
@@ -58,10 +61,18 @@ def _launch_gmail(serial: str, wait: float = 5.0):
     """Force-stop and relaunch Gmail to inbox."""
     _adb(serial, "shell", "am", "force-stop", GMAIL_PKG)
     time.sleep(0.5)
-    _adb(serial, "shell", "am", "start",
-         "-n", f"{GMAIL_PKG}/.ConversationListActivityGmail",
-         "-a", "android.intent.action.MAIN",
-         "-c", "android.intent.category.LAUNCHER")
+    _adb(
+        serial,
+        "shell",
+        "am",
+        "start",
+        "-n",
+        f"{GMAIL_PKG}/.ConversationListActivityGmail",
+        "-a",
+        "android.intent.action.MAIN",
+        "-c",
+        "android.intent.category.LAUNCHER",
+    )
     time.sleep(wait)
 
 
@@ -111,13 +122,15 @@ def _parse_inbox_entries(xml_str: str, max_entries: int = 20) -> list[GmailEntry
 
     for i in range(count):
         is_unread = conversation_frames[i] if i < len(conversation_frames) else False
-        entries.append(GmailEntry(
-            sender=senders[i],
-            subject=subjects[i],
-            date=dates[i],
-            snippet=snippets[i] if i < len(snippets) else "",
-            is_unread=is_unread,
-        ))
+        entries.append(
+            GmailEntry(
+                sender=senders[i],
+                subject=subjects[i],
+                date=dates[i],
+                snippet=snippets[i] if i < len(snippets) else "",
+                is_unread=is_unread,
+            )
+        )
 
     return entries
 
@@ -197,6 +210,7 @@ def find_email_by_subject(
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="Check Gmail inbox")
     parser.add_argument("--device", default="")
     parser.add_argument("--max", type=int, default=10)

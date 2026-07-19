@@ -14,6 +14,7 @@ VOICES = {
     "Jessie": "tt-en_us_002",
 }
 
+
 def generate_tts(text: str, voice: str = "Jessie") -> bytes:
     voice_id = VOICES.get(voice, voice)  # allow raw voice ID as fallback
     resp = requests.post(
@@ -79,25 +80,46 @@ def inject_audio_to_video(video_path: str, audio_path: str, output_path: str) ->
     if has_audio:
         # Mix TTS audio on top of original audio
         cmd = [
-            "ffmpeg", "-y",
-            "-i", video_path,
-            "-i", audio_path,
-            "-filter_complex", "[0:a]volume=0.8[orig];[orig][1:a]amix=inputs=2:duration=first[aout]",
-            "-map", "0:v:0", "-map", "[aout]",
-            "-t", str(video_duration),
-            "-c:v", "copy", "-c:a", "aac",
+            "ffmpeg",
+            "-y",
+            "-i",
+            video_path,
+            "-i",
+            audio_path,
+            "-filter_complex",
+            "[0:a]volume=0.8[orig];[orig][1:a]amix=inputs=2:duration=first[aout]",
+            "-map",
+            "0:v:0",
+            "-map",
+            "[aout]",
+            "-t",
+            str(video_duration),
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
             output_path,
         ]
     else:
         # No audio in video — just add TTS as the audio track
         print("  (video has no audio — adding TTS as only audio track)")
         cmd = [
-            "ffmpeg", "-y",
-            "-i", video_path,
-            "-i", audio_path,
-            "-map", "0:v:0", "-map", "1:a:0",
-            "-t", str(video_duration),
-            "-c:v", "copy", "-c:a", "aac",
+            "ffmpeg",
+            "-y",
+            "-i",
+            video_path,
+            "-i",
+            audio_path,
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-t",
+            str(video_duration),
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
             output_path,
         ]
     result = subprocess.run(cmd, capture_output=True, text=True)

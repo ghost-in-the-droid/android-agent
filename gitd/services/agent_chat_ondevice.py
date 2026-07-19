@@ -20,7 +20,7 @@ from gitd.services.agent_chat import (
     normalize_tool_call,
     system_prompt_for_device,
 )
-from gitd.services.agent_tools import execute_tool, tool_prompt_list, tools_for_device
+from gitd.services.agent_tools import tool_prompt_list, tools_for_device
 from gitd.services.device_context import get_phone_state, get_screen_tree
 from gitd.services.observability import (
     record_generation,
@@ -273,7 +273,9 @@ def chat_ondevice(session: ChatSession, user_message: str) -> Iterator[dict]:
 
                 span = trace.span(name=f"tool:{tool_name}", input={"args": tool_args}) if trace else None
                 try:
-                    result = execute_tool(tool_name, tool_args)
+                    from gitd.services.agent_chat import _dispatch_tool
+
+                    result = _dispatch_tool(session, tool_name, tool_args)
                     session.messages.append(ChatMessage(role="tool_result", content=result[:500], tool_name=tool_name))
                     yield {"type": "tool_result", "name": tool_name, "result": result[:500]}
                     tool_results.append(f"[{tool_name}] {result[:800]}")

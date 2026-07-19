@@ -1,4 +1,5 @@
 """Alembic env — uses our SQLAlchemy models + engine."""
+
 from logging.config import fileConfig
 
 from alembic import context
@@ -36,9 +37,10 @@ def _process_revision_directives(context, revision, directives):
         if isinstance(op, ModifyTableOps):
             # Filter out nullable-only changes on PK columns
             op.ops = [
-                inner for inner in op.ops
+                inner
+                for inner in op.ops
                 if not (
-                    hasattr(inner, 'modify_nullable')
+                    hasattr(inner, "modify_nullable")
                     and inner.modify_nullable is False
                     and inner.existing_nullable is True
                 )

@@ -78,6 +78,8 @@ def _load_all_skills() -> dict:
                     "name": meta.get("name", d.name),
                     "description": meta.get("description", ""),
                     "version": meta.get("version", "0.0.0"),
+                    "kind": meta.get("kind", "hard"),
+                    "has_guidance": (d / "guidance.md").exists(),
                     "app_package": meta.get("app_package", ""),
                     "android_package": skill_android_package(meta),
                     "ios_bundle_id": skill_ios_bundle_id(meta),
@@ -335,6 +337,10 @@ def api_skill_detail(name: str):
         elem_path = _SKILLS_DIR / name / "elements.yaml"
         if elem_path.exists():
             info["elements"] = yaml.safe_load(elem_path.read_text()) or {}
+        # Soft skills carry markdown guidance instead of actions/workflows.
+        guidance_path = _SKILLS_DIR / name / "guidance.md"
+        if guidance_path.exists():
+            info["guidance"] = guidance_path.read_text()
     except Exception as e:
         info["load_error"] = str(e)
     return info
@@ -504,6 +510,51 @@ def api_skills_create_from_recording(data: dict = Body({})):
             ios_bundle_id=data.get("ios_bundle_id", ""),
             elements_ios=data.get("elements_ios"),
             elements_android=data.get("elements_android"),
+            skills_dir=_SKILLS_DIR,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/draft-from-chat", summary="Draft Recorded Steps From A Chat")
+def api_skills_draft_from_chat(data: dict = Body({})):
+    """Distil a chat conversation's action trace into draft recorded steps (no write).
+
+    The 'draft' half of draft -> review -> commit: the caller (LLM or UI) reviews
+    and revises the returned steps, then POSTs them to /save-from-chat.
+    """
+    conversation_id = (data.get("conversation_id") or "").strip()
+    if not conversation_id:
+        raise HTTPException(status_code=400, detail="conversation_id required")
+    from gitd.services.skills_from_chat import draft_hard_skill
+
+    try:
+        return draft_hard_skill(conversation_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/save-from-chat", summary="Save A Skill From A Chat")
+def api_skills_save_from_chat(data: dict = Body({})):
+    """Commit a HARD or SOFT skill from a chat conversation.
+
+    HARD: pass revised `steps` (from /draft-from-chat) or just a `conversation_id`
+    to re-distil. SOFT: pass `guidance` markdown.
+    """
+    name = (data.get("name") or "").strip().lower().replace(" ", "_")
+    if not name:
+        raise HTTPException(status_code=400, detail="name required")
+    from gitd.services.skills_from_chat import commit_skill
+
+    try:
+        return commit_skill(
+            kind=data.get("kind", "hard"),
+            name=name,
+            app_package=data.get("app_package", ""),
+            description=data.get("description", ""),
+            steps=data.get("steps"),
+            guidance=data.get("guidance"),
+            conversation_id=data.get("conversation_id"),
             skills_dir=_SKILLS_DIR,
         )
     except ValueError as e:
