@@ -41,6 +41,18 @@ export default defineConfig({
 				},
 				{
 					tag: 'script',
+					attrs: {
+						async: true,
+						src: 'https://www.googletagmanager.com/gtag/js?id=G-5H5CYJFJLJ',
+					},
+				},
+				{
+					tag: 'script',
+					content:
+						"window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-5H5CYJFJLJ');",
+				},
+				{
+					tag: 'script',
 					content: `
 document.addEventListener('DOMContentLoaded', function() {
 	var nav = document.querySelector('header nav .right-group, header nav');
