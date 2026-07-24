@@ -176,7 +176,6 @@ def _tr_watcher():
 threading.Thread(target=_tr_watcher, daemon=True).start()
 
 
-
 def _resolve_recording_path(filename: str, suffix: str = "") -> Path:
     """Resolve a recording file path, rejecting traversal outside the recordings dir.
 
