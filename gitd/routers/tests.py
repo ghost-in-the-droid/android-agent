@@ -176,6 +176,25 @@ def _tr_watcher():
 threading.Thread(target=_tr_watcher, daemon=True).start()
 
 
+def _resolve_recording_path(filename: str, suffix: str = "") -> Path:
+    """Resolve a recording file path, rejecting traversal outside the recordings dir.
+
+    ``filename`` must be a bare basename (no path separators, no ``..``).
+    """
+    if not filename or "/" in filename or "\\" in filename or filename in (".", "..") or "\x00" in filename:
+        raise HTTPException(status_code=400, detail="invalid filename")
+    name = Path(filename).name
+    if name != filename:
+        raise HTTPException(status_code=400, detail="invalid filename")
+    base = _TR_RECORDINGS_DIR.resolve()
+    candidate = (base / (name + suffix)).resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="invalid filename") from exc
+    return candidate
+
+
 # ── Routes ──────────────────────────────────────────────────────────────────
 
 
@@ -381,7 +400,7 @@ def tr_recordings():
 @router.get("/api/test-runner/recording/{filename:path}", summary="Serve Test Recording File")
 def tr_recording_file(filename: str):
     """Serve a test recording MP4."""
-    fpath = _TR_RECORDINGS_DIR / filename
+    fpath = _resolve_recording_path(filename)
     if not fpath.exists() or not fpath.is_file():
         raise HTTPException(status_code=404, detail="not found")
     return FileResponse(str(fpath), media_type="video/mp4")
@@ -390,8 +409,8 @@ def tr_recording_file(filename: str):
 @router.get("/api/test-runner/recording-log/{filename:path}", summary="Serve Recording Log File")
 def tr_recording_log(filename: str):
     """Serve the saved log for a recording."""
-    stem = filename.replace(".mp4", "")
-    log_path = _TR_RECORDINGS_DIR / (stem + ".log")
+    stem = filename[:-4] if filename.endswith(".mp4") else filename
+    log_path = _resolve_recording_path(stem, ".log")
     if not log_path.exists():
         return {"lines": []}
     lines = log_path.read_text(errors="replace").splitlines()
@@ -401,10 +420,10 @@ def tr_recording_log(filename: str):
 @router.delete("/api/test-runner/recording/{filename:path}", summary="Delete Test Recording")
 def tr_recording_delete(filename: str):
     """Delete a test recording and its associated log/overlay files."""
-    stem = filename.replace(".mp4", "")
+    stem = filename[:-4] if filename.endswith(".mp4") else filename
     deleted = []
     for suffix in [".mp4", ".log", "_overlay.mp4"]:
-        p = _TR_RECORDINGS_DIR / (stem + suffix)
+        p = _resolve_recording_path(stem, suffix)
         if p.exists():
             p.unlink()
             deleted.append(p.name)
