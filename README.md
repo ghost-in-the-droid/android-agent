@@ -1,3 +1,5 @@
+[![MCP Toplist](https://mcptoplist.com/badge/io.github.ghost-in-the-droid%2Fandroid-agent.svg)](https://mcptoplist.com/server/io.github.ghost-in-the-droid%2Fandroid-agent)
+
 <!-- mcp-name: io.github.ghost-in-the-droid/android-agent -->
 <p align="center">
   <img src="docs/assets/mascot/12-the-tap.png" alt="Ghost tapping a phone" width="200" />
