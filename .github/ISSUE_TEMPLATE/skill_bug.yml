@@ -1,0 +1,36 @@
+name: Skill bug
+description: Report a failing skill or fingerprint mismatch.
+title: '[skill bug] '
+body:
+  - type: input
+    id: skill
+    attributes:
+      label: Skill reference and version
+      placeholder: ghost/tiktok@1.2.0
+    validations:
+      required: true
+  - type: input
+    id: fingerprint
+    attributes:
+      label: Actual device and app fingerprint
+      description: OS, OS version, hardware, app package and version.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Action, parameters and reproduction steps
+      description: Remove personal data and credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual final state
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized error or dry test output
+      render: text

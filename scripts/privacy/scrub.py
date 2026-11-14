@@ -38,8 +38,8 @@ SUBSTITUTIONS: list[tuple[re.Pattern, str]] = [
     # Personal-machine hostnames → neutral demo hosts
     (re.compile(r"[A-Za-z]+s-MacBook[A-Za-z-]*(\.local)?"), "ghost-dev-mac"),
     (re.compile(r"[a-z0-9-]+\.coredevice\.local"), "<device-hostname>"),
-    (re.compile(r"\bckl-linux\b"), "ghost-dev-linux"),
-    (re.compile(r"\bckl-mac\b"), "ghost-dev-mac"),
+    (re.compile(r"\b[A-Za-z0-9_.-]+-linux\b"), "ghost-dev-linux"),
+    (re.compile(r"\b[A-Za-z0-9_.-]+-mac\b"), "ghost-dev-mac"),
     # Home directories → ~
     (re.compile(r"/Users/[A-Za-z0-9_.-]+"), "~"),
     (re.compile(r"/home/[A-Za-z0-9_.-]+"), "~"),

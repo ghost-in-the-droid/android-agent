@@ -1,0 +1,67 @@
+name: Skill Hub registry
+on:
+  push:
+    branches: [main]
+    paths: ['skillhub/**']
+permissions:
+  contents: read
+concurrency:
+  group: skillhub-registry
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
+    env:
+      GHOST_HUB_REPO: ${{ github.repository }}
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - run: pip install pyyaml
+      - name: Configure registry commit identity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Prepare committed release tarballs
+        id: prepare
+        env:
+          BASE_SHA: ${{ github.event.before }}
+        run: python3 -m tools.ci.registry --base "$BASE_SHA" --prepare
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        if: steps.prepare.outputs.count != '0'
+        with:
+          cosign-release: v2.5.2
+      - name: Sign release tarballs using GitHub OIDC
+        if: steps.prepare.outputs.count != '0'
+        run: |
+          for archive in skill-releases/*.tar.gz; do
+            cosign sign-blob --yes --bundle "$archive.sigstore.json" "$archive"
+          done
+      - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        if: steps.prepare.outputs.count != '0'
+        with:
+          subject-path: skill-releases/*.tar.gz
+      - name: Publish signed releases and regenerate registry indexes
+        env:
+          BASE_SHA: ${{ github.event.before }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          python3 -m tools.ci.registry --base "$BASE_SHA" --publish-signed
+      - name: Purge discovery and changed per-skill registry indexes
+        env:
+          BASE_SHA: ${{ github.event.before }}
+        run: |
+          python3 tools/registry_purge_urls.py --base "$BASE_SHA" > registry-purge-urls.txt
+          while IFS= read -r url; do
+            curl --fail --silent --show-error --retry 3 --connect-timeout 10 --max-time 30 "$url"
+          done < registry-purge-urls.txt

@@ -9,12 +9,17 @@ on:
 # Secrets are set in GitHub repo Settings → Secrets → Actions
 # They're encrypted, never printed in logs, available as ${{ secrets.NAME }}
 
+permissions:
+  contents: read
+
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.10"
       - run: pip install ruff
@@ -22,29 +27,29 @@ jobs:
       - run: ruff format --check gitd/routers/ gitd/schemas/ gitd/services/ gitd/models/ gitd/app.py
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
     env:
-      # Secrets injected from GitHub Settings → Secrets
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       DEFAULT_DEVICE: ""  # No device in CI
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.10"
       - run: pip install -e ".[test]" httpx
-      - run: python -m pytest tests/api/test_smoke.py -v --tb=short
+      - run: python -m pytest tests/api/test_smoke.py tests/test_adb.py tests/test_skill_engine_core.py -v --tb=short
 
   ios-parity-tests:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
     env:
       DEFAULT_DEVICE: ""  # No device in CI
       IOS_LIVE_NEWS_TEST: ""  # Live WDA/Appium tests are opt-in outside CI
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.10"
       - run: pip install -e ".[test]" httpx
@@ -77,10 +82,12 @@ jobs:
           tests/test_ios_chrome_news_smoke.py
 
   build-frontend:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
       - run: cd frontend && npm install --no-audit
@@ -88,10 +95,12 @@ jobs:
       - run: cd frontend && npx vite build
 
   type-check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.10"
       - run: pip install -e ".[all]" httpx

@@ -1,0 +1,24 @@
+name: Skill Hub stale submissions
+on:
+  schedule:
+    - cron: '43 8 * * *'
+  workflow_dispatch:
+permissions: {}
+jobs:
+  stale:
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9
+        with:
+          days-before-stale: 30
+          days-before-close: 14
+          only-labels: skill-submission,skill-request,skill-bug
+          stale-issue-label: stale
+          stale-pr-label: stale
+          exempt-issue-labels: pinned,needs-security-review,skill-drift
+          exempt-pr-labels: pinned,needs-security-review
+          stale-issue-message: 'This skill issue has been inactive for 30 days. Comment to keep it open.'
+          stale-pr-message: 'This skill submission has been inactive for 30 days. Comment to keep it open.'

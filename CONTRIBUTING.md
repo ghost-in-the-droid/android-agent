@@ -54,140 +54,27 @@ python3 run.py
 
 ## Adding a Skill for a New App
 
-This is the most common and valuable contribution. A skill is a folder with UI element definitions and Python automation code.
-
-### 1. Scaffold
+Skills live in the Skill Hub at `skillhub/<your-github-login>/<slug>/`: a `skill.yaml` (Schema v2), a `README.md`, a `SOFT.md`, and optional `helpers.py`, `validators.py`, `bench.yaml` and `demo.gif`. You own your folder: once your first skill is merged, the generated `.github/CODEOWNERS` maps `skillhub/<your-login>/` to you and you review changes to it yourself.
 
 ```bash
-# Creates the skill folder structure
-mkdir -p gitd/skills/whatsapp/actions
-mkdir -p gitd/skills/whatsapp/workflows
+ghost skill scaffold <you>/<slug> --app <package> --actions <action>
+# author skill.yaml, README.md, SOFT.md; set license: and generated_with:
+ghost skill validate <path>
+ghost skill lint <path>
+ghost skill run <path> <action> --record   # signed self-run in runs/
+ghost skill submit <path> --dry-run        # prints the PR plan; automated PR creation is v1.7, open the PR by hand
 ```
 
-### 2. Define UI Elements (`elements.yaml`)
+Then file a **Verify request** issue so someone with a different phone can run it. Your skill climbs Draft, Runs, Proven, Hardened, Reference on evidence from real runs; downloads and likes are worth zero points.
 
-Use the **Skill Creator** tab in the dashboard (Phone stream + element overlay) to identify elements:
+You can also contribute without writing a skill: verify other people's skills on your phones (`ghost skill verify <author>/<slug>`), review them, or answer questions. All four tracks lead to the same contributor tiers.
 
-```yaml
-# gitd/skills/whatsapp/elements.yaml
-package: com.whatsapp
-app_version: "2.24.x"
+- How the ladder works: [`docs/community/contributor-ladder.md`](docs/community/contributor-ladder.md)
+- Full author flow and CI: [`docs/contributing-skills.md`](docs/contributing-skills.md)
+- Schema reference: [`docs/skill-schema-v2.md`](docs/skill-schema-v2.md)
+- Wanted skills: [open skill requests](https://github.com/ghost-in-the-droid/android-agent/issues?q=is%3Aopen+label%3Awanted-skill)
 
-elements:
-  search_icon:
-    resource_id: "com.whatsapp:id/menuitem_search"
-    description: "Search icon in toolbar"
-    
-  chat_input:
-    resource_id: "com.whatsapp:id/entry"
-    description: "Message text input field"
-    
-  send_button:
-    resource_id: "com.whatsapp:id/send"
-    description: "Send message button"
-```
-
-### 3. Write Actions
-
-Each action is a Python class that performs one atomic operation:
-
-```python
-# gitd/skills/whatsapp/actions/send_message.py
-from gitd.skills.base import Action
-
-class SendMessage(Action):
-    """Type and send a message in an open chat."""
-    
-    name = "send_message"
-    description = "Type a message and tap send"
-    
-    def precondition(self, dev, xml):
-        # Verify we're in a chat (input field visible)
-        return dev.find_bounds(xml, resource_id="com.whatsapp:id/entry") is not None
-    
-    def execute(self, dev, text="Hello"):
-        xml = dev.dump_xml()
-        dev.tap_text(xml, resource_id="com.whatsapp:id/entry")
-        dev.adb("shell", "input", "text", text)
-        
-        xml = dev.dump_xml()
-        dev.tap_text(xml, resource_id="com.whatsapp:id/send")
-        return True
-```
-
-### 4. Write Workflows (Optional)
-
-Workflows chain multiple actions into a multi-step sequence:
-
-```python
-# gitd/skills/whatsapp/workflows/send_dm.py
-from gitd.skills.base import Workflow
-
-class SendDM(Workflow):
-    """Open WhatsApp, find a contact, send a message."""
-    
-    name = "send_dm"
-    description = "Send a DM to a contact by name"
-    
-    def steps(self):
-        return [
-            ("open_app", {}),
-            ("search_contact", {"query": self.params["contact"]}),
-            ("send_message", {"text": self.params["message"]}),
-        ]
-```
-
-### 5. Register the Skill
-
-```python
-# gitd/skills/whatsapp/__init__.py
-from gitd.skills.base import Skill
-
-def load():
-    skill = Skill.from_yaml("gitd/skills/whatsapp")
-    
-    from .actions.send_message import SendMessage
-    skill.register_action(SendMessage)
-    
-    from .workflows.send_dm import SendDM
-    skill.register_workflow(SendDM)
-    
-    return skill
-```
-
-### 6. Test
-
-```bash
-# Verify skill loads
-python3 -c "
-from gitd.skills.whatsapp import load
-s = load()
-print(f'{s.name}: {len(s.elements)} elements, {s.list_actions()}, {s.list_workflows()}')
-"
-
-# Run on device
-python3 -c "
-from gitd.skills.whatsapp import load
-from gitd.bots.common.adb import Device
-s = load()
-dev = Device()
-action = s.get_action('send_message')
-action.run(dev, text='Hello from the bot')
-"
-```
-
-### 7. Submit PR
-
-```bash
-git checkout -b skill/whatsapp
-git add gitd/skills/whatsapp/
-git commit -m "Add WhatsApp skill: send_message action, send_dm workflow"
-```
-
-Open a PR with:
-- What app and version you tested on
-- What device (model, Android version)
-- Screenshot of the skill working (optional but appreciated)
+Ground rules: personal-account actions only, no engagement farming, mass messaging or scraping other people's data, declare `data_access:` and `side_effects:` honestly, and say in `generated_with:` if AI helped.
 
 ---
 
@@ -261,5 +148,5 @@ Open a GitHub issue with:
 ## Questions?
 
 - Open a GitHub Discussion for questions
-- Join our Discord for real-time help
+- Join our [Discord](https://discord.gg/gmvDX4Juk) for real-time help
 - Tag `@maintainers` for urgent issues
