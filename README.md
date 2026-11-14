@@ -14,13 +14,14 @@
   <a href="https://ghostinthedroid.com">Website</a> &middot;
   <a href="https://ghostinthedroid.com/getting-started/installation/">Docs</a> &middot;
   <a href="https://ghostinthedroid.com/skills/">Skill Hub</a> &middot;
-  <a href="https://github.com/ghost-in-the-droid/android-agent/releases/latest">Releases</a>
+  <a href="https://github.com/ghost-in-the-droid/android-agent/releases/latest">Releases</a> &middot;
+  <a href="https://discord.gg/gmvDX4Juk">Discord</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT" />
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+" />
-  <img src="https://img.shields.io/badge/MCP-62%20tools-6366f1" alt="62 MCP tools" />
+  <img src="https://img.shields.io/badge/MCP-66%20tools-6366f1" alt="66 MCP tools" />
   <img src="https://img.shields.io/badge/platforms-Android%20%2B%20iOS-a78bfa" alt="Android + iOS" />
   <img src="https://img.shields.io/badge/inference-cloud%20or%20on--device-22c55e" alt="cloud or on-device" />
   <a href="https://mcptoplist.com/server/io.github.ghost-in-the-droid%2Fandroid-agent"><img src="https://mcptoplist.com/badge/io.github.ghost-in-the-droid%2Fandroid-agent.svg" alt="MCP Toplist: Top 1% of 95K" /></a>
@@ -28,7 +29,6 @@
 
 ---
 
-<!-- HERO VIDEO. Served from a relative repo path so it plays on the private mirror preview AND the public repo, with no release-attach dependency. GitHub renders <video> inline; the poster + linked image are the fallback for older markdown renderers. -->
 <p align="center">
   <img src="docs/assets/hero-reel.webp" alt="Ghost driving nine real phones" width="820" />
 </p>
@@ -63,7 +63,7 @@ Ghost 1.3 is the only Android + iOS agent framework where **platform**, **brain*
 
 <sub>The Docker + KVM emulator pool is Android-only; iOS uses Apple's own simulator and Xcode signing, which are macOS-native.</sub>
 
-The body stays the same 62 MCP tools no matter what you plug in. Every new model release is a free upgrade to your phone agent.
+The body stays the same 66 MCP tools no matter what you plug in. Every new model release is a free upgrade to your phone agent.
 
 ---
 
@@ -283,7 +283,7 @@ Copy `.env.example` to `.env` (if provided) or create a `.env` file in the proje
 
 ## Give any AI agent a mobile body (MCP)
 
-Ghost ships an [MCP](https://modelcontextprotocol.io) server with **62 tools** for real-device control. Any MCP-compatible client can use them. Android serials receive the Android implementation; `ios:<udid>` refs route to the iOS backend where supported and return stable unsupported-platform errors for Android-only tools. One command wires it up:
+Ghost ships an [MCP](https://modelcontextprotocol.io) server with **66 tools** for real-device control. Any MCP-compatible client can use them. Android serials receive the Android implementation; `ios:<udid>` refs route to the iOS backend where supported and return stable unsupported-platform errors for Android-only tools. One command wires it up:
 
 ```bash
 # Claude Code (same shape for Codex, Cursor, VS Code Copilot, Windsurf)
@@ -312,10 +312,10 @@ codex mcp add android-agent -- uvx --from ghost-in-the-droid android-agent-mcp
 }
 ```
 
-**VS Code Copilot** (`.vscode/mcp.json`) uses the same block under a `"servers"` key. Contributors who clone the repo get a ready `.mcp.json`, all 62 tools live on first `claude` launch.
+**VS Code Copilot** (`.vscode/mcp.json`) uses the same block under a `"servers"` key. Contributors who clone the repo get a ready `.mcp.json`, all 66 tools live on first `claude` launch.
 </details>
 
-**The 62 tools, by category:**
+**The 66 tools, by category:**
 
 | Category | What the ghost can do |
 |----------|-----------------------|
@@ -350,16 +350,20 @@ On iPhone, Qwen2.5 1.5B runs through llama.cpp on Metal and drives the phone's o
 
 ## Skill Hub CLI
 
+Path: [install](https://ghostinthedroid.com/getting-started/installation/), [connect a phone](https://ghostinthedroid.com/getting-started/connect-phone/), then your first hub skill:
+
 ```bash
-android-agent skill search tiktok        # search the public registry
-android-agent skill install tiktok       # install a skill
-android-agent skill install github.com/someone/their-skill
-android-agent skill list                 # what is installed
-android-agent skill update tiktok        # update a skill
-android-agent skill validate ./my-skill/ # check before publishing
+ghost skill search calculator                # search the hub registry
+ghost skill info ghost/calculator            # trust, quality tier, actions, tested-on device
+ghost skill install ghost/calculator         # hash-checked install into ~/.ghost/skills
+ghost skill run ghost/calculator calculate --param expression='1234*5' --device <serial>
+ghost skill list                             # installed skills
+ghost skill outdated                         # installed vs latest
+ghost skill validate ./my-skill/             # before publishing
+ghost skill submit ./skillhub/<you>/<slug> --push   # fork, push, open the PR
 ```
 
-The skill registry lives in [`registry/`](registry/) in this repo. Community skills are auto-discovered nightly from repos tagged `android-agent-skill`.
+How a skill earns its tier and points is on [How skills are scored](https://ghostinthedroid.com/skills/scoring/); the submission flow is on [Publishing Skills](https://ghostinthedroid.com/skills/publishing/). The hub registry is `skillhub/registry.json`, regenerated by CI after merge.
 
 ## Teach the Ghost a New App
 
@@ -410,7 +414,7 @@ android-agent/
     skills/                 # Skill packages (tiktok, play_store, safari [iOS], tiktok_ios)
     bots/common/adb.py      # Android Device class: tap, swipe, dump tree, wait_for
     bots/common/ios.py      # iOS Device class: Appium/WDA session, UI tree, gestures
-    mcp_server.py           # MCP server: 62 tools for any LLM agent
+    mcp_server.py           # MCP server: 66 tools for any LLM agent
   frontend/                 # Vue 3 + Vite + TypeScript + Tailwind
   portal/                   # Kotlin companion app (WebRTC, on-device inference)
   site/                     # Docs site (Astro + Starlight)
@@ -418,7 +422,6 @@ android-agent/
 
 **The flow:** FastAPI backend on `:5055` exposes device control, skills, bots, scheduling, and streaming. The Vue SPA talks to it over `/api/*`. Skills define per-app interaction (elements + actions + workflows). Device backends route by ref: bare serials use `bots/common/adb.py`, `ios:<udid>` refs use `bots/common/ios.py` and Appium/WDA. State lives in SQLite via SQLAlchemy 2.0 and Alembic.
 
-<!-- BENCHMARK: sneak-peek only per CKL directive (number is preview, no methodology/trajectories published yet). Public README is high-scrutiny; CKL to explicitly approve keeping this block, else cut. -->
 ## Benchmark (sneak peek)
 
 Early result, with the full methodology writeup still cooking: driven by Claude Code, Ghost completes **115 of 116 tasks (99.1%)** on [AndroidWorld](https://github.com/google-research/android_world), Google Research's benchmark for Android agents, on the unmodified upstream harness. Treat this as a preview rather than a citable number. The detailed writeup and trajectories are coming. Watch the [releases](https://github.com/ghost-in-the-droid/android-agent/releases/latest).
@@ -476,7 +479,7 @@ alembic downgrade -1                                              # rollback one
 
 ## Contributing
 
-The ghost gets stronger with every skill. See [CONTRIBUTING.md](CONTRIBUTING.md) for adding app skills (highest impact), writing actions and workflows, backend architecture, and the PR process. Join the community on the [Skill Hub](https://ghostinthedroid.com/skills/).
+The ghost gets stronger with every skill. See [CONTRIBUTING.md](CONTRIBUTING.md) for adding app skills (highest impact), writing actions and workflows, backend architecture, and the PR process. Join the community on the [Skill Hub](https://ghostinthedroid.com/skills/) and on [Discord](https://discord.gg/gmvDX4Juk), where you can share the skills and things you build with Ghost and get help.
 
 ---
 
