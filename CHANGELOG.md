@@ -6,6 +6,44 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-14
+
+_Skill System v2, the Ghost Skill Hub with 117 skills for 113 apps, AndroidWorld benchmark integration, and app showcases. See [release notes](docs/releases/v1.6.0.md)._
+
+### Added
+- **Skill System v2**: declarative YAML actions with 26 step kinds and 7 validator kinds; popup handling, typed `ask` responses, human `checkpoint` resume/abort, fingerprint distance checks, and file-bound Python helpers. Includes migration, import, authoring, validation, static analysis, recording, and diagnostics commands.
+- **Skill Hub**: versioned install/update/search, intent search through `find_skill`, pinned file hashes, generated registry/index files and `SKILL.md` wrappers, signed run artifacts, and separate trust and quality labels. Catalog totals and active/draft status are generated from the release tree; official entries and AndroidWorld benchmark references remain distinct.
+- **Honest scoring v1.3**: current content-bound evidence is separated into self, maintainer, CI, and independent classes; previous revisions and rejected artifacts remain distinct. Per-action credit, maintenance decay, and raw passed/total displays replace misleading aggregate claims. Quality tiers are computed from the current version and content digest when the registry is built. Downloads and likes do not earn points.
+- **Supply-chain defenses**: seven repaired gates cover undeclared network exfiltration, aliased execution, wrong-app evidence, stale-app evidence, unbound Python helpers, soft instruction injection, and deceptive slugs. The frozen local threat corpus catches 20/20 cases after fixes versus 13/20 before; both positive controls remain accepted. This is fixture coverage, not a general security guarantee.
+- **AndroidWorld and native benchmarks**: deterministic replay integration plus source-checkout agent-arm tools; per-action cards expose model, date, seeds, paired statistics, historical findings, and void results. The showcase pools all declared benchmark tasks; missing actions display pending.
+- **Showcase**: `/skills/showcase/`, per-action sample prompts, expandable evidence, paired token/time comparisons, and demo tabs. On 2026-10-22 UTC, `claude-haiku-5-5` achieved 23/24 with skill versus 19/24 before across 6 tasks, maintainer-run, not independent, under intention-to-treat counting. Exact paired McNemar: 5 for skill, 1 against, p = 0.21875; exploratory evidence.
+- **Demo clips**: demo clips for 99 skills plus before/after videos for 99 skills (same prompt and phone, with vs without the skill). Clips demonstrate recorded behavior, not independent benchmark coverage.
+- **Compatibility matrix** (`/skills/compatibility/`): every skill against every phone and Android version it was run on, with passed/total runs; per-skill "Runs by device" tables. New runs also record screen size, density and locale. All runs are maintainer-recorded so far, not independent.
+- **Human in the loop demos**: `checkpoint`/`ask` pauses shown end to end on four captcha demo pages (reCAPTCHA, hCaptcha, BotDetect, MTCaptcha) in the HITL guide.
+- **F2 re-recording**: 121 signed artifacts added across 27 skills on 2026-10-22 UTC, maintainer-run, not independent. Signature, app-version, and content checks still determine whether each artifact counts; these totals are not pass counts.
+- **Release and contribution tooling**: ownership and submission checks, signed evidence verification, registry/security workflows, a privacy gate before the release commit, sole-maintainer `CODEOWNERS`, and the public Android Agent repository as the default verification target. `submit --push` and `verify --push` implement PR submission; default operation previews the plan.
+- **Hub site and docs**: browser, skill/author pages, leaderboard, scoring explanation, schema validator, install QR links, authoring/security guides, and docs-truth checks.
+
+### Changed
+- NewPipe skill 1.1.0 exposes search metadata only. Video preview/selection/detail actions and their code are removed because opening a result can start playback; the skill never opens a video.
+- Settings skill 1.1.0 makes privacy-bounded native aggregate reads the default and removes identifier-bearing About-phone and Wi-Fi-list paths entirely. Device info returns model/Android/build only; Wi-Fi returns enabled/connected booleans; battery returns level/charging; storage returns totals only. Removed fields have no opt-in replacement. Theme changes preserve automatic/custom schedules by refusing them.
+- Hard Skills cut agent tokens by a median of 90% (10.2x) across 99 before/after recordings, and 85% in a controlled 39-action run (same prompt and phone, with vs without the skill).
+
+### Removed
+- **Breaking:** private CRM/lead MCP tools `lookup_lead`, `list_unread_leads`, `crm_lookup_contact` and `crm_list_unread_messages`. The MCP server now registers 66 tools; `GHOST_MCP_PROFILE=skills-first | soft-only | hand-only` selects a tool profile.
+
+### Fixed
+- Skills load by reference for agent benchmark calls; agent arms share task-app guards, and capped post-launch failures count under the declared intention-to-treat protocol.
+- Pro Expense accepts AndroidWorld row keys and rejects missing amount/category; launch/editor recovery waits are bounded. Historical pre-fix outcomes remain labelled.
+- Fresh-state validation for showcase actions, Contacts compatibility, Tasks search toolbar/query stability, and Google Clock alarm targeting were corrected and replayed.
+- Runner popup diff initialization, Android package fallback from v2 fingerprints, and benchmark import-time directory creation were corrected.
+
+### Known gaps
+- Current evidence is maintainer-run, not independent; the device grid does not establish cross-device reliability. Many actions still lack agent before/after benchmarks.
+- Invalid signatures and stale/unbound artifacts remain excluded. Runs tier does not mean independently proven.
+- Hosted release signing, attestation, and tarball fallback need release-environment validation. Soft signup flows are not claimed end to end.
+- `ghost skill mine`, the Adapt tier, and `ghost skill try` remain planned, not implemented. Telemetry is opt-in and does not affect scores; endpoint deployment is outside this release preparation.
+
 ## [1.3.0] — TBD
 
 _Ghost 1.3 turns Ghost in the Droid into a full agent harness for Android. See [release notes](docs/release-notes/v1.3.0.md) for the full story._
