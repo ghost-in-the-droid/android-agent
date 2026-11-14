@@ -2,13 +2,13 @@
  * GhostAgent H.264 stream client — decodes the WebSocket Annex-B H.264 stream
  * (proxied by the Ghost backend at /api/phone/h264/<device>) with WebCodecs and
  * renders to a <canvas>. Robust by design: auto-reconnects, surfaces detailed
- * metrics, waits for a keyframe, and BOUNDS LATENCY by dropping the backlog when
+ * metrics, waits for a keyframe, and BOUNDS LATENCY by dropping the queue when
  * decode/draw can't keep up (so it stays live instead of drifting seconds behind).
  *
  * Metrics (the important part for diagnosing "lag"):
  *   recvFps    — H.264 access units arriving per second (network throughput)
  *   renderFps  — frames actually painted per second
- *   queue      — decoder backlog; if this grows, latency is accumulating
+ *   queue      — decoder queue; if this grows, latency is accumulating
  *   latencyMs  — decode→paint latency of the most recent frame
  *   kbps       — bandwidth
  *   dropped    — frames skipped to stay live
