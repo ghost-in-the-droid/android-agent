@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "kind": "verification",
+  "skill": "androidworld/pro-expense",
+  "version": "0.1.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.arduia.expense",
+    "app_version": "1.0.0-beta05"
+  },
+  "fingerprint_hash": "91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8",
+  "app_version": "1.0.0-beta05",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T22:28:29.241688+00:00",
+  "finished_at": "2026-10-22T22:28:29.241688+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "expense_add_multiple_from_markor",
+      "success": true,
+      "duration_ms": 72860.78781902324,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 13053.650019108318
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 59455.49874100834
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:c47d0067bc41f1f19b555d6cc3c2822f353de99258f10cdf47348e9b430401c0",
+  "emulator": true,
+  "github_login": "ghost-aw-replay",
+  "verifier": "ghost-aw-replay",
+  "verifier_tier": "novice",
+  "bench": {
+    "suite": "androidworld",
+    "task_id": "ExpenseAddMultipleFromMarkor",
+    "arm": "after_replay",
+    "seed": 30,
+    "instance_seed": 3053860270,
+    "steps": 2,
+    "tokens": 0,
+    "wall_ms": 75193,
+    "is_successful": 1.0
+  },
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQJTZOWFiTZ0DxOwjYVkzw7Uh/xXsPotAlXwGKkvjeYfg7AE0uJ\nqGafYuJSsurZ467S+ADDjsPXAzMNbFz4/QbQE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,2087 @@
+{
+  "suite": "androidworld",
+  "skill": "androidworld/pro-expense",
+  "protocol": "reports/androidworld-protocol.md",
+  "tasks": [
+    {
+      "task_id": "ExpenseAddMultipleFromMarkor",
+      "action": "expense_add_multiple_from_markor",
+      "seeds": 3,
+      "arms": {
+        "after_replay": {
+          "passed": 3,
+          "total": 3,
+          "wall_ms_median": 87470,
+          "tokens_median": 0,
+          "seeds_run": [
+            30,
+            31,
+            32
+          ],
+          "wall_ms": [
+            87470,
+            92632,
+            83018
+          ],
+          "tokens": [
+            0,
+            0,
+            0
+          ],
+          "artifacts": [
+            "ghost-aw-replay-91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8-20261020T165450393330Z.json",
+            "ghost-aw-replay-91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8-20261020T165623038987Z.json",
+            "ghost-aw-replay-91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8-20261020T165746110497Z.json"
+          ]
+        },
+        "after_mcp": {
+          "passed": 3,
+          "total": 3,
+          "wall_ms_median": 137169,
+          "tokens_median": 440495,
+          "seeds_run": [
+            30,
+            31,
+            32
+          ],
+          "wall_ms": [
+            143642,
+            93820,
+            137169
+          ],
+          "tokens": [
+            594883,
+            226597,
+            440495
+          ],
+          "artifacts": [
+            "after_mcp-30.json",
+            "after_mcp-31.json",
+            "after_mcp-32.json"
+          ],
+          "run_id": "ab1",
+          "model": "claude-haiku-5-5",
+          "max_turns": 25,
+          "cells": "reports/agent-arm/ab1/after_mcp-{seed}.cell.json"
+        },
+        "before": {
+          "passed": 0,
+          "total": 3,
+          "wall_ms_median": 141212,
+          "tokens_median": 2283598,
+          "seeds_run": [
+            30,
+            31,
+            32
+          ],
+          "wall_ms": [
+            135456,
+            141212,
+            147044
+          ],
+          "tokens": [
+            2676899,
+            2283598,
+            1371934
+          ],
+          "artifacts": [
+            "before-30.json",
+            "before-31.json",
+            "before-32.json"
+          ],
+          "run_id": "ab1",
+          "model": "claude-haiku-5-5",
+          "max_turns": 25,
+          "cells": "reports/agent-arm/ab1/before-{seed}.cell.json",
+          "note": "all 3 episodes hit the 25-turn budget (same budget for both agent arms)"
+        }
+      },
+      "void_arms": {
+        "before": {
+          "passed": 0,
+          "total": 3,
+          "wall_ms_median": 134866,
+          "tokens_median": 1498998,
+          "seeds_run": [
+            30,
+            31,
+            32
+          ],
+          "wall_ms": [
+            146527,
+            83923,
+            134866
+          ],
+          "tokens": [
+            1498998,
+            986742,
+            1711251
+          ],
+          "artifacts": [
+            "before-30.json",
+            "before-31.json",
+            "before-32.json"
+          ],
+          "valid": false,
+          "invalid_reason": "net.gsantner.markor was uninstalled by the before-30 episode; before-31/32 and all after_mcp episodes ran without the task app. Superseded by run ab1 (tools/bench/agent_arm.py, task-app guard)."
+        },
+        "after_mcp": {
+          "passed": 0,
+          "total": 2,
+          "wall_ms_median": 139589,
+          "tokens_median": 2120928,
+          "seeds_run": [
+            30,
+            32
+          ],
+          "wall_ms": [
+            140044,
+            139134
+          ],
+          "tokens": [
+            2030150,
+            2211706
+          ],
+          "artifacts": [
+            "after_mcp-30.json",
+            "after_mcp-32.json"
+          ],
+          "valid": false,
+          "invalid_reason": "net.gsantner.markor was uninstalled by the before-30 episode; before-31/32 and all after_mcp episodes ran without the task app; after_mcp also could not load hub skills (find_skill pointed at the v1 run_action runner). Superseded by run ab1 (tools/bench/agent_arm.py, task-app guard)."
+        }
+      },
+      "episodes": [
+        {
+          "arm": "after_replay",
+          "seed": 30,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 87470,
+          "steps": null,
+          "llm_calls": 0,
+          "ui_actions": {},
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "artifact": "ghost-aw-replay-91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8-20261020T165450393330Z.json",
+          "actions": [],
+          "calls": []
+        },
+        {
+          "arm": "after_replay",
+          "seed": 31,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 92632,
+          "steps": null,
+          "llm_calls": 0,
+          "ui_actions": {},
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "artifact": "ghost-aw-replay-91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8-20261020T165623038987Z.json",
+          "actions": [],
+          "calls": []
+        },
+        {
+          "arm": "after_replay",
+          "seed": 32,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 83018,
+          "steps": null,
+          "llm_calls": 0,
+          "ui_actions": {},
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "artifact": "ghost-aw-replay-91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8-20261020T165746110497Z.json",
+          "actions": [],
+          "calls": []
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 30,
+          "instance_seed": 3053860270,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 594883,
+          "tokens_in": 73277,
+          "tokens_out": 2206,
+          "tokens_cache_read": 519400,
+          "wall_ms": 143642,
+          "steps": 18,
+          "llm_calls": 11,
+          "ui_actions": {
+            "tap": 3,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 1,
+            "total": 4
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": "reports/agent-arm/ab1/after_mcp-30.jsonl",
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "expense_add_multiple_from_markor"
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "net.gsantner.markor"
+            },
+            {
+              "i": 8,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 15,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 17,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 18571,
+              "tokens_out": null,
+              "tokens_cache_read": 0
+            },
+            {
+              "i": 2,
+              "tokens_in": 2422,
+              "tokens_out": null,
+              "tokens_cache_read": 18569
+            },
+            {
+              "i": 3,
+              "tokens_in": 905,
+              "tokens_out": null,
+              "tokens_cache_read": 20989
+            },
+            {
+              "i": 4,
+              "tokens_in": 40469,
+              "tokens_out": null,
+              "tokens_cache_read": 21892
+            },
+            {
+              "i": 5,
+              "tokens_in": 658,
+              "tokens_out": null,
+              "tokens_cache_read": 62359
+            },
+            {
+              "i": 6,
+              "tokens_in": 2084,
+              "tokens_out": null,
+              "tokens_cache_read": 63015
+            },
+            {
+              "i": 7,
+              "tokens_in": 769,
+              "tokens_out": null,
+              "tokens_cache_read": 65097
+            },
+            {
+              "i": 8,
+              "tokens_in": 985,
+              "tokens_out": null,
+              "tokens_cache_read": 65864
+            },
+            {
+              "i": 9,
+              "tokens_in": 298,
+              "tokens_out": null,
+              "tokens_cache_read": 66847
+            },
+            {
+              "i": 10,
+              "tokens_in": 484,
+              "tokens_out": null,
+              "tokens_cache_read": 67143
+            },
+            {
+              "i": 11,
+              "tokens_in": 5632,
+              "tokens_out": null,
+              "tokens_cache_read": 67625
+            }
+          ]
+        },
+        {
+          "arm": "before",
+          "seed": 30,
+          "instance_seed": 3053860270,
+          "model": "claude-haiku-5-5",
+          "pass": false,
+          "tokens": 2676899,
+          "tokens_in": 129250,
+          "tokens_out": 5050,
+          "tokens_cache_read": 2542599,
+          "wall_ms": 135456,
+          "steps": 40,
+          "llm_calls": 25,
+          "ui_actions": {
+            "tap": 13,
+            "type": 5,
+            "swipe": 2,
+            "key": 0,
+            "launch": 2,
+            "total": 22
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": "reports/agent-arm/ab1/before-30.jsonl",
+          "actions": [
+            {
+              "i": 1,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "list_apps",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "net.gsantner.markor"
+            },
+            {
+              "i": 4,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.arduia.expense"
+            },
+            {
+              "i": 13,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 15,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 17,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 20,
+              "type": "type",
+              "tool": "paste_text",
+              "ok": true,
+              "target": "Laundry"
+            },
+            {
+              "i": 21,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 22,
+              "type": "type",
+              "tool": "paste_text",
+              "ok": true,
+              "target": "96.3"
+            },
+            {
+              "i": 23,
+              "type": "swipe",
+              "tool": "swipe",
+              "ok": true
+            },
+            {
+              "i": 24,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 25,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 26,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 27,
+              "type": "type",
+              "tool": "paste_text",
+              "ok": true,
+              "target": "Urgent. Reimbursable."
+            },
+            {
+              "i": 28,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 29,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 30,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 31,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 32,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 33,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 34,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 35,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 36,
+              "type": "type",
+              "tool": "paste_text",
+              "ok": true,
+              "target": "Laundry"
+            },
+            {
+              "i": 37,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 38,
+              "type": "type",
+              "tool": "paste_text",
+              "ok": true,
+              "target": "Urgent. Reimbursable."
+            },
+            {
+              "i": 39,
+              "type": "swipe",
+              "tool": "swipe",
+              "ok": true
+            },
+            {
+              "i": 40,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 15360,
+              "tokens_out": null,
+              "tokens_cache_read": 0
+            },
+            {
+              "i": 2,
+              "tokens_in": 58755,
+              "tokens_out": null,
+              "tokens_cache_read": 15358
+            },
+            {
+              "i": 3,
+              "tokens_in": 1044,
+              "tokens_out": null,
+              "tokens_cache_read": 74111
+            },
+            {
+              "i": 4,
+              "tokens_in": 149,
+              "tokens_out": null,
+              "tokens_cache_read": 75153
+            },
+            {
+              "i": 5,
+              "tokens_in": 484,
+              "tokens_out": null,
+              "tokens_cache_read": 75300
+            },
+            {
+              "i": 6,
+              "tokens_in": 181,
+              "tokens_out": null,
+              "tokens_cache_read": 75782
+            },
+            {
+              "i": 7,
+              "tokens_in": 484,
+              "tokens_out": null,
+              "tokens_cache_read": 75961
+            },
+            {
+              "i": 8,
+              "tokens_in": 30055,
+              "tokens_out": null,
+              "tokens_cache_read": 76443
+            },
+            {
+              "i": 9,
+              "tokens_in": 5640,
+              "tokens_out": null,
+              "tokens_cache_read": 106496
+            },
+            {
+              "i": 10,
+              "tokens_in": 1823,
+              "tokens_out": null,
+              "tokens_cache_read": 112134
+            },
+            {
+              "i": 11,
+              "tokens_in": 432,
+              "tokens_out": null,
+              "tokens_cache_read": 113955
+            },
+            {
+              "i": 12,
+              "tokens_in": 7219,
+              "tokens_out": null,
+              "tokens_cache_read": 114385
+            },
+            {
+              "i": 13,
+              "tokens_in": 272,
+              "tokens_out": null,
+              "tokens_cache_read": 121602
+            },
+            {
+              "i": 14,
+              "tokens_in": 739,
+              "tokens_out": null,
+              "tokens_cache_read": 121872
+            },
+            {
+              "i": 15,
+              "tokens_in": 571,
+              "tokens_out": null,
+              "tokens_cache_read": 122609
+            },
+            {
+              "i": 16,
+              "tokens_in": 302,
+              "tokens_out": null,
+              "tokens_cache_read": 123178
+            },
+            {
+              "i": 17,
+              "tokens_in": 1012,
+              "tokens_out": null,
+              "tokens_cache_read": 123478
+            },
+            {
+              "i": 18,
+              "tokens_in": 456,
+              "tokens_out": null,
+              "tokens_cache_read": 124488
+            },
+            {
+              "i": 19,
+              "tokens_in": 1339,
+              "tokens_out": null,
+              "tokens_cache_read": 124942
+            },
+            {
+              "i": 20,
+              "tokens_in": 588,
+              "tokens_out": null,
+              "tokens_cache_read": 126279
+            },
+            {
+              "i": 21,
+              "tokens_in": 396,
+              "tokens_out": null,
+              "tokens_cache_read": 126865
+            },
+            {
+              "i": 22,
+              "tokens_in": 419,
+              "tokens_out": null,
+              "tokens_cache_read": 127259
+            },
+            {
+              "i": 23,
+              "tokens_in": 728,
+              "tokens_out": null,
+              "tokens_cache_read": 127676
+            },
+            {
+              "i": 24,
+              "tokens_in": 471,
+              "tokens_out": null,
+              "tokens_cache_read": 128402
+            },
+            {
+              "i": 25,
+              "tokens_in": 331,
+              "tokens_out": null,
+              "tokens_cache_read": 128871
+            }
+          ]
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 31,
+          "instance_seed": 1396874001,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 226597,
+          "tokens_in": 79822,
+          "tokens_out": 797,
+          "tokens_cache_read": 145978,
+          "wall_ms": 93820,
+          "steps": 4,
+          "llm_calls": 4,
+          "ui_actions": {
+            "tap": 0,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 0,
+            "total": 0
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": "reports/agent-arm/ab1/after_mcp-31.jsonl",
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "expense_add_multiple_from_markor"
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3194,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 36992,
+              "tokens_out": null,
+              "tokens_cache_read": 18567
+            },
+            {
+              "i": 3,
+              "tokens_in": 924,
+              "tokens_out": null,
+              "tokens_cache_read": 55557
+            },
+            {
+              "i": 4,
+              "tokens_in": 38712,
+              "tokens_out": null,
+              "tokens_cache_read": 56479
+            }
+          ]
+        },
+        {
+          "arm": "before",
+          "seed": 31,
+          "instance_seed": 1396874001,
+          "model": "claude-haiku-5-5",
+          "pass": false,
+          "tokens": 2283598,
+          "tokens_in": 100227,
+          "tokens_out": 5611,
+          "tokens_cache_read": 2177760,
+          "wall_ms": 141212,
+          "steps": 47,
+          "llm_calls": 25,
+          "ui_actions": {
+            "tap": 13,
+            "type": 6,
+            "swipe": 1,
+            "key": 2,
+            "launch": 2,
+            "total": 24
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": "reports/agent-arm/ab1/before-31.jsonl",
+          "actions": [
+            {
+              "i": 1,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "search_apps",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "read",
+              "tool": "search_apps",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "net.gsantner.markor"
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "list_apps",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.arduia.expense"
+            },
+            {
+              "i": 10,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Eyecare"
+            },
+            {
+              "i": 15,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "470.86"
+            },
+            {
+              "i": 17,
+              "type": "swipe",
+              "tool": "swipe",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 20,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 21,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Monthly recurring. Reimbursable."
+            },
+            {
+              "i": 22,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 23,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 24,
+              "type": "read",
+              "tool": "screenshot_cropped",
+              "ok": true
+            },
+            {
+              "i": 25,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 26,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 27,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 28,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 29,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 30,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 31,
+              "type": "key",
+              "tool": "press_back",
+              "ok": true
+            },
+            {
+              "i": 32,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 33,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 34,
+              "type": "read",
+              "tool": "get_phone_state",
+              "ok": true
+            },
+            {
+              "i": 35,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 36,
+              "type": "key",
+              "tool": "press_back",
+              "ok": true
+            },
+            {
+              "i": 37,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 38,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 39,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 40,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 41,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 42,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Gas"
+            },
+            {
+              "i": 43,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 44,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "144.55"
+            },
+            {
+              "i": 45,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 46,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 47,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Urgent. Reimbursable."
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3077,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 36549,
+              "tokens_out": null,
+              "tokens_cache_read": 15360
+            },
+            {
+              "i": 3,
+              "tokens_in": 23963,
+              "tokens_out": null,
+              "tokens_cache_read": 51907
+            },
+            {
+              "i": 4,
+              "tokens_in": 372,
+              "tokens_out": null,
+              "tokens_cache_read": 75868
+            },
+            {
+              "i": 5,
+              "tokens_in": 5315,
+              "tokens_out": null,
+              "tokens_cache_read": 76238
+            },
+            {
+              "i": 6,
+              "tokens_in": 1724,
+              "tokens_out": null,
+              "tokens_cache_read": 81551
+            },
+            {
+              "i": 7,
+              "tokens_in": 349,
+              "tokens_out": null,
+              "tokens_cache_read": 83273
+            },
+            {
+              "i": 8,
+              "tokens_in": 739,
+              "tokens_out": null,
+              "tokens_cache_read": 83620
+            },
+            {
+              "i": 9,
+              "tokens_in": 811,
+              "tokens_out": null,
+              "tokens_cache_read": 84357
+            },
+            {
+              "i": 10,
+              "tokens_in": 987,
+              "tokens_out": null,
+              "tokens_cache_read": 85166
+            },
+            {
+              "i": 11,
+              "tokens_in": 471,
+              "tokens_out": null,
+              "tokens_cache_read": 86151
+            },
+            {
+              "i": 12,
+              "tokens_in": 768,
+              "tokens_out": null,
+              "tokens_cache_read": 86620
+            },
+            {
+              "i": 13,
+              "tokens_in": 795,
+              "tokens_out": null,
+              "tokens_cache_read": 87386
+            },
+            {
+              "i": 14,
+              "tokens_in": 15550,
+              "tokens_out": null,
+              "tokens_cache_read": 88179
+            },
+            {
+              "i": 15,
+              "tokens_in": 428,
+              "tokens_out": null,
+              "tokens_cache_read": 103727
+            },
+            {
+              "i": 16,
+              "tokens_in": 923,
+              "tokens_out": null,
+              "tokens_cache_read": 104153
+            },
+            {
+              "i": 17,
+              "tokens_in": 404,
+              "tokens_out": null,
+              "tokens_cache_read": 105074
+            },
+            {
+              "i": 18,
+              "tokens_in": 689,
+              "tokens_out": null,
+              "tokens_cache_read": 105476
+            },
+            {
+              "i": 19,
+              "tokens_in": 398,
+              "tokens_out": null,
+              "tokens_cache_read": 106163
+            },
+            {
+              "i": 20,
+              "tokens_in": 384,
+              "tokens_out": null,
+              "tokens_cache_read": 106559
+            },
+            {
+              "i": 21,
+              "tokens_in": 151,
+              "tokens_out": null,
+              "tokens_cache_read": 106941
+            },
+            {
+              "i": 22,
+              "tokens_in": 3984,
+              "tokens_out": null,
+              "tokens_cache_read": 107090
+            },
+            {
+              "i": 23,
+              "tokens_in": 423,
+              "tokens_out": null,
+              "tokens_cache_read": 111072
+            },
+            {
+              "i": 24,
+              "tokens_in": 560,
+              "tokens_out": null,
+              "tokens_cache_read": 111493
+            },
+            {
+              "i": 25,
+              "tokens_in": 413,
+              "tokens_out": null,
+              "tokens_cache_read": 112051
+            }
+          ]
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 32,
+          "instance_seed": 1466681112,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 440495,
+          "tokens_in": 49740,
+          "tokens_out": 2090,
+          "tokens_cache_read": 388665,
+          "wall_ms": 137169,
+          "steps": 13,
+          "llm_calls": 9,
+          "ui_actions": {
+            "tap": 1,
+            "type": 0,
+            "swipe": 1,
+            "key": 0,
+            "launch": 0,
+            "total": 2
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": "reports/agent-arm/ab1/after_mcp-32.jsonl",
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "get_phone_state",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "expense_add_multiple_from_markor"
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Religious"
+            },
+            {
+              "i": 7,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Online Courses"
+            },
+            {
+              "i": 8,
+              "type": "swipe",
+              "tool": "swipe",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "MORE"
+            },
+            {
+              "i": 11,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3196,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 1425,
+              "tokens_out": null,
+              "tokens_cache_read": 18569
+            },
+            {
+              "i": 3,
+              "tokens_in": 931,
+              "tokens_out": null,
+              "tokens_cache_read": 19992
+            },
+            {
+              "i": 4,
+              "tokens_in": 40666,
+              "tokens_out": null,
+              "tokens_cache_read": 20921
+            },
+            {
+              "i": 5,
+              "tokens_in": 605,
+              "tokens_out": null,
+              "tokens_cache_read": 61585
+            },
+            {
+              "i": 6,
+              "tokens_in": 468,
+              "tokens_out": null,
+              "tokens_cache_read": 62188
+            },
+            {
+              "i": 7,
+              "tokens_in": 873,
+              "tokens_out": null,
+              "tokens_cache_read": 62654
+            },
+            {
+              "i": 8,
+              "tokens_in": 333,
+              "tokens_out": null,
+              "tokens_cache_read": 63525
+            },
+            {
+              "i": 9,
+              "tokens_in": 1243,
+              "tokens_out": null,
+              "tokens_cache_read": 63856
+            }
+          ]
+        },
+        {
+          "arm": "before",
+          "seed": 32,
+          "instance_seed": 1466681112,
+          "model": "claude-haiku-5-5",
+          "pass": false,
+          "tokens": 1371934,
+          "tokens_in": 71870,
+          "tokens_out": 5474,
+          "tokens_cache_read": 1294590,
+          "wall_ms": 147044,
+          "steps": 39,
+          "llm_calls": 25,
+          "ui_actions": {
+            "tap": 10,
+            "type": 3,
+            "swipe": 2,
+            "key": 0,
+            "launch": 2,
+            "total": 17
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": "reports/agent-arm/ab1/before-32.jsonl",
+          "actions": [
+            {
+              "i": 1,
+              "type": "read",
+              "tool": "get_phone_state",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "search_apps",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "read",
+              "tool": "search_apps",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "search_apps",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "net.gsantner.markor"
+            },
+            {
+              "i": 6,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.arduia.expense"
+            },
+            {
+              "i": 9,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Religious"
+            },
+            {
+              "i": 14,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 15,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "152.11"
+            },
+            {
+              "i": 16,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 17,
+              "type": "swipe",
+              "tool": "swipe",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 20,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 21,
+              "type": "read",
+              "tool": "get_phone_state",
+              "ok": true
+            },
+            {
+              "i": 22,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Religious"
+            },
+            {
+              "i": 23,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 24,
+              "type": "swipe",
+              "tool": "swipe",
+              "ok": true
+            },
+            {
+              "i": 25,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 26,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 27,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 28,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 29,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 30,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 31,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 32,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 33,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 34,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 35,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 36,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 37,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 38,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 39,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3075,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 4930,
+              "tokens_out": null,
+              "tokens_cache_read": 15358
+            },
+            {
+              "i": 3,
+              "tokens_in": 1250,
+              "tokens_out": null,
+              "tokens_cache_read": 20286
+            },
+            {
+              "i": 4,
+              "tokens_in": 136,
+              "tokens_out": null,
+              "tokens_cache_read": 21534
+            },
+            {
+              "i": 5,
+              "tokens_in": 5405,
+              "tokens_out": null,
+              "tokens_cache_read": 21668
+            },
+            {
+              "i": 6,
+              "tokens_in": 1750,
+              "tokens_out": null,
+              "tokens_cache_read": 27071
+            },
+            {
+              "i": 7,
+              "tokens_in": 350,
+              "tokens_out": null,
+              "tokens_cache_read": 28819
+            },
+            {
+              "i": 8,
+              "tokens_in": 739,
+              "tokens_out": null,
+              "tokens_cache_read": 29167
+            },
+            {
+              "i": 9,
+              "tokens_in": 528,
+              "tokens_out": null,
+              "tokens_cache_read": 29904
+            },
+            {
+              "i": 10,
+              "tokens_in": 299,
+              "tokens_out": null,
+              "tokens_cache_read": 30430
+            },
+            {
+              "i": 11,
+              "tokens_in": 763,
+              "tokens_out": null,
+              "tokens_cache_read": 30727
+            },
+            {
+              "i": 12,
+              "tokens_in": 327,
+              "tokens_out": null,
+              "tokens_cache_read": 31488
+            },
+            {
+              "i": 13,
+              "tokens_in": 44439,
+              "tokens_out": null,
+              "tokens_cache_read": 31813
+            },
+            {
+              "i": 14,
+              "tokens_in": 749,
+              "tokens_out": null,
+              "tokens_cache_read": 76250
+            },
+            {
+              "i": 15,
+              "tokens_in": 575,
+              "tokens_out": null,
+              "tokens_cache_read": 76997
+            },
+            {
+              "i": 16,
+              "tokens_in": 879,
+              "tokens_out": null,
+              "tokens_cache_read": 77570
+            },
+            {
+              "i": 17,
+              "tokens_in": 1103,
+              "tokens_out": null,
+              "tokens_cache_read": 78447
+            },
+            {
+              "i": 18,
+              "tokens_in": 938,
+              "tokens_out": null,
+              "tokens_cache_read": 79548
+            },
+            {
+              "i": 19,
+              "tokens_in": 490,
+              "tokens_out": null,
+              "tokens_cache_read": 80484
+            },
+            {
+              "i": 20,
+              "tokens_in": 764,
+              "tokens_out": null,
+              "tokens_cache_read": 80972
+            },
+            {
+              "i": 21,
+              "tokens_in": 615,
+              "tokens_out": null,
+              "tokens_cache_read": 81734
+            },
+            {
+              "i": 22,
+              "tokens_in": 448,
+              "tokens_out": null,
+              "tokens_cache_read": 82347
+            },
+            {
+              "i": 23,
+              "tokens_in": 410,
+              "tokens_out": null,
+              "tokens_cache_read": 82793
+            },
+            {
+              "i": 24,
+              "tokens_in": 498,
+              "tokens_out": null,
+              "tokens_cache_read": 83201
+            },
+            {
+              "i": 25,
+              "tokens_in": 410,
+              "tokens_out": null,
+              "tokens_cache_read": 83697
+            }
+          ]
+        }
+      ],
+      "stats": {
+        "task_id": "ExpenseAddMultipleFromMarkor",
+        "arms": {
+          "after_mcp": {
+            "passed": 3,
+            "total": 3,
+            "wilson95": [
+              0.4385,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 440495.0,
+              "q1": 333546.0,
+              "q3": 517689.0,
+              "n": 3
+            },
+            "wall_ms": {
+              "median": 137169.0,
+              "q1": 115494.5,
+              "q3": 140405.5,
+              "n": 3
+            },
+            "llm_calls": {
+              "median": 9.0,
+              "q1": 6.5,
+              "q3": 10.0,
+              "n": 3
+            },
+            "ui_actions": {
+              "median": 2.0,
+              "q1": 1.0,
+              "q3": 3.0,
+              "n": 3
+            },
+            "tool_errors": 0,
+            "seeds": [
+              30,
+              31,
+              32
+            ]
+          },
+          "before": {
+            "passed": 0,
+            "total": 3,
+            "wilson95": [
+              0.0,
+              0.5615
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 2283598.0,
+              "q1": 1827766.0,
+              "q3": 2480248.5,
+              "n": 3
+            },
+            "wall_ms": {
+              "median": 141212.0,
+              "q1": 138334.0,
+              "q3": 144128.0,
+              "n": 3
+            },
+            "llm_calls": {
+              "median": 25.0,
+              "q1": 25.0,
+              "q3": 25.0,
+              "n": 3
+            },
+            "ui_actions": {
+              "median": 22.0,
+              "q1": 19.5,
+              "q3": 23.0,
+              "n": 3
+            },
+            "tool_errors": 0,
+            "seeds": [
+              30,
+              31,
+              32
+            ]
+          }
+        },
+        "paired": {
+          "after_mcp_vs_before": {
+            "pairs": 3,
+            "only_before_passed": 0,
+            "only_after_passed": 3,
+            "mcnemar_exact_p": 0.25,
+            "tokens_saved_median": 2057001,
+            "break_even_reuses": null
+          }
+        }
+      }
+    }
+  ],
+  "upstream_commit": "2655e27cd090f97fbf2ccaecf759057bec0a8460",
+  "generated_at": "2026-10-22T18:12:45Z",
+  "schema": "bench-androidworld/v2"
+}

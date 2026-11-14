@@ -1,5 +1,6 @@
 import json
 
+import pytest
 import yaml
 
 from gitd.routers import creator
@@ -99,3 +100,13 @@ def test_create_from_recording_treats_ios_app_package_as_bundle_id(tmp_path, mon
     assert meta["app_package"] == ""
     assert meta["android_package"] == ""
     assert meta["ios_bundle_id"] == "com.google.chrome.ios"
+
+
+def test_create_from_recording_empty_steps_string_is_400(tmp_path, monkeypatch):
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(skills_router, "_SKILLS_DIR", tmp_path)
+    with pytest.raises(HTTPException) as exc:
+        skills_router.api_skills_create_from_recording({"name": "x_demo", "steps": "[]"})
+    assert exc.value.status_code == 400
+    assert not (tmp_path / "x_demo").exists()

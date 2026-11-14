@@ -1,11 +1,11 @@
-"""One-shot vision sub-agent — a fresh LLM call over cached frames (bencher #4).
+"""One-shot vision sub-agent — a fresh LLM call over cached frames (bench runner #4).
 
 For image-heavy subtasks (transcribing a playing video, reading a burst of
 frames) the master agent shouldn't carry N screenshots in its own context. This
 spawns a SEPARATE, stateless Anthropic vision call over the frames and returns
 only its text answer, keeping the master's context lean.
 
-Pairs with ``screenshot_sequence`` (bencher #5), which captures the frames via
+Pairs with ``screenshot_sequence`` (bench runner #5), which captures the frames via
 per-frame screencap and caches them for this to read.
 
 Backend: the Anthropic API (the vision path). Requires ``ANTHROPIC_API_KEY`` — if

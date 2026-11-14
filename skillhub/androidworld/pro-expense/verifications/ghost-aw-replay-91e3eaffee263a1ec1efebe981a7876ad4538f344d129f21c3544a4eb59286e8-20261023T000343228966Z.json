@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "kind": "verification",
+  "skill": "androidworld/pro-expense",
+  "version": "0.1.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.arduia.expense",
+    "app_version": "1.0.0-beta05"
+  },
+  "fingerprint_hash": "91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8",
+  "app_version": "1.0.0-beta05",
+  "model": "deterministic",
+  "timestamp": "2026-10-23T00:03:43.228966+00:00",
+  "finished_at": "2026-10-23T00:03:43.228966+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "expense_add_single",
+      "success": true,
+      "duration_ms": 36717.332149040885,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 10551.309783942997
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 25955.98843996413
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:0896269446b3f8fef2c85fa5380c160e467b523cc3dd7baf8825c606dff75def",
+  "emulator": true,
+  "github_login": "ghost-aw-replay",
+  "verifier": "ghost-aw-replay",
+  "verifier_tier": "novice",
+  "bench": {
+    "suite": "androidworld",
+    "task_id": "ExpenseAddSingle",
+    "arm": "after_replay",
+    "seed": 32,
+    "instance_seed": 2574421568,
+    "steps": 2,
+    "tokens": 0,
+    "wall_ms": 38607,
+    "is_successful": 1.0
+  },
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQJ0lAtrQLCf7wAynNl/Gs8jDeXQCnYkGDKpV/kmG/UC0TzE7sz\no5fMVrfHGDzd5wBEueOkpmyXApKbHnIfTx9g4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

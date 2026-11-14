@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "androidworld/pro-expense",
+ "action": "expense_add_single",
+ "prompt": "Add an expense in Pro Expense: Office coffee, 4.50 dollars, Food category, note Morning run",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 40.55,
+  "tokens": 674034,
+  "tool_calls": 21,
+  "ok": true
+ },
+ "after": {
+  "seconds": 35.99,
+  "tokens": 58654,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "AFTER retaken after exposing unchanged active AndroidWorld skill in private installed catalog; original take fell back because catalog lacked it. Final paired AFTER uses actual skill: 35.99s, 58654 tokens, 4 calls. BEFORE unchanged: 40.55s, 674034 tokens, 21 calls. Legacy SDK Play Protect warning handled outside filming for verified F-Droid APK; Play Protect unchanged.",
+ "source": "phone-b-before-after"
+}

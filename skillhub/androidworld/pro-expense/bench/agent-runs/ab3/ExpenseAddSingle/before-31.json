@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "androidworld/pro-expense",
+  "version": "0.1.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.arduia.expense",
+    "app_version": "1.0.0-beta05"
+  },
+  "fingerprint_hash": "91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8",
+  "app_version": "1.0.0-beta05",
+  "model": "claude-haiku-5-5",
+  "timestamp": "2026-10-22T19:45:45.092773+00:00",
+  "finished_at": "2026-10-22T19:45:45.092773+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "expense_add_single",
+      "success": true,
+      "duration_ms": 124938.0,
+      "error_kind": null,
+      "asks": [],
+      "steps": []
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "bench": {
+    "suite": "androidworld",
+    "task_id": "ExpenseAddSingle",
+    "arm": "before",
+    "seed": 31,
+    "instance_seed": 3910811164,
+    "steps": 36,
+    "tokens": 1752326,
+    "wall_ms": 124938,
+    "is_successful": 1.0
+  },
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQAnOFHxC8s0Sv1c+PpaWV+K5GdXDb19/b471cL1g36fp0yXsRB\n8jF5Jqb4IWgSB+PiLV4pfV0+Qfjn2rv4Ut/AI=\n-----END SSH SIGNATURE-----\n"
+  }
+}

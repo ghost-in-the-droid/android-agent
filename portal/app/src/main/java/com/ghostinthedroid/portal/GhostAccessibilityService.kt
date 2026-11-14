@@ -2,9 +2,11 @@ package com.ghostinthedroid.portal
 
 import android.accessibilityservice.AccessibilityService
 import android.graphics.Rect
+import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -101,21 +103,62 @@ class GhostAccessibilityService : AccessibilityService() {
     /**
      * Build the full a11y tree as a JSON object with nested children.
      * Format matches what the Python backend expects from /state endpoint:
-     * {className, text, contentDescription, resourceId, isClickable, boundsInScreen:{left,top,right,bottom}, children:[...]}
+     * {className, text, contentDescription, resourceId, isClickable, isEnabled, isChecked, isSelected, isFocused, boundsInScreen:{left,top,right,bottom}, children:[...]}
      */
+    @Synchronized
     fun getA11yTree(): JSONObject? {
         try {
-            val root = rootInActiveWindow ?: return null
-            val tree = buildNodeTree(root)
-            root.recycle()
-            return tree
+            // A long-lived accessibility client can retain old virtual children
+            // when an app doesn't announce each transient board/overlay change.
+            // Clear before acquiring roots; older Android needs per-node refresh.
+            val refreshNodes = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !clearCache()
+            val roots = mutableListOf<AccessibilityNodeInfo>()
+            val seenWindows = mutableSetOf<Int>()
+            try {
+                rootInActiveWindow?.let {
+                    roots.add(it)
+                    seenWindows.add(it.windowId)
+                }
+                // Popups can be separate application windows without becoming
+                // active. Exclude system/IME/Portal accessibility overlay windows.
+                val snapshotWindows = try {
+                    windows
+                } catch (e: Exception) {
+                    Log.w(TAG, "Window enumeration unavailable; using active root", e)
+                    emptyList()
+                }
+                for (window in snapshotWindows) {
+                    try {
+                        if (window.type == AccessibilityWindowInfo.TYPE_APPLICATION && window.id !in seenWindows) {
+                            window.root?.let {
+                                roots.add(it)
+                                seenWindows.add(window.id)
+                            }
+                        }
+                    } finally {
+                        window.recycle()
+                    }
+                }
+                val trees = roots.mapNotNull { buildNodeTree(it, refreshNodes) }
+                return when (trees.size) {
+                    0 -> null
+                    1 -> trees.first()
+                    else -> JSONObject().apply {
+                        put("className", "android.view.WindowRoots")
+                        put("children", JSONArray(trees))
+                    }
+                }
+            } finally {
+                roots.forEach { it.recycle() }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "getA11yTree error: ${e.message}")
             return null
         }
     }
 
-    private fun buildNodeTree(node: AccessibilityNodeInfo): JSONObject {
+    private fun buildNodeTree(node: AccessibilityNodeInfo, refreshNodes: Boolean): JSONObject? {
+        if (refreshNodes && !node.refresh()) return null
         val obj = JSONObject()
         obj.put("className", node.className?.toString() ?: "")
         obj.put("text", node.text?.toString() ?: "")
@@ -126,7 +169,9 @@ class GhostAccessibilityService : AccessibilityService() {
         obj.put("isEditable", node.isEditable)
         obj.put("isCheckable", node.isCheckable)
         obj.put("isChecked", node.isChecked)
+        obj.put("isFocusable", node.isFocusable)
         obj.put("isFocused", node.isFocused)
+        obj.put("isSelected", node.isSelected)
         obj.put("isEnabled", node.isEnabled)
 
         val bounds = Rect()
@@ -141,8 +186,11 @@ class GhostAccessibilityService : AccessibilityService() {
         val children = JSONArray()
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
-            children.put(buildNodeTree(child))
-            child.recycle()
+            try {
+                buildNodeTree(child, refreshNodes)?.let { children.put(it) }
+            } finally {
+                child.recycle()
+            }
         }
         obj.put("children", children)
         return obj
@@ -150,55 +198,50 @@ class GhostAccessibilityService : AccessibilityService() {
 
     /**
      * Build the full UI element tree as JSON array.
-     * Each element: {idx, text, content_desc, resource_id, class, bounds, clickable, scrollable}
+     * Each element: {idx, text, content_desc, resource_id, class, bounds, clickable, scrollable, enabled, checkable, checked, focusable, focused, selected}
      */
     fun getElements(): JSONArray {
         val elements = JSONArray()
-        try {
-            val root = rootInActiveWindow ?: return elements
-            var idx = 0
-            fun walk(node: AccessibilityNodeInfo) {
-                val text = node.text?.toString() ?: ""
-                val desc = node.contentDescription?.toString() ?: ""
-                val rid = node.viewIdResourceName ?: ""
-                val cls = node.className?.toString()?.split(".")?.lastOrNull() ?: ""
-                val clickable = node.isClickable
-                val scrollable = node.isScrollable
-
-                if (clickable || scrollable || text.isNotEmpty() || desc.isNotEmpty()) {
-                    val bounds = Rect()
-                    node.getBoundsInScreen(bounds)
-                    if (bounds.width() > 0 && bounds.height() > 0) {
-                        val el = JSONObject()
-                        el.put("idx", idx++)
-                        el.put("text", text)
-                        el.put("content_desc", desc)
-                        el.put("resource_id", rid)
-                        el.put("class", cls)
-                        el.put("clickable", clickable)
-                        el.put("scrollable", scrollable)
-                        el.put("bounds", JSONObject().apply {
-                            put("x1", bounds.left); put("y1", bounds.top)
-                            put("x2", bounds.right); put("y2", bounds.bottom)
-                        })
-                        el.put("center", JSONObject().apply {
-                            put("x", bounds.centerX()); put("y", bounds.centerY())
-                        })
-                        elements.put(el)
+        val root = getA11yTree() ?: return elements
+        fun walk(node: JSONObject) {
+            val text = node.optString("text")
+            val desc = node.optString("contentDescription")
+            val rid = node.optString("resourceId")
+            val clickable = node.optBoolean("isClickable")
+            val scrollable = node.optBoolean("isScrollable")
+            val bounds = node.optJSONObject("boundsInScreen")
+            if (bounds != null && (clickable || scrollable || text.isNotEmpty() || desc.isNotEmpty() || rid.isNotEmpty())) {
+                val left = bounds.optInt("left")
+                val top = bounds.optInt("top")
+                val right = bounds.optInt("right")
+                val bottom = bounds.optInt("bottom")
+                if (right > left && bottom > top) {
+                    val el = JSONObject()
+                    el.put("idx", elements.length())
+                    el.put("text", text)
+                    el.put("content_desc", desc)
+                    el.put("resource_id", rid)
+                    el.put("class", node.optString("className").substringAfterLast('.'))
+                    el.put("clickable", clickable)
+                    el.put("scrollable", scrollable)
+                    for ((key, source) in listOf("enabled" to "isEnabled", "checkable" to "isCheckable",
+                            "checked" to "isChecked", "focusable" to "isFocusable",
+                            "focused" to "isFocused", "selected" to "isSelected")) {
+                        el.put(key, node.optBoolean(source, key == "enabled"))
                     }
-                }
-
-                for (i in 0 until node.childCount) {
-                    val child = node.getChild(i) ?: continue
-                    walk(child)
-                    child.recycle()
+                    el.put("bounds", JSONObject().apply {
+                        put("x1", left); put("y1", top); put("x2", right); put("y2", bottom)
+                    })
+                    el.put("center", JSONObject().apply {
+                        put("x", (left + right) / 2); put("y", (top + bottom) / 2)
+                    })
+                    elements.put(el)
                 }
             }
-            walk(root)
-            root.recycle()
-        } catch (e: Exception) {
-            Log.e(TAG, "getElements error: ${e.message}")
+            val children = node.optJSONArray("children") ?: return
+            for (i in 0 until children.length()) walk(children.getJSONObject(i))
         }
+        walk(root)
         return elements
     }
 
