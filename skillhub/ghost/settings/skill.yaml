@@ -1,0 +1,135 @@
+# Aggregate reads never open identifier-bearing Settings pages.
+name: settings
+version: 1.1.0
+author: ghost
+description: 'Android Settings: privacy-bounded native model/build, battery, storage
+  totals and Wi-Fi yes/no reads; switch dark theme.'
+skill_class: hard
+license: MIT
+generated_with: Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator
+  pool
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- storage
+- network
+fingerprint:
+  os: android
+  os_version: '>=16,<17'
+  hardware: samsung
+  app_package: com.android.settings
+  app_version: '>=14'
+  screen_wxh: 1080x2340
+  density: 450
+  locale: en-US
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/settings
+popup_detectors: []
+subroutines:
+- name: fresh_settings
+  description: Close Settings so the next page intent opens a new page instead of
+    reusing the top one.
+  steps:
+  - python_action: helpers:close_settings
+actions:
+- name: get_device_info
+  description: Return model, Android version and build only, using three native properties
+    without opening About phone.
+  ref_prompt: What Android version is this phone running?
+  params: []
+  steps:
+  - python_action: helpers:read_device_info
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:device_info_ok
+  test_case:
+    ref_prompt_variants:
+    - which phone model is this
+    - tell me the build number
+    - read the Android version
+    expected_success: true
+- name: get_battery_status
+  description: Return battery level percent and charging yes/no from native aggregates
+    without opening Settings.
+  ref_prompt: How much battery do I have left?
+  params: []
+  steps:
+  - python_action: helpers:read_battery
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:battery_ok
+  test_case:
+    ref_prompt_variants:
+    - what is my battery percentage
+    - is the battery charging
+    - check the phone charge level
+    expected_success: true
+- name: get_storage_usage
+  description: Return total, used and free /data storage in KiB, without categories
+    or app lists.
+  ref_prompt: How much storage is free on my phone?
+  params: []
+  steps:
+  - python_action: helpers:read_storage
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:storage_ok
+  test_case:
+    ref_prompt_variants:
+    - how full is my storage
+    - read storage totals
+    - show total free space
+    expected_success: true
+- name: get_wifi_status
+  description: Return Wi-Fi enabled and connected yes/no only, filtering on the device
+    before output. No network identifiers or lists.
+  ref_prompt: Is Wi-Fi enabled and connected?
+  params: []
+  steps:
+  - python_action: helpers:read_wifi
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:wifi_ok
+  test_case:
+    ref_prompt_variants:
+    - am I connected to wifi
+    - is wifi on
+    - check wifi connection status
+    expected_success: true
+- name: set_dark_theme
+  description: Turn the system dark theme on or off (no-op when already in the requested
+    state).
+  ref_prompt: Turn on dark mode
+  params:
+  - name: enabled
+    type: bool
+    required: true
+    description: true = dark theme on, false = off
+  steps:
+  - subroutine: fresh_settings
+  - action: launch_intent
+    intent_action: android.settings.DISPLAY_SETTINGS
+  - action: wait_for_text
+    text: Display
+    timeout_s: 10
+  - python_action: helpers:set_dark_theme
+  end_state_validator:
+    all_of:
+    - kind: text_visible
+      text: Display
+    - kind: custom_python
+      function: helpers:dark_theme_matches
+  test_case:
+    ref_prompt_variants:
+    - switch to light theme
+    - enable night mode
+    - turn dark theme off
+    expected_success: true

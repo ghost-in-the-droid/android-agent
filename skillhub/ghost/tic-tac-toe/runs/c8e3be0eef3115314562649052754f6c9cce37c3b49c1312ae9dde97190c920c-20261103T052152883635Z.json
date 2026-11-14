@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/tic-tac-toe",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "io.github.yamin8000.dooz",
+    "app_version": "1.0.24"
+  },
+  "fingerprint_hash": "c8e3be0eef3115314562649052754f6c9cce37c3b49c1312ae9dde97190c920c",
+  "app_version": "1.0.24",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T05:21:52.883635+00:00",
+  "finished_at": "2026-11-03T05:21:52.883635+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "play_cells",
+      "success": true,
+      "duration_ms": 69955.8288479966,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 7334.839896000631
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 59479.754860003595
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:cd9f3b8b2a15029c30b93e80b0f5bb01e31c9b567e74c254ddeb04f3d1cf9ad1",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQBmtb9+pEJ2cPQYAk9Iuy1MtalsJ4kTUvfdehlQRk/4GonJjeo\nXmFwXjGail/+fI9/q8+fGLiAXhYRGNJtEsXgc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

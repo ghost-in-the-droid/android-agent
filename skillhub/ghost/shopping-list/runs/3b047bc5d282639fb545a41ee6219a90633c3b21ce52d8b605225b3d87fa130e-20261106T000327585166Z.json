@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/shopping-list",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.woefe.shoppinglist",
+    "app_version": "0.11.0"
+  },
+  "fingerprint_hash": "3b047bc5d282639fb545a41ee6219a90633c3b21ce52d8b605225b3d87fa130e",
+  "app_version": "0.11.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-06T00:03:27.585166+00:00",
+  "finished_at": "2026-11-06T00:03:27.585166+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "remove_checked",
+      "success": true,
+      "duration_ms": 10129.868315001659,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3981.4370180029073
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 329.70521799870767
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 1593.4104679981829
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 510.89709700318053
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 1530.3165410005022
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 1350.7735040038824
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 492.75291500089224
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:ceb78d5dd2527ccdd6ad645d4199c24ac2d0753facfb5b47bd2d043a7639187a",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQAnMNxfWU8baNW+ovrwhzzAwN6e7jfPQeQrRcMgeUsJUHknIz2\nZlidHCY7xH/vSVySaOu0lP0/qtTsu+UsU1xgQ=\n-----END SSH SIGNATURE-----\n"
+  }
+}

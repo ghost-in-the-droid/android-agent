@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/sgt-puzzles",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "name.boyle.chris.sgtpuzzles",
+    "app_version": "2025-09-12-1919-23762278-fdroid"
+  },
+  "fingerprint_hash": "6565b8b750112ae567db2178608d55436149320c6fea2d0cf791ddd6e31f1710",
+  "app_version": "2025-09-12-1919-23762278-fdroid",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T22:02:22.361541+00:00",
+  "finished_at": "2026-11-05T22:02:22.361541+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "open_puzzle",
+      "success": true,
+      "duration_ms": 12121.947670995723,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 7181.344061995333
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3826.282030000584
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 507.5170400014031
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 415.57902799831936
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:eb0c4c646372dfd8e2363a6de8294abce77e4e3a81ba6000c858ae6e9bcba047",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQFJ7R/DEpzSqfSfsOoTRAaOwayYY0RfEHs6WdW+Klh2h+PrZwf\np3YEXrXHRaXOkypxXuUqBiJBF00b+lQhwZFAY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/outdoor-food-calculator",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.birdbird.outdoorfoodcalc",
+    "app_version": "1.0.1"
+  },
+  "fingerprint_hash": "85eecff424f9d12c05f5d4f85fd6825828bf7b1bb4fe09b4ca380b0761410509",
+  "app_version": "1.0.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T17:59:37.810863+00:00",
+  "finished_at": "2026-11-03T17:59:37.810863+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "add_food",
+      "success": true,
+      "duration_ms": 13397.511604998726,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 663.681620004354
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3359.2046279954957
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 8934.329284005798
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:9391099c5dfee1e0e8cded6210f5e7790b7ecca1ffe379fe8cb3427fdd47657a",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQEJMV0FAh+vgetFgt9xbHvLjtn4H2ztaHEdkACnnNz2RvZdtuR\nyq1VQCcMfwr2p5NGoDImZSoM9Csog91HUAQg4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

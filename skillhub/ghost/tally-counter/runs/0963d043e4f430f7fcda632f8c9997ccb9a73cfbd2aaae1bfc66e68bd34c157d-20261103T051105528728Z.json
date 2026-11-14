@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/tally-counter",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "me.tsukanov.counter",
+    "app_version": "35"
+  },
+  "fingerprint_hash": "0963d043e4f430f7fcda632f8c9997ccb9a73cfbd2aaae1bfc66e68bd34c157d",
+  "app_version": "35",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T05:11:05.528728+00:00",
+  "finished_at": "2026-11-03T05:11:05.528728+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "add_counter",
+      "success": true,
+      "duration_ms": 9277.272480001557,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3250.821649999125
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 969.6139579973533
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 214.346865999687
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 927.6114699969185
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 379.32704300328624
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 945.0232490053168
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 404.6166290063411
+        },
+        {
+          "index": 7,
+          "success": true,
+          "duration_ms": 904.9863439940964
+        },
+        {
+          "index": 8,
+          "success": true,
+          "duration_ms": 1006.1284089970286
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:7550763fd27c42c9ccdcd94e2f9a49f2053e80342f782c54bdad28189a8a9e0d",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQIEuqKqYrjGFTT5+zx8rWMAzhpNdx208eWzUvo/pdFkzqYeQ7j\nwwqvZ615j4g22PLXhRV7j5LwLkVEeU5k2DdQA=\n-----END SSH SIGNATURE-----\n"
+  }
+}

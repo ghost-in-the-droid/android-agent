@@ -1,0 +1,39 @@
+{
+  "author": "ghost",
+  "slug": "logical-fallacies",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "1f74e7a1523f234ec12af9be0476d1fe6a449e8c",
+      "git_tree": null,
+      "sha256": "sha256:217220a46e26a5c8448cfe1d2d7a167bf2e4c7f5a832fe81213b7071b8ff68ae",
+      "size": 18540,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demos/list_categories.webm",
+        "bytes": 234388,
+        "type": "video/webm"
+      },
+      "demos": {
+        "get_fallacy": {
+          "path": "demos/get_fallacy.webm",
+          "bytes": 597473,
+          "type": "video/webm"
+        },
+        "list_categories": {
+          "path": "demos/list_categories.webm",
+          "bytes": 234388,
+          "type": "video/webm"
+        },
+        "list_fallacies": {
+          "path": "demos/list_fallacies.webm",
+          "bytes": 601712,
+          "type": "video/webm"
+        }
+      }
+    }
+  ]
+}

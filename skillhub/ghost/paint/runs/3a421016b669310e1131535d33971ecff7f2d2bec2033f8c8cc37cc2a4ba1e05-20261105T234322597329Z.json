@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/paint",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.fossify.paint",
+    "app_version": "1.4.0"
+  },
+  "fingerprint_hash": "3a421016b669310e1131535d33971ecff7f2d2bec2033f8c8cc37cc2a4ba1e05",
+  "app_version": "1.4.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T23:43:22.597329+00:00",
+  "finished_at": "2026-11-05T23:43:22.597329+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_canvas",
+      "success": true,
+      "duration_ms": 5554.999863998091,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3618.194531001791
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1107.4770409977646
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:7e115ca5e8ae7e411a2470fa4eb515534cbb16882af01b63f628b94cfecf43c6",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQKOuYJOzflxbFsVLv1xrdFP7kQFJbNcGrwjhCUo/S9rBmx43Nu\n3ErXb3i2qOq/h1CVeSxrfo8uYU9r0ui1e3JwA=\n-----END SSH SIGNATURE-----\n"
+  }
+}

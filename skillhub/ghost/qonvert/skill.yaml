@@ -1,0 +1,105 @@
+# Ghost in the Droid: Qonvert (login-free FOSS seed skill, installed from F-Droid)
+# Qonvert (F-Droid): convert numbers between binary, octal, decimal, duodecimal and hexadecimal and see fractions, continued fractions and Roman numerals. Offline, no account.
+
+name: qonvert
+version: 1.0.0
+author: ghost
+description: "Qonvert (F-Droid): convert numbers between binary, octal, decimal, duodecimal and hexadecimal and see fractions, continued fractions and Roman numerals. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.tessoft.qonvert
+  app_version: ">=1.8"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/qonvert"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: org.tessoft.qonvert}
+      - {action: sleep, duration_s: 2.0}
+
+actions:
+  - name: open_converter
+    description: "Restart the app and read the converter."
+    ref_prompt: "Open the number base converter"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_converter"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:converter_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open Qonvert"
+      expected_success: true
+
+  - name: convert
+    description: "Convert a number from one base to another and return every representation shown (value in the output base, fraction, mixed number, continued fractions, Roman numerals for integers)."
+    ref_prompt: "Convert 255 from decimal to hex"
+    demo_params: {value: "255", from_base: "10", to_base: "16"}
+    params:
+      - {name: value, type: str, required: true, description: "The number in the input base, e.g. 255, -3.25, ff, 1_3/5"}
+      - {name: from_base, type: str, required: false, description: "2, 8, 10, 12, 16 or bin/oct/dec/doz/hex; default 10"}
+      - {name: to_base, type: str, required: false, description: "2, 8, 10, 12, 16 or bin/oct/dec/doz/hex; default 16"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:convert"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:converted"}
+    test_case:
+      ref_prompt_variants:
+        - "what is ff in decimal"
+        - "write 10.5 in binary"
+        - "convert 77 octal to hex"
+      expected_success: true
+
+  - name: get_result
+    description: "Read the current input, the bases and all output representations."
+    ref_prompt: "What does the converter show?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_result"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:result_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show the conversion result"
+      expected_success: true
+
+  - name: clear_input
+    description: "Clear the input field."
+    ref_prompt: "Clear the number base converter"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:clear_input"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:cleared"}
+    test_case:
+      ref_prompt_variants:
+        - "clear the converter input"
+      expected_success: true

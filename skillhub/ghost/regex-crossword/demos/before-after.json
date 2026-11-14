@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/regex-crossword",
+ "action": null,
+ "prompt": "Open the Backreference level of the regex crossword tutorial on my phone, read the clues, solve it and verify. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 66.03,
+  "tokens": 473441,
+  "tool_calls": 17,
+  "ok": true
+ },
+ "after": {
+  "seconds": 50.41,
+  "tokens": 179472,
+  "tool_calls": 8,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

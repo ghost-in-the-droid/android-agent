@@ -1,0 +1,23 @@
+{
+  "author": "ghost",
+  "slug": "stoic-reading",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "1f74e7a1523f234ec12af9be0476d1fe6a449e8c",
+      "git_tree": null,
+      "sha256": "sha256:cf222838e8975203ee893c8d096ac32d98396528d839438d8aa0728f9900b9bd",
+      "size": 16724,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demo.webm",
+        "bytes": 205325,
+        "type": "video/webm"
+      },
+      "demos": {}
+    }
+  ]
+}

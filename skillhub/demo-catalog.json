@@ -1,0 +1,1452 @@
+{
+  "schema_version": 1,
+  "purpose": "presentation only; never independent evidence",
+  "clips": [
+    {
+      "skill": "ghost/calculator",
+      "action": "calculate",
+      "path": "ghost/calculator/demos/calculate.webm",
+      "sha256": "c78a9d68be72e559c9662b27206a99e57a9b69e0d5ccfca92032f502c7d3a567",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [],
+        "seed": "none"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:38:55.184249+00:00",
+          "package": "org.fossify.math"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:38:55.393561+00:00",
+          "package": "org.fossify.math",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:38:55.393587+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [],
+            "seed": "none"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:38:57.301710+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:38:57.956779+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:39:02.359739+00:00",
+          "package": "org.fossify.math"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:39:02.359766+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:39:09.260976+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:39:11.916442+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/calculator",
+      "action": "convert_units",
+      "path": "ghost/calculator/demos/convert_units.webm",
+      "sha256": "d58ee4683d9c34d3e8020645774e2a7f73ee6946a0af86b0dc706cffd3d72e1b",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [],
+        "seed": "none"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:39:45.263724+00:00",
+          "package": "org.fossify.math"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:39:45.462735+00:00",
+          "package": "org.fossify.math",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:39:45.462764+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [],
+            "seed": "none"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:39:47.313946+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:39:47.966079+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:39:51.962378+00:00",
+          "package": "org.fossify.math"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:39:51.962400+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:40:06.863879+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:40:09.460772+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/calculator",
+      "action": "get_history",
+      "path": "ghost/calculator/demos/get_history.webm",
+      "sha256": "105b81c5aa285dc098605c72e8ce1ee67242e10788ed592d99546745150416cb",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [],
+        "seed": "one calculation: 12*3 = 36"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:39:24.534003+00:00",
+          "package": "org.fossify.math"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:39:24.765834+00:00",
+          "package": "org.fossify.math",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:39:30.765496+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [],
+            "seed": "one calculation: 12*3 = 36"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:39:33.258944+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:39:33.903614+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:39:37.833383+00:00",
+          "package": "org.fossify.math"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:39:37.833403+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:39:42.086011+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:39:44.925908+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/calculator",
+      "action": "read_result",
+      "path": "ghost/calculator/demos/read_result.webm",
+      "sha256": "2c6bbe7305cd011a18cce643b1c7eaec18cfe047415f7aa1808f108fe6c73f0b",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [],
+        "seed": "none"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:39:12.233996+00:00",
+          "package": "org.fossify.math"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:39:12.432145+00:00",
+          "package": "org.fossify.math",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:39:12.432176+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [],
+            "seed": "none"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:39:14.386057+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:39:15.101253+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:39:19.209391+00:00",
+          "package": "org.fossify.math"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:39:19.209418+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:39:21.467332+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:39:24.135418+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/clock",
+      "action": "add_world_city",
+      "path": "ghost/clock/demos/add_world_city.webm",
+      "sha256": "1439e85786e732dd6a01bfcb77e190e8803fff57d381d2596f918761018f2e87",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [],
+        "seed": "none",
+        "target_city_absent": true
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:42:21.744292+00:00",
+          "package": "com.google.android.deskclock"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:42:21.943091+00:00",
+          "package": "com.google.android.deskclock",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:42:25.717836+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [],
+            "seed": "none",
+            "target_city_absent": true
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:42:28.133797+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:42:28.844414+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:42:32.983495+00:00",
+          "package": "com.google.android.deskclock"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:42:32.983522+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:42:49.482601+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:42:52.344466+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/clock",
+      "action": "list_alarms",
+      "path": "ghost/clock/demos/list_alarms.webm",
+      "sha256": "44100204cd92f45d729aaf849a25fdf832ff7e2dcfecaf6e470078f12ac50134",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [],
+        "seed": "one enabled 07:30 alarm: Isolated demo alarm"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:40:30.644175+00:00",
+          "package": "com.google.android.deskclock"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:40:30.831445+00:00",
+          "package": "com.google.android.deskclock",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:40:39.525377+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [],
+            "seed": "one enabled 07:30 alarm: Isolated demo alarm"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:40:41.994445+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:40:42.659773+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:40:46.676392+00:00",
+          "package": "com.google.android.deskclock"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:40:46.676423+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:41:37.883599+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:41:40.630046+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/clock",
+      "action": "set_alarm",
+      "path": "ghost/clock/demos/set_alarm.webm",
+      "sha256": "45b47246febb3e936c234610f557450c65b72876213c883b369afc1466aaab7a",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [],
+        "seed": "none"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:40:10.224408+00:00",
+          "package": "com.google.android.deskclock"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:40:10.626797+00:00",
+          "package": "com.google.android.deskclock",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:40:10.626835+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [],
+            "seed": "none"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:40:13.514070+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:40:14.335639+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:40:18.641388+00:00",
+          "package": "com.google.android.deskclock"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:40:18.641416+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:40:27.084218+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:40:30.321842+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/clock",
+      "action": "start_stopwatch",
+      "path": "ghost/clock/demos/start_stopwatch.webm",
+      "sha256": "a839a55561b7eacd2e840e7aa5fd25eb333f4701c709ec10d1f5f2c1303afbd0",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [],
+        "seed": "none"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:42:00.383133+00:00",
+          "package": "com.google.android.deskclock"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:42:00.566098+00:00",
+          "package": "com.google.android.deskclock",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:42:00.566118+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [],
+            "seed": "none"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:42:02.317190+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:42:03.030214+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:42:07.437889+00:00",
+          "package": "com.google.android.deskclock"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:42:07.437922+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:42:18.511096+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:42:20.974822+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/clock",
+      "action": "start_timer",
+      "path": "ghost/clock/demos/start_timer.webm",
+      "sha256": "c537903a2b6a396e70892c662c46b065297d644a622cdd8849409ed4c2ef2290",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [],
+        "seed": "none"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:41:41.036907+00:00",
+          "package": "com.google.android.deskclock"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:41:41.477642+00:00",
+          "package": "com.google.android.deskclock",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:41:41.477671+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [],
+            "seed": "none"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:41:43.825276+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:41:44.543066+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:41:48.651380+00:00",
+          "package": "com.google.android.deskclock"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:41:48.651402+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:41:57.309310+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:42:00.020280+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/markor",
+      "action": "add_todo",
+      "path": "ghost/markor/demos/add_todo.webm",
+      "sha256": "e68f3c75e95533e8eb6ffebdf9e7b471963dd53cc98f99a888e77fa2c40fa61e",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run intro",
+          "demo app all-files permission",
+          "empty external notebook"
+        ],
+        "seed": "none"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:44:52.083000+00:00",
+          "package": "net.gsantner.markor"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:44:52.336180+00:00",
+          "package": "net.gsantner.markor",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:45:06.010526+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run intro",
+              "demo app all-files permission",
+              "empty external notebook"
+            ],
+            "seed": "none"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:45:08.538840+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:45:09.755171+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:45:14.109396+00:00",
+          "package": "net.gsantner.markor"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:45:14.109419+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:45:26.716563+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:45:29.546846+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/markor",
+      "action": "append_quicknote",
+      "path": "ghost/markor/demos/append_quicknote.webm",
+      "sha256": "8bad1011cfb0e60d8fad458c471c6dfc90158aa02403356dd3033d6cc7083517",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run intro",
+          "demo app all-files permission",
+          "empty external notebook"
+        ],
+        "seed": "none"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:45:30.208013+00:00",
+          "package": "net.gsantner.markor"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:45:30.705086+00:00",
+          "package": "net.gsantner.markor",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:45:45.980399+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run intro",
+              "demo app all-files permission",
+              "empty external notebook"
+            ],
+            "seed": "none"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:45:49.579831+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:45:50.877301+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:45:56.217891+00:00",
+          "package": "net.gsantner.markor"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:45:56.217913+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:46:08.790493+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:46:12.240781+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/markor",
+      "action": "create_note",
+      "path": "ghost/markor/demos/create_note.webm",
+      "sha256": "cc4d2fdd99e1de38843d323784341e48f49796421219e7f933e1b1c9b224eb0d",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run intro",
+          "demo app all-files permission",
+          "empty external notebook"
+        ],
+        "seed": "none"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:42:52.655782+00:00",
+          "package": "net.gsantner.markor"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:42:52.813363+00:00",
+          "package": "net.gsantner.markor",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:43:05.698471+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run intro",
+              "demo app all-files permission",
+              "empty external notebook"
+            ],
+            "seed": "none"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:43:07.799615+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:43:08.477385+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:43:12.781380+00:00",
+          "package": "net.gsantner.markor"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:43:12.781401+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:43:41.707859+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:43:44.394941+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/markor",
+      "action": "list_notes",
+      "path": "ghost/markor/demos/list_notes.webm",
+      "sha256": "adccc6cc303b23543df836a1a9c971968371a36453840e125cdbd29f79792bee",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run intro",
+          "demo app all-files permission",
+          "empty external notebook"
+        ],
+        "seed": {
+          "file": "Isolated Shopping.md",
+          "sha256": "67a2d3e12652c5ce3349de982ed33ee7d8bf6fd1f92652d47f297e6332df151d"
+        }
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:44:14.171865+00:00",
+          "package": "net.gsantner.markor"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:44:14.439134+00:00",
+          "package": "net.gsantner.markor",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:44:30.784344+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run intro",
+              "demo app all-files permission",
+              "empty external notebook"
+            ],
+            "seed": {
+              "file": "Isolated Shopping.md",
+              "sha256": "67a2d3e12652c5ce3349de982ed33ee7d8bf6fd1f92652d47f297e6332df151d"
+            }
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:44:33.166496+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:44:34.054630+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:44:38.913384+00:00",
+          "package": "net.gsantner.markor"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:44:38.913410+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:44:48.977541+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:44:51.733793+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/markor",
+      "action": "read_note",
+      "path": "ghost/markor/demos/read_note.webm",
+      "sha256": "b02313709db739b1796e5178e3fc7053f345339483a532de4e1d9ad26f12372a",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run intro",
+          "demo app all-files permission",
+          "empty external notebook"
+        ],
+        "seed": {
+          "file": "Isolated Shopping.md",
+          "sha256": "67a2d3e12652c5ce3349de982ed33ee7d8bf6fd1f92652d47f297e6332df151d"
+        }
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:43:44.709497+00:00",
+          "package": "net.gsantner.markor"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:43:44.884523+00:00",
+          "package": "net.gsantner.markor",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:43:57.172964+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run intro",
+              "demo app all-files permission",
+              "empty external notebook"
+            ],
+            "seed": {
+              "file": "Isolated Shopping.md",
+              "sha256": "67a2d3e12652c5ce3349de982ed33ee7d8bf6fd1f92652d47f297e6332df151d"
+            }
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:43:59.270467+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:44:00.126380+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:44:04.335457+00:00",
+          "package": "net.gsantner.markor"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:44:04.335479+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:44:10.435048+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:44:13.515842+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "androidworld/pro-expense",
+      "action": "expense_add_multiple",
+      "path": "androidworld/pro-expense/demos/expense_add_multiple.webm",
+      "sha256": "dc114c2efa113d55877f151d39fb02db4e6b53b893ddb6e450efcf7bd919cea1",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run language/currency pages only; no expense writes"
+        ],
+        "seed": "none",
+        "empty_ledger_checked": "fresh pm clear + first-run setup"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:50:27.461034+00:00",
+          "package": "com.arduia.expense"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:50:27.600085+00:00",
+          "package": "com.arduia.expense",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:50:37.955724+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run language/currency pages only; no expense writes"
+            ],
+            "seed": "none",
+            "empty_ledger_checked": "fresh pm clear + first-run setup"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:50:40.020095+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:50:40.747834+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:50:44.666376+00:00",
+          "package": "com.arduia.expense"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:50:44.666396+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:51:09.553927+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:51:12.222234+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "androidworld/pro-expense",
+      "action": "expense_add_multiple_from_markor",
+      "path": "androidworld/pro-expense/demos/expense_add_multiple_from_markor.webm",
+      "sha256": "ac4dce4021c8abff5af7c8b8d5bd3e480a5c69d53cd5947bdac76cf57e3ffb30",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run language/currency pages only; no expense writes"
+        ],
+        "seed": {
+          "file": "my_expenses.txt",
+          "sha256": "8136718c515896b48568d4736d37f8374dc55fd855af9ad3158b44ea528294d4"
+        },
+        "empty_ledger_checked": "fresh pm clear + first-run setup"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:51:59.227065+00:00",
+          "package": "com.arduia.expense"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:51:59.394417+00:00",
+          "package": "com.arduia.expense",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:52:10.654996+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run language/currency pages only; no expense writes"
+            ],
+            "seed": {
+              "file": "my_expenses.txt",
+              "sha256": "8136718c515896b48568d4736d37f8374dc55fd855af9ad3158b44ea528294d4"
+            },
+            "empty_ledger_checked": "fresh pm clear + first-run setup"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:52:12.793096+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:52:13.432926+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:52:17.289384+00:00",
+          "package": "com.arduia.expense"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:52:17.289406+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:53:08.979120+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:53:11.783431+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "androidworld/pro-expense",
+      "action": "expense_add_single",
+      "path": "androidworld/pro-expense/demos/expense_add_single.webm",
+      "sha256": "4e02158ec3dc052a7dd88539d688ec8eb05b1d56f8d59ce394dc4fedead23b2b",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run language/currency pages only; no expense writes"
+        ],
+        "seed": "none",
+        "empty_ledger_checked": "fresh pm clear + first-run setup"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:51:12.894400+00:00",
+          "package": "com.arduia.expense"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:51:13.097112+00:00",
+          "package": "com.arduia.expense",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:51:23.924833+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run language/currency pages only; no expense writes"
+            ],
+            "seed": "none",
+            "empty_ledger_checked": "fresh pm clear + first-run setup"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:51:26.309820+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:51:27.251275+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:51:31.090395+00:00",
+          "package": "com.arduia.expense"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:51:31.090425+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:51:56.022422+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:51:58.871041+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/tasks",
+      "action": "add_task",
+      "path": "ghost/tasks/demos/add_task.webm",
+      "sha256": "9104067578ec4f2c3c80b97280cdb056d2df25a99cac6afdc5f8a81805f314fa",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run local-only mode; no sync",
+          "verified empty list"
+        ],
+        "seed": "none"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:46:13.039393+00:00",
+          "package": "org.tasks"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:46:13.415877+00:00",
+          "package": "org.tasks",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:46:25.472830+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run local-only mode; no sync",
+              "verified empty list"
+            ],
+            "seed": "none"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:46:28.655838+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:46:29.845062+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:46:35.244385+00:00",
+          "package": "org.tasks"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:46:35.244412+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:46:53.246399+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:46:57.048768+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/tasks",
+      "action": "complete_task",
+      "path": "ghost/tasks/demos/complete_task.webm",
+      "sha256": "8cc2bc5ede86a3ee953297a35e252248bc7f2746d9cd97e615d688c9bc9107f0",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run local-only mode; no sync",
+          "verified empty list"
+        ],
+        "seed": "one open task: Isolated buy stamps"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:49:22.791692+00:00",
+          "package": "org.tasks"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:49:23.203840+00:00",
+          "package": "org.tasks",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:50:05.227999+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run local-only mode; no sync",
+              "verified empty list"
+            ],
+            "seed": "one open task: Isolated buy stamps"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:50:07.877893+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:50:08.779685+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:50:13.514906+00:00",
+          "package": "org.tasks"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:50:13.514932+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:50:24.511013+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:50:27.169444+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/tasks",
+      "action": "list_tasks",
+      "path": "ghost/tasks/demos/list_tasks.webm",
+      "sha256": "09035d5c22e5f15fa1007d178eafea1a57ee80bbf533c85be1e9ab3832eb5000",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run local-only mode; no sync",
+          "verified empty list"
+        ],
+        "seed": "one open task: Isolated buy stamps"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:46:58.122841+00:00",
+          "package": "org.tasks"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:46:58.380540+00:00",
+          "package": "org.tasks",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:47:37.124089+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run local-only mode; no sync",
+              "verified empty list"
+            ],
+            "seed": "one open task: Isolated buy stamps"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:47:39.961325+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:47:40.741357+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:47:45.421378+00:00",
+          "package": "org.tasks"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:47:45.421402+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:47:57.492914+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:48:00.314600+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    },
+    {
+      "skill": "ghost/tasks",
+      "action": "search_tasks",
+      "path": "ghost/tasks/demos/search_tasks.webm",
+      "sha256": "3f815d720936072963c429b751809f35481b43579d633f2f744efefdf2ba45ca",
+      "purpose": "demo",
+      "outcome": "pass",
+      "reset_mode": "pm_clear",
+      "fixture": {
+        "verified": true,
+        "setup": [
+          "first-run local-only mode; no sync",
+          "verified empty list"
+        ],
+        "seed": "one open task: Isolated buy stamps"
+      },
+      "protocol": [
+        {
+          "event": "force_stop",
+          "at": "2026-10-24T16:48:00.795948+00:00",
+          "package": "org.tasks"
+        },
+        {
+          "event": "pm_clear",
+          "at": "2026-10-24T16:48:01.036491+00:00",
+          "package": "org.tasks",
+          "snapshot": null
+        },
+        {
+          "event": "seed_verified",
+          "at": "2026-10-24T16:48:42.582102+00:00",
+          "fixture": {
+            "verified": true,
+            "setup": [
+              "first-run local-only mode; no sync",
+              "verified empty list"
+            ],
+            "seed": "one open task: Isolated buy stamps"
+          }
+        },
+        {
+          "event": "home_verified",
+          "at": "2026-10-24T16:48:45.054442+00:00",
+          "launcher_package": "com.sec.android.app.launcher"
+        },
+        {
+          "event": "capture_started",
+          "at": "2026-10-24T16:48:45.922461+00:00"
+        },
+        {
+          "event": "app_launched",
+          "at": "2026-10-24T16:48:50.921462+00:00",
+          "package": "org.tasks"
+        },
+        {
+          "event": "action_started",
+          "at": "2026-10-24T16:48:50.921489+00:00"
+        },
+        {
+          "event": "action_finished",
+          "at": "2026-10-24T16:49:18.167279+00:00"
+        },
+        {
+          "event": "capture_stopped",
+          "at": "2026-10-24T16:49:21.657751+00:00"
+        }
+      ],
+      "device": "samsung-a03s",
+      "human_review": "reviewed 2026-10-24"
+    }
+  ]
+}

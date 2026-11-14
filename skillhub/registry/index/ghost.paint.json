@@ -1,0 +1,49 @@
+{
+  "author": "ghost",
+  "slug": "paint",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "1f74e7a1523f234ec12af9be0476d1fe6a449e8c",
+      "git_tree": null,
+      "sha256": "sha256:25c5a122806d6ac7e6d4f96a46dd0a38b29934bc5cbd58943a4555ccb59f6236",
+      "size": 18141,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demos/new_drawing.webm",
+        "bytes": 140700,
+        "type": "video/webm"
+      },
+      "demos": {
+        "draw_path": {
+          "path": "demos/draw_path.webm",
+          "bytes": 265124,
+          "type": "video/webm"
+        },
+        "fill": {
+          "path": "demos/fill.webm",
+          "bytes": 324657,
+          "type": "video/webm"
+        },
+        "get_canvas": {
+          "path": "demos/get_canvas.webm",
+          "bytes": 137628,
+          "type": "video/webm"
+        },
+        "new_drawing": {
+          "path": "demos/new_drawing.webm",
+          "bytes": 140700,
+          "type": "video/webm"
+        },
+        "set_color": {
+          "path": "demos/set_color.webm",
+          "bytes": 172229,
+          "type": "video/webm"
+        }
+      }
+    }
+  ]
+}

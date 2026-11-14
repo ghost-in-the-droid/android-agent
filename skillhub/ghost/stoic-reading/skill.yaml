@@ -1,0 +1,112 @@
+# Ghost in the Droid: Stoic Reading (login-free FOSS seed skill, installed from F-Droid)
+# Stoic Reading (F-Droid): the classic Stoic texts offline (Marcus Aurelius, Epictetus, Seneca and more), open an author, a work and a book, and read it. No account.
+
+name: stoic-reading
+version: 1.0.0
+author: ghost
+description: "Stoic Reading (F-Droid): the classic Stoic texts offline (Marcus Aurelius, Epictetus, Seneca and more), open an author, a work and a book, and read it. No account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: app.reading.stoic.stoicreading2
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/stoic-reading"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: app.reading.stoic.stoicreading2}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_library
+    description: "Restart the app and list the authors."
+    ref_prompt: "Open the Stoic Reading app"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_library"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:library_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the stoic library"
+      expected_success: true
+
+  - name: list_works
+    description: "Open an author and list their works."
+    ref_prompt: "What works does Seneca have in Stoic Reading?"
+    demo_params: {author: "Seneca"}
+    params:
+      - {name: author, type: str, required: true, description: "author name or part of it, for example Seneca"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:list_works"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:works_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "which books did Epictetus write"
+      expected_success: true
+
+  - name: open_work
+    description: "Open a work (and a book or chapter group if it has one) of an author and return the text when it opens, or the list of parts when it has more levels."
+    ref_prompt: "Open Meditations Book 2 by Marcus Aurelius"
+    demo_params: {author: "Aurelius", work: "Meditations", part: "Book 2"}
+    params:
+      - {name: author, type: str, required: true, description: "author name or part of it"}
+      - {name: work, type: str, required: false, description: "work title or part of it, for example Meditations"}
+      - {name: part, type: str, required: false, description: "book or chapter group, for example Book 2"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_work"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:work_opened"}
+    test_case:
+      ref_prompt_variants:
+        - "read Seneca on the shortness of life"
+        - "open the Enchiridion"
+      expected_success: true
+
+  - name: read_text
+    description: "Read a slice of the open text (offset and length in characters, default the first 2500)."
+    ref_prompt: "Read the text on screen in Stoic Reading"
+    demo_params: {offset: 0, length: 1200}
+    params:
+      - {name: offset, type: int, required: false, description: "start character, default 0"}
+      - {name: length, type: int, required: false, description: "characters to return, default 2500, at most 4000"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_reader"
+      - python_action: "helpers:read_text"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:text_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the next part of the text"
+      expected_success: true

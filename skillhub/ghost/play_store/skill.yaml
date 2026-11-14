@@ -1,0 +1,178 @@
+name: play_store
+description: Google Play Store automation — install, uninstall, update apps, check versions
+version: "1.0.0"
+app_package: com.android.vending
+android_package: com.android.vending
+platforms:
+  - android
+
+exports:
+  actions:
+    - open_store
+    - search_app
+    - install_app
+    - uninstall_app
+    - update_app
+    - check_version
+  workflows:
+    - install_by_name
+    - update_all
+
+popup_detectors:
+  - detect: "Sign in"
+    button: "Skip"
+    label: "Sign in prompt"
+  - detect: "Just a sec"
+    button: "Not now"
+    label: "Account setup"
+  - detect: "Finish setting up"
+    button: "Not now"
+    label: "Setup reminder"
+  - detect: "Try again"
+    button: "Try again"
+    label: "Connection error retry"
+
+default_params:
+  actions:
+    search_app:
+      query: "TikTok"
+    install_app:
+      package: "com.zhiliaoapp.musically"
+    uninstall_app:
+      package: "com.zhiliaoapp.musically"
+    update_app:
+      package: "com.zhiliaoapp.musically"
+    check_version:
+      package: "com.zhiliaoapp.musically"
+  workflows:
+    install_by_name:
+      query: "TikTok"
+
+# >>> ghost skill migrate (schema v2): generated, re-run to refresh >>>
+author: ghost
+skill_class: hard
+license: MIT
+generated_with: ghost skill migrate
+fingerprint:
+  os: android
+  os_version: '*'
+  hardware: '*'
+  app_package: com.android.vending
+  app_version: '*'
+# Positive visible-session probe; absence stops with needs_state.
+state_probes:
+  logged_in: {kind: element_present, text: "Manage apps & device"}
+actions:
+- name: install_by_name
+  requires_state: [logged_in]
+  description: Search Play Store by name and install the app
+  ref_prompt: Search for an app by name and install the first result
+  params:
+  - name: query
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_install_by_name
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Search for an app by name and install the first result
+    expected_success: true
+- name: open_store
+  description: Launch Google Play Store
+  ref_prompt: Open the Google Play Store app
+  steps:
+  - python_action: helpers:run_open_store
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the Google Play Store app
+    expected_success: true
+- name: search_app
+  requires_state: [logged_in]
+  description: Search Play Store for an app by name
+  ref_prompt: Search for an app in Play Store
+  params:
+  - name: query
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_search_app
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Search for an app in Play Store
+    expected_success: true
+- name: install_app
+  requires_state: [logged_in]
+  description: Install app from Play Store (opens store page, taps Install)
+  ref_prompt: Install an app from Play Store by package name
+  params:
+  - name: package
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_install_app
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Install an app from Play Store by package name
+    expected_success: true
+- name: uninstall_app
+  description: Uninstall an app from the device
+  ref_prompt: Uninstall an app via ADB
+  params:
+  - name: package
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_uninstall_app
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Uninstall an app via ADB
+    expected_success: true
+- name: update_app
+  requires_state: [logged_in]
+  description: Update app to latest version via Play Store
+  ref_prompt: Update an app via Play Store
+  params:
+  - name: package
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_update_app
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Update an app via Play Store
+    expected_success: true
+- name: check_version
+  description: Get the installed version of an app
+  ref_prompt: Check installed version of an app
+  params:
+  - name: package
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_check_version
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Check installed version of an app
+    expected_success: true
+# <<< ghost skill migrate <<<

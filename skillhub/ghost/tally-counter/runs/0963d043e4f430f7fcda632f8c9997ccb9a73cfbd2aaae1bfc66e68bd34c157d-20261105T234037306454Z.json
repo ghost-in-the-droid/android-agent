@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/tally-counter",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "me.tsukanov.counter",
+    "app_version": "35"
+  },
+  "fingerprint_hash": "0963d043e4f430f7fcda632f8c9997ccb9a73cfbd2aaae1bfc66e68bd34c157d",
+  "app_version": "35",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T23:40:37.306454+00:00",
+  "finished_at": "2026-11-05T23:40:37.306454+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "select_counter",
+      "success": true,
+      "duration_ms": 10620.135694996861,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 7048.54948999855
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 2473.601657002291
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 441.8630319996737
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 472.69756400055485
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:6f8c56963c4225259a12bd27e12fd4cb13e2d736473d553069432dbadb4835dd",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQFTr3+qXDe1ML3PNzD/Ok2kPmat2pqtr7QCZ1A6Vxdd3grXn7N\npzxpJ3uu6LDlrfgj++uUvg2FtzLqHdZndr+Q0=\n-----END SSH SIGNATURE-----\n"
+  }
+}

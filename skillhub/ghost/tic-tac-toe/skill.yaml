@@ -1,0 +1,119 @@
+# Ghost in the Droid: Dooz tic-tac-toe (login-free FOSS seed skill, installed from F-Droid)
+name: tic-tac-toe
+version: 1.0.0
+author: ghost
+description: "Dooz (F-Droid) tic-tac-toe against the computer: new game, play a cell, play several, read the board and result. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: io.github.yamin8000.dooz
+  app_version: ">=1.0.24"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/tic-tac-toe"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    steps:
+      - {action: launch_app, package: io.github.yamin8000.dooz}
+      - {action: sleep, duration_s: 1.5}
+      - {action: wait_for_text, text: "Dooz", timeout_s: 10}
+  - name: fresh_board
+    description: "Open Dooz and start a new game (a new game starts on a clean board, you are X)."
+    steps:
+      - subroutine: open_app
+      # the button label is drawn inside a clickable View without text: the helper taps it by position
+      - python_action: "helpers:tap_new_game"
+      - {action: wait_for_text, text: "Game info", timeout_s: 8}
+      - {action: sleep, duration_s: 1}
+
+actions:
+  - name: new_game
+    description: "Start a new game against the computer (you play X; Easy difficulty by default)."
+    ref_prompt: "Start a new tic-tac-toe game"
+    params: []
+    steps:
+      - subroutine: fresh_board
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Game info"}
+        - {kind: text_visible, text: "Player v Computer"}
+        - {kind: custom_python, function: "helpers:fresh_board"}
+    test_case:
+      ref_prompt_variants:
+        - "new noughts and crosses game"
+        - "play tic tac toe"
+        - "restart the board"
+      expected_success: true
+
+  - name: play_cell
+    description: "Mark one cell (1-9, row by row from top left) on the running game; the computer answers at once. Returns the board and the computer's cell; `taken: true` if the cell was not free (the computer sometimes opens the game)."
+    ref_prompt: "Play the centre square in tic-tac-toe"
+    demo_params: {cell: "5"}
+    params:
+      - {name: cell, type: str, required: true, description: "Cell 1-9 (1 top left, 5 centre, 9 bottom right)"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:play_cell"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Game info"}
+        - {kind: element_present, text: "Player v Computer"}
+        - {kind: custom_python, function: "helpers:cell_played"}
+    test_case:
+      ref_prompt_variants:
+        - "put my X in the top left"
+        - "take the middle square"
+      expected_success: true
+
+  - name: play_cells
+    description: "New game, then mark several cells in order (e.g. 5,1,9); stops at the end of the game. Returns the computer's answer after every move."
+    ref_prompt: "Play tic-tac-toe: centre, then top left, then bottom right"
+    demo_params: {cells: "5,1,9"}
+    params:
+      - {name: cells, type: str, required: true, description: "Cells 1-9, comma separated"}
+    steps:
+      - subroutine: fresh_board
+      - python_action: "helpers:play_cells"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Game info"}
+        - {kind: element_present, text: "Player v Computer"}
+        - {kind: custom_python, function: "helpers:cells_played"}
+    test_case:
+      ref_prompt_variants:
+        - "play 5, 1 and 9 in tic tac toe"
+      expected_success: true
+
+  - name: get_board
+    description: "Read the board: free and occupied cells, game result (Unknown while running) and difficulty."
+    ref_prompt: "What does the tic-tac-toe board look like?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_board"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Game info"}
+        - {kind: element_present, text: "Player v Computer"}
+        - {kind: custom_python, function: "helpers:board_read"}
+    test_case:
+      ref_prompt_variants:
+        - "who is winning in tic tac toe"
+        - "which squares are free"
+      expected_success: true

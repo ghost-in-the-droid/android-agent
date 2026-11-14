@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/regex-crossword",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "de.chagemann.regexcrossword",
+    "app_version": "2.5.6"
+  },
+  "fingerprint_hash": "60bc5ecffd8c31fb75c65abee3254c1e85afe327f3a724bd423af8d884561c13",
+  "app_version": "2.5.6",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T19:58:07.239585+00:00",
+  "finished_at": "2026-11-04T19:58:07.239585+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "list_levels",
+      "success": true,
+      "duration_ms": 6890.059391997056,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4501.796800999728
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1846.2139929979458
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 541.5692370006582
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:2dbda6d51c880121d878c3004815ef58c808861d9458d63c54575f603c226948",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCCa/eDtWWsVvtwtICeYdjCF0jxH5tXSjp61A2h09BQM3mB8TL\nBdoo42iT1uAdtYW7PxzFH2WRqoAz+GjsZm1gY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,114 @@
+# Ghost in the Droid: Breezy Weather (login-free FOSS seed skill, installed from F-Droid)
+# Locations are picked by name search (Open-Meteo / GeoNames). The skill never taps
+# "Add current location" and needs no location permission or GPS.
+
+name: weather
+version: 1.0.2
+author: ghost
+description: "Breezy Weather (F-Droid, freenet build): add a city by search, list saved locations, read current weather and the daily forecast. No account, no GPS."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]     # add_location saves a city in the app's local list
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [network]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: org.breezyweather
+  app_version: ">=6.2.2"
+  screen_wxh: 1080x2340
+  density: 450
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/weather"
+
+popup_detectors:
+  - {detect: "Allow Breezy Weather to send you notifications", button: "Don’t allow", label: "Notification permission prompt"}
+
+actions:
+  - name: add_location
+    description: "Search and save a city with country/region disambiguation. Multiple matches fail without saving; never guesses the first result."
+    ref_prompt: "Add Berlin, Germany to my weather locations"
+    params:
+      - {name: query, type: str, required: true, description: "City name to search"}
+      - {name: country, type: str, default: "", description: "Exact displayed country, e.g. Germany or United States; specify for ambiguous city names"}
+      - {name: region, type: str, default: "", description: "State/region qualifier, e.g. New Hampshire; specify when country alone is ambiguous"}
+      - {name: match, type: str, default: "", description: "Legacy region filter; a missing match fails instead of selecting the first result"}
+    steps:
+      - python_action: "helpers:open_location_list"
+      - python_action: "helpers:add_location"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.breezyweather:id/title1"}
+        - {kind: custom_python, function: "helpers:location_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "track the weather in Lisbon"
+        - "add Paris, France to Breezy Weather"
+        - "save Springfield, Illinois as a weather location"
+      expected_success: true
+
+  - name: list_locations
+    description: "Return saved locations with their current condition."
+    ref_prompt: "Which cities am I tracking the weather for?"
+    params: []
+    steps:
+      - python_action: "helpers:open_location_list"
+      - python_action: "helpers:list_locations"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Add a new location"}
+        - {kind: custom_python, function: "helpers:locations_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "list my weather locations"
+        - "what places are in my weather app"
+        - "show saved cities"
+      expected_success: true
+
+  - name: get_current_weather
+    description: "Open a saved location and return condition, temperature, feels-like, day range and last update."
+    ref_prompt: "What's the weather in Berlin right now?"
+    params:
+      - {name: location, type: str, required: true, description: "Saved location name (add it first with add_location)"}
+    steps:
+      - python_action: "helpers:open_location_list"
+      - python_action: "helpers:open_location"
+      - python_action: "helpers:read_current"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.breezyweather:id/container_main_header_temperature_value"}
+        - {kind: custom_python, function: "helpers:weather_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "how warm is it in Lisbon"
+        - "is it raining in Berlin"
+        - "current temperature in Paris"
+      expected_success: true
+
+  - name: get_daily_forecast
+    description: "Open a saved location and return the visible daily forecast: day/night temperature, condition, precipitation chance."
+    ref_prompt: "What's the forecast for Berlin this week?"
+    params:
+      - {name: location, type: str, required: true, description: "Saved location name"}
+    steps:
+      - python_action: "helpers:open_location_list"
+      - python_action: "helpers:open_location"
+      - {action: wait_for_element, id: "org.breezyweather:id/item_trend_daily", timeout_s: 20}
+      - python_action: "helpers:read_daily"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.breezyweather:id/daily_block_title"}
+        - {kind: custom_python, function: "helpers:daily_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "will it rain in Berlin on Thursday"
+        - "weekly forecast for Lisbon"
+        - "how cold will the nights be in Paris"
+      expected_success: true

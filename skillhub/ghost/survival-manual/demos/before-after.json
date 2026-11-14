@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/survival-manual",
+ "action": null,
+ "prompt": "Open the Fire chapter of the survival manual and tell me the first things it says about starting a fire. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 14.67,
+  "tokens": 32608,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "after": {
+  "seconds": 27.72,
+  "tokens": 21591,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

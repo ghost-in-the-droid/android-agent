@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/starke-verben",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.sw24softwares.starkeverben",
+    "app_version": "4.1"
+  },
+  "fingerprint_hash": "760ac0ea17ff945a03eae33a7805e63dbfa5ba30709e979059d439bfb3c0817f",
+  "app_version": "4.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T14:55:39.390810+00:00",
+  "finished_at": "2026-11-03T14:55:39.390810+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "next_lesson",
+      "success": true,
+      "duration_ms": 5825.299624004401,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3306.864392987336
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 2257.3634200089145
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:ec96b268f1ee32ec67a751dfc4b748c660f7b4e18566b0d2e5321e1d6bc7e984",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHGSrgo2LEAir+qiw0JF0frta7qw0ZZI2iaigGNg4+hnqmOm5z\nQH/dBr4mGem6TynLG0qsI52Tq9Tf2pe45KFA4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

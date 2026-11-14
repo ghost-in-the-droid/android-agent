@@ -1,0 +1,19 @@
+{
+  "author": "ghost",
+  "slug": "files",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "3b44c3afc0b13802de82629f974cefb03f2dd07f",
+      "git_tree": null,
+      "sha256": "sha256:02a82f0125355bb0d397434a24dd268deb21d723f7ab750dbd650fd0248c1693",
+      "size": 16795,
+      "released_at": null,
+      "attestation": null,
+      "demo": null,
+      "demos": {}
+    }
+  ]
+}

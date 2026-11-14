@@ -1,0 +1,118 @@
+name: transportr
+version: 1.0.1
+author: ghost
+description: Search public named-station VBB connections and departures without location
+  access
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: de.grobox.liberario
+  app_version: '>=2.2.7'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/transportr
+actions:
+- name: open
+  description: Open Transportr with VBB selected and location denied
+  ref_prompt: Open Transportr with VBB selected and location denied
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:open_ok
+  test_case:
+    ref_prompt_variants:
+    - Open Transportr with VBB selected and location denied in transportr
+    expected_success: true
+- name: search_station
+  description: Find and verify an explicitly named public VBB station
+  ref_prompt: Find and verify an explicitly named public VBB station
+  params:
+  - name: query
+    type: str
+    required: true
+  - name: station
+    type: str
+    required: true
+  steps:
+  - python_action: helpers:search_station
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:station_ok
+  test_case:
+    ref_prompt_variants:
+    - Find and verify an explicitly named public VBB station in transportr
+    expected_success: true
+- name: read_departures
+  description: Read the first three complete visible departures from the selected
+    station
+  ref_prompt: Read the first three complete visible departures from the selected station
+  params: []
+  steps:
+  - python_action: helpers:read_departures
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:departures_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the first three complete visible departures from the selected station in
+      transportr
+    expected_success: true
+- name: search_connections
+  description: Search VBB connections between two explicitly named public stations
+  ref_prompt: Search VBB connections between two explicitly named public stations
+  params:
+  - name: origin_query
+    type: str
+    required: true
+  - name: origin_station
+    type: str
+    required: true
+  - name: destination_query
+    type: str
+    required: true
+  - name: destination_station
+    type: str
+    required: true
+  steps:
+  - python_action: helpers:search_connections
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:connections_ok
+  test_case:
+    ref_prompt_variants:
+    - Search VBB connections between two explicitly named public stations in transportr
+    expected_success: true
+- name: read_connections
+  description: Read three complete visible connection summaries
+  ref_prompt: Read three complete visible connection summaries
+  params: []
+  steps:
+  - python_action: helpers:read_connections
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:connections_ok
+  test_case:
+    ref_prompt_variants:
+    - Read three complete visible connection summaries in transportr
+    expected_success: true

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/unitto",
+  "version": "1.0.3",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "com.sadellie.unitto",
+    "app_version": "Titanium"
+  },
+  "fingerprint_hash": "cc84e2858e7f2b5d233c689289060bb110611f106642c87f7eaecc0036827a98",
+  "app_version": "Titanium",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T21:09:21.771490+00:00",
+  "finished_at": "2026-11-03T21:09:21.771490+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "open_converter",
+      "success": true,
+      "duration_ms": 17513.337875003344,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 14557.715326998732
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:6ed84a1550be4922ea92a291b68a8b14c6e13b331fff4c17b33c2ca7ff3391fb",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQD3rm3mJ2mJykhfezcxbUeaAqadupMSL2hQvnapXE7hWuXLBbh\nOWgp88eXmR+VaC2FWxGJY9zmahRaF3E5l/eAs=\n-----END SSH SIGNATURE-----\n"
+  }
+}

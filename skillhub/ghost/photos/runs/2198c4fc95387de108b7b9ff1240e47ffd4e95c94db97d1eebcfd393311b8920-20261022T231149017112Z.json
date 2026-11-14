@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/photos",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.apps.photos",
+    "app_version": "6.29.0.519265844"
+  },
+  "fingerprint_hash": "2198c4fc95387de108b7b9ff1240e47ffd4e95c94db97d1eebcfd393311b8920",
+  "app_version": "6.29.0.519265844",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T23:11:49.017112+00:00",
+  "finished_at": "2026-10-22T23:11:49.017112+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": false,
+  "actions": [
+    {
+      "name": "open_photo",
+      "success": false,
+      "duration_ms": 28799.46591996122,
+      "error_kind": "ValidatorFailedError",
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 15325.53973805625
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 5107.283247984014
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:b9be5c2fa3a23b1217cbf29f3ae8acb48a06199176b2cc79cdfc5322bfcfdd07",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQP1iBWhLw1BhsFE+cBSkiMQWntIPiK/tdtxLFCC1qw6pvZEPsb\nstijNf2eO/mAfj6kjsx3tAXIjEwCKGYqe2bgI=\n-----END SSH SIGNATURE-----\n"
+  }
+}

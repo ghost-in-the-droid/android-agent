@@ -1,0 +1,117 @@
+name: xtra
+version: 1.0.0
+author: ghost
+description: Browse public Twitch game categories and live-stream listing metadata
+  in anonymous Xtra without playback or accounts. Read visible category/viewer/broadcaster
+  labels and stream titles/channels; never open a stream, video, clip or profile.
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: com.github.andreyasadchy.xtra
+  app_version: '>=2.60.8,<2.61'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/xtra
+actions:
+- name: open
+  description: Open the public Twitch game-category list in Xtra
+  ref_prompt: Open the public Twitch game-category list in Xtra
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:games_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the public Twitch game-category list in Xtra in xtra
+    expected_success: true
+- name: read_games
+  description: Read complete visible game names, viewers and broadcaster labels
+  ref_prompt: Read complete visible game names, viewers and broadcaster labels
+  params: []
+  steps:
+  - python_action: helpers:read_games
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:games_ok
+  test_case:
+    ref_prompt_variants:
+    - Read complete visible game names, viewers and broadcaster labels in xtra
+    expected_success: true
+- name: open_game
+  description: Open a game category Live metadata list, never a stream
+  ref_prompt: Open a game category Live metadata list, never a stream
+  params:
+  - name: index
+    type: int
+    description: Zero-based complete visible game category index
+    required: true
+  steps:
+  - python_action: helpers:open_game
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:streams_ok
+  test_case:
+    ref_prompt_variants:
+    - Open a game category Live metadata list, never a stream in xtra
+    expected_success: true
+- name: read_streams
+  description: Read complete visible Live listing metadata without opening a stream
+  ref_prompt: Read complete visible Live listing metadata without opening a stream
+  params: []
+  steps:
+  - python_action: helpers:read_streams
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:streams_ok
+  test_case:
+    ref_prompt_variants:
+    - Read complete visible Live listing metadata without opening a stream in xtra
+    expected_success: true
+- name: back_to_games
+  description: Return from the category Live listing to the public game list
+  ref_prompt: Return from the category Live listing to the public game list
+  params: []
+  steps:
+  - python_action: helpers:back_to_games
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:games_ok
+  test_case:
+    ref_prompt_variants:
+    - Return from the category Live listing to the public game list in xtra
+    expected_success: true
+- name: scroll_games
+  description: Scroll the public game-category list once and read its new cards
+  ref_prompt: Scroll the public game-category list once and read its new cards
+  params: []
+  steps:
+  - python_action: helpers:scroll_games
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:games_ok
+  test_case:
+    ref_prompt_variants:
+    - Scroll the public game-category list once and read its new cards in xtra
+    expected_success: true

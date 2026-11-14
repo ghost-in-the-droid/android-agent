@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/quick-calculation",
+ "action": null,
+ "prompt": "Start a Quick Calculation addition game, solve the first three questions by picking the right option each time, then end the game and tell me the score. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 41.24,
+  "tokens": 246643,
+  "tool_calls": 15,
+  "ok": true
+ },
+ "after": {
+  "seconds": 88.95,
+  "tokens": 91931,
+  "tool_calls": 9,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

@@ -1,0 +1,107 @@
+name: suntimes
+version: 1.0.0
+author: ghost
+description: Read Berlin or Hamburg sunrise, sunset and moon times in Suntimes without
+  GPS
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access: []
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: com.forrestguice.suntimeswidget
+  app_version: '>=0.17.5'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/suntimes
+actions:
+- name: open
+  description: Open Suntimes and initialize a fresh public Berlin profile without
+    GPS or alarms
+  ref_prompt: Open Suntimes and initialize a fresh public Berlin profile without GPS
+    or alarms
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Open Suntimes and initialize a fresh public Berlin profile without GPS or alarms
+      in suntimes
+    expected_success: true
+- name: read_sun_moon
+  description: Read native city, date, sunrise, sunset, day length and moon phase
+  ref_prompt: Read native city, date, sunrise, sunset, day length and moon phase
+  params: []
+  steps:
+  - python_action: helpers:read_state
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Read native city, date, sunrise, sunset, day length and moon phase in suntimes
+    expected_success: true
+- name: search_city
+  description: Search the bundled European places for Berlin or Hamburg
+  ref_prompt: Search the bundled European places for Berlin or Hamburg
+  params: &id001
+  - name: city
+    type: string
+    required: true
+    enum:
+    - Berlin
+    - Hamburg
+    description: Built-in German city; GPS is never used
+  steps:
+  - python_action: helpers:search_city
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:search_ok
+  test_case:
+    ref_prompt_variants:
+    - Search the bundled European places for Berlin or Hamburg in suntimes
+    expected_success: true
+- name: select_city
+  description: Select the exact searched built-in city and update the sun/moon table
+  ref_prompt: Select the exact searched built-in city and update the sun/moon table
+  params: *id001
+  steps:
+  - python_action: helpers:select_city
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Select the exact searched built-in city and update the sun/moon table in suntimes
+    expected_success: true
+- name: next_day
+  description: Advance the displayed sun/moon table by exactly one day
+  ref_prompt: Advance the displayed sun/moon table by exactly one day
+  params: []
+  steps:
+  - python_action: helpers:next_day
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Advance the displayed sun/moon table by exactly one day in suntimes
+    expected_success: true

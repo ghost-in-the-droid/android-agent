@@ -1,0 +1,3 @@
+## Phone control (Ghost MCP)
+
+Try skills first. For any phone task call `find_skill` with the task in plain words, and on a hit call `run_skill` (answer `needs_input` gates with `run_skill_resume`). Drive by hand (`tap`, `get_elements`, ...) only if no skill matches or it fails; then read the skill's SOFT.md notes with `get_skill_notes` and follow them. To build your own flow from scratch use `explore_app` then `create_skill`. Install showcase skills with `ghost skill install ghost/<name>` (calculator, clock, contacts, markor, tasks). Full map: the `ghost` skill (`skillhub/_guides/ghost-base/SKILL.md`).

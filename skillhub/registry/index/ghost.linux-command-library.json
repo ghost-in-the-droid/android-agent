@@ -1,0 +1,49 @@
+{
+  "author": "ghost",
+  "slug": "linux-command-library",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "ea5e4fe37aa9bef720789375bcb0f7ef5271f06b",
+      "git_tree": null,
+      "sha256": "sha256:7d25ae88866bd4b00407f03b4bb7da9968547cd37be6522fdb24afbd9c6ff720",
+      "size": 19565,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demos/open_library.webm",
+        "bytes": 163837,
+        "type": "video/webm"
+      },
+      "demos": {
+        "get_state": {
+          "path": "demos/get_state.webm",
+          "bytes": 169534,
+          "type": "video/webm"
+        },
+        "open_command": {
+          "path": "demos/open_command.webm",
+          "bytes": 246538,
+          "type": "video/webm"
+        },
+        "open_library": {
+          "path": "demos/open_library.webm",
+          "bytes": 163837,
+          "type": "video/webm"
+        },
+        "read_section": {
+          "path": "demos/read_section.webm",
+          "bytes": 428951,
+          "type": "video/webm"
+        },
+        "search_commands": {
+          "path": "demos/search_commands.webm",
+          "bytes": 224319,
+          "type": "video/webm"
+        }
+      }
+    }
+  ]
+}

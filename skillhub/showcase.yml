@@ -1,0 +1,10 @@
+# Benched tasks, grouped by skill; two additional showcase skills remain TBD.
+skills:
+  - ref: ghost/calculator
+    task_ids: [calc_3plus3]
+  - ref: ghost/contacts
+    task_ids: [contacts_create]
+  - ref: ghost/clock
+    task_ids: [clock_alarm]
+  - ref: androidworld/pro-expense
+    task_ids: [ExpenseAddMultipleFromMarkor, ExpenseAddSingle, ExpenseAddMultiple]

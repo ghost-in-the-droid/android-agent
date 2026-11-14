@@ -1,0 +1,144 @@
+name: unitto
+version: 1.0.3
+author: ghost
+description: Convert physical lengths in Unitto, read the displayed result, choose
+  units, swap them, enter a value or clear it. Offline; no currency or personal tools.
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access: []
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: com.sadellie.unitto
+  app_version: '*'
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/unitto
+actions:
+- name: open_converter
+  description: Open the offline Unitto length converter
+  ref_prompt: Open the offline Unitto length converter
+  params: []
+  steps:
+  - python_action: helpers:open_converter
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the offline Unitto length converter in unitto
+    expected_success: true
+- name: set_units
+  description: Select the source and target length units
+  ref_prompt: Select the source and target length units
+  params:
+  - &id001
+    name: from_unit
+    type: enum
+    values: [Millimeter, Centimeter, Meter, Kilometer, Inch, Yard, Mile]
+    description: 'Length unit: Millimeter, Centimeter, Meter, Kilometer, Inch, Yard,
+      Mile'
+    required: true
+  - &id002
+    name: to_unit
+    type: enum
+    values: [Millimeter, Centimeter, Meter, Kilometer, Inch, Yard, Mile]
+    description: Same supported English length unit names
+    required: true
+  steps:
+  - python_action: helpers:set_units
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Select the source and target length units in unitto
+    expected_success: true
+- name: set_value
+  description: Enter a nonnegative decimal and read the displayed result
+  ref_prompt: Enter a nonnegative decimal and read the displayed result
+  params:
+  - &id003
+    name: value
+    type: str
+    description: Nonnegative plain decimal, up to 9 integer and 6 fractional digits
+    required: true
+  steps:
+  - python_action: helpers:set_value
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Enter a nonnegative decimal and read the displayed result in unitto
+    expected_success: true
+- name: read_state
+  description: Read current units and input/output displays
+  ref_prompt: Read current units and input/output displays
+  params: []
+  steps:
+  - python_action: helpers:read_state
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Read current units and input/output displays in unitto
+    expected_success: true
+- name: swap_units
+  description: Swap the current source and target length units
+  ref_prompt: Swap the current source and target length units
+  params: []
+  steps:
+  - python_action: helpers:swap_units
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Swap the current source and target length units in unitto
+    expected_success: true
+- name: clear_value
+  description: Clear both converter values to zero
+  ref_prompt: Clear both converter values to zero
+  params: []
+  steps:
+  - python_action: helpers:clear_value
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Clear both converter values to zero in unitto
+    expected_success: true
+- name: convert_length
+  description: Open, set both length units and convert a value
+  ref_prompt: Open, set both length units and convert a value
+  params:
+  - *id001
+  - *id002
+  - *id003
+  steps:
+  - python_action: helpers:convert_length
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Open, set both length units and convert a value in unitto
+    expected_success: true

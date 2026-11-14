@@ -1,0 +1,39 @@
+{
+  "author": "ghost",
+  "slug": "poet-assistant",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "1f74e7a1523f234ec12af9be0476d1fe6a449e8c",
+      "git_tree": null,
+      "sha256": "sha256:bc3ae7e680f3e68d2cbe8c51de940cc652aa7f452531db17980a44f7bafc6f0b",
+      "size": 15736,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demos/open_poet.webm",
+        "bytes": 148313,
+        "type": "video/webm"
+      },
+      "demos": {
+        "get_results": {
+          "path": "demos/get_results.webm",
+          "bytes": 559305,
+          "type": "video/webm"
+        },
+        "lookup": {
+          "path": "demos/lookup.webm",
+          "bytes": 348837,
+          "type": "video/webm"
+        },
+        "open_poet": {
+          "path": "demos/open_poet.webm",
+          "bytes": 148313,
+          "type": "video/webm"
+        }
+      }
+    }
+  ]
+}

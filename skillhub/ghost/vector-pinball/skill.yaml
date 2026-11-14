@@ -1,0 +1,147 @@
+# Ghost in the Droid: Vector Pinball (login-free FOSS seed skill, installed from F-Droid)
+# A vector-graphics pinball game: start a game, launch the ball, work the flippers. Offline, no account.
+
+name: vector-pinball
+version: 1.0.0
+author: ghost
+description: "Vector Pinball (F-Droid): pick a table, start a game, launch the ball, work the flippers, end the game, read high scores. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: com.dozingcatsoftware.bouncy
+  app_version: ">=1.16.0"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/vector-pinball"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_menu
+    description: "Launch Vector Pinball and get back to the main menu (pausing/ending a running game)."
+    steps:
+      - {action: launch_app, package: com.dozingcatsoftware.bouncy}
+      - {action: sleep, duration_s: 2}
+      - python_action: "helpers:go_to_menu"
+      - {action: wait_for_element, id: "com.dozingcatsoftware.bouncy:id/startGameButton", timeout_s: 8}
+
+actions:
+  - name: start_game
+    description: "Start a game on the selected table and launch the ball. Optionally switch tables first (table_steps) or play with unlimited balls."
+    ref_prompt: "Start a pinball game"
+    demo_params: {table_steps: "0"}
+    params:
+      - {name: table_steps, type: str, default: "0", description: "Tables to step through before starting: +N next, -N previous"}
+      - {name: unlimited_balls, type: str, default: "false", description: "true to tick Unlimited Balls"}
+    steps:
+      - subroutine: open_menu
+      - python_action: "helpers:pick_table"
+      - python_action: "helpers:press_start"
+      - python_action: "helpers:launch_ball"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.dozingcatsoftware.bouncy:id/scoreView"}
+        - {kind: custom_python, function: "helpers:in_play"}
+    test_case:
+      ref_prompt_variants:
+        - "play pinball"
+        - "launch a pinball ball"
+        - "start the pinball table"
+      expected_success: true
+
+  - name: flip
+    description: "Hit the flippers on the running game: side left, right or both, times 1-30."
+    ref_prompt: "Flip both pinball flippers five times"
+    demo_params: {side: both, times: "6"}
+    params:
+      - {name: side, type: enum, values: [left, right, both], default: both}
+      - {name: times, type: str, default: "1", description: "Number of flips (1-30)"}
+    steps:
+      - {action: launch_app, package: com.dozingcatsoftware.bouncy}
+      - {action: sleep, duration_s: 1.5}
+      - if_visible:
+          selector: {id: "com.dozingcatsoftware.bouncy:id/resumeGameButton"}
+          then:
+            - {action: tap_element, id: "com.dozingcatsoftware.bouncy:id/resumeGameButton"}
+            - {action: sleep, duration_s: 1}
+      - python_action: "helpers:flip"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.dozingcatsoftware.bouncy:id/scoreView"}
+        - {kind: custom_python, function: "helpers:flipped"}
+    test_case:
+      ref_prompt_variants:
+        - "work the left flipper three times"
+        - "keep the ball alive with the flippers"
+      expected_success: true
+
+  - name: end_game
+    description: "End the running game (pause, END GAME) and return to the main menu."
+    ref_prompt: "End the pinball game"
+    params: []
+    steps:
+      - {action: launch_app, package: com.dozingcatsoftware.bouncy}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:go_to_menu"
+      - {action: wait_for_element, id: "com.dozingcatsoftware.bouncy:id/startGameButton", timeout_s: 8}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.dozingcatsoftware.bouncy:id/startGameButton"}
+        - {kind: element_present, id: "com.dozingcatsoftware.bouncy:id/highScoreButton"}
+        - {kind: custom_python, function: "helpers:in_menu"}
+    test_case:
+      ref_prompt_variants:
+        - "quit this pinball game"
+        - "stop playing pinball"
+      expected_success: true
+
+  - name: select_table
+    description: "Step to another table on the main menu (+N next, -N previous) and return its label."
+    ref_prompt: "Switch to the next pinball table"
+    demo_params: {steps: "1"}
+    params:
+      - {name: steps, type: str, required: true, description: "+N next table, -N previous table"}
+    steps:
+      - subroutine: open_menu
+      - python_action: "helpers:pick_table"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.dozingcatsoftware.bouncy:id/selectTableLabel"}
+        - {kind: element_present, id: "com.dozingcatsoftware.bouncy:id/startGameButton"}
+        - {kind: custom_python, function: "helpers:table_picked"}
+    test_case:
+      ref_prompt_variants:
+        - "choose a different table"
+        - "previous pinball table"
+      expected_success: true
+
+  - name: get_status
+    description: "Read the state (menu, playing, paused), the selected table and the high scores."
+    ref_prompt: "What are my pinball high scores?"
+    params: []
+    steps:
+      - {action: launch_app, package: com.dozingcatsoftware.bouncy}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:read_status"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.dozingcatsoftware.bouncy:id/scoreView"}
+        - {kind: custom_python, function: "helpers:status_read"}
+    test_case:
+      ref_prompt_variants:
+        - "is a pinball game running"
+        - "show the pinball high scores"
+      expected_success: true

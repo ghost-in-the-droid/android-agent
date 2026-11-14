@@ -1,0 +1,138 @@
+# Ghost in the Droid: Reckoning Skills (login-free FOSS seed skill, installed from F-Droid)
+# Reckoning Skills (Privacy Friendly Apps, F-Droid): a mental arithmetic trainer with +, -, x and / problems, an on-screen keypad, a timer and a result list. Offline, no account.
+
+name: reckoning-skills
+version: 1.0.0
+author: ghost
+description: "Reckoning Skills (Privacy Friendly Apps, F-Droid): a mental arithmetic trainer with +, -, x and / problems, an on-screen keypad, a timer and a result list. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.secuso.privacyfriendlyrecknoningskills
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/reckoning-skills"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: org.secuso.privacyfriendlyrecknoningskills}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_menu
+    description: "Restart the app, skip the first-run tutorial and land on the game menu."
+    ref_prompt: "Open the Reckoning Skills app"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_menu"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:menu_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the maths trainer"
+      expected_success: true
+
+  - name: new_game
+    description: "Start a new 10 problem game and return the first problem."
+    ref_prompt: "Start a new mental arithmetic game"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:new_game"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:game_started"}
+    test_case:
+      ref_prompt_variants:
+        - "start a maths quiz"
+      expected_success: true
+
+  - name: get_problem
+    description: "Read the current problem, the progress (i of 10) and what is typed so far."
+    ref_prompt: "What is the current arithmetic problem?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_game"
+      - python_action: "helpers:get_problem"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:game_started"}
+    test_case:
+      ref_prompt_variants:
+        - "read the sum on screen"
+      expected_success: true
+
+  - name: answer
+    description: "Type a whole number on the keypad and confirm; returns whether it was right and the next problem. A wrong answer repeats the same problem."
+    ref_prompt: "Answer the arithmetic problem with 7"
+    demo_params: {value: 7}
+    params:
+      - {name: value, type: int, required: true, description: "whole number, 0 to 9999"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_game"
+      - python_action: "helpers:answer"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered"}
+    test_case:
+      ref_prompt_variants:
+        - "enter 12 as the answer"
+      expected_success: true
+
+  - name: answer_many
+    description: "Answer several problems in a row with a list of numbers (up to 10), stopping at the result screen."
+    ref_prompt: "Answer the next three problems with 2, 5 and 8"
+    demo_params: {values: "2,5,8"}
+    params:
+      - {name: values, type: str, required: true, description: "whole numbers separated by commas, for example 2,5,8"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_game"
+      - python_action: "helpers:answer_many"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered_many"}
+    test_case:
+      ref_prompt_variants:
+        - "answer 1,2,3"
+      expected_success: true
+
+  - name: get_result
+    description: "Read the result screen: solved N of 10, the highscore and every problem with the typed answer and whether it was right."
+    ref_prompt: "How did I do in the arithmetic game?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_result"
+      - python_action: "helpers:get_result"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:result_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show my maths score"
+      expected_success: true

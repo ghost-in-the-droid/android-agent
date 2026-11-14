@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/wikipedia",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "org.wikipedia",
+    "app_version": "r/50606-r-2026-09-09"
+  },
+  "fingerprint_hash": "7516c3dcf16f0bd33b765c409673533fdc4ed748640b1b7f3bafb14748aa168e",
+  "app_version": "r/50606-r-2026-09-09",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T19:00:00.229741+00:00",
+  "finished_at": "2026-10-05T19:00:00.229741+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "save_article",
+      "success": true,
+      "duration_ms": 18089.475512999343,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2236.7635339905974
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 22.289152984740213
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 5750.20466602291
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 118.74475399963558
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 683.0328970099799
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 182.3454849945847
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 9.105665987590328
+        },
+        {
+          "index": 7,
+          "success": true,
+          "duration_ms": 1035.6744759774301
+        },
+        {
+          "index": 8,
+          "success": true,
+          "duration_ms": 1004.9838670238387
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQI0Gv0OUXfRpOQ+Ys6yBUm/a4IZCPx3ZuH/9yHIGKGEjiBxOpo\n2cEFSps/hXDDFzMiVOal2AGfiFbLj6RU/lNQc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

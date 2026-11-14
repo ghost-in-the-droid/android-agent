@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/suntimes",
+ "action": "read_sun_moon",
+ "prompt": "In Suntimes, show today’s sun and moon table for Berlin. Copy the date and time zone, actual sunrise and sunset, day length and moon phase. Briefly compare the daylight and night lengths. Do not use GPS, alarms, maps or widgets.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 44.63,
+  "tokens": 538579,
+  "tool_calls": 15,
+  "ok": false
+ },
+ "after": {
+  "seconds": 103.51,
+  "tokens": 131828,
+  "tool_calls": 11,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. BEFORE stopped at the500k cap during onboarding:538579 actual tokens, including38579 in-flight overshoot; first attempt retained. AFTER succeeded in103.51s/131828 tokens and retained three safe out-of-order select/search failures plus a manual app launch before successful open/read_sun_moon. Cold native onboarding/open took about55s, and hierarchy/permission/state checks add latency. Native date/zone/sunrise/sunset/day length/moon phase and the arithmetic daylight/night comparison were checked. Both profiles had identical fine/coarse location and notification denials before launch; no GPS, map, alarm or widget used. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

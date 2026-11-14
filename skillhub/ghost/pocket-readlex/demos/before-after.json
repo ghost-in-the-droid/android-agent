@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/pocket-readlex",
+ "action": null,
+ "prompt": "Write hello world in the Shavian alphabet using Pocket ReadLex and show me the IPA for hello. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 66.15,
+  "tokens": 353929,
+  "tool_calls": 22,
+  "ok": true
+ },
+ "after": {
+  "seconds": 49.09,
+  "tokens": 24568,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

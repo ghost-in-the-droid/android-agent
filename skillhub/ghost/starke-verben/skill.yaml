@@ -1,0 +1,155 @@
+# Ghost in the Droid: Starke Verben (login-free FOSS seed skill, installed from F-Droid)
+# Starke Verben (F-Droid): learn German strong verbs. Read lessons, look up any verb with all its forms, and take fill-in tests. Offline, no account.
+
+name: starke-verben
+version: 1.0.0
+author: ghost
+description: "Starke Verben (F-Droid): learn German strong verbs. Read lessons, look up any verb with all its forms, and take fill-in tests. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.sw24softwares.starkeverben
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/starke-verben"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: org.sw24softwares.starkeverben}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_verbs
+    description: "Restart the app and read the first lesson verb."
+    ref_prompt: "Open the Starke Verben app"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_verbs"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:lesson_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open German strong verbs"
+      expected_success: true
+
+  - name: next_lesson
+    description: "Show another lesson verb and return it with all its forms."
+    ref_prompt: "Show me another German strong verb"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:next_lesson"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:lesson_changed"}
+    test_case:
+      ref_prompt_variants:
+        - "next verb lesson"
+      expected_success: true
+
+  - name: get_lesson
+    description: "Read the verb on the Lesson tab: infinitive, preterite, auxiliary, participle, 3rd person and translation."
+    ref_prompt: "What verb is in the current lesson?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_lesson"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:lesson_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the lesson verb"
+      expected_success: true
+
+  - name: get_verb
+    description: "Look up a German strong verb by infinitive and return all its forms."
+    ref_prompt: "What are the forms of the German verb essen?"
+    demo_params: {verb: "essen"}
+    params:
+      - {name: verb, type: str, required: true, description: "infinitive in plain letters, for example essen"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_verb"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:verb_read"}
+    test_case:
+      ref_prompt_variants:
+        - "conjugate fahren"
+      expected_success: true
+
+  - name: start_test
+    description: "Open a test question: one field is filled in, the rest are empty."
+    ref_prompt: "Start a German strong verb test"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:start_test"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:test_started"}
+    test_case:
+      ref_prompt_variants:
+        - "quiz me on strong verbs"
+      expected_success: true
+
+  - name: answer_test
+    description: "Fill the empty fields of the open test question, tick sein or haben, press Verify and return the correct forms with a right or wrong flag per typed field."
+    ref_prompt: "Answer the German verb test with preterite fuhr"
+    demo_params: {preterite: "fuhr", auxiliary: "sein"}
+    params:
+      - {name: infinitive, type: str, required: false, description: "plain ASCII"}
+      - {name: preterite, type: str, required: false, description: "plain ASCII"}
+      - {name: participle, type: str, required: false, description: "plain ASCII"}
+      - {name: third_person, type: str, required: false, description: "plain ASCII (umlauts cannot be typed)"}
+      - {name: translation, type: str, required: false, description: "English translation"}
+      - {name: auxiliary, type: str, required: false, description: "sein or haben"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_test"
+      - python_action: "helpers:answer_test"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:test_answered"}
+    test_case:
+      ref_prompt_variants:
+        - "fill in the verb test"
+      expected_success: true
+
+  - name: finish_test
+    description: "Close the test result screen and return to the Test tab."
+    ref_prompt: "Finish the German verb test"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_result"
+      - python_action: "helpers:finish_test"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:test_finished"}
+    test_case:
+      ref_prompt_variants:
+        - "end the verb test"
+      expected_success: true

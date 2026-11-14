@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/tiktok",
+  "version": "2.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "12",
+    "hardware": "asus/ASUS_I002D",
+    "app_package": "com.zhiliaoapp.musically",
+    "app_version": "44.3.3"
+  },
+  "fingerprint_hash": "bf52362353424684af1a015d2ab96e1336621212f31f6f0ffd8b293073d290d0",
+  "app_version": "44.3.3",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T17:42:16.771963+00:00",
+  "finished_at": "2026-10-05T17:42:16.771963+00:00",
+  "device_class": "asus/ASUS_I002D/12",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_my_stats",
+      "success": true,
+      "duration_ms": 18951.79951499449,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 13755.920160998357
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 5195.446636993438
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQPTaWIK4Pmu39fZ2/BZwzkET0vAyWF0UvRXCY0LunfHTStXV6k\nfMGzvbMzcVytmSliOy15TEmP8gaXLJPyO8cgI=\n-----END SSH SIGNATURE-----\n"
+  }
+}

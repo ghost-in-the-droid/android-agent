@@ -1,0 +1,159 @@
+# Ghost in the Droid: Quick Calculation (login-free FOSS seed skill, installed from F-Droid)
+# Quick Calculation (F-Droid): a timed multiple choice mental maths game with addition, subtraction, multiplication, division and mixed series, with a results screen. Offline, no account.
+
+name: quick-calculation
+version: 1.0.0
+author: ghost
+description: "Quick Calculation (F-Droid): a timed multiple choice mental maths game with addition, subtraction, multiplication, division and mixed series, with a results screen. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: io.github.subhamtyagi.quickcalculation
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/quick-calculation"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: io.github.subhamtyagi.quickcalculation}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_setup
+    description: "Restart the app and read the setup form (operator, number ranges)."
+    ref_prompt: "Open the Quick Calculation app"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_setup"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:setup_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the quick maths game"
+      expected_success: true
+
+  - name: start_game
+    description: "Pick an operator and a timer (30, 45, 60, 90, 120, 300 or 600 seconds), start the game and return the first question with its four options."
+    ref_prompt: "Start a Quick Calculation game with addition"
+    demo_params: {operator: "Addition", timer: 120}
+    params:
+      - {name: operator, type: str, required: false, description: "Addition, Subtraction, Multiplication, Division, Addition Series, Simplification, Simplification Advance or Miscellaneous (default Addition)"}
+      - {name: timer, type: int, required: false, description: "seconds, default 120"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:start_game"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:game_started"}
+    test_case:
+      ref_prompt_variants:
+        - "start a multiplication speed game"
+      expected_success: true
+
+  - name: get_question
+    description: "Read the current question, its four options, the time left and the score."
+    ref_prompt: "What is the current quick calculation question?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_game"
+      - python_action: "helpers:get_question"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:question_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the maths question"
+      expected_success: true
+
+  - name: answer
+    description: "Answer the current question by option text (value) or button position 1-4 (option); returns right or wrong and the next question. Tapping an option answers at once."
+    ref_prompt: "Answer the quick calculation question with option 2"
+    demo_params: {option: 2}
+    params:
+      - {name: value, type: str, required: false, description: "the answer text exactly as shown on a button"}
+      - {name: option, type: int, required: false, description: "button position 1 to 4, used when value is empty"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_game"
+      - python_action: "helpers:answer"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered"}
+    test_case:
+      ref_prompt_variants:
+        - "pick 148 as the answer"
+      expected_success: true
+
+  - name: answer_many
+    description: "Answer several questions in a row (up to 8), by answer texts (values) or button positions (options), comma separated."
+    ref_prompt: "Answer the next three quick calculation questions with options 1, 2 and 3"
+    demo_params: {options: "1,2,3"}
+    params:
+      - {name: values, type: str, required: false, description: "answer texts separated by commas"}
+      - {name: options, type: str, required: false, description: "button positions 1-4 separated by commas, for example 1,2,3"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_game"
+      - python_action: "helpers:answer_many"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered_many"}
+    test_case:
+      ref_prompt_variants:
+        - "answer 3 questions with the first option"
+      expected_success: true
+
+  - name: finish_game
+    description: "End the game with Submit and read the results (correct answers and attempts)."
+    ref_prompt: "End the quick calculation game and show the result"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_game"
+      - python_action: "helpers:finish_game"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:game_finished"}
+    test_case:
+      ref_prompt_variants:
+        - "stop the game and show my score"
+      expected_success: true
+
+  - name: get_result
+    description: "Read the results screen: total correct and total attempts."
+    ref_prompt: "What was my quick calculation score?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_result"
+      - python_action: "helpers:get_result"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:result_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show the game results"
+      expected_success: true

@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/quick-calculation",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "io.github.subhamtyagi.quickcalculation",
+    "app_version": "1.4"
+  },
+  "fingerprint_hash": "c916c8359185e71710195c711d7356b17249d5e5633f622cd42e3ab4193ada60",
+  "app_version": "1.4",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T21:11:43.747902+00:00",
+  "finished_at": "2026-11-04T21:11:43.747902+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "start_game",
+      "success": true,
+      "duration_ms": 14404.444209998474,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 1025.5556530028116
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 4711.081099994772
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 8595.521565999661
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:92ccc4a79fac884b1f09b0cf1206d723550da351af279646b31dd564d56060fd",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQNCfvR1OAGGqnAfDNaP4lnNizcR1mV+IZnkLQi3KvnGs57OM6D\nhqq/uIRGqzFAW9kM/vSp61k9JLgIj6VDPXpwM=\n-----END SSH SIGNATURE-----\n"
+  }
+}

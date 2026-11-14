@@ -1,0 +1,51 @@
+app_package: com.google.android.gm
+android_package: com.google.android.gm
+description: Auto-generated skill from 6 recorded steps
+name: send_gmail_email
+platforms:
+- android
+version: 1.0.0
+
+default_params:
+  workflows:
+    recorded:
+      subject: "Test email subject"
+      body: "Hello, this is a test email sent via automation."
+
+# >>> ghost skill migrate (schema v2): generated, re-run to refresh >>>
+author: ghost
+skill_class: hard
+license: MIT
+generated_with: ghost skill migrate
+fingerprint:
+  os: android
+  os_version: '*'
+  hardware: '*'
+  app_package: com.google.android.gm
+  app_version: '*'
+state_probes:
+  logged_in: {kind: element_present, desc: Send}
+actions:
+- name: recorded
+  requires_state: [logged_in]
+  description: Auto-generated skill from 6 recorded steps
+  ref_prompt: Auto-generated skill from 6 recorded steps
+  params:
+  - name: subject
+    type: str
+    required: true
+    description: e.g. Test email subject
+  - name: body
+    type: str
+    required: true
+    description: e.g. Hello, this is a test email sent via automation.
+  steps:
+  - python_action: helpers:run_recorded
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Auto-generated skill from 6 recorded steps
+    expected_success: true
+# <<< ghost skill migrate <<<

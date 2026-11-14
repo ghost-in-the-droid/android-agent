@@ -1,0 +1,19 @@
+{
+  "author": "ghost",
+  "slug": "tiktok_ios",
+  "latest": "0.1.0",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": null,
+      "commit": "20ec299de13551d23001fd9b5eb02ed719e3a321",
+      "git_tree": null,
+      "sha256": "sha256:ab1089ffb30cf2758cc34e9849dbe4ea00733ef02d07700125e9a86f703fca2a",
+      "size": 31128,
+      "released_at": null,
+      "attestation": null,
+      "demo": null,
+      "demos": {}
+    }
+  ]
+}

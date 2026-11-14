@@ -1,0 +1,105 @@
+# Ghost in the Droid: Pocket ReadLex (login-free FOSS seed skill, installed from F-Droid)
+# Pocket ReadLex (F-Droid): look up English words in the Shavian alphabet dictionary, read the Shavian spelling, IPA and word type, and transliterate short phrases. Offline, no account.
+
+name: pocket-readlex
+version: 1.0.0
+author: ghost
+description: "Pocket ReadLex (F-Droid): look up English words in the Shavian alphabet dictionary, read the Shavian spelling, IPA and word type, and transliterate short phrases. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: uk.co.busydoingnothing.pocketrl
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/pocket-readlex"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: uk.co.busydoingnothing.pocketrl}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_search
+    description: "Restart the app and read the search screen."
+    ref_prompt: "Open Pocket ReadLex"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_search"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:search_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the Shavian dictionary"
+      expected_success: true
+
+  - name: search_word
+    description: "Search an English word or prefix and return the matching rows (word, Shavian spelling, type)."
+    ref_prompt: "Search the Shavian dictionary for hello"
+    demo_params: {word: "hello"}
+    params:
+      - {name: word, type: str, required: true, description: "English word or prefix, letters only"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:search_word"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:searched"}
+    test_case:
+      ref_prompt_variants:
+        - "look up night in the Shavian dictionary"
+      expected_success: true
+
+  - name: get_entry
+    description: "Open the exact entry for an English word and return its Shavian spelling, IPA and word type."
+    ref_prompt: "Show the Shavian entry for hello with IPA"
+    demo_params: {word: "hello"}
+    params:
+      - {name: word, type: str, required: true, description: "exact English word"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_entry"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:entry_read"}
+    test_case:
+      ref_prompt_variants:
+        - "how do you write world in Shavian"
+      expected_success: true
+
+  - name: transliterate
+    description: "Write up to 8 English words in Shavian by looking each one up."
+    ref_prompt: "Write hello world in the Shavian alphabet"
+    demo_params: {text: "hello world"}
+    params:
+      - {name: text, type: str, required: true, description: "1 to 8 English words"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:transliterate"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:transliterated"}
+    test_case:
+      ref_prompt_variants:
+        - "transcribe good night into Shavian"
+      expected_success: true

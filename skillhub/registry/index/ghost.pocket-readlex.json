@@ -1,0 +1,44 @@
+{
+  "author": "ghost",
+  "slug": "pocket-readlex",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "1f74e7a1523f234ec12af9be0476d1fe6a449e8c",
+      "git_tree": null,
+      "sha256": "sha256:1673e18b1d6e504b49b59fede7285f63d841c8f5216b64358992c23822d2e3f2",
+      "size": 16812,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demos/open_search.webm",
+        "bytes": 179944,
+        "type": "video/webm"
+      },
+      "demos": {
+        "get_entry": {
+          "path": "demos/get_entry.webm",
+          "bytes": 533312,
+          "type": "video/webm"
+        },
+        "open_search": {
+          "path": "demos/open_search.webm",
+          "bytes": 179944,
+          "type": "video/webm"
+        },
+        "search_word": {
+          "path": "demos/search_word.webm",
+          "bytes": 258962,
+          "type": "video/webm"
+        },
+        "transliterate": {
+          "path": "demos/transliterate.webm",
+          "bytes": 367199,
+          "type": "video/webm"
+        }
+      }
+    }
+  ]
+}

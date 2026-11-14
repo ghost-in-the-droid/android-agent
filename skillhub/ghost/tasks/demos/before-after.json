@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/tasks",
+ "action": "add_task",
+ "prompt": "Add a task called Buy milk",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 17.84,
+  "tokens": 145510,
+  "tool_calls": 13,
+  "ok": true
+ },
+ "after": {
+  "seconds": 18.58,
+  "tokens": 58333,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "Both sides created Buy milk in local-only mode. AFTER was 0.74s slower in this observed pair (18.58 vs 17.84), with 4 vs 13 calls; elapsed advantage is not assumed from call or token reduction.",
+ "source": "phone-b-before-after"
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/suntimes",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "com.forrestguice.suntimeswidget",
+    "app_version": "0.17.5"
+  },
+  "fingerprint_hash": "76fd6bb4dce0fd5d8dbe8d8b3f4ae1a1d146f7eed21635dad8af992737ef63a3",
+  "app_version": "0.17.5",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T14:29:53.572361+00:00",
+  "finished_at": "2026-11-05T14:29:53.572361+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "search_city",
+      "success": true,
+      "duration_ms": 23284.50682500261,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 20276.195375001407
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:7415e6f1a6626b2a010c3fa5b592f8e1a0516762e5e8675c5bea272a82fb2e3c",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQJEv00LmJqeq1hcr156zCxNWuBGvxV0safN67jECuLGbEn6pU2\nV5Fld2SHFBg5W8KbzQWVjExE8GDDusgSj9Dwc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

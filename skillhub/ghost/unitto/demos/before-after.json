@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/unitto",
+ "action": "convert_length",
+ "prompt": "Convert 26.2 miles to kilometers in Unitto and report the displayed result. Use the unit converter only.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 33.32,
+  "tokens": 438680,
+  "tool_calls": 15,
+  "ok": false
+ },
+ "after": {
+  "seconds": 79.49,
+  "tokens": 71186,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Replacement after real Unitto1.0.3 native app-owned readback and enumerated unit-parameter fixes (c6e7e811). Exact original prompt both sides; canonical B-only relay and readiness confirmed. BEFORE stopped at token cap400k (438680 consumed at observed request boundary), honest failure; AFTER successful79.49s71186tokens. Native hierarchy waits add latency; do not claim a time speedup against the capped failure. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

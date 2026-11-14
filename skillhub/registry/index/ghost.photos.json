@@ -1,0 +1,19 @@
+{
+  "author": "ghost",
+  "slug": "photos",
+  "latest": "1.0.1",
+  "versions": [
+    {
+      "version": "1.0.1",
+      "tag": null,
+      "commit": "bd5dfbd80a5dc5e85678897935bfc72edbd43c01",
+      "git_tree": null,
+      "sha256": "sha256:b9be5c2fa3a23b1217cbf29f3ae8acb48a06199176b2cc79cdfc5322bfcfdd07",
+      "size": 17502,
+      "released_at": null,
+      "attestation": null,
+      "demo": null,
+      "demos": {}
+    }
+  ]
+}

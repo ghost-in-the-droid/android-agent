@@ -1,0 +1,19 @@
+{
+  "author": "ghost",
+  "slug": "safari",
+  "latest": "0.1.0",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": null,
+      "commit": "3b44c3afc0b13802de82629f974cefb03f2dd07f",
+      "git_tree": null,
+      "sha256": "sha256:1bd592a78fe1ff60d4a227f8f5c587e9e5ac428525f0e05583bb16f768866cd5",
+      "size": 22924,
+      "released_at": null,
+      "attestation": null,
+      "demo": null,
+      "demos": {}
+    }
+  ]
+}

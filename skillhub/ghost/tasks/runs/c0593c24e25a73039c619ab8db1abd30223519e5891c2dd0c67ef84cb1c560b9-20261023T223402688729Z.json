@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/tasks",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.tasks",
+    "app_version": "15.12",
+    "screen_wxh": "720x1600",
+    "density": 300,
+    "locale": "en-GB"
+  },
+  "fingerprint_hash": "c0593c24e25a73039c619ab8db1abd30223519e5891c2dd0c67ef84cb1c560b9",
+  "app_version": "15.12",
+  "model": "deterministic",
+  "timestamp": "2026-10-23T22:34:02.688729+00:00",
+  "finished_at": "2026-10-23T22:34:02.688729+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": false,
+  "actions": [
+    {
+      "name": "add_task",
+      "success": false,
+      "duration_ms": 21961.72896400094,
+      "error_kind": "StepFailedError",
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3990.76768103987
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 320.1689299894497
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 2009.9088749848306
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 478.58493495732546
+        },
+        {
+          "index": 4,
+          "success": false,
+          "duration_ms": 15162.100806948729
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:5ce6bfea4534986e39abdef4fc57aaf8d5cefb5858f8a54a4c69f8acd041c988",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHCG/B9t394XF4HNxKbhyQbIWwFocZqC720/LTh8WaRUHXmwcE\nAP1Dxmm0ig1L+7adGgudzhJJFBCoEUwYnUHwM=\n-----END SSH SIGNATURE-----\n"
+  }
+}

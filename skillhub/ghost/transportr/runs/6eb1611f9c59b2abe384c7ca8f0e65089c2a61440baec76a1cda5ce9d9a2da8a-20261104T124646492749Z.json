@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/transportr",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "de.grobox.liberario",
+    "app_version": "2.2.7"
+  },
+  "fingerprint_hash": "6eb1611f9c59b2abe384c7ca8f0e65089c2a61440baec76a1cda5ce9d9a2da8a",
+  "app_version": "2.2.7",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T12:46:46.492749+00:00",
+  "finished_at": "2026-11-04T12:46:46.492749+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "open",
+      "success": true,
+      "duration_ms": 8595.018811000045,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 8410.851884999829
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:e552dd4b08d0ba43bd8e16e19970c7d5eac215b45e74f31e87f359203497b1e9",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCwbdAvi8ocdKBIIUWNVd5D96J1a62XzJdXLosVvVgirPQR9tv\nGO326QGC86FzRSz1mfGZw5AV7YRThdLTbzTgw=\n-----END SSH SIGNATURE-----\n"
+  }
+}

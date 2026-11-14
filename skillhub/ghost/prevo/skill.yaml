@@ -1,0 +1,128 @@
+# Ghost in the Droid: PReVo (login-free FOSS seed skill, installed from F-Droid)
+# PReVo (F-Droid): the offline Esperanto dictionary (Plena Ilustrita Vortaro) with translations into dozens of languages. Search a word in your language, open the Esperanto entry and read its translations. No account, no network.
+
+name: prevo
+version: 1.0.0
+author: ghost
+description: "PReVo (F-Droid): the offline Esperanto dictionary (Plena Ilustrita Vortaro) with translations into dozens of languages. Search a word in your language, open the Esperanto entry and read its translations. No account, no network."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: uk.co.busydoingnothing.prevo
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/prevo"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: uk.co.busydoingnothing.prevo}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_dictionary
+    description: "Restart the app, pick the dictionary language on first launch and open the search screen."
+    ref_prompt: "Open the Esperanto dictionary app"
+    params:
+      - {name: language, type: str, required: false, description: "dictionary language as Esperanto name, default angla (English)"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_dictionary"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:dictionary_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the PReVo dictionary"
+      expected_success: true
+
+  - name: search
+    description: "Type a word into the search box and return the matching headwords."
+    ref_prompt: "Search the Esperanto dictionary for water"
+    demo_params: {term: "water"}
+    params:
+      - {name: term, type: str, required: true, description: "word in the dictionary language"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - python_action: "helpers:open_dictionary"
+      - subroutine: open_app
+      - python_action: "helpers:search"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:searched"}
+    test_case:
+      ref_prompt_variants:
+        - "find words starting with cat"
+      expected_success: true
+
+  - name: open_entry
+    description: "Search a word, open its entry and read the Esperanto headword and a translation."
+    ref_prompt: "What is cat in Esperanto?"
+    demo_params: {term: "cat"}
+    params:
+      - {name: term, type: str, required: true, description: "word in the dictionary language"}
+      - {name: language, type: str, required: false, description: "translation language to read, default angla"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - python_action: "helpers:open_dictionary"
+      - subroutine: open_app
+      - python_action: "helpers:open_entry"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:entry_opened"}
+    test_case:
+      ref_prompt_variants:
+        - "translate water to Esperanto"
+      expected_success: true
+
+  - name: get_entry
+    description: "Read the open entry: headword and the translation in the given language."
+    ref_prompt: "Show the French translation of this word"
+    demo_params: {language: "franca"}
+    params:
+      - {name: language, type: str, required: false, description: "translation language, default angla"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_entry"
+      - python_action: "helpers:get_entry"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:entry_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the German translation"
+      expected_success: true
+
+  - name: back_to_search
+    description: "Return from an entry to the search screen."
+    ref_prompt: "Go back to the dictionary search"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_entry"
+      - python_action: "helpers:back_to_search"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:back_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "new search"
+      expected_success: true
