@@ -80,6 +80,8 @@ _TOOL_EMOJI = {
     "web_search": "🔎",
     # skills / agent orchestration
     "list_skills": "🧩",
+    "find_skill": "🔎",
+    "get_skill_notes": "📖",
     "create_skill": "✨",
     "run_action": "▶️",
     "explore_app": "🧭",
@@ -91,11 +93,6 @@ _TOOL_EMOJI = {
     # crashes
     "list_crashes": "💥",
     "get_crash": "💥",
-    # crm / leads
-    "lookup_lead": "🔎",
-    "list_unread_leads": "📥",
-    "crm_lookup_contact": "🔎",
-    "crm_list_unread_messages": "📥",
 }
 
 

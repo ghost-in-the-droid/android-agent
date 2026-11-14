@@ -1,0 +1,22 @@
+[
+  {
+    "version": "1.2.0",
+    "tag": "ghost/tiktok-v1.2.0",
+    "commit": "3f1c9a2",
+    "git_tree": "b6d357026ec174588a1f9b83c8c651477f65bd02",
+    "sha256": "f32ce98f641fe4be93ea9317f8952ec39abe4f2488b197d0c83833b2e0ef8cfc",
+    "size": 41877,
+    "released_at": "2026-09-01T10:00:00Z",
+    "attestation": null
+  },
+  {
+    "version": "2.0.0",
+    "tag": "ghost/tiktok-v2.0.0",
+    "commit": "a5f9596",
+    "git_tree": "482ee430c54b95e3e278097700c7dcc5809e2b46",
+    "sha256": "6cbf24eb634518225f3833445f25fa0febf0ee73fd607a85ca17e813e70c0915",
+    "size": 48211,
+    "released_at": "2026-10-04T18:30:00Z",
+    "attestation": "https://github.com/ghost-in-the-droid/android-agent/attestations/ghost-tiktok-2.0.0"
+  }
+]

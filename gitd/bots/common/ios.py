@@ -540,10 +540,11 @@ def _skill_ios_app_inventory() -> tuple[tuple[str, str], ...]:
     except Exception:
         return ()
 
-    skills_dir = Path(__file__).resolve().parents[2] / "skills"
+    from gitd.skills.locations import iter_legacy_skill_dirs
+
     rows: list[tuple[str, str]] = []
     seen: set[str] = set()
-    for meta_path in sorted(skills_dir.glob("*/skill.yaml")):
+    for meta_path in (d / "skill.yaml" for d in iter_legacy_skill_dirs()):
         try:
             meta = yaml.safe_load(meta_path.read_text(encoding="utf-8")) or {}
         except Exception:
@@ -2992,10 +2993,12 @@ class IOSDevice:
             key, val = "class", class_name
         else:
             return None
-        m = re.search(rf'<node[^>]*{key}="{re.escape(val)}"[^>]*>', xml)
-        if m:
-            bm = re.search(r'bounds="([^"]+)"', m.group())
-            return bm.group(1) if bm else None
+        # The normalized iOS tree is serialized by ElementTree, which escapes attribute
+        # values ("&" -> "&amp;"), so compare unescaped values, not the raw needle.
+        for m in re.finditer(rf'<node[^>]*\s{key}="([^"]*)"[^>]*>', xml):
+            if html.unescape(m.group(1)) == val:
+                bm = re.search(r'bounds="([^"]+)"', m.group())
+                return bm.group(1) if bm else None
         return None
 
     def tap_text(self, xml: str, text: str, fallback_xy=None, delay=0.8) -> bool:

@@ -23,8 +23,8 @@ from gitd.ghostcli import run as grun
 from gitd.ghostcli import wizard as gwiz
 
 # Subcommands whose first token routes away from the prompt path.
-_LEGACY = ("up", "doctor", "login", "skill")  # handled by gitd.cli
-_LOCAL = ("devices", "setup", "configure", "config", "mcp")  # handled here
+_LEGACY = ("up", "doctor", "login")           # handled by gitd.cli
+_LOCAL = ("devices", "setup", "configure", "config", "mcp", "skill", "telemetry")  # handled here
 RESERVED = (*_LEGACY, *_LOCAL, "help")
 
 
@@ -165,6 +165,7 @@ _HELP = """ghost — give any AI agent an Android/iOS body.
   ghost "<task>" [--device D] [--mode fast|vision|reason] [--backend B]
       Run an agent task on a device. Quote the task.
 
+  ghost telemetry on|off|status  Local telemetry preference (default off)
   ghost devices                 List connected devices + aliases
   ghost setup                   First-run wizard (or --backend for non-interactive)
   ghost config get|set|path     Read/write ~/.ghost/config.toml
@@ -196,6 +197,12 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_config(argv[1:])
     if first == "mcp":
         return _cmd_mcp(argv[1:])
+    if first == "telemetry":
+        from gitd.ghostcli.telemetry import main as telemetry_main
+        return telemetry_main(argv[1:])
+    if first == "skill":
+        from gitd.skills.engine.cli import main as _skill_cli
+        return _skill_cli(argv[1:])
 
     # Bare positional → agent task.
     leading = _split_leading(argv)

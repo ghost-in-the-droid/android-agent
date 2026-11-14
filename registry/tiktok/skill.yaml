@@ -2,6 +2,7 @@ name: tiktok
 display_name: TikTok
 description: TikTok automation skill — open, navigate, search, upload your own drafts
 version: "1.0.0"
+tos_risk: high   # vendor ToS bans automated access / account creation by bots; published for research, not for live accounts
 app_package: com.zhiliaoapp.musically
 author: C-K-Loan
 license: MIT

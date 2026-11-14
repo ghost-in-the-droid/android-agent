@@ -1,0 +1,381 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-10-05T12:00:00Z",
+  "repo": "ghost-in-the-droid/android-agent",
+  "authors": {
+    "ghost": {
+      "trust": "official",
+      "github": "ghost-in-the-droid",
+      "skills": 4
+    },
+    "alice": {
+      "trust": "verified",
+      "github": "alice",
+      "skills": 1
+    },
+    "bob": {
+      "trust": "verified",
+      "github": "bob",
+      "skills": 1
+    }
+  },
+  "skills": {
+    "ghost/tiktok": {
+      "author": "ghost",
+      "slug": "tiktok",
+      "name": "tiktok",
+      "description": "TikTok actions on your own account: navigation, account switching, self-stats and uploads. ToS-safe surface only.",
+      "skill_class": "hard",
+      "trust": "official",
+      "latest": "2.0.0",
+      "versions": {
+        "1.2.0": {
+          "tag": "ghost/tiktok-v1.2.0",
+          "commit": "3f1c9a2",
+          "fingerprint": {
+            "os": "android",
+            "os_version": ">=13",
+            "hardware": "*",
+            "app_package": "com.zhiliaoapp.musically",
+            "app_version": ">=43.0.0"
+          },
+          "actions": [
+            "open_my_profile",
+            "open_inbox",
+            "get_active_account",
+            "get_my_stats"
+          ],
+          "data_access": [
+            "notifications"
+          ],
+          "has_python": true,
+          "files": {
+            "skill.yaml": "sha256:f3672d9df9a1d70608bb8d89e1ee87ff58829f51e412d83ed6cf19d1c82e2d30",
+            "helpers.py": "sha256:a3276b8a439e2425593a37fb6ba37dbf3e7970d616020bc9f28780b38876e3a0",
+            "SOFT.md": "sha256:1a11fdbbfdad43331448761686718b8d18f29e0ef3a3948b75bf917d0f0a8cef",
+            "README.md": "sha256:ab6163a7ed0d510d10f372ffa65cd10cea4aadfb8d0c863081365c0ffda5e288"
+          },
+          "size_bytes": 41877
+        },
+        "2.0.0": {
+          "tag": "ghost/tiktok-v2.0.0",
+          "commit": "a5f9596",
+          "fingerprint": {
+            "os": "android",
+            "os_version": ">=13",
+            "hardware": "*",
+            "app_package": "com.zhiliaoapp.musically",
+            "app_version": ">=44.0.0"
+          },
+          "actions": [
+            "open_my_profile",
+            "open_inbox",
+            "get_active_account",
+            "get_unread_count",
+            "get_my_stats",
+            "list_accounts",
+            "switch_account",
+            "upload_video"
+          ],
+          "data_access": [
+            "files",
+            "notifications"
+          ],
+          "has_python": true,
+          "files": {
+            "skill.yaml": "sha256:3043aabd4fb33bbe54d86dd48cbdd1cedbdd1b0fd5bdea898328eb6271bda7bc",
+            "helpers.py": "sha256:95ddbcc71577329879d36f94e423e26e71ea3a68b4179cdbb99ae2b4f83e2f58",
+            "validators.py": "sha256:bc105c4b647212fbb09a464c78f1d2518ea93ec2b30029f80872d742ae2b5826",
+            "SOFT.md": "sha256:6d5a897392a840defb92dc2b17fad241cf7adea24dbe5439b0b1ce064e5aafff",
+            "README.md": "sha256:16320d0d5cf53cc0071da88e0ea9a71e0d7c154f0cb0e029749b40a713b2479b"
+          },
+          "size_bytes": 48211
+        }
+      },
+      "quality": {
+        "tier": "proven",
+        "score": 38,
+        "points": 38,
+        "categories": {
+          "docs": 11,
+          "self_evidence": 15,
+          "independent": 12,
+          "usage": 0
+        },
+        "freshness_multiplier": 1.0,
+        "provisional_until": null,
+        "signals": {
+          "readme": true,
+          "soft_md": true,
+          "demo": false,
+          "bench": true,
+          "tests_pass": true,
+          "fingerprints_verified": 2,
+          "last_verified": "2026-09-29T10:12:00Z"
+        }
+      },
+      "updated_at": "2026-10-04T18:30:00Z"
+    },
+    "ghost/google_maps": {
+      "author": "ghost",
+      "slug": "google_maps",
+      "name": "google_maps",
+      "description": "Search places and fetch directions with per-mode ETA and distance.",
+      "skill_class": "hard",
+      "trust": "official",
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "tag": "ghost/google_maps-v1.0.0",
+          "commit": "76f65b1",
+          "fingerprint": {
+            "os": "android",
+            "os_version": ">=12",
+            "hardware": "*",
+            "app_package": "com.google.android.apps.maps",
+            "app_version": ">=11.100"
+          },
+          "actions": [
+            "search_place",
+            "get_directions"
+          ],
+          "data_access": [
+            "location"
+          ],
+          "has_python": true,
+          "files": {
+            "skill.yaml": "sha256:53d0d40175476a48106aa55396cabca84fceda6d41fb9df251dcb5bd74814f40",
+            "helpers.py": "sha256:bc70a7871abbb1fa28a8527623cb47c68797a7c8529c140a5f871457de13ea64",
+            "SOFT.md": "sha256:496146eab3e815145c54588494cd43f9126c2364129581064b7866c31f34ed1a",
+            "README.md": "sha256:feec0eb9b6aae3f651156efaff176feb7ef17c1bc74aa55ee20baf18984171ec"
+          },
+          "size_bytes": 22104
+        }
+      },
+      "quality": {
+        "tier": "runs",
+        "score": 16,
+        "points": 16,
+        "categories": {
+          "docs": 6,
+          "self_evidence": 10,
+          "independent": 0,
+          "usage": 0
+        },
+        "freshness_multiplier": 1.0,
+        "provisional_until": "2026-10-11T00:00:00Z",
+        "signals": {
+          "readme": true,
+          "soft_md": true,
+          "demo": false,
+          "bench": false,
+          "tests_pass": true,
+          "fingerprints_verified": 1,
+          "last_verified": "2026-10-03T09:00:00Z"
+        }
+      },
+      "updated_at": "2026-10-03T09:05:00Z"
+    },
+    "ghost/play_store": {
+      "author": "ghost",
+      "slug": "play_store",
+      "name": "play_store",
+      "description": "Install, uninstall and update apps from Google Play, and read installed versions.",
+      "skill_class": "hard",
+      "trust": "official",
+      "latest": "1.0.0",
+      "versions": {
+        "1.0.0": {
+          "tag": null,
+          "commit": "421e5f4",
+          "fingerprint": {
+            "os": "android",
+            "os_version": ">=12",
+            "hardware": "*",
+            "app_package": "com.android.vending",
+            "app_version": "*"
+          },
+          "actions": [
+            "install_app",
+            "uninstall_app",
+            "update_app",
+            "get_app_version"
+          ],
+          "data_access": [],
+          "has_python": true,
+          "files": {
+            "skill.yaml": "sha256:a627264b69d659537888b5e9038d529285d2073457aac391ae482b037ad3084d",
+            "helpers.py": "sha256:5ddf75df2ecc81ec257e33981987f184d9c705a8fcb2b196996a2b32cf7f19ea",
+            "README.md": "sha256:bf6f3c87b30b5176f5620427b928cf83bf4d135a9ba468933dcc205fac23bf62"
+          },
+          "size_bytes": 18733
+        }
+      },
+      "quality": {
+        "tier": "draft",
+        "score": 6,
+        "points": 6,
+        "categories": {
+          "docs": 6,
+          "self_evidence": 0,
+          "independent": 0,
+          "usage": 0
+        },
+        "freshness_multiplier": 0.5,
+        "provisional_until": null,
+        "signals": {
+          "readme": true,
+          "soft_md": false,
+          "demo": false,
+          "bench": false,
+          "tests_pass": null,
+          "fingerprints_verified": 0,
+          "last_verified": null
+        }
+      },
+      "updated_at": "2026-09-12T14:00:00Z"
+    },
+    "alice/whatsapp-messaging": {
+      "author": "alice",
+      "slug": "whatsapp-messaging",
+      "name": "whatsapp-messaging",
+      "description": "Send and read WhatsApp messages to a saved contact.",
+      "skill_class": "hard",
+      "trust": "verified",
+      "latest": "1.1.0",
+      "versions": {
+        "1.0.0": {
+          "tag": "alice/whatsapp-messaging-v1.0.0",
+          "commit": "c0ffee1",
+          "fingerprint": {
+            "os": "android",
+            "os_version": ">=14",
+            "hardware": "*",
+            "app_package": "com.whatsapp",
+            "app_version": ">=2.24.15"
+          },
+          "actions": [
+            "send_msg"
+          ],
+          "data_access": [
+            "contacts"
+          ],
+          "has_python": false,
+          "files": {
+            "skill.yaml": "sha256:c121ecfcb21e5bfaca77a0534b52aa2fcb4a2beb71753ee66afc8c7698b73e4b",
+            "SOFT.md": "sha256:601c9299600ca588ae9129b7f2cda1f74ded911e62c7f779af01884ee4782b60",
+            "README.md": "sha256:d200276d352bda5d54454f477af8f013a1c22f0304ff7b669a1c16d75ab3d8ab"
+          },
+          "size_bytes": 9120
+        },
+        "1.1.0": {
+          "tag": "alice/whatsapp-messaging-v1.1.0",
+          "commit": "d15ea5e",
+          "fingerprint": {
+            "os": "android",
+            "os_version": ">=14",
+            "hardware": "*",
+            "app_package": "com.whatsapp",
+            "app_version": ">=2.24.15"
+          },
+          "actions": [
+            "send_msg",
+            "read_last_msg"
+          ],
+          "data_access": [
+            "contacts",
+            "notifications"
+          ],
+          "has_python": false,
+          "files": {
+            "skill.yaml": "sha256:626a3c0d94cc99ba8e488571e8da8d71e1933e931dfab2105bf5af8abacb5099",
+            "SOFT.md": "sha256:cf4e696181bb4b8a1696e0bdd6299c6db848a01613e45b302add27b0873cb3ae",
+            "README.md": "sha256:e32fe7005e61a94c132bce2415db13541213e89b2d704b56d8e754b77dbd031f",
+            "bench.yaml": "sha256:161344620be850ef725cfd650dd9b0a8520b98bb0014a4b0471f8a595308aee6",
+            "demo.gif": "sha256:410e4b45af37b30b7c1e7aef5dbeafc63aad8cbd06a5a0bf167d83634fd8545c"
+          },
+          "size_bytes": 412880
+        }
+      },
+      "quality": {
+        "tier": "hardened",
+        "score": 66,
+        "points": 66,
+        "categories": {
+          "docs": 15,
+          "self_evidence": 15,
+          "independent": 23,
+          "usage": 17
+        },
+        "freshness_multiplier": 1.0,
+        "provisional_until": null,
+        "signals": {
+          "readme": true,
+          "soft_md": true,
+          "demo": true,
+          "bench": true,
+          "tests_pass": true,
+          "fingerprints_verified": 4,
+          "last_verified": "2026-10-01T16:40:00Z"
+        }
+      },
+      "updated_at": "2026-10-01T16:45:00Z"
+    },
+    "bob/spotify-queue": {
+      "author": "bob",
+      "slug": "spotify-queue",
+      "name": "spotify-queue",
+      "description": "Add a song to the Spotify play queue by title and artist.",
+      "skill_class": "hard",
+      "trust": "verified",
+      "latest": "0.3.1",
+      "versions": {
+        "0.3.1": {
+          "tag": "bob/spotify-queue-v0.3.1",
+          "commit": "be7a0b1",
+          "fingerprint": {
+            "os": "android",
+            "os_version": ">=13",
+            "hardware": "*",
+            "app_package": "com.spotify.music",
+            "app_version": ">=8.9"
+          },
+          "actions": [
+            "queue_track"
+          ],
+          "data_access": [],
+          "has_python": true,
+          "files": {
+            "skill.yaml": "sha256:207bea5454ee04ca82c5b37ecfe494837e0e1b53edcca9a3a6cb2a30e11d93f6",
+            "helpers.py": "sha256:ece475a6dd5056f78632a718da8627d6bd31fe6583c6a1e045fb39f361bcb12e",
+            "README.md": "sha256:544c97304b35bd5797d7e01977ffc7623c9d13b2d23df7a0ea44323e16ea267f"
+          },
+          "size_bytes": 7311
+        }
+      },
+      "quality": {
+        "tier": "runs",
+        "score": 21,
+        "points": 21,
+        "categories": {
+          "docs": 6,
+          "self_evidence": 5,
+          "independent": 10,
+          "usage": 0
+        },
+        "freshness_multiplier": 0.8,
+        "provisional_until": null,
+        "signals": {
+          "readme": true,
+          "soft_md": false,
+          "demo": false,
+          "bench": false,
+          "tests_pass": true,
+          "fingerprints_verified": 1,
+          "last_verified": "2026-05-30T12:00:00Z"
+        }
+      },
+      "updated_at": "2026-05-30T12:05:00Z"
+    }
+  }
+}

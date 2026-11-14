@@ -166,7 +166,7 @@ cmd_config(){
 
 cmd_report(){
   # Machine-readable inventory of attached iOS device(s) for remote-fleet
-  # discovery (docs/ios/REMOTE_DRIVE.md). FAST + degrades gracefully: booleans
+  # discovery (docs/ios/WIRELESS.md). FAST + degrades gracefully: booleans
   # are sub-second curls; identity comes from `xctrace list devices` (~1.7s,
   # reliable — `devicectl device info details` can hang), cached so a slow/absent
   # xctrace still yields a full record.

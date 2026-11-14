@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skill Hub Architecture</title>
+<style>
+  :root { --bg:#ffffff; --fg:#1b1f23; --muted:#5a6470; --accent:#16a34a; --soft:#f3f5f7; --line:#d7dce2; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --accent:#34d399; --soft:#171a20; --line:#2a2f37; } }
+  :root[data-theme="dark"] { --bg:#0f1115; --fg:#e6e8eb; --muted:#9aa4af; --accent:#34d399; --soft:#171a20; --line:#2a2f37; }
+  body { margin:0; padding:24px 16px 48px; background:var(--bg); color:var(--fg); font:15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; max-width:1180px; margin-inline:auto; }
+  h1 { font-size:24px; margin:0 0 4px; } h2 { font-size:18px; margin:32px 0 8px; }
+  p.lead { color:var(--muted); margin:0 0 20px; }
+  figure { margin:0; } svg { max-width:100%; height:auto; display:block; }
+  figcaption { color:var(--muted); font-size:13px; margin-top:8px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; } th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; } th { color:var(--muted); font-weight:600; }
+  code { background:var(--soft); padding:1px 5px; border-radius:4px; font-size:13px; }
+  .legend { color:var(--muted); font-size:13px; margin-top:6px; }
+</style>
+</head>
+<body>
+<h1>Skill Hub: who runs what, where</h1>
+<p class="lead">Five places take part. Nothing runs on a Ghost server: GitHub hosts the repo and the CI, a CDN serves files, the author's and the user's machines drive phones over ADB. The one place a Ghost-operated service exists is the optional telemetry worker, and it only ever receives enums.</p>
+
+<figure>
+<svg viewBox="0 0 1200 640" role="img" aria-label="Flow of a skill from the author's laptop and phone, through a pull request into the GitHub monorepo where CI validates and a release workflow signs and regenerates the registry, out through jsDelivr and GitHub Releases to a user's laptop where the ghost CLI installs it and an agent runs it over MCP against the user's phone via ADB, producing signed run artifacts; a verifier on another phone submits independent runs back as a pull request; the Astro site is built from the registry; a weekly drift job watches Play Store versions; opt-in telemetry flows through a Cloudflare worker into the registry's run counts." fill="none" stroke="currentColor" stroke-width="1.4" font-family="system-ui, sans-serif" font-size="12">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" stroke="none"/></marker>
+    <marker id="arrowg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)" stroke="none"/></marker>
+  </defs>
+
+  <g fill="currentColor" stroke="none" font-weight="600" font-size="13">
+    <text x="120" y="24" text-anchor="middle">AUTHOR'S MACHINE</text>
+    <text x="420" y="24" text-anchor="middle">GITHUB (hub monorepo)</text>
+    <text x="650" y="24" text-anchor="middle">CDN</text>
+    <text x="895" y="24" text-anchor="middle">USER'S MACHINE</text>
+    <text x="1110" y="24" text-anchor="middle">USER'S PHONE</text>
+  </g>
+  <g stroke="var(--line)" stroke-dasharray="4 4">
+    <line x1="250" y1="34" x2="250" y2="590"/><line x1="580" y1="34" x2="580" y2="590"/><line x1="730" y1="34" x2="730" y2="590"/><line x1="1030" y1="34" x2="1030" y2="590"/>
+  </g>
+
+  <!-- author lane: x 20..220 -->
+  <rect x="20" y="60" width="200" height="56" rx="6"/>
+  <g fill="currentColor" stroke="none"><text x="120" y="83" text-anchor="middle" font-weight="600">ghost skill CLI</text><text x="120" y="101" text-anchor="middle" fill="var(--muted)" font-size="11">scaffold · validate · lint</text></g>
+  <line x1="120" y1="116" x2="120" y2="150" marker-end="url(#arrow)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="128" y="137">ADB steps</text></g>
+  <rect x="20" y="150" width="200" height="56" rx="6"/>
+  <g fill="currentColor" stroke="none"><text x="120" y="173" text-anchor="middle" font-weight="600">author's phone or emulator</text><text x="120" y="191" text-anchor="middle" fill="var(--muted)" font-size="11">test --live · run --record</text></g>
+  <line x1="120" y1="206" x2="120" y2="240" marker-end="url(#arrow)"/>
+  <rect x="20" y="240" width="200" height="56" rx="6" fill="var(--soft)"/>
+  <g fill="currentColor" stroke="none"><text x="120" y="262" text-anchor="middle" font-weight="600">skill folder</text><text x="120" y="280" text-anchor="middle" fill="var(--muted)" font-size="11">yaml · py · README · demo · signed runs</text></g>
+
+  <!-- PR arrow -->
+  <path d="M220,268 C260,268 270,140 320,120" marker-end="url(#arrow)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="262" y="200">ghost skill submit --dry-run</text><text x="262" y="214">then a pull request</text></g>
+
+  <!-- github lane: x 320..520 -->
+  <rect x="320" y="60" width="210" height="112" rx="6"/>
+  <g fill="currentColor" stroke="none"><text x="425" y="82" text-anchor="middle" font-weight="600">CI on the pull request</text><text x="425" y="100" text-anchor="middle" fill="var(--muted)" font-size="11">one author dir · validate · AST scan</text><text x="425" y="116" text-anchor="middle" fill="var(--muted)" font-size="11">lint · offline dry run · signer check</text><text x="425" y="132" text-anchor="middle" fill="var(--muted)" font-size="11">CODEOWNER review · merge queue</text><text x="425" y="156" text-anchor="middle" font-size="11">GitHub runners, minutes, free</text></g>
+  <line x1="425" y1="172" x2="425" y2="210" marker-end="url(#arrow)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="433" y="195">merge to main</text></g>
+  <rect x="320" y="210" width="210" height="104" rx="6"/>
+  <g fill="currentColor" stroke="none"><text x="425" y="232" text-anchor="middle" font-weight="600">release workflow</text><text x="425" y="250" text-anchor="middle" fill="var(--muted)" font-size="11">tag author/slug-vX + Sigstore signature</text><text x="425" y="266" text-anchor="middle" fill="var(--muted)" font-size="11">registry.json · index/ · SKILL.md · points</text><text x="425" y="282" text-anchor="middle" fill="var(--muted)" font-size="11">purge CDN cache</text><text x="425" y="302" text-anchor="middle" font-size="11">the only thing allowed to tag</text></g>
+  <rect x="320" y="350" width="210" height="56" rx="6"/>
+  <g fill="currentColor" stroke="none"><text x="425" y="372" text-anchor="middle" font-weight="600">drift job (weekly cron)</text><text x="425" y="390" text-anchor="middle" fill="var(--muted)" font-size="11">Play Store version vs fingerprint → issue</text></g>
+  <rect x="320" y="440" width="210" height="56" rx="6"/>
+  <g fill="currentColor" stroke="none"><text x="425" y="462" text-anchor="middle" font-weight="600">Astro site build</text><text x="425" y="480" text-anchor="middle" fill="var(--muted)" font-size="11">/skills/ pages from registry → static host</text></g>
+  <path d="M530,300 L545,300 L545,468 L530,468" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="552" y="420">reads</text><text x="552" y="434">registry</text></g>
+
+  <!-- CDN: x 590..720 -->
+  <line x1="530" y1="262" x2="590" y2="262" marker-end="url(#arrow)"/>
+  <rect x="590" y="230" width="130" height="64" rx="6"/>
+  <g fill="currentColor" stroke="none"><text x="655" y="252" text-anchor="middle" font-weight="600">jsDelivr @sha</text><text x="655" y="268" text-anchor="middle" font-weight="600">GitHub Releases</text><text x="655" y="284" text-anchor="middle" fill="var(--muted)" font-size="11">immutable, free</text></g>
+
+  <!-- user machine: x 780..1010 -->
+  <line x1="720" y1="262" x2="780" y2="262" marker-end="url(#arrow)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="750" y="250" text-anchor="middle">install</text></g>
+  <rect x="780" y="230" width="230" height="64" rx="6"/>
+  <g fill="currentColor" stroke="none"><text x="895" y="252" text-anchor="middle" font-weight="600">ghost skill install author/slug</text><text x="895" y="268" text-anchor="middle" fill="var(--muted)" font-size="11">sha256 · trust gate · destructive ack</text><text x="895" y="284" text-anchor="middle" fill="var(--muted)" font-size="11">→ ~/.ghost/skills/author/slug/version/</text></g>
+  <line x1="895" y1="294" x2="895" y2="330" marker-end="url(#arrow)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="903" y="316">load_skill</text></g>
+  <rect x="780" y="330" width="230" height="74" rx="6" stroke="var(--accent)" stroke-width="2"/>
+  <g fill="currentColor" stroke="none"><text x="895" y="352" text-anchor="middle" font-weight="600">agent over MCP (Claude Code, Codex)</text><text x="895" y="370" text-anchor="middle" fill="var(--muted)" font-size="11">run_skill(author/slug, action, params)</text><text x="895" y="390" text-anchor="middle" fill="var(--accent)" font-size="11" font-weight="600">replays the steps: $0 tokens</text></g>
+
+  <!-- user phone: x 1050..1180 -->
+  <line x1="1010" y1="356" x2="1050" y2="356" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrowg)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="1030" y="346" text-anchor="middle">ADB</text></g>
+  <rect x="1050" y="320" width="130" height="74" rx="6"/>
+  <g fill="currentColor" stroke="none"><text x="1115" y="342" text-anchor="middle" font-weight="600">app UI</text><text x="1115" y="360" text-anchor="middle" fill="var(--muted)" font-size="11">taps · text · intents</text><text x="1115" y="378" text-anchor="middle" fill="var(--muted)" font-size="11">a11y dumps · popups</text></g>
+  <line x1="1050" y1="384" x2="1010" y2="384" marker-end="url(#arrow)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="1030" y="402" text-anchor="middle">validator</text></g>
+
+  <!-- run artifact and verify loop -->
+  <line x1="895" y1="404" x2="895" y2="440" marker-end="url(#arrow)"/>
+  <rect x="780" y="440" width="230" height="56" rx="6" fill="var(--soft)"/>
+  <g fill="currentColor" stroke="none"><text x="895" y="462" text-anchor="middle" font-weight="600">signed run artifact</text><text x="895" y="480" text-anchor="middle" fill="var(--muted)" font-size="11">run --record / verify · SSH Ed25519</text></g>
+  <path d="M780,482 L565,482 L565,286 L530,286" marker-end="url(#arrow)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="672" y="472" text-anchor="middle">ghost skill verify → pull request (verifications/)</text><text x="672" y="500" text-anchor="middle" fill="var(--muted)">independent = another login, another fingerprint</text></g>
+
+  <!-- telemetry -->
+  <path d="M895,496 L895,580 L730,580" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="812" y="596" text-anchor="middle">opt-in, default off, enums only</text></g>
+  <rect x="600" y="560" width="130" height="40" rx="6"/>
+  <g fill="currentColor" stroke="none"><text x="665" y="577" text-anchor="middle" font-weight="600" font-size="11">telemetry worker</text><text x="665" y="592" text-anchor="middle" fill="var(--muted)" font-size="10">Cloudflare + R2</text></g>
+  <path d="M600,580 L300,580 L300,300 L320,300" stroke-dasharray="3 3" marker-end="url(#arrow)"/>
+  <g fill="currentColor" stroke="none" font-size="11"><text x="450" y="596" text-anchor="middle">nightly aggregate → quality.runs</text></g>
+
+  <g fill="currentColor" stroke="none" font-size="11"><text x="600" y="628" text-anchor="middle" fill="var(--muted)">The agent never needs the site; the site is for people. Everything here except the telemetry worker is GitHub, a CDN, or the two laptops.</text></g>
+</svg>
+<figcaption>One skill's path: authored and recorded on the author's own device, reviewed by CI on GitHub, signed and indexed by the release workflow, served by a CDN, installed and replayed by the user's agent against the user's phone, and fed back as signed run evidence; independent verifiers close the loop through the same pull-request path.</figcaption>
+</figure>
+
+<h2>When each part runs</h2>
+<table>
+  <tr><th>Moment</th><th>Who</th><th>Where</th><th>What happens</th></tr>
+  <tr><td>Authoring</td><td>a contributor</td><td>their laptop + their phone or an emulator</td><td><code>scaffold</code>, edit, <code>validate</code>, <code>lint</code>, <code>test --live</code>, <code>run --record</code> (writes a signed self-run), optional demo recording</td></tr>
+  <tr><td>Submission</td><td>GitHub Actions, then a CODEOWNER</td><td>GitHub, free runners</td><td>one-author-dir check, schema validate, AST security scan, lint, network-less dry run, signer identity check, sticky comment with quality signals; human approval; merge queue</td></tr>
+  <tr><td>Release</td><td>release workflow (bot)</td><td>GitHub</td><td>tag <code>author/slug-vX</code>, Sigstore signature, regenerate <code>registry.json</code>, index files, SKILL.md wrappers, quality points; purge CDN cache; site rebuild</td></tr>
+  <tr><td>Install</td><td>a user, or their agent</td><td>user's laptop</td><td><code>ghost skill install author/slug[@version]</code>: registry lookup, download from jsDelivr at the version commit (Release tarball fallback), sha256 per file, trust gate, destructive acknowledgement</td></tr>
+  <tr><td>Run</td><td>an agent over MCP, or the CLI</td><td>user's laptop driving the user's phone over ADB</td><td>v2 engine resolves params, sweeps popups, replays steps, evaluates the end-state validator; zero LLM tokens for hard skills; soft skills pause at checkpoints for a human</td></tr>
+  <tr><td>Verify</td><td>anyone who is not the author</td><td>their laptop + their phone</td><td><code>ghost skill verify author/slug --push</code> runs it, signs the result, opens a PR into <code>verifications/</code>; this is the only source of independent-verification and community-usage points</td></tr>
+  <tr><td>Weekly</td><td>drift job (cron)</td><td>GitHub</td><td>compares each target app's Play Store version with the skill fingerprint, opens a <code>skill-drift</code> issue, flags <code>stale_upstream</code></td></tr>
+  <tr><td>Continuously, opt-in</td><td>user's client</td><td>Cloudflare worker + R2</td><td>enum-only run outcomes, aggregated nightly into <code>quality.runs</code>; off by default, honours DO_NOT_TRACK</td></tr>
+  <tr><td>Deferred (v1.7+)</td><td>Ghost-operated</td><td>emulator farm</td><td>cloud verification with signed benches, random re-execution of Hardened and Reference skills</td></tr>
+</table>
+<p class="legend">Source of truth for the points and tiers: <code>skillhub/scoring/v1.json</code>. Skill format: <code>docs/skill-schema-v2.md</code>.</p>
+</body>
+</html>

@@ -60,7 +60,7 @@ _run_skill.py subprocess:
 | `gitd/server.py` | API endpoints (lines ~3663-4025): `_load_all_skills()`, skill CRUD, run, export |
 | `gitd/skills/_run_skill.py` | Subprocess runner — loads skill, runs action/workflow, reports result |
 | `gitd/skills/base.py` | Base classes: `Skill`, `Action`, `Workflow`, `Element`, `ActionResult` |
-| `gitd/skills/tiktok/` | TikTok skill (skill.yaml, elements.yaml, actions/, workflows/) |
+| `skillhub/ghost/tiktok/` | TikTok skill (skill.yaml, elements.yaml, actions/, workflows/) |
 | `gitd/skills/_base/` | Base skill (shared actions for any app) |
 | `gitd/skills/instagram/` | Instagram skeleton (skill.yaml only) |
 | `gitd/static/dashboard.html` | Skill Hub tab UI (card grid, detail view, device selector) |
