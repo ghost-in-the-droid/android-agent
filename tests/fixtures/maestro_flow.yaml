@@ -1,0 +1,14 @@
+appId: com.example.notes
+name: add_note
+---
+- launchApp
+- tapOn:
+    id: com.example.notes:id/add
+- tapOn: Title
+- inputText: Hello from Maestro
+- swipe:
+    start: 500, 1500
+    end: 500, 400
+    duration: 300
+- back
+- assertVisible: Saved

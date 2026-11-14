@@ -359,11 +359,13 @@ def cmd_list(args):
         logger.info("No skills directory found.")
         return 0
 
+    from gitd.skills.locations import iter_legacy_skill_dirs, legacy_meta
+
     skills = []
-    for d in sorted(SKILLS_DIR.iterdir()):
-        if d.is_dir() and (d / "skill.yaml").exists() and not d.name.startswith("_"):
+    for d in iter_legacy_skill_dirs():
+        if not d.name.startswith("_"):
             try:
-                meta = yaml.safe_load((d / "skill.yaml").read_text()) or {}
+                meta = legacy_meta(yaml.safe_load((d / "skill.yaml").read_text()) or {})
                 skills.append(
                     {
                         "dir": d.name,
@@ -493,9 +495,9 @@ def cmd_search(args):
         logger.info("No skills found.")
         return 0
 
-    installed_names = set()
-    if SKILLS_DIR.is_dir():
-        installed_names = {d.name for d in SKILLS_DIR.iterdir() if d.is_dir() and (d / "skill.yaml").exists()}
+    from gitd.skills.locations import iter_legacy_skill_dirs
+
+    installed_names = {d.name for d in iter_legacy_skill_dirs()}
 
     print(f"{'Name':<20} {'Version':<10} {'Source':<12} {'Installed':<10} {'Description'}")
     print("-" * 90)

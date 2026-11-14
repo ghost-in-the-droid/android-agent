@@ -1,0 +1,22 @@
+[
+  {
+    "version": "1.0.0",
+    "tag": "alice/whatsapp-messaging-v1.0.0",
+    "commit": "c0ffee1",
+    "git_tree": "e59c5954a87ce7c05373b8a3d4d264634ff9f4c3",
+    "sha256": "abef8253a436d2a350f42470386c3daac6423e69a6a45e64084a11ad2d367909",
+    "size": 9120,
+    "released_at": "2026-08-14T09:00:00Z",
+    "attestation": null
+  },
+  {
+    "version": "1.1.0",
+    "tag": "alice/whatsapp-messaging-v1.1.0",
+    "commit": "d15ea5e",
+    "git_tree": "ec438480be41b9872bf571f0f9a85b1dbca3072f",
+    "sha256": "8dd32ef2571212819a98ad17bea7b5b6a446de31a4b3d868a36c3ac27b207b0a",
+    "size": 412880,
+    "released_at": "2026-10-01T16:45:00Z",
+    "attestation": "https://github.com/ghost-in-the-droid/android-agent/attestations/alice-whatsapp-messaging-1.1.0"
+  }
+]

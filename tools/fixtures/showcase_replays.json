@@ -1,0 +1,198 @@
+[
+  {
+    "slug": "calculator",
+    "skill": "ghost/calculator",
+    "action": "calculate",
+    "package": "org.fossify.math",
+    "params": {
+      "expression": "1234*5"
+    }
+  },
+  {
+    "slug": "calculator",
+    "skill": "ghost/calculator",
+    "action": "read_result",
+    "package": "org.fossify.math",
+    "params": {}
+  },
+  {
+    "slug": "calculator",
+    "skill": "ghost/calculator",
+    "action": "get_history",
+    "package": "org.fossify.math",
+    "params": {}
+  },
+  {
+    "slug": "calculator",
+    "skill": "ghost/calculator",
+    "action": "convert_units",
+    "package": "org.fossify.math",
+    "params": {
+      "category": "Temperature",
+      "value": "100",
+      "from_unit": "Fahrenheit",
+      "to_unit": "Celsius"
+    }
+  },
+  {
+    "slug": "clock",
+    "skill": "ghost/clock",
+    "action": "set_alarm",
+    "package": "com.google.android.deskclock",
+    "params": {
+      "hour": "7",
+      "minute": "30",
+      "label": "Isolated demo alarm"
+    }
+  },
+  {
+    "slug": "clock",
+    "skill": "ghost/clock",
+    "action": "list_alarms",
+    "package": "com.google.android.deskclock",
+    "params": {}
+  },
+  {
+    "slug": "clock",
+    "skill": "ghost/clock",
+    "action": "start_timer",
+    "package": "com.google.android.deskclock",
+    "params": {
+      "seconds": "300",
+      "label": "Isolated demo timer"
+    }
+  },
+  {
+    "slug": "clock",
+    "skill": "ghost/clock",
+    "action": "start_stopwatch",
+    "package": "com.google.android.deskclock",
+    "params": {}
+  },
+  {
+    "slug": "clock",
+    "skill": "ghost/clock",
+    "action": "add_world_city",
+    "package": "com.google.android.deskclock",
+    "params": {
+      "city": "Honolulu"
+    }
+  },
+  {
+    "slug": "markor",
+    "skill": "ghost/markor",
+    "action": "create_note",
+    "package": "net.gsantner.markor",
+    "params": {
+      "title": "Isolated Shopping",
+      "content": "Milk\nEggs"
+    }
+  },
+  {
+    "slug": "markor",
+    "skill": "ghost/markor",
+    "action": "read_note",
+    "package": "net.gsantner.markor",
+    "params": {
+      "title": "Isolated Shopping"
+    }
+  },
+  {
+    "slug": "markor",
+    "skill": "ghost/markor",
+    "action": "list_notes",
+    "package": "net.gsantner.markor",
+    "params": {}
+  },
+  {
+    "slug": "markor",
+    "skill": "ghost/markor",
+    "action": "add_todo",
+    "package": "net.gsantner.markor",
+    "params": {
+      "text": "Call mom"
+    }
+  },
+  {
+    "slug": "markor",
+    "skill": "ghost/markor",
+    "action": "append_quicknote",
+    "package": "net.gsantner.markor",
+    "params": {
+      "text": "Call mom"
+    }
+  },
+  {
+    "slug": "tasks",
+    "skill": "ghost/tasks",
+    "action": "add_task",
+    "package": "org.tasks",
+    "params": {
+      "title": "Isolated buy stamps"
+    }
+  },
+  {
+    "slug": "tasks",
+    "skill": "ghost/tasks",
+    "action": "list_tasks",
+    "package": "org.tasks",
+    "params": {}
+  },
+  {
+    "slug": "tasks",
+    "skill": "ghost/tasks",
+    "action": "search_tasks",
+    "package": "org.tasks",
+    "params": {
+      "query": "stamps"
+    }
+  },
+  {
+    "slug": "tasks",
+    "skill": "ghost/tasks",
+    "action": "complete_task",
+    "package": "org.tasks",
+    "params": {
+      "title": "Isolated buy stamps"
+    }
+  },
+  {
+    "slug": "pro-expense",
+    "skill": "androidworld/pro-expense",
+    "action": "expense_add_multiple",
+    "package": "com.arduia.expense",
+    "params": {
+      "rows": [
+        {
+          "name": "Demo lunch",
+          "amount": "4.50",
+          "category": "Food",
+          "note": "Synthetic demo"
+        }
+      ]
+    }
+  },
+  {
+    "slug": "pro-expense",
+    "skill": "androidworld/pro-expense",
+    "action": "expense_add_single",
+    "package": "com.arduia.expense",
+    "params": {
+      "rows": [
+        {
+          "name": "Demo coffee",
+          "amount": "4.50",
+          "category": "Food",
+          "note": "Synthetic demo"
+        }
+      ]
+    }
+  },
+  {
+    "slug": "pro-expense",
+    "skill": "androidworld/pro-expense",
+    "action": "expense_add_multiple_from_markor",
+    "package": "com.arduia.expense",
+    "params": {}
+  }
+]

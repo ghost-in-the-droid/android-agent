@@ -1,0 +1,12 @@
+name = "ghost-telemetry-staged"
+main = "worker.mjs"
+compatibility_date = "2026-10-01"
+workers_dev = false
+# Replace with the first-party route before an explicitly authorized deployment.
+# routes = [{ pattern = "telemetry.example.invalid/run", zone_name = "example.invalid" }]
+[vars]
+# Populate from reviewed registry skill IDs and concrete supported app versions.
+TELEMETRY_CATALOG = '{}'
+[[r2_buckets]]
+binding = "EVENTS"
+bucket_name = "REPLACE_WITH_TELEMETRY_BUCKET"

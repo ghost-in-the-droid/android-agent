@@ -1,0 +1,13 @@
+{
+  "name": "add_note",
+  "app_package": "com.example.notes",
+  "blocks": [
+    {"id": 1, "type": "flow_begin", "next": 2},
+    {"id": 2, "type": "app_start", "args": {"package": "com.example.notes"}, "next": 3},
+    {"id": 3, "type": "interact", "args": {"id": "com.example.notes:id/add"}, "next": 4},
+    {"id": 4, "type": "input_text", "args": {"text": "Hello from Automate"}, "next": 5},
+    {"id": 5, "type": "delay", "args": {"seconds": 1}, "next": 6},
+    {"id": 6, "type": "key_press", "args": {"key": "BACK"}, "next": 7},
+    {"id": 7, "type": "assert_visible", "args": {"text": "Saved"}, "next": null}
+  ]
+}
