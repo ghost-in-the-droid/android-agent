@@ -1,0 +1,79 @@
+name: "Verify request"
+description: Ask someone with a different device to independently run your skill. One accepted run moves a skill from Runs to Proven.
+title: "[verify] <author>/<slug>@<version>"
+labels: ["verify-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **For authors:** fill this in once your skill has at least one merged self-run (Runs tier).
+
+        **For verifiers:** pick a request whose wanted device you have. Run it with `ghost skill verify <author>/<slug>@<version>`, which records a signed run and opens a PR adding it under `verifications/`. A failing run is just as valuable as a passing one; submit it. You earn Verifier credit for accepted runs on skills you do not own. Running on a new device class or model earns more.
+
+        Rules that keep this fair: self-runs never count as independent, one device counts once however many accounts use it, and runs from accounts younger than 14 days are held until the account matures.
+  - type: input
+    id: ref
+    attributes:
+      label: Skill reference
+      placeholder: alice/keep-checklist@1.0.0
+    validations:
+      required: true
+  - type: input
+    id: actions
+    attributes:
+      label: Actions to run
+      description: Comma-separated. Leave empty for all.
+      placeholder: create_checklist_note
+  - type: textarea
+    id: tested_on
+    attributes:
+      label: Where you already ran it
+      description: Device model, Android version, app version, model/brain if relevant.
+      placeholder: |
+        Samsung Galaxy A15, Android 15, Keep 5.25.x
+    validations:
+      required: true
+  - type: textarea
+    id: wanted
+    attributes:
+      label: Devices or setups you most want
+      description: A different OEM or Android major version is worth the most.
+      placeholder: Any Pixel on Android 16; any Xiaomi
+  - type: textarea
+    id: params
+    attributes:
+      label: Safe test params
+      description: Values a verifier can use on their own account without side effects on anyone else.
+      placeholder: |
+        title: "ghost verify test"
+        items: ["one", "two"]
+    validations:
+      required: true
+  - type: textarea
+    id: cleanup
+    attributes:
+      label: Side effects and cleanup
+      description: What the run changes on the verifier's account and how to undo it.
+      placeholder: Creates one note in Keep. Delete it after the run.
+    validations:
+      required: true
+  - type: dropdown
+    id: destructive
+    attributes:
+      label: Is the skill marked destructive?
+      options:
+        - "No"
+        - "Yes (it has a confirm_before step; verifier must approve it manually)"
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Author checklist
+      options:
+        - label: The skill is at Runs tier (self-run merged).
+          required: true
+        - label: Test params touch only the verifier's own account.
+          required: true
+        - label: I will not verify someone else's skill only in exchange for them verifying mine.
+          required: true

@@ -112,6 +112,30 @@ git diff "$LAST_RELEASE_COMMIT..main" | git apply --3way --index || {
   git diff "$LAST_RELEASE_COMMIT..main" | git apply --index
 }
 
+# Internal-only paths (lab notes, agent reports, planning docs) never reach the public repo.
+# A line starting with "!" names one file that is kept even though a directory entry above strips it.
+KEEP_DIR="$(mktemp -d)"
+while IFS= read -r keep_path; do
+  [[ "$keep_path" == \!* ]] || continue
+  keep_path="${keep_path#!}"
+  [[ -f "$keep_path" ]] && { mkdir -p "$KEEP_DIR/$(dirname "$keep_path")"; cp -- "$keep_path" "$KEEP_DIR/$keep_path"; }
+done < scripts/public-strip.txt
+while IFS= read -r strip_path; do
+  [[ -z "$strip_path" || "$strip_path" == \#* || "$strip_path" == \!* ]] && continue
+  git rm -r -q --cached --ignore-unmatch -- "$strip_path"
+  rm -rf -- "$strip_path"
+done < scripts/public-strip.txt
+if [[ -d "$KEEP_DIR" ]]; then
+  (cd "$KEEP_DIR" && find . -type f | sed 's#^\./##') | while IFS= read -r kept; do
+    mkdir -p "$(dirname "$kept")"; cp -- "$KEEP_DIR/$kept" "$kept"; git add -- "$kept"
+  done
+  rm -rf -- "$KEEP_DIR"
+fi
+git rm -q --cached --ignore-unmatch scripts/public-strip.txt
+
+# G7 gate: abort before the release commit if anything internal survived the strip.
+bash scripts/release_gate.sh scripts/public-strip.txt || { echo "Error: release gate failed; nothing pushed" >&2; exit 1; }
+
 git commit -m "Release v$NEW_VERSION"
 git push public "$RELEASE_BRANCH"
 

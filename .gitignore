@@ -53,3 +53,7 @@ docs/HUMAN/
 # Privacy: local-only forbidden patterns + recording work dirs
 scripts/privacy/FORBIDDEN.local.txt
 .recordings/
+
+# phone CI failure captures (tests/phone, scripts/ci/phone_smoke.sh)
+phone-ci-artifacts/
+.wire-stage/

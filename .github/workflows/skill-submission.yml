@@ -1,0 +1,191 @@
+name: Skill submission
+on:
+  pull_request:
+    paths: ['skillhub/**', 'registry/**']
+    types: [opened, synchronize, reopened, labeled]
+  workflow_call:
+    outputs:
+      matrix:
+        value: ${{ jobs.detect.outputs.matrix }}
+      count:
+        value: ${{ jobs.detect.outputs.count }}
+      allowed:
+        value: ${{ jobs.trust.outputs.allowed }}
+permissions:
+  contents: read
+jobs:
+  detect:
+    if: github.event_name == 'pull_request'
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
+    outputs:
+      matrix: ${{ steps.changed.outputs.matrix }}
+      count: ${{ steps.changed.outputs.count }}
+      maintainer: ${{ steps.owner.outputs.maintainer }}
+      release: ${{ steps.changed.outputs.release }}
+    env:
+      # Release/integration PRs (maintainer merges of already-gated skill work) skip the per-skill submission
+      # guard. Only a same-repository head qualifies (pushing there needs write access, so a fork cannot claim it
+      # by branch name), via a wrap/release-* branch or the maintainer-set 'release-merge' label.
+      RELEASE_PR: ${{ github.event.pull_request.head.repo.full_name == github.repository && (startsWith(github.event.pull_request.head.ref, 'wrap/release-') || contains(github.event.pull_request.labels.*.name, 'release-merge')) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - run: pip install pyyaml
+      - name: Preserve trusted detection helpers
+        run: |
+          mkdir -p /tmp/skill-detect/tools
+          cp -r tools/ci /tmp/skill-detect/tools/ci
+          mkdir -p /tmp/skill-detect/gitd/skills/engine
+          cp gitd/skills/engine/{evidence,fingerprint,manifest}.py /tmp/skill-detect/gitd/skills/engine/
+          touch /tmp/skill-detect/gitd/__init__.py /tmp/skill-detect/gitd/skills/__init__.py /tmp/skill-detect/gitd/skills/engine/__init__.py
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PYTHONPATH: /tmp/skill-detect
+        run: |
+          if [ "$RELEASE_PR" = true ]; then
+            echo "::notice::release/integration PR: submission guard skipped (skills were gated in their own PRs)"
+            { echo "release=true"; echo 'matrix={"skill": []}'; echo "count=0"; } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          matrix=$(python3 /tmp/skill-detect/tools/ci/submission.py detect --base "$BASE_SHA" --head "$HEAD_SHA")
+          {
+            echo "release=false"
+            echo "matrix=$matrix"
+            MATRIX="$matrix" python3 -c 'import json,os; print("count="+str(len(json.loads(os.environ["MATRIX"])["skill"])))'
+          } >> "$GITHUB_OUTPUT"
+      - name: Authenticate independent verification artifacts
+        if: github.event_name == 'pull_request' && steps.changed.outputs.release != 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_ACTOR: ${{ github.event.pull_request.user.login }}
+          PYTHONPATH: /tmp/skill-detect
+        run: python3 /tmp/skill-detect/tools/ci/verify_evidence.py --base "$BASE_SHA" --head "$HEAD_SHA" --actor "$PR_ACTOR"
+      - id: owner
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            let maintainer = false;
+            try {
+              const {data} = await github.rest.repos.getCollaboratorPermissionLevel({
+                ...context.repo, username: context.payload.pull_request.user.login
+              });
+              maintainer = ['admin', 'maintain'].includes(data.permission) || ['admin', 'maintain'].includes(data.role_name);
+            } catch (error) {
+              core.warning('Maintainer permission lookup unavailable; namespace ownership still applies.');
+            }
+            core.setOutput('maintainer', String(maintainer));
+  checks:
+    needs: detect
+    if: github.event_name == 'pull_request' && needs.detect.outputs.count != '0'
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Preserve trusted CI helpers
+        run: |
+          mkdir -p /tmp/skill-ci/tools
+          cp -r tools/ci /tmp/skill-ci/tools/ci
+          cp tools/build_registry.py tools/quality.py /tmp/skill-ci/tools/
+          # verify_evidence imports these engine modules; copied without __init__.py (namespace package) so no device deps load.
+          mkdir -p /tmp/skill-ci/gitd/skills/engine
+          cp gitd/skills/engine/{evidence,fingerprint,manifest}.py /tmp/skill-ci/gitd/skills/engine/
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - run: python3 -m pip install pyyaml
+      - name: Build dry-check image without repository credentials
+        run: docker build -f /tmp/skill-ci/tools/ci/Dockerfile -t ghost-skill-ci .
+      - name: Ownership, version, schema, security and dry checks
+        env:
+          SKILL_PATH: ${{ matrix.skill }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_ACTOR: ${{ github.event.pull_request.user.login }}
+          MAINTAINER: ${{ needs.detect.outputs.maintainer }}
+          PYTHONPATH: /tmp/skill-ci
+          GHOST_CI_TOOLS: /tmp/skill-ci
+          DEFAULT_DEVICE: ''
+          GHOST_CI_SANDBOX_IMAGE: ghost-skill-ci
+        run: |
+          args=()
+          if [ "$MAINTAINER" = true ]; then args+=(--maintainer); fi
+          python3 /tmp/skill-ci/tools/ci/submission.py check --base "$BASE_SHA" --path "$SKILL_PATH" --actor "$PR_ACTOR" --output result.json "${args[@]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: skill-result-${{ strategy.job-index }}
+          path: result.json
+          if-no-files-found: warn
+  trust:
+    needs: [detect, checks]
+    if: github.event_name == 'pull_request' && needs.detect.outputs.count != '0'
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-24.04' }}
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    outputs:
+      allowed: ${{ steps.trust.outputs.allowed }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Preserve trusted vendor policy and helper
+        run: |
+          mkdir -p /tmp/skill-trust/tools /tmp/skill-trust/policy
+          cp -r tools/ci /tmp/skill-trust/tools/ci
+          if [ -f skillhub/trusted-vendors.yml ]; then cp skillhub/trusted-vendors.yml /tmp/skill-trust/policy/trusted-vendors.yml; fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - run: python3 -m pip install pyyaml
+      - id: trust
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHANGED_MATRIX: ${{ needs.detect.outputs.matrix }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PYTHONPATH: /tmp/skill-trust
+        run: |
+          mkdir -p "$RUNNER_TEMP/vendor-trust"
+          output="$RUNNER_TEMP/vendor-trust/result.json"
+          allowed=$(python3 /tmp/skill-trust/tools/ci/trusted_vendor.py --matrix "$CHANGED_MATRIX" --policy /tmp/skill-trust/policy/trusted-vendors.yml --output "$output" --head "$HEAD_SHA" --repo "$REPOSITORY" --pr "$PR_NUMBER")
+          echo "allowed=$allowed" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: skill-vendor-trust
+          path: ${{ runner.temp }}/vendor-trust/result.json
+          if-no-files-found: error

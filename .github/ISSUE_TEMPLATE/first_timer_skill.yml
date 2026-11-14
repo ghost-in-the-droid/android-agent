@@ -1,0 +1,107 @@
+name: "First-timer skill (maintainers file this)"
+description: A small, mentored wanted skill reserved for people who have never had a skill merged.
+title: "[first-timers-only] <app>: <action>"
+labels: ["first-timers-only", "wanted-skill"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This issue is reserved for a first-time contributor.** If you have already had a skill merged, please leave it for someone new and pick another wanted skill.
+
+        How it works:
+        1. Comment "I'd like to take this" and the mentor will assign you. Claims expire after 7 days without a draft PR.
+        2. Follow the steps below. Ask the mentor anything, here or in #help on Discord.
+        3. Your skill reaches **Runs** when your own recorded run is merged, and **Proven** with your own runs on every action, a demo and 3+ validators per action. Any bounty listed here pays at Proven plus one independent run by someone else on a different device, not on merge.
+
+        Contributor guide: https://github.com/ghost-in-the-droid/android-agent/blob/main/docs/community/contributor-ladder.md
+  - type: input
+    id: app
+    attributes:
+      label: App
+      description: App name as shown on the Play Store.
+      placeholder: Google Keep
+    validations:
+      required: true
+  - type: input
+    id: package
+    attributes:
+      label: Package id
+      placeholder: com.google.android.keep
+    validations:
+      required: true
+  - type: input
+    id: action
+    attributes:
+      label: Action name
+      description: snake_case, becomes the action key in skill.yaml.
+      placeholder: create_checklist_note
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: What the skill should do
+      description: One paragraph, written for someone who has never seen the codebase.
+    validations:
+      required: true
+  - type: textarea
+    id: params
+    attributes:
+      label: Params
+      description: Name, type, example value, one per line.
+      placeholder: |
+        title: string, "Groceries"
+        items: list[string], ["milk", "eggs"]
+    validations:
+      required: true
+  - type: textarea
+    id: validators
+    attributes:
+      label: Suggested end-state validators (at least 3)
+      description: What must be true on screen after a successful run.
+    validations:
+      required: true
+  - type: dropdown
+    id: side_effects
+    attributes:
+      label: Side effects
+      multiple: true
+      options:
+        - none
+        - sends_message
+        - posts_content
+        - modifies_account
+        - deletes_data
+        - makes_payment
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps for the contributor
+      value: |
+        1. `pip install ghost-in-the-droid` and connect one Android phone (`ghost skill doctor` should be green).
+        2. `ghost skill scaffold <your-github-login>/<slug> --app <package> --actions <action>`
+        3. Author the steps in `skill.yaml` (by hand, or `ghost skill mine` to draft them), fill `README.md` and `SOFT.md`, set `license:` and `generated_with:`.
+        4. `ghost skill validate <path>` and `ghost skill lint <path>` until clean.
+        5. `ghost skill run <path> <action> --record` to produce your signed self-run in `runs/`.
+        6. Record a demo GIF of a full run, 60 seconds max.
+        7. `ghost skill submit <path>` and link this issue in the PR body.
+        8. Ask for an independent run with the "Verify request" issue form, or in #verify-requests on Discord.
+  - type: input
+    id: mentor
+    attributes:
+      label: Mentor
+      description: GitHub handle of the maintainer or curator who answers questions within 48 hours.
+      placeholder: "@mentor-handle"
+    validations:
+      required: true
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Ground rules
+      options:
+        - label: Personal-account, terms-respecting action only (no mass messaging, engagement farming, or scraping other people's data).
+          required: true
+        - label: Tested only on accounts and contacts the contributor owns.
+          required: true

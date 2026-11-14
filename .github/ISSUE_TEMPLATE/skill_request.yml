@@ -1,0 +1,30 @@
+name: Skill request
+description: Request a new skill or action for the Skill Hub.
+title: '[skill request] '
+body:
+  - type: input
+    id: app
+    attributes:
+      label: App name and package
+      placeholder: WhatsApp, com.whatsapp
+    validations:
+      required: true
+  - type: textarea
+    id: actions
+    attributes:
+      label: Desired actions
+      description: Give example prompts and the expected final state.
+    validations:
+      required: true
+  - type: input
+    id: fingerprint
+    attributes:
+      label: Device and app fingerprint
+      description: OS, OS version, hardware and app version.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Existing alternatives and context
+      description: Include relevant skills and any human checkpoints. Exclude private data.

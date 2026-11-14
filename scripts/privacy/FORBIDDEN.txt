@@ -28,7 +28,7 @@ re:[A-Za-z]+s-iPhone[A-Za-z-]*
 re:[a-z0-9-]+\.coredevice\.local
 
 # ── API keys / tokens / secrets ──
-re:sk-[A-Za-z0-9_-]{16,}
+re:sk-(?!ecdsa-|ssh-)[A-Za-z0-9_-]{16,}
 re:sk-ant-[A-Za-z0-9_-]+
 re:AIza[0-9A-Za-z_-]{16,}
 re:ghp_[A-Za-z0-9]{16,}
@@ -39,7 +39,12 @@ re:AKIA[0-9A-Z]{16}
 re:-----BEGIN [A-Z ]*PRIVATE KEY-----
 
 # ── Credentials in output ──
-re:password\s*[:=]\s*(?!<REDACTED)\S+
+re:password\s*[:=]\s*(?!<REDACTED|\$\{\{|"?(?:true|false)\b)\S+
+# short credential labels at line start (pwd= in code is not matched: only pw / passwd)
+re:(?m)^\s*(?:pw|passwd)\s*[:=]\s*(?!<REDACTED)\S+
+
+# ── Personal mailboxes (real people use these; docs and fixtures use example.com) ──
+re:[A-Za-z0-9._%+-]+@(?:proton\.me|protonmail\.(?:com|ch)|pm\.me|gmail\.com|googlemail\.com|outlook\.com|hotmail\.com|live\.com|icloud\.com|gmx\.(?:de|net|com|at|ch)|web\.de|t-online\.de)\b
 re:Pwnd\w*
 
 # ── Private repos of this org (only android-agent is public) ──
@@ -47,3 +52,4 @@ re:Pwnd\w*
 # premium split is documented architecture; only repo URLs are a leak.
 re:github\.com/ghost-in-the-droid/(?!android-agent\b)[A-Za-z0-9_.-]+
 ghost-mirror
+

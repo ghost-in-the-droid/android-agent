@@ -1,0 +1,39 @@
+name: Skill Hub workflow security
+on:
+  pull_request:
+    paths: ['.github/**']
+permissions:
+  contents: read
+jobs:
+  workflows:
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Preserve trusted security helpers
+        run: |
+          mkdir -p /tmp/skill-security/tools
+          cp -r tools/ci /tmp/skill-security/tools/ci
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: '1.24'
+          cache: false
+      - name: Install workflow scanners
+        run: |
+          python3 -m pip install zizmor==1.23.1
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+      - name: Check all workflow syntax and audit changed workflow security
+        env:
+          PYTHONPATH: /tmp/skill-security
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 /tmp/skill-security/tools/ci/workflow_security.py --base "$BASE_SHA"

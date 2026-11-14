@@ -5,16 +5,21 @@ on:
     # Stable releases only — pre-release tags (v1.3.0-rc*) must not publish to PyPI.
     tags: ["v[0-9]+.[0-9]+.[0-9]+"]
 
+permissions:
+  contents: read
+
 jobs:
   publish:
-    runs-on: ubuntu-latest
-    # Only the public repo publishes; the private mirror has no PyPI credentials
-    # (empty PYPI_PROJECT_TOKEN there falls back to a failing OIDC exchange).
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
+    # Only the main repository publishes; forks have no PyPI credentials
+    # (an empty PYPI_PROJECT_TOKEN would fall back to a failing OIDC exchange).
     if: github.repository == 'ghost-in-the-droid/android-agent'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
 
@@ -31,6 +36,7 @@ jobs:
           python -c "from gitd.mcp_server import main; print('MCP entry point OK')"
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        # Pinned to release/v1 (v1.14.2). Token-based publish by design; trusted publishing is a public-repo config change.
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # zizmor: ignore[use-trusted-publishing]
         with:
-          password: ${{ secrets.PYPI_PROJECT_TOKEN }}
+          password: ${{ secrets.PYPI_PROJECT_TOKEN }} # zizmor: ignore[secrets-outside-env]
