@@ -1,0 +1,34 @@
+{
+  "version": "rep-v1.0",
+  "effective_from": "2026-11-03",
+  "description": "Contributor reputation on the Skill Hub. Single source of truth for tools/rep.py (registry.json `contributors`) and the 'How rep works' section of the /skills/scoring page. Identity is the GitHub login: the author namespace for published skills, the signed `verifier` principal for runs. There are no accounts and no seeded rep: every point comes from the registry build.",
+  "published": {
+    "per_skill": "quality_points",
+    "excluded_statuses": ["deprecated"],
+    "excluded_authors": ["androidworld"]
+  },
+  "verified": {
+    "independent_run": 5,
+    "new_device_class": 3,
+    "new_bench_model": 3
+  },
+  "maintained": {
+    "per_skill": 2
+  },
+  "badges": [
+    {"id": "author", "label": "Author", "rule": "published_skills >= 1", "description": "Publishes at least one skill on the hub."},
+    {"id": "verifier", "label": "Verifier", "rule": "verified_runs >= 1", "description": "At least one independent passing run of someone else's skill that counts."},
+    {"id": "device_pioneer", "label": "Device pioneer", "rule": "new_device_classes >= 1", "description": "First to verify a skill on a device class nobody had covered for it."},
+    {"id": "maintainer", "label": "Maintainer", "rule": "maintained_skills >= 1", "description": "Re-verifies other people's skills with a maintainer or platform key."}
+  ],
+  "rules": [
+    "Published: the sum of the current quality points of every skill in your author namespace. Deprecated skills earn nothing. Imported benchmark scaffolds (androidworld) have no human author and earn no rep.",
+    "Verified: points for each independent passing run of the current version of someone else's skill, counted the way the quality ladder counts it: one report per device fingerprint, never on a fingerprint the author recorded on, signed with your own key in SIGNERS.",
+    "Device pioneer bonus: the first independent passing run on a device class the skill had no independent pass on yet.",
+    "Bench model bonus: the first non-author passing run that carries a bench block for an agent model the author never benched this version with. The deterministic replay arm is not a model.",
+    "Maintained: a small fixed amount per skill of someone else's that you re-verified (maintainer or platform key, passing run of the current version). Your own runs of your own skills are self evidence and earn published points only through quality.",
+    "A new version resets run credit: only runs of the current version count, exactly like quality points.",
+    "Downloads, likes and stars are worth 0 rep.",
+    "Not enforced yet (planned): reciprocal verification caps, account age, random re-execution, decay."
+  ]
+}

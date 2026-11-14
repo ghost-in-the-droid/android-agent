@@ -1,0 +1,137 @@
+{
+  "version": "v1.3",
+  "effective_from": "2026-11-03",
+  "description": "Skill Hub quality ladder. Single source of truth for tools/quality.py and the site /skills/scoring page. Points are 0 to 100: the category caps sum to max_points. v1.3 (pre-launch, 2026-11-03): easier to score well on your own work, still hard to reach 90-100. Docs and self-evidence caps rise (20 and 30), independent and community usage shrink (30 and 10), two new items (a before/after pair recording, own runs on a second device), hardened needs 60 points. Proven is reachable on your own evidence (35 points, own passing runs on every action, a demo, 3 validator units on every action); the independent-run gate moved up to Hardened. Every trust rule is unchanged. Previous tables live in scoring/history/. After launch, values change only at season boundaries with 30 days notice.",
+  "max_points": 100,
+  "tiers": [
+    {
+      "id": "draft",
+      "points": 0
+    },
+    {
+      "id": "runs",
+      "points": 10
+    },
+    {
+      "id": "proven",
+      "points": 35
+    },
+    {
+      "id": "hardened",
+      "points": 60
+    },
+    {
+      "id": "reference",
+      "points": 90
+    }
+  ],
+  "categories": {
+    "docs": {
+      "cap": 20,
+      "items": {
+        "manifest": 3,
+        "readme": 3,
+        "failure_modes": 4,
+        "demo_any": 4,
+        "demo_all_actions": 3,
+        "before_after": 3
+      }
+    },
+    "self_evidence": {
+      "cap": 30,
+      "items": {
+        "first_self_run": 4,
+        "validators": {
+          "each": 2,
+          "cap": 8,
+          "per": "action",
+          "weights": {
+            "custom_python": 2,
+            "parameterised_text": 2,
+            "default": 1
+          }
+        },
+        "bench_one_model": 4,
+        "self_reliability": {
+          "cap": 10,
+          "min_runs": 3,
+          "per": "action"
+        },
+        "self_second_device": 4
+      }
+    },
+    "independent": {
+      "cap": 30,
+      "items": {
+        "first_independent": 12,
+        "second_device_class": 8,
+        "third_device_class": 4,
+        "bench_second_model": 4,
+        "bench_third_model": 2
+      }
+    },
+    "community_usage": {
+      "cap": 10,
+      "wilson_z": 1.96,
+      "min_runs": 10,
+      "window_days": 90
+    },
+    "maintenance": {
+      "cap": 10,
+      "reverified_within_days": 30,
+      "bug_response_within_days": 7,
+      "items": {
+        "reverified_30d": 6,
+        "bug_response_7d": {
+          "each": 2,
+          "cap": 4
+        }
+      },
+      "decay_days": 60
+    }
+  },
+  "freshness": {
+    "steps": [
+      {
+        "max_days": 90,
+        "multiplier": 1.0
+      },
+      {
+        "max_days": 180,
+        "multiplier": 0.8
+      }
+    ],
+    "floor": 0.5
+  },
+  "provisional_days": 7,
+  "gates": {
+    "proven_min_validators": 3,
+    "hardened_min_independent_device_classes": 1,
+    "hardened_min_oem_combos": 2,
+    "hardened_min_bench_models": 2,
+    "hardened_min_community_runs": 10,
+    "hardened_min_wilson_lb": 0.8,
+    "hardened_max_days_since_verified": 90,
+    "reference_min_hardened_days": 60
+  },
+  "rules": [
+    "Evidence is classified by the SIGNING KEY, never by the label on the artifact: self (recorded by the author), maintainer (signed with the author's or a maintainer-tier key, whatever verifier name it carries), ci (a platform verifier with its own key; none exists yet), independent (a SIGNERS key that is neither the author's nor maintainer-tier).",
+    "Only independent evidence earns independent points. Maintainer-signed replays and CI reproductions are shown on the card and feed maintenance, never the independent category.",
+    "A run counts only for the code on disk: its recorded version must equal the current version and, when it carries skill_sha256, that digest must equal the current shipped-file digest. Runs on older versions are shown as previous versions and earn nothing.",
+    "Run credit is per action: self, maintainer, ci and independent run counts are the minimum over the skill's actions of passing current runs that exercised that action. A skill with eight actions and runs for one has zero.",
+    "Validators earn points only on actions that have at least one passing current run, and never for a skill in status draft; the weakest action decides.",
+    "An independent device class counts only for a fingerprint the author has not recorded on; one report per fingerprint.",
+    "Maintenance (re-verified) comes from maintainer, ci or independent passing runs of the current version, never from the author's own runs; full value within 30 days, then a linear decay to zero at 60 days measured against the real build date.",
+    "Bench models are counted from verified artifacts that carry a bench block with an agent model; declarations in bench.yaml earn nothing. The deterministic replay arm is not a model.",
+    "Self-reliability needs 3 or more of your own verified current runs on EVERY action (the action with the fewest runs decides); then the Wilson lower bound over all your own current runs, pass or fail, earns points, so a small sample earns little.",
+    "Second device (self): every action needs your own passing current run on at least two distinct device fingerprints. Emulator and hardware fingerprints both count, and both are flagged.",
+    "Before / after: a no-skill vs with-skill pair clip (demos/before-after.webm, .mp4 or .gif, 3 MB max) plus demos/before-after.json (schema_version 1, measured seconds, tokens, tool calls and ok for each side). One recorded pair is presentation, never run evidence: it earns docs points only.",
+    "Tier gates (v1.3): Proven needs 35 points, your own passing current run on every action, at least one demo and 3 validator units on every action; it no longer needs an independent run. Hardened needs at least one independent device class on top of its v1.2 gates, and Reference needs Hardened, so the top two tiers still need other people's runs, community usage and maintenance.",
+    "A manifest is valid only when the loader reports no missing required field; official skills get no exception.",
+    "Emulator runs are recorded as such (emulator: true); artifacts without the field are reported as unknown, never as hardware.",
+    "Simulated (fake-device) runs, unsigned, tampered, mis-attributed artifacts and artifacts whose verifier field is missing are rejected and listed under rejected.",
+    "Trust is separate from quality: official (ghost), benchmark (imported AndroidWorld scaffolds), verified (a maintainer recorded a code review in skillhub/REVIEWED), unverified (everyone else). Verified is never automatic.",
+    "Downloads and likes are displayed and worth 0 points. Point values change only at season boundaries with 30 days notice.",
+    "Not enforced yet (planned): reciprocal verification caps, 14-day account age, random re-execution, tier freeze on a failing newer app version."
+  ]
+}
