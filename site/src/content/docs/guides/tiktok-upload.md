@@ -195,6 +195,6 @@ The `#zzdfXXXXXX` tag is intentionally added to drafts for identification. It sh
 
 ## Related
 
-- [Scrape Profiles](/guides/scrape-profiles/) -- find influencers to repost
+- [Macros Guide](/guides/macros/) -- record and replay what you just did
 - [Macros](/guides/macros/) -- record and replay custom workflows
 - [Scheduler](/features/scheduler/) -- automate the publish schedule

@@ -21,7 +21,7 @@ def _mk_run(status="awaiting_human"):
 
     db = SessionLocal()
     run = SkillRun(
-        device_serial="devCP", skill_name="proton_signup", kind="hard",
+        device_serial="devCP", skill_name="demo_login", kind="hard",
         target_type="workflow", target_name="recorded", status=status,
         checkpoint_json='{"reason": "captcha", "prompt": "solve the puzzle"}',
     )
@@ -144,8 +144,8 @@ def test_engine_checkpoint_auto_resolves_via_real_db():
 
     dev = MagicMock()
     dev.serial = "d"
-    dev.dump_xml.return_value = "<node text='mail.proton.me/u/0/inbox'/>"
-    step = {"action": "checkpoint", "reason": "captcha", "success": {"screen_has": "/inbox"}}
+    dev.dump_xml.return_value = "<node text='example.com/home'/>"
+    step = {"action": "checkpoint", "reason": "captcha", "success": {"screen_has": "/home"}}
     res = RecordedStepAction(dev, step, 0, run_id=rid).execute()
     assert res.success and res.data["resolution"] == "auto"
 

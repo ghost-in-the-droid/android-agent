@@ -96,9 +96,9 @@ def test_screen_has_matches_ui_tree():
 def test_url_contains_falls_back_to_ui_tree():
     dev = MagicMock()
     dev.serial = "d"
-    dev.dump_xml.return_value = "<node text='https://mail.proton.me/u/0/inbox'/>"
+    dev.dump_xml.return_value = "<node text='https://example.com/home'/>"
     # get_current_url will fail/return nothing in test → falls back to the tree
-    assert screen_condition_met(dev, {"url_contains": "/inbox"}) is True
+    assert screen_condition_met(dev, {"url_contains": "/home"}) is True
 
 
 # ── engine dispatch ───────────────────────────────────────────────────

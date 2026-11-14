@@ -1,263 +1,287 @@
 ---
-title: "🧬 Skill Classes"
-description: Full API reference for ActionResult, Element, Action, Workflow, and Skill classes from skills/base.py.
+title: "🧬 Skill Schema v2 Reference"
+description: The complete YAML spec for a Ghost skill — every field, every primitive, every default. Reference companion to /skills/creating-skills/.
 ---
 
-All skill system classes are defined in `gitd/skills/base.py` (262 lines).
+Full specification for `skill.yaml` in Ghost's Schema v2 (v1.6.0+).
 
-## ActionResult
+For the concept walkthrough, see [Skill System](/features/skill-system/). For the author how-to, see [Creating Skills](/skills/creating-skills/). This page is the field-by-field reference.
 
-Return value from action execution.
+---
 
-```python
-@dataclass
-class ActionResult:
-    success: bool
-    data: dict = field(default_factory=dict)
-    error: str = ""
-    duration_ms: float = 0.0
+## Top-level structure
+
+```yaml
+# Identity
+name: whatsapp-messaging           # kebab-case slug
+version: 1.0.0                     # SemVer
+author: alice                      # github handle (or "ghost" for official)
+description: "Send + receive DMs on WhatsApp"
+
+# Classification
+skill_class: hard | soft           # required
+data_access:                       # required — informational, drives Hub badge
+  - contacts | sms | camera | mic | location | notifications | clipboard | files | storage
+
+# Fingerprint (versioning matrix)
+fingerprint:
+  os: android | ios
+  os_version: ">=14"               # SemVer range
+  hardware: "samsung-s24" | "*"    # exact model or wildcard
+  app_package: com.whatsapp        # Android pkg or iOS bundle id
+  app_version: ">=2.24.15"
+
+# Entry (soft-skill web flows only)
+entry_url: "https://account.proton.me/mail/signup"    # optional
+
+# Registry
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/alice/whatsapp-messaging"
+
+# Popup handling (Layer 2)
+popup_detectors:
+  - {detect: "Allow WhatsApp", button: "Allow"}
+os_popup_policy:                   # Layer 1 per-skill overrides
+  allow_permissions: [storage]
+  deny_permissions: [contacts]
+  ignore: [google_play_update]
+
+# Subroutines (internal reusable step-lists — de-dup within skill)
+subroutines:
+  - name: open_chat_list
+    description: "..."
+    steps: [...]
+
+# Actions (first-class, agent-invocable)
+actions:
+  - name: send_msg
+    ref_prompt: "..."
+    params: [...]
+    pre_hooks: [...]
+    steps: [...]
+    checkpoints: [...]
+    end_state_validator: {...}
+    on_popup: {...}
+    test_case: {...}
 ```
 
-**Truthiness:** `ActionResult` is truthy when `success=True`:
+---
 
-```python
-result = action.run()
-if result:
-    print("Success:", result.data)
-else:
-    print("Failed:", result.error)
+## Actions
+
+```yaml
+actions:
+  - name: send_msg                       # kebab-case within skill's namespace
+    description: "Send a text to a contact"
+    ref_prompt: "Text John saying I'm running late"    # canonical NL phrase
+    params:
+      - name: contact_name
+        type: str
+        required: true
+        description: "Contact display name to search for"
+      - name: message
+        type: str
+        required: true
+      - name: attach_image
+        type: bool
+        default: false
+      - name: priority
+        type: enum
+        values: [normal, urgent]
+        default: normal
+      - name: tags
+        type: "list[str]"                # quoted — YAML flow syntax
+        default: []
+
+    # Optional pre-flow Python prep (runs BEFORE device steps)
+    pre_hooks:
+      - {python_action: "community.alice.whatsapp_messaging.helpers:normalize_contact"}
+
+    # The step sequence
+    steps:
+      - subroutine: open_chat_list
+      - {action: tap_element, id: search_button}
+      - {action: type_text, text: "{contact_name}"}
+      - {action: tap_element, text: "{contact_name}"}
+      - {action: type_text, text: "{message}"}
+      - {action: tap_element, desc: Send button}
+
+    # HITL/external-code/LLM-decision gates (makes skill soft)
+    checkpoints:
+      - after_step: send
+        reason: captcha                   # captcha | sms | email | login | llm_decision | generic
+        prompt: "Solve the captcha"
+        success: {kind: url_contains, substring: "/inbox"}
+        timeout_s: 60                     # default 60; 0 = wait indefinitely
+
+    # Popup override — for popups that are part of the flow (not to dismiss)
+    on_popup:
+      "Ad authorization":
+        method: accept
+        steps:
+          - {action: tap_element, text: "Authorize"}
+          - {action: tap_element, text: "Save"}
+
+    # Terminal state — REQUIRED
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "{message}"}
+        - {kind: element_present, desc: message_sent_check}
+
+    # Per-action bench + test spec
+    test_case:
+      ref_prompt_variants:
+        - "text mom I'll be home late"
+        - "message Jane about the meeting"
+      expected_success: true
 ```
 
-## Element
+---
 
-UI locator with fallback chain.
+## Step primitives (all 16 built-in)
 
-### Fields
+Every step is either `{action: <name>, ...args}` (name lookup) OR a structural key (`python_action`, `if_visible`, `retry`, `run_skill`, `subroutine`, `checkpoint`).
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `content_desc` | str | Accessibility content description (highest priority) |
-| `text` | str | Visible text label |
-| `resource_id` | str | Android resource ID |
-| `class_name` | str | Widget class name |
-| `x` | int | Absolute X coordinate (lowest priority) |
-| `y` | int | Absolute Y coordinate |
-| `description` | str | Human-readable description (not used for finding) |
+### Atomic device interactions
 
-### Methods
+| `action:` | Fields | Notes |
+|---|---|---|
+| `tap` | `x, y, delay_s?` | Coord tap |
+| `tap_element` | `id? \| desc? \| text? \| xpath?` | Locator chain: id → desc → text → xpath |
+| `type_text` | `text, clear_first?` | Types via `adb shell input text` w/ shell-safe quoting; supports `{param}` |
+| `long_press` | `x, y, duration_ms` | |
+| `swipe` | `x1, y1, x2, y2, duration_ms?` | |
+| `press_key` | `key: HOME \| BACK \| ENTER \| VOLUME_UP \| ...` | Uses Device shortcut methods where available, else adb keyevent |
+| `launch_app` | `package, activity?` | `am start -n pkg/act` or monkey launcher |
+| `launch_intent` | `intent_action, package?, activity?, mime_type?, data?, category?, extras?` | Full Android Intent. `content://` values in extras use `--eu` (URI). Needed for share flows. |
+| `open_url` | `url, browser?` | Chrome default, else launches specified pkg |
+| `screenshot` | `save_as?` | `screencap -p` |
+| `dump_xml` | `save_as?` | Fast uiautomator + Portal fallback |
+| `dismiss_popups` | — | Runs skill's `popup_detectors:` once explicitly |
 
-#### find(device, xml) -> tuple[int, int] | None
+### Waits
 
-Try each locator in priority order, return center coordinates of the first match.
+| `action:` | Fields |
+|---|---|
+| `wait_for_text` | `text, timeout_s?` (default 10). Mid-poll popup sweep enabled. |
+| `wait_for_element` | `id? \| desc? \| xpath?, timeout_s?` |
+| `sleep` | `duration_s` |
 
-```python
-element = skill.elements["search_icon"]
-coords = element.find(dev, xml)
-if coords:
-    dev.tap(*coords)
+### Control flow
+
+| Key | Fields |
+|---|---|
+| `if_visible:` | `{selector: {id\|desc\|text}, then: [steps], else?: [steps]}` |
+| `retry:` | `{max, backoff_s, steps: [...], on_failure?: <step>}` |
+| `run_skill:` | `{name: <user>/<slug>, action: <name>, params?: {...}}` — cross-skill composition |
+| `subroutine:` | `<name>` — in-skill composition (looks up `subroutines[]`) |
+| `checkpoint:` | `{reason, prompt, success: <validator>, timeout_s?}` — HITL/external-code gate |
+
+### Escape hatch
+
+| Key | Fields |
+|---|---|
+| `python_action:` | `<module>:<function>` — signature `(device, params, context) -> ActionResult`. Merges returned `.data` into `ctx.result`. |
+
+---
+
+## Validator primitives (all 7 built-in)
+
+Compose via `all_of` / `any_of` / `not` (recursive):
+
+```yaml
+end_state_validator:
+  all_of:
+    - {kind: text_visible, text: "Sent"}
+    - any_of:
+        - {kind: element_present, id: sent_check}
+        - {kind: pixel_at, x: 990, y: 1200, rgb: [34, 187, 51]}
+    - not:
+        {kind: text_visible, text: "Failed to send"}
 ```
 
-Priority: `content_desc` -> `text` -> `resource_id` -> `class_name` -> `(x, y)`
+| `kind:` | Fields | Description |
+|---|---|---|
+| `text_visible` | `text, exact?` | Text appears in a11y tree |
+| `element_present` | `id? \| desc? \| xpath?` | Element in a11y tree |
+| `url_contains` | `substring` | Current WebView URL |
+| `pixel_at` | `x, y, rgb: [r,g,b], tolerance?` (default 8) | Pixel color within tolerance |
+| `ocr_text_present` | `text, region?: {x, y, w, h}` | RapidOCR on screencap (optionally in region) |
+| `screen_hash` | `ref_hash, similarity_min?` (default 0.85) | Perceptual hash match |
+| `custom_python` | `function: <module>:<function>` | Predicate `(device, context) -> bool` |
 
-## Action (Abstract Base Class)
+Bare list at `end_state_validator:` level = AND semantics.
 
-Atomic operation with pre/post-condition validation and retry logic.
+---
 
-### Class Attributes
+## Interpolation
 
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `name` | str | required | Action identifier |
-| `description` | str | "" | Human-readable description |
-| `max_retries` | int | 2 | Number of retry attempts |
-| `retry_delay` | float | 1.0 | Seconds between retries |
+Placeholder syntax in yaml string values:
 
-### Methods
+- `{name}` — from `params[name]`
+- `{context.attr}` — from `ctx.extras[attr]` or `ctx.result[attr]` (set by python_action targets)
+- `{{literal}}` — escape (produces `{literal}`)
 
-#### precondition(dev, xml) -> bool
+Pipe filters:
 
-Verify device is in expected state before executing. Override to add validation. Default returns True.
+- `{name | capitalize}`, `| lower`, `| upper`, `| strip`, `| int`, `| str`, `| len`
+- `{tags | join:,}` — join list with separator arg
 
-```python
-def precondition(self, dev, xml):
-    return dev.find_bounds(xml, resource_id="com.app:id/search") is not None
+---
+
+## Subroutines
+
+```yaml
+subroutines:
+  - name: nav_to_profile_tab
+    description: "Launch TT + navigate to Profile tab. Idempotent."
+    steps:
+      - {action: launch_app, package: com.zhiliaoapp.musically}
+      - {action: sleep, duration_s: 3}
+      - {action: tap, x: 972, y: 2214}
+      - {action: wait_for_element, desc: "Profile menu"}
 ```
 
-#### execute(dev, **kwargs) -> ActionResult
+Rules:
+- Kebab-case name, unique within skill
+- Cannot collide with an action name
+- Non-empty `steps:` required
+- No `ref_prompt` / `end_state_validator` / `test_case` fields (not agent-invocable)
+- Called from step context: `- subroutine: nav_to_profile_tab`
+- Max recursion depth: 5 (shared stack with `run_skill:`)
+- Cycle detection built-in
 
-Perform the ADB operation. **Must be implemented** by subclasses.
+---
 
-```python
-def execute(self, dev, text="Hello", **kwargs):
-    dev.type_text(text)
-    return ActionResult(success=True, data={"typed": text})
-```
+## Fingerprint match rules
 
-#### postcondition(dev, xml) -> bool
+> **Status (v1.6.0):** fingerprint distance matching, warn-and-execute, refuse at 3+, `--strict-fingerprint` and `ghost skill doctor <ref> --device` are implemented (`gitd/skills/engine/fingerprint.py`); MCP `run_skill` returns the report under `fingerprint`. Adapt (LLM re-mines from SOFT.md) and Mine are planned for v1.7+, not implemented.
 
-Verify action succeeded. Override to add verification. Default returns True.
+At `run_action` time, engine compares skill's `fingerprint:` against the target device:
 
-```python
-def postcondition(self, dev, xml):
-    return "success" in dev.node_text(dev.nodes(xml)[0]).lower()
-```
+| Distance | Behavior (shipped) |
+|---|---|
+| 0 | Hit: execute as-is |
+| 1-2 | Warn + execute; the mismatched fields are printed (CLI) or returned under `fingerprint` (MCP) |
+| 3+ | Refuse with the mismatched fields; `--force-fingerprint` runs anyway. Adapt is planned (v1.7+) |
+| No skill exists | `ghost skill find "<intent>"` returns nothing; author one (`ghost skill scaffold`) |
 
-#### rollback(dev) -> None
+`--strict-fingerprint` requires distance 0; `--no-fingerprint-check` skips the probe; `ghost skill doctor <ref> --device <serial>` shows the fit before you run.
 
-Undo action on failure. Override if your action needs cleanup. Default is no-op.
+---
 
-```python
-def rollback(self, dev):
-    dev.back()  # go back if action failed
-```
+## Reserved keys
 
-#### run(dev, **kwargs) -> ActionResult
+- `trust:` — set by the registry, ignored if in author's skill.yaml
+- `submitted_by:`, `submitted_at:` in top-level — reserved for registry metadata
+- Any `python_action:` targeting outside the skill's own directory (`../../evil`) — hard-block in CI
+- Any `python_action:` doing `import os; os.system(...)` at module-load — soft-warn in CI, reviewer attention
 
-Orchestrator method. Do not override.
-
-Execution flow:
-1. `precondition()` -- if False, return failure
-2. `execute()` -- retry up to `max_retries` times
-3. After each execute: check `postcondition()` -- if True, return success
-4. On failure: call `rollback()`, wait `retry_delay`, retry
-5. All retries exhausted: return failure with last error
-
-## Workflow
-
-Composed action sequence.
-
-### Class Attributes
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `name` | str | Workflow identifier |
-| `description` | str | Human-readable description |
-| `params` | dict | Runtime parameters passed at instantiation |
-
-### Methods
-
-#### steps() -> list
-
-Return list of (action_name, params) tuples. **Must be overridden.**
-
-```python
-def steps(self):
-    return [
-        ("open_app", {}),
-        ("search_contact", {"query": self.params["contact"]}),
-        ("send_message", {"text": self.params["message"]}),
-    ]
-```
-
-#### run(dev) -> ActionResult
-
-Execute all steps in order. Stops on first failure.
-
-Returns `ActionResult` with:
-- `success=True` + `data={"completed_steps": N}` on success
-- `success=False` + `data={"completed_steps": N, "failed_step": "step_name"}` on failure
-
-## Skill
-
-Top-level container loaded from YAML.
-
-### Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `name` | str | Skill identifier (directory name) |
-| `app_package` | str | Android package name |
-| `version` | str | Skill version |
-| `elements` | dict[str, Element] | Loaded from elements.yaml |
-
-### Class Methods
-
-#### Skill.from_yaml(path) -> Skill
-
-Load a skill from a directory containing `skill.yaml` and optionally `elements.yaml`.
-
-```python
-skill = Skill.from_yaml("gitd/skills/whatsapp")
-```
-
-### Instance Methods
-
-#### register_action(action_cls)
-
-Register an Action subclass with the skill.
-
-```python
-from .actions.core import OpenApp
-skill.register_action(OpenApp)
-```
-
-#### register_workflow(workflow_cls)
-
-Register a Workflow subclass with the skill.
-
-#### get_action(name, device) -> Action
-
-Get an instantiated action by name, bound to the given device.
-
-```python
-action = skill.get_action("open_app", dev)
-result = action.run()
-```
-
-#### get_workflow(name, device, **params) -> Workflow
-
-Get an instantiated workflow by name with parameters.
-
-```python
-wf = skill.get_workflow("upload_video", dev, video_path="/tmp/video.mp4")
-result = wf.run()
-```
-
-#### list_actions() -> list[str]
-
-Return names of all registered actions.
-
-#### list_workflows() -> list[str]
-
-Return names of all registered workflows.
-
-## Complete Example
-
-```python
-from gitd.skills.base import Skill, Action, Workflow, ActionResult
-
-# Define an action
-class Greet(Action):
-    name = "greet"
-    description = "Open app and greet"
-
-    def execute(self, dev, name="World", **kwargs):
-        dev.adb("shell", "am", "start", "-n", "com.example/.Main")
-        import time; time.sleep(2)
-        dev.type_text(f"Hello {name}!")
-        return ActionResult(success=True, data={"greeted": name})
-
-# Define a workflow
-class GreetAll(Workflow):
-    name = "greet_all"
-    description = "Greet multiple people"
-
-    def steps(self):
-        return [("greet", {"name": n}) for n in self.params.get("names", [])]
-
-# Load and register
-skill = Skill.from_yaml("gitd/skills/my_app")
-skill.register_action(Greet)
-skill.register_workflow(GreetAll)
-
-# Run
-dev = Device()
-wf = skill.get_workflow("greet_all", dev, names=["Alice", "Bob"])
-result = wf.run()
-```
+---
 
 ## Related
 
-- [Skill System Feature](/features/skill-system/) -- architecture and execution flow
-- [Skills Overview](/skills/overview/) -- concepts and quick start
-- [API: Device Methods](/api/device-methods/) -- Device class methods used by actions
+- [Skill System](/features/skill-system/) — architectural walkthrough
+- [Execution Engine](/features/skill-execution-engine/) — runtime internals
+- [Creating Skills](/skills/creating-skills/) — author flow
+- Local `docs/skill-schema-v2.md` — most-detailed reference (source-of-truth for this page)
