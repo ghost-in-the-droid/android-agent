@@ -1,0 +1,108 @@
+# Ghost in the Droid: Outdoor Food Calculator (login-free FOSS seed skill, installed from F-Droid)
+# Outdoor Food Calculator (F-Droid): plan food for a hike or trip. Set the trip length and type, add foods by weight and read the calories, protein, carbs, fat and fibre per day against your targets. Offline, no account.
+
+name: outdoor-food-calculator
+version: 1.0.0
+author: ghost
+description: "Outdoor Food Calculator (F-Droid): plan food for a hike or trip. Set the trip length and type, add foods by weight and read the calories, protein, carbs, fat and fibre per day against your targets. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.birdbird.outdoorfoodcalc
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/outdoor-food-calculator"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: org.birdbird.outdoorfoodcalc}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_calculator
+    description: "Restart the app and read the trip settings and nutrient meters."
+    ref_prompt: "Open the Outdoor Food Calculator app"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_calculator"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:calculator_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the hiking food planner"
+      expected_success: true
+
+  - name: set_trip
+    description: "Set the number of days and/or the trip type."
+    ref_prompt: "Set my trip to 5 days, Multi-day hike"
+    demo_params: {days: 5, type: "Multi-day hike"}
+    params:
+      - {name: days, type: int, required: false, description: "trip length, 1 to 60"}
+      - {name: type, type: str, required: false, description: "Short activity, Multi-day hike or Long distance"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:set_trip"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:trip_set"}
+    test_case:
+      ref_prompt_variants:
+        - "plan food for a 4 day long distance trip"
+      expected_success: true
+
+  - name: add_food
+    description: "Add a food by weight and return the updated per-day totals."
+    ref_prompt: "Add 150 g of oat flakes to my trip food"
+    demo_params: {name: "Oat Flakes", grams: 150}
+    params:
+      - {name: name, type: str, required: true, description: "food name or part of it, for example Rice (dry) or Oat Flakes"}
+      - {name: grams, type: int, required: false, description: "amount in grams, default 100"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:add_food"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:food_added"}
+    test_case:
+      ref_prompt_variants:
+        - "add 200 grams of rice to my hiking food"
+      expected_success: true
+
+  - name: get_totals
+    description: "Read days, calories, protein, carbs, fat and fibre per day with targets."
+    ref_prompt: "How many calories per day is my trip food?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_food"
+      - python_action: "helpers:get_totals"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:totals_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show my trip nutrition"
+      expected_success: true

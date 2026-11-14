@@ -1,0 +1,19 @@
+{
+  "author": "ghost",
+  "slug": "send_gmail_email",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "21c794c14aa4bddc8bff8b379baae6d973c58acb",
+      "git_tree": null,
+      "sha256": "sha256:dfa1f26a4b36637160f5649f809d7fa0cbee2150ec24fd9a556e3c065318055a",
+      "size": 8129,
+      "released_at": null,
+      "attestation": null,
+      "demo": null,
+      "demos": {}
+    }
+  ]
+}

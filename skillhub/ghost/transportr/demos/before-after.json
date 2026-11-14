@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/transportr",
+ "action": "search_connections",
+ "prompt": "In Transportr using VBB, search connections from S+U Alexanderplatz Bhf to S+U Berlin Hauptbahnhof departing now. List the first three complete visible connections with service, departure, arrival and duration, then briefly compare them. Keep location denied; do not use current position, Home/Work, sharing or ticket links.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 101.63,
+  "tokens": 1573550,
+  "tool_calls": 35,
+  "ok": false
+ },
+ "after": {
+  "seconds": 36.29,
+  "tokens": 31062,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. BEFORE stopped at the 1.5M token cap (1,573,550 counted: final in-flight response overshot by 73,550), not a successful task; original attempt retained. AFTER completed all three requested service/departure/arrival/duration rows with one successful search_connections replay. Both sides have location permissions explicitly denied before launch. A checker-only false negative required repeating station names in the answer; corrected without retake because independent native UI and actual replay prove the exact requested endpoints and all three copied rows. Public live results may differ between takes. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

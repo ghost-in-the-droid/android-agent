@@ -1,0 +1,59 @@
+{
+  "author": "ghost",
+  "slug": "glider",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "c70717fbceb5e158a7e46a7d59a38b375d584728",
+      "git_tree": null,
+      "sha256": "sha256:94b5311e90188cd200f224dd4b483af0646e6aff167191867d904ff868dc9b9d",
+      "size": 15426,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demos/open.webm",
+        "bytes": 142134,
+        "type": "video/webm"
+      },
+      "demos": {
+        "back_to_stories": {
+          "path": "demos/back_to_stories.webm",
+          "bytes": 604998,
+          "type": "video/webm"
+        },
+        "open": {
+          "path": "demos/open.webm",
+          "bytes": 142134,
+          "type": "video/webm"
+        },
+        "open_comments": {
+          "path": "demos/open_comments.webm",
+          "bytes": 669323,
+          "type": "video/webm"
+        },
+        "read_comments": {
+          "path": "demos/read_comments.webm",
+          "bytes": 935144,
+          "type": "video/webm"
+        },
+        "read_stories": {
+          "path": "demos/read_stories.webm",
+          "bytes": 172945,
+          "type": "video/webm"
+        },
+        "scroll": {
+          "path": "demos/scroll.webm",
+          "bytes": 987018,
+          "type": "video/webm"
+        },
+        "select_category": {
+          "path": "demos/select_category.webm",
+          "bytes": 393723,
+          "type": "video/webm"
+        }
+      }
+    }
+  ]
+}

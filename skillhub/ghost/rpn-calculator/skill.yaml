@@ -1,0 +1,152 @@
+# Ghost in the Droid: RPNcalc (login-free FOSS seed skill, installed from F-Droid)
+# RPNcalc (F-Droid): a reverse Polish notation (stack) calculator. Type numbers, press Enter, apply operators and read the stack, or evaluate a whole RPN expression. Offline, no account.
+
+name: rpn-calculator
+version: 1.0.0
+author: ghost
+description: "RPNcalc (F-Droid): a reverse Polish notation (stack) calculator. Type numbers, press Enter, apply operators and read the stack, or evaluate a whole RPN expression. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: dev.pesic.rpncalc
+  app_version: ">=1.3"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/rpn-calculator"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: dev.pesic.rpncalc}
+      - {action: sleep, duration_s: 2.0}
+
+actions:
+  - name: open_calc
+    description: "Restart the app and read the stack."
+    ref_prompt: "Open the RPN calculator"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_calc"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:calc_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open RPNcalc"
+      expected_success: true
+
+  - name: clear_all
+    description: "Clear the entry and the whole stack."
+    ref_prompt: "Clear the RPN calculator stack"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:clear_all"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:cleared"}
+    test_case:
+      ref_prompt_variants:
+        - "clear the stack"
+      expected_success: true
+
+  - name: type_number
+    description: "Type a number into the X register (digits, a dot, a leading minus). Follow with enter before the next number."
+    ref_prompt: "Type the number 12.5 on the RPN calculator"
+    demo_params: {value: "12.5"}
+    params:
+      - {name: value, type: str, required: true, description: "A number like 12, -3.5 or .25"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:type_number"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:typed"}
+    test_case:
+      ref_prompt_variants:
+        - "key in 42"
+      expected_success: true
+
+  - name: enter
+    description: "Press Enter: lifts the stack and leaves a copy of X that the next typed number overwrites."
+    ref_prompt: "Press Enter on the RPN calculator"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:enter"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:entered"}
+    test_case:
+      ref_prompt_variants:
+        - "push the number on the stack"
+      expected_success: true
+
+  - name: operate
+    description: "Apply an operator to the top of the stack: + - * / ^ % neg swap."
+    ref_prompt: "Add the top two numbers on the RPN calculator"
+    demo_params: {op: "neg"}
+    params:
+      - {name: op, type: str, required: true, description: "+, -, *, /, ^, %, neg or swap"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:operate"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:operated"}
+    test_case:
+      ref_prompt_variants:
+        - "multiply the top two numbers"
+        - "swap x and y"
+      expected_success: true
+
+  - name: evaluate
+    description: "Clear the stack and evaluate a whole RPN expression such as '3 4 + 2 *' (tokens separated by spaces; operators + - * / ^ neg)."
+    ref_prompt: "Evaluate 3 4 + 2 * in reverse Polish notation"
+    demo_params: {expression: "3 4 + 2 *"}
+    params:
+      - {name: expression, type: str, required: true, description: "RPN tokens separated by spaces, e.g. 3 4 + 2 *"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:evaluate"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:evaluated"}
+    test_case:
+      ref_prompt_variants:
+        - "compute (3+4)*2 with the RPN calculator"
+        - "what is 10 4 - 2.5 /"
+      expected_success: true
+
+  - name: get_stack
+    description: "Read the stack (top of stack first)."
+    ref_prompt: "What is on the RPN calculator stack?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_stack"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:stack_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show the stack"
+      expected_success: true

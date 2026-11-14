@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/vector-pinball",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.dozingcatsoftware.bouncy",
+    "app_version": "1.16.0"
+  },
+  "fingerprint_hash": "a5d56037a8dfa6326323f317334482438d40b933bfe541af3d12f0c8e13930b2",
+  "app_version": "1.16.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T22:38:49.265752+00:00",
+  "finished_at": "2026-11-05T22:38:49.265752+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "end_game",
+      "success": true,
+      "duration_ms": 9315.374537996831,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 1716.984742997738
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1827.7743470025598
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 5002.2665439973935
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 530.5226029959158
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:6e59f65ad70dde39931c33e73fef525af8effcce3e7e8ad82e4b4044d4a63d81",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQK2l/M/K2pccgaAUQEknbyPLp1uTNm/8SuCU/+QZ7EYAHD6g4v\nVVxI/mE3WmJJx3UzOfB3hGdZVMrt0UDUbFRgY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

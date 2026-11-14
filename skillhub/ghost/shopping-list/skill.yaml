@@ -1,0 +1,142 @@
+# Ghost in the Droid: Shopping List (login-free FOSS seed skill, installed from F-Droid)
+# A plain offline shopping list: add items with an optional quantity, read the list back.
+
+name: shopping-list
+version: 1.0.0
+author: ghost
+description: "Shopping List app (F-Droid): add items with a quantity, add several at once, read the whole list back. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [deletes_data]
+destructive: true
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: com.woefe.shoppinglist
+  app_version: ">=0.11.0"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/shopping-list"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_list
+    description: "Launch Shopping List on the list screen."
+    steps:
+      - {action: launch_app, package: com.woefe.shoppinglist}
+      - {action: sleep, duration_s: 1.5}
+      - {action: wait_for_element, id: "com.woefe.shoppinglist:id/toolbar_main", timeout_s: 10}
+
+actions:
+  - name: add_item
+    description: "Add one item with an optional quantity to the shopping list."
+    ref_prompt: "Add milk to my shopping list"
+    demo_params: {name: Milk, quantity: "2"}
+    params:
+      - {name: name, type: str, required: true, description: "Item name"}
+      - {name: quantity, type: str, default: "", description: "Quantity text, e.g. 2 or 500g"}
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:add_item"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "{name}"}
+        - {kind: element_present, id: "com.woefe.shoppinglist:id/text_description"}
+        - {kind: custom_python, function: "helpers:items_added"}
+    test_case:
+      ref_prompt_variants:
+        - "put eggs on the shopping list"
+        - "add 3 apples to my groceries"
+        - "I need bread, add it to the list"
+      expected_success: true
+
+  - name: add_items
+    description: "Add several items at once (comma separated or a list), no quantities."
+    ref_prompt: "Add milk, eggs and bread to my shopping list"
+    demo_params: {items: "Milk, Eggs, Bread"}
+    params:
+      - {name: items, type: str, required: true, description: "Comma separated item names"}
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:add_items"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.woefe.shoppinglist:id/text_description"}
+        - {kind: element_present, id: "com.woefe.shoppinglist:id/layout_add_item"}
+        - {kind: custom_python, function: "helpers:items_added"}
+    test_case:
+      ref_prompt_variants:
+        - "add rice, beans and salt to the shopping list"
+        - "buy tomatoes and onions"
+      expected_success: true
+
+  - name: get_items
+    description: "Return every item on the shopping list with its quantity."
+    ref_prompt: "What is on my shopping list?"
+    params: []
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:read_items"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.woefe.shoppinglist:id/toolbar_main"}
+        - {kind: element_present, id: "com.woefe.shoppinglist:id/fab_add"}
+        - {kind: custom_python, function: "helpers:items_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read my shopping list"
+        - "what do I still need to buy"
+      expected_success: true
+
+  - name: check_item
+    description: "Tap an item's row to toggle its checked (grey) state. The app does not expose the state to accessibility, so the result reports which row was tapped."
+    ref_prompt: "Tick off milk on my shopping list"
+    params:
+      - {name: name, type: str, required: true, description: "Item name as shown"}
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:check_item"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "{name}"}
+        - {kind: element_present, id: "com.woefe.shoppinglist:id/text_description"}
+        - {kind: custom_python, function: "helpers:item_tapped"}
+    test_case:
+      ref_prompt_variants:
+        - "mark eggs as bought"
+        - "cross bread off the list"
+      expected_success: true
+
+  - name: remove_checked
+    description: "Delete every checked (grey) item after the app's own confirmation. Needs confirm=yes."
+    ref_prompt: "Remove the items I already bought from my shopping list"
+    params:
+      - {name: confirm, type: str, required: true, description: "Must be 'yes': this deletes the checked items"}
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:require_confirm"
+      - {action: tap_element, id: "com.woefe.shoppinglist:id/action_delete_checked"}
+      - {action: wait_for_text, text: "Remove all checked items?", timeout_s: 5}
+      - {action: tap_element, id: "android:id/button1"}
+      - {action: sleep, duration_s: 1}
+      - python_action: "helpers:read_items"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.woefe.shoppinglist:id/toolbar_main"}
+        - {kind: element_present, id: "com.woefe.shoppinglist:id/fab_add"}
+        - {kind: custom_python, function: "helpers:items_read"}
+    test_case:
+      ref_prompt_variants:
+        - "clear the bought items"
+        - "delete checked items from the list"
+      expected_success: true

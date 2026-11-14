@@ -1,0 +1,161 @@
+name: redreader
+version: 1.0.1
+author: ghost
+description: Read public Reddit posts and comments through anonymous RedReader. Search
+  a subreddit, list titles/scores/comment counts and summarize visible text without
+  login or engagement.
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: medium
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: org.quantumbadger.redreader
+  app_version: '>=1.27,<1.28'
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/redreader
+actions:
+- name: open
+  description: Open the public anonymous main menu
+  ref_prompt: Open the public anonymous main menu
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:home_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the public anonymous main menu in redreader
+    expected_success: true
+- name: browse_subreddit
+  description: Open a public subreddit and read visible posts
+  ref_prompt: Open a public subreddit and read visible posts
+  params:
+  - name: subreddit
+    type: str
+    description: Subreddit name only
+    required: true
+  - name: limit
+    type: int
+    description: 1 to 6 complete visible posts
+    default: 3
+  steps:
+  - python_action: helpers:browse_subreddit
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:posts_ok
+  test_case:
+    ref_prompt_variants:
+    - Open a public subreddit and read visible posts in redreader
+    expected_success: true
+- name: search_posts
+  description: Search a public subreddit and read visible matching posts
+  ref_prompt: Search a public subreddit and read visible matching posts
+  params:
+  - name: subreddit
+    type: str
+    description: Subreddit name only
+    required: true
+  - name: query
+    type: str
+    description: ASCII search query
+    required: true
+  - name: limit
+    type: int
+    description: 1 to 6 visible posts
+    default: 3
+  steps:
+  - python_action: helpers:search_posts
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:posts_ok
+  test_case:
+    ref_prompt_variants:
+    - Search a public subreddit and read visible matching posts in redreader
+    expected_success: true
+- name: read_posts
+  description: Read current public listing as structured post metadata
+  ref_prompt: Read current public listing as structured post metadata
+  params:
+  - name: limit
+    type: int
+    description: 1 to 6 visible posts
+    default: 3
+  steps:
+  - python_action: helpers:read_posts
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:posts_ok
+  test_case:
+    ref_prompt_variants:
+    - Read current public listing as structured post metadata in redreader
+    expected_success: true
+- name: open_post
+  description: Open comments for one visible post without opening its external link
+  ref_prompt: Open comments for one visible post without opening its external link
+  params:
+  - name: index
+    type: int
+    description: Zero based complete visible post index
+    required: true
+  - name: limit
+    type: int
+    description: 1 to 5 visible comments
+    default: 3
+  steps:
+  - python_action: helpers:open_post
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:thread_ok
+  test_case:
+    ref_prompt_variants:
+    - Open comments for one visible post without opening its external link in redreader
+    expected_success: true
+- name: read_thread
+  description: Read visible post body and comments without account or engagement
+  ref_prompt: Read visible post body and comments without account or engagement
+  params:
+  - name: limit
+    type: int
+    description: 1 to 5 complete visible comments
+    default: 3
+  steps:
+  - python_action: helpers:read_thread
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:thread_ok
+  test_case:
+    ref_prompt_variants:
+    - Read visible post body and comments without account or engagement in redreader
+    expected_success: true
+- name: back_to_posts
+  description: Return from a thread to its public post listing
+  ref_prompt: Return from a thread to its public post listing
+  params: []
+  steps:
+  - python_action: helpers:back_to_posts
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:posts_ok
+  test_case:
+    ref_prompt_variants:
+    - Return from a thread to its public post listing in redreader
+    expected_success: true

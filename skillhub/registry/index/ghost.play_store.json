@@ -1,0 +1,19 @@
+{
+  "author": "ghost",
+  "slug": "play_store",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "3b44c3afc0b13802de82629f974cefb03f2dd07f",
+      "git_tree": null,
+      "sha256": "sha256:11781190d3958f726f24db0edad2abd8336eecee43cbb52329283aadc01adc30",
+      "size": 22286,
+      "released_at": null,
+      "attestation": null,
+      "demo": null,
+      "demos": {}
+    }
+  ]
+}

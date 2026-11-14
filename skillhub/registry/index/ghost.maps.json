@@ -1,0 +1,19 @@
+{
+  "author": "ghost",
+  "slug": "maps",
+  "latest": "1.0.1",
+  "versions": [
+    {
+      "version": "1.0.1",
+      "tag": null,
+      "commit": "bd5dfbd80a5dc5e85678897935bfc72edbd43c01",
+      "git_tree": null,
+      "sha256": "sha256:e69f1e5f4e94ef379102145c232843faccf3e47781dc0f62fbfcd81e28bb61e6",
+      "size": 23115,
+      "released_at": null,
+      "attestation": null,
+      "demo": null,
+      "demos": {}
+    }
+  ]
+}

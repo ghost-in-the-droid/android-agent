@@ -1,0 +1,252 @@
+name: tiktok_ios
+description: TikTok iOS automation smoke skill using Appium/WebDriverAgent
+version: "0.1.0"
+tos_risk: high   # vendor ToS bans automated access / account creation by bots; published for research, not for live accounts
+app_package: ""
+ios_bundle_id: com.zhiliaoapp.musically
+platforms:
+  - ios
+
+platform_limitations:
+  ios:
+    - Upload/posting is not implemented yet; this skill validates launch, navigation, popup handling, and search primitives.
+
+exports:
+  actions:
+    - open_app
+    - dismiss_popup
+    - tap_search
+    - type_and_search
+    - navigate_to_profile
+    - capture_visible_text
+    - wait_visible_text
+    - verify_visible_text
+  workflows:
+    - open_app_smoke
+    - search_smoke
+    - profile_smoke
+
+default_params:
+  actions:
+    type_and_search:
+      query: "#fyp"
+    verify_visible_text:
+      expected: "TikTok"
+    wait_visible_text:
+      expected: "TikTok"
+      timeout: 8
+      max_lines: 300
+    capture_visible_text:
+      max_lines: 80
+  workflows:
+    search_smoke:
+      query: "#fyp"
+      max_lines: 80
+      wait_timeout: 8
+    profile_smoke:
+      max_lines: 80
+      expected: "Profile"
+      wait_timeout: 8
+
+# >>> ghost skill migrate (schema v2): generated, re-run to refresh >>>
+author: ghost
+skill_class: hard
+license: MIT
+generated_with: ghost skill migrate
+fingerprint:
+  os: ios
+  os_version: '*'
+  hardware: '*'
+  app_package: com.zhiliaoapp.musically
+  app_version: '*'
+actions:
+- name: open_app_smoke
+  description: Launch TikTok on iOS and dismiss common first-run prompts
+  ref_prompt: Launch TikTok on iOS and dismiss common first-run prompts
+  steps:
+  - python_action: helpers:run_open_app_smoke
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Launch TikTok on iOS and dismiss common first-run prompts
+    expected_success: true
+- name: search_smoke
+  description: Launch TikTok on iOS, open search, and submit a query
+  ref_prompt: Launch TikTok on iOS, open search, and submit a query
+  params:
+  - name: query
+    type: str
+    required: false
+    default: '#fyp'
+  - name: max_lines
+    type: int
+    required: false
+    default: 80
+  - name: wait_timeout
+    type: float
+    required: false
+    default: 8.0
+  steps:
+  - python_action: helpers:run_search_smoke
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Launch TikTok on iOS, open search, and submit a query
+    expected_success: true
+- name: profile_smoke
+  description: Launch TikTok on iOS, navigate to Profile, and capture visible text evidence
+  ref_prompt: Launch TikTok on iOS, navigate to Profile, and capture visible text evidence
+  params:
+  - name: max_lines
+    type: int
+    required: false
+    default: 80
+  - name: expected
+    type: str
+    required: false
+    default: Profile
+  - name: wait_timeout
+    type: float
+    required: false
+    default: 8.0
+  steps:
+  - python_action: helpers:run_profile_smoke
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Launch TikTok on iOS, navigate to Profile, and capture visible text evidence
+    expected_success: true
+- name: open_app
+  description: Launch TikTok on iOS
+  ref_prompt: Launch TikTok on iOS
+  steps:
+  - python_action: helpers:run_open_app
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Launch TikTok on iOS
+    expected_success: true
+- name: dismiss_popup
+  description: Dismiss common TikTok iOS popups when visible
+  ref_prompt: Dismiss common TikTok iOS popups when visible
+  steps:
+  - python_action: helpers:run_dismiss_popup
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Dismiss common TikTok iOS popups when visible
+    expected_success: true
+- name: tap_search
+  description: Tap TikTok iOS search control
+  ref_prompt: Tap TikTok iOS search control
+  steps:
+  - python_action: helpers:run_tap_search
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Tap TikTok iOS search control
+    expected_success: true
+- name: type_and_search
+  description: Type a query into TikTok iOS search and submit
+  ref_prompt: Type a query into TikTok iOS search and submit
+  params:
+  - name: query
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_type_and_search
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Type a query into TikTok iOS search and submit
+    expected_success: true
+- name: navigate_to_profile
+  description: Tap TikTok iOS Profile tab
+  ref_prompt: Tap TikTok iOS Profile tab
+  steps:
+  - python_action: helpers:run_navigate_to_profile
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Tap TikTok iOS Profile tab
+    expected_success: true
+- name: capture_visible_text
+  description: Capture visible TikTok iOS text for workflow evidence
+  ref_prompt: Capture visible TikTok iOS text for workflow evidence
+  params:
+  - name: max_lines
+    type: int
+    required: false
+    default: 80
+  steps:
+  - python_action: helpers:run_capture_visible_text
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Capture visible TikTok iOS text for workflow evidence
+    expected_success: true
+- name: wait_visible_text
+  description: Wait until expected TikTok iOS text is visible
+  ref_prompt: Wait until expected TikTok iOS text is visible
+  params:
+  - name: expected
+    type: str
+    required: false
+    default: TikTok
+  - name: timeout
+    type: float
+    required: false
+    default: 8.0
+  - name: interval
+    type: float
+    required: false
+    default: 0.5
+  - name: max_lines
+    type: int
+    required: false
+    default: 300
+  steps:
+  - python_action: helpers:run_wait_visible_text
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Wait until expected TikTok iOS text is visible
+    expected_success: true
+- name: verify_visible_text
+  description: Verify expected text appears in TikTok iOS XML
+  ref_prompt: Verify expected text appears in TikTok iOS XML
+  params:
+  - name: expected
+    type: str
+    required: false
+    default: TikTok
+  steps:
+  - python_action: helpers:run_verify_visible_text
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Verify expected text appears in TikTok iOS XML
+    expected_success: true
+# <<< ghost skill migrate <<<

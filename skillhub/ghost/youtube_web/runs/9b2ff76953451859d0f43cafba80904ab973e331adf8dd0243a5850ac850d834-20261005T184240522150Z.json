@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/youtube_web",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.android.chrome",
+    "app_version": "113.0.5672.136"
+  },
+  "fingerprint_hash": "9b2ff76953451859d0f43cafba80904ab973e331adf8dd0243a5850ac850d834",
+  "app_version": "113.0.5672.136",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:42:40.522150+00:00",
+  "finished_at": "2026-10-05T18:42:40.522150+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_video_info",
+      "success": true,
+      "duration_ms": 3653.339901997242,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 329.9891159986146
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3283.6443510022946
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQBop1/1LRUb8JJXWJ2PLaHwjRt8nbpOQR1FyY55lixeIoXbeKE\n8N/QmXq+LwyCTzgdioSVwXJet2PqrdBIpaiwQ=\n-----END SSH SIGNATURE-----\n"
+  }
+}

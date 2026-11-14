@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/xtra",
+ "action": "read_games",
+ "prompt": "In Xtra, list the first three public game categories with their displayed viewer and broadcaster counts. Briefly compare their audiences. Do not open any stream, video or clip, sign in or follow anything.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 20.85,
+  "tokens": 42546,
+  "tool_calls": 6,
+  "ok": true
+ },
+ "after": {
+  "seconds": 14.62,
+  "tokens": 31496,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Both original takes succeeded on the public Games category list: BEFORE 20.85s/42,546 tokens/6 calls, AFTER 14.62s/31,496 tokens/5 calls. Only category names and displayed rounded viewer/broadcaster counts were requested; no stream was opened. Final tree confirms empty player container/no video surfaces. Live counts can refresh between sides. BEFORE TOKCAP=1.5M; native wake/keep-awake preparation is identical on both sides and restored afterward. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

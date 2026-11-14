@@ -1,0 +1,162 @@
+# Ghost in the Droid: Privacy Friendly Notes (login-free FOSS seed skill, installed from F-Droid)
+# Privacy Friendly Notes (F-Droid): create text notes and checklists, list, search, read and tick items. Offline, no account.
+
+name: privacy-friendly-notes
+version: 1.0.1
+author: ghost
+description: "Privacy Friendly Notes (F-Droid): create text notes and checklists, list, search, read and tick items. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.secuso.privacyfriendlynotes
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/privacy-friendly-notes"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app and dismiss its first-run welcome pager."
+    steps:
+      - {action: launch_app, package: org.secuso.privacyfriendlynotes}
+      - {action: sleep, duration_s: 2.5}
+      - python_action: "helpers:skip_intro"
+
+actions:
+  - name: open_notes
+    description: "Restart the app, skip the welcome pages and read the note list."
+    ref_prompt: "Open my Privacy Friendly Notes list"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_notes"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:notes_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open Privacy Friendly Notes"
+      expected_success: true
+
+  - name: create_note
+    description: "Create a text note with a title and a body."
+    ref_prompt: "Create a text note called Garden plan"
+    demo_params: {title: "Garden plan", text: "Plant tomatoes in May"}
+    params:
+      - {name: title, type: str, required: true, description: "note title, 1 to 60 characters"}
+      - {name: text, type: str, required: true, description: "note text, 1 to 300 characters"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:create_note"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:note_created"}
+    test_case:
+      ref_prompt_variants:
+        - "write a note in Privacy Friendly Notes"
+      expected_success: true
+
+  - name: create_checklist
+    description: "Create a checklist note from comma-separated items."
+    ref_prompt: "Create a checklist called Groceries with milk and eggs"
+    demo_params: {title: "Groceries", items: "Milk,Eggs"}
+    params:
+      - {name: title, type: str, required: true, description: "checklist title, 1 to 60 characters"}
+      - {name: items, type: str, required: true, description: "1 to 12 items separated by commas"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:create_checklist"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:note_created"}
+    test_case:
+      ref_prompt_variants:
+        - "make a shopping checklist"
+      expected_success: true
+
+  - name: list_notes
+    description: "Return every note with its title, preview and done counter (checklists show for example 0/2)."
+    ref_prompt: "List my notes in Privacy Friendly Notes"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_notes"
+      - python_action: "helpers:list_notes"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:notes_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "what notes do I have"
+      expected_success: true
+
+  - name: read_note
+    description: "Open a note by exact title and return its text or its checklist items with checked state."
+    ref_prompt: "Read my note called Garden plan"
+    demo_params: {title: "Groceries"}
+    params:
+      - {name: title, type: str, required: true, description: "exact note title"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_notes"
+      - python_action: "helpers:read_note"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:note_read"}
+    test_case:
+      ref_prompt_variants:
+        - "open my Groceries checklist"
+      expected_success: true
+
+  - name: check_item
+    description: "Tick (or untick) one item of a checklist and save."
+    ref_prompt: "Tick milk on my Groceries checklist"
+    demo_params: {title: "Groceries", item: "Milk"}
+    params:
+      - {name: title, type: str, required: true, description: "exact checklist title"}
+      - {name: item, type: str, required: true, description: "exact item text"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_notes"
+      - python_action: "helpers:check_item"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:item_checked"}
+    test_case:
+      ref_prompt_variants:
+        - "check off eggs on the shopping list"
+      expected_success: true
+
+  - name: search_notes
+    description: "Search the notes and return the matching cards, then clear the search."
+    ref_prompt: "Search my Privacy Friendly Notes for tomatoes"
+    demo_params: {query: "tomatoes"}
+    params:
+      - {name: query, type: str, required: true, description: "search text"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_notes"
+      - python_action: "helpers:search_notes"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:searched"}
+    test_case:
+      ref_prompt_variants:
+        - "find the note about the garden"
+      expected_success: true

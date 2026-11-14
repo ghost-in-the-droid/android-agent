@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/wikipedia",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.wikipedia",
+    "app_version": "r/50611-r-2026-10-07"
+  },
+  "fingerprint_hash": "77132cd191aa8657880a1dd178b98d47eebfbf2c366000f2eb1e72f1062a1fd6",
+  "app_version": "r/50611-r-2026-10-07",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T15:17:18.123452+00:00",
+  "finished_at": "2026-11-05T15:17:18.123452+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_featured_article",
+      "success": true,
+      "duration_ms": 41464.2618350008,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 22469.77464700103
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 6236.58372400314
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 2202.9505950013117
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 7962.264548001258
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:48dda29431f26887ca7af9bd3a789ef6285d05f5fd2407ce4c4ffd5221aac150",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHm5Nj/dOGNyv4k8hGSiaM0VTRlRUDZ/mo376VtkGMZWvAQfoH\n3O+X5eDcJDGnGZ9tsjRlsCpPqAqs7mEn9mSw0=\n-----END SSH SIGNATURE-----\n"
+  }
+}

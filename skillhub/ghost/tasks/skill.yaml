@@ -1,0 +1,127 @@
+# Ghost in the Droid: Tasks.org (login-free FOSS seed skill, installed from F-Droid)
+# Local lists only: the first-run screen is answered with "Continue without sync";
+# the skill never adds an account and never syncs.
+
+name: tasks
+version: 1.0.1
+author: ghost
+description: "Tasks.org (F-Droid), local lists only: add a task, list open tasks, search, mark a task done. No account, no sync."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]     # creates and completes local tasks only
+destructive: false
+tos_risk: low
+locale: [en-US, en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: org.tasks
+  app_version: ">=15.12"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/tasks"
+
+popup_detectors:
+  - {detect: "Continue without sync", button: "Continue without sync", label: "First-run account choice (local lists)"}
+  - {detect: "Reminders are disabled in Android Settings", button: "Dismiss", label: "Enable-reminders banner"}
+  - {detect: "Allow Tasks.org to send you notifications", button: "Don’t allow", label: "Notification permission prompt"}
+
+subroutines:
+  - name: open_task_list
+    description: "Fresh launch to My Tasks; first-run and banner popups are handled by the detectors."
+    steps:
+      - python_action: "helpers:close_tasks"
+      - {action: launch_app, package: org.tasks}
+      - {action: sleep, duration_s: 2}
+      - {action: dismiss_popups}
+      - {action: wait_for_element, id: "org.tasks:id/fab", timeout_s: 30}
+      - {action: dismiss_popups}
+
+actions:
+  - name: add_task
+    description: "Create a task in the default local list with a title and optional notes."
+    ref_prompt: "Add a task to water the plants"
+    params:
+      - {name: title, type: str, required: true, description: "Task title"}
+      - {name: notes, type: str, default: "", description: "Optional description"}
+    steps:
+      - subroutine: open_task_list
+      - python_action: "helpers:open_editor"
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_text, text: "{title}", timeout_s: 20}
+      # Save is the toolbar icon; tapped only when no heads-up notification is pinned.
+      - python_action: "helpers:save_task"
+      - {action: wait_for_element, id: "org.tasks:id/fab", timeout_s: 20}
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "{title}"}
+        - {kind: custom_python, function: "helpers:task_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "remind me to buy stamps"
+        - "new todo: call the bank, about the card"
+        - "put renew passport on my task list"
+      expected_success: true
+
+  - name: list_tasks
+    description: "Return open tasks in My Tasks with notes and section header."
+    ref_prompt: "What's on my to-do list?"
+    params: []
+    steps:
+      - subroutine: open_task_list
+      - python_action: "helpers:list_tasks"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.tasks:id/fab"}
+        - {kind: custom_python, function: "helpers:tasks_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "list my tasks"
+        - "what do I still need to do"
+        - "show open todos"
+      expected_success: true
+
+  - name: search_tasks
+    description: "Search tasks by text and return the matches."
+    ref_prompt: "Find my task about stamps"
+    params:
+      - {name: query, type: str, required: true, description: "Text to search in titles and notes"}
+    steps:
+      - subroutine: open_task_list
+      - python_action: "helpers:search"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:search_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "search tasks for bank"
+        - "do I have a todo about plants"
+        - "look up passport in my tasks"
+      expected_success: true
+
+  - name: complete_task
+    description: "Tick the checkbox of an open task by exact title so it leaves the open list."
+    ref_prompt: "Mark water plants as done"
+    params:
+      - {name: title, type: str, required: true, description: "Exact task title"}
+    steps:
+      - subroutine: open_task_list
+      - python_action: "helpers:complete"
+      - {action: sleep, duration_s: 1}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.tasks:id/fab"}
+        - {kind: custom_python, function: "helpers:task_gone"}
+    test_case:
+      ref_prompt_variants:
+        - "I bought the stamps, tick it off"
+        - "complete the task call the bank"
+        - "check off renew passport"
+      expected_success: true

@@ -1,0 +1,101 @@
+# Ghost in the Droid: YouTube on the mobile web (login-free seed skill)
+# Runs m.youtube.com in Chrome without an account. The preinstalled YouTube app
+# on a device that was never signed in to Play is usually too old for YouTube's
+# servers and cannot update, so the web client is the dependable login-free path.
+
+name: youtube_web
+version: 1.0.0
+author: ghost
+description: "YouTube without an account via m.youtube.com in Chrome: search videos, read a video's title/channel/stats, list a channel's latest uploads."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [network]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.android.chrome
+  app_version: ">=113.0"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/youtube_web"
+
+popup_detectors:
+  - {detect: "Use without an account", button: "Use without an account", label: "Chrome first-run sign-in screen"}
+  - {detect: "Chrome notifications make things easier", button: "No thanks", label: "Chrome notification explainer"}
+
+subroutines:
+  - name: chrome_ready
+    description: "Bring Chrome up past its first-run screens."
+    steps:
+      - {action: launch_app, package: com.android.chrome}
+      - {action: wait_for_element, id: "com.android.chrome:id/menu_button", timeout_s: 20}
+
+actions:
+  - name: search_videos
+    description: "Search YouTube and return up to max_results videos: title, channel, meta (views, age, length or live viewers), kind (video, live, short), video_id when the row exposes it."
+    ref_prompt: "Search YouTube for lofi hip hop"
+    params:
+      - {name: query, type: str, required: true}
+      - {name: max_results, type: int, default: 10}
+      - {name: include_shorts, type: bool, default: false, description: "Also return entries from the Shorts shelf"}
+    steps:
+      - subroutine: chrome_ready
+      - python_action: "helpers:search_videos"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.android.chrome:id/url_bar"}
+        - {kind: custom_python, function: "helpers:videos_found"}
+    test_case:
+      ref_prompt_variants:
+        - "find youtube videos about sourdough bread"
+        - "what are the top results for android automation on youtube"
+        - "look up python tutorials on youtube"
+      expected_success: true
+
+  - name: get_video_info
+    description: "Open a video by its 11-character id and return title, channel, handle, subscribers and stats; playback is paused right away."
+    ref_prompt: "What is YouTube video dQw4w9WgXcQ?"
+    params:
+      - {name: video_id, type: str, required: true, description: "11-character id from watch?v="}
+    steps:
+      - subroutine: chrome_ready
+      - python_action: "helpers:get_video_info"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.android.chrome:id/url_bar"}
+        - {kind: custom_python, function: "helpers:video_info_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "who uploaded this youtube video"
+        - "get the title of youtube id jNQXAC9IVRw"
+        - "how many likes does this video have"
+      expected_success: true
+
+  - name: list_channel_videos
+    description: "Open a channel's Videos tab by @handle and return its name, subscriber count, total videos and the latest uploads."
+    ref_prompt: "What did Lofi Girl upload recently?"
+    params:
+      - {name: handle, type: str, required: true, description: "Channel handle with or without @"}
+      - {name: max_results, type: int, default: 10}
+    steps:
+      - subroutine: chrome_ready
+      - python_action: "helpers:list_channel_videos"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:channel_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "latest videos from @veritasium"
+        - "how many subscribers does MKBHD have"
+        - "list the newest uploads of a youtube channel"
+      expected_success: true

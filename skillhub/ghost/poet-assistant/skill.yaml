@@ -1,0 +1,89 @@
+# Ghost in the Droid: Poet Assistant (login-free FOSS seed skill, installed from F-Droid)
+# Poet Assistant (F-Droid): an offline rhyming dictionary, thesaurus and dictionary. Look up a word and read its rhymes, synonyms and antonyms or its definitions. No account.
+
+name: poet-assistant
+version: 1.0.0
+author: ghost
+description: "Poet Assistant (F-Droid): an offline rhyming dictionary, thesaurus and dictionary. Look up a word and read its rhymes, synonyms and antonyms or its definitions. No account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: ca.rmen.android.poetassistant
+  app_version: ">=1.32"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/poet-assistant"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: ca.rmen.android.poetassistant}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_poet
+    description: "Restart the app and read its state."
+    ref_prompt: "Open Poet Assistant"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_poet"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:poet_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the rhyming dictionary"
+      expected_success: true
+
+  - name: lookup
+    description: "Look a word up and return the result of one tab: rhymes (default), thesaurus (synonyms and antonyms per part of speech) or dictionary (definitions)."
+    ref_prompt: "Find words that rhyme with love"
+    demo_params: {word: "love", mode: "rhymes"}
+    params:
+      - {name: word, type: str, required: true, description: "A word (letters, ASCII)"}
+      - {name: mode, type: str, required: false, description: "rhymes (default), thesaurus or dictionary"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:lookup"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:looked_up"}
+    test_case:
+      ref_prompt_variants:
+        - "synonyms for happy"
+        - "define moon"
+        - "what rhymes with night"
+      expected_success: true
+
+  - name: get_results
+    description: "Read the result list of the tab that is currently shown."
+    ref_prompt: "Show the current Poet Assistant results"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_results"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:results_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what are the results"
+      expected_success: true

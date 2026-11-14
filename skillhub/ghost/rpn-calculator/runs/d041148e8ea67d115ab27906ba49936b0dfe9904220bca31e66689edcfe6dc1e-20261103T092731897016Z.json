@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/rpn-calculator",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "dev.pesic.rpncalc",
+    "app_version": "1.3.1"
+  },
+  "fingerprint_hash": "d041148e8ea67d115ab27906ba49936b0dfe9904220bca31e66689edcfe6dc1e",
+  "app_version": "1.3.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T09:27:31.897016+00:00",
+  "finished_at": "2026-11-03T09:27:31.897016+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "type_number",
+      "success": true,
+      "duration_ms": 4167.904824993457,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3003.5914199979743
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1113.794577002409
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:32e1945101bcff54d132d1940fc9eda08d004962d261bad965d76cae065172b8",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQNxOqq8k9dygqTuXzfTYXNLVudup5z9vzOqWuME302BIzrDfIa\nxmL1T4gkXzNC7lxqIvbFp1cE3MTD5dwDFM1wo=\n-----END SSH SIGNATURE-----\n"
+  }
+}

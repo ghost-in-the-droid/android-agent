@@ -1,0 +1,221 @@
+name: safari
+description: Configurable iOS Chrome/browser smoke automation
+version: "0.1.0"
+app_package: ""
+ios_bundle_id: com.google.chrome.ios
+platforms:
+  - ios
+
+exports:
+  actions:
+    - open_browser
+    - open_safari
+    - open_url
+    - verify_page
+    - read_news
+  workflows:
+    - open_ghost_site
+    - read_news
+
+default_params:
+  actions:
+    open_browser:
+      bundle_id: "com.google.chrome.ios"
+    open_url:
+      url: "https://ghostinthedroid.com"
+    verify_page:
+      expected: "ghostinthedroid"
+    read_news:
+      url: "https://text.npr.org/"
+      max_headlines: 5
+      max_articles: 3
+      bundle_id: "com.google.chrome.ios"
+  workflows:
+    open_ghost_site:
+      url: "https://ghostinthedroid.com"
+      bundle_id: "com.google.chrome.ios"
+    read_news:
+      url: "https://text.npr.org/"
+      max_headlines: 5
+      max_articles: 3
+      bundle_id: "com.google.chrome.ios"
+      save_screenshots: true
+      out_dir: "data/ios_chrome_news_smoke"
+
+# >>> ghost skill migrate (schema v2): generated, re-run to refresh >>>
+author: ghost
+skill_class: hard
+license: MIT
+generated_with: ghost skill migrate
+fingerprint:
+  os: ios
+  os_version: '*'
+  hardware: '*'
+  app_package: com.google.chrome.ios
+  app_version: '*'
+actions:
+- name: open_ghost_site
+  description: Open ghostinthedroid.com in the configured iOS browser
+  ref_prompt: Open ghostinthedroid.com in the configured iOS browser
+  params:
+  - name: url
+    type: str
+    required: false
+    default: https://ghostinthedroid.com
+  - name: bundle_id
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_open_ghost_site
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Open ghostinthedroid.com in the configured iOS browser
+    expected_success: true
+- name: read_news
+  description: Read headlines and article snippets from a text-friendly news site in iOS Chrome/browser
+  ref_prompt: Read headlines and article snippets from a text-friendly news site in iOS Chrome/browser
+  params:
+  - name: url
+    type: str
+    required: false
+    default: https://text.npr.org/
+  - name: max_headlines
+    type: int
+    required: false
+    default: 5
+  - name: max_articles
+    type: int
+    required: false
+    default: 3
+  - name: bundle_id
+    type: str
+    required: false
+  - name: wait_s
+    type: float
+    required: false
+    default: 2.0
+  - name: save_screenshots
+    type: bool
+    required: false
+    default: false
+  - name: out_dir
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_read_news
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Read headlines and article snippets from a text-friendly news site in iOS Chrome/browser
+    expected_success: true
+- name: open_browser
+  description: Launch the configured iOS browser
+  ref_prompt: Launch the configured iOS browser
+  params:
+  - name: bundle_id
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_open_browser
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Launch the configured iOS browser
+    expected_success: true
+- name: open_safari
+  description: Launch the configured iOS browser; kept as a compatibility alias
+  ref_prompt: Launch the configured iOS browser; kept as a compatibility alias
+  params:
+  - name: bundle_id
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_open_safari
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Launch the configured iOS browser; kept as a compatibility alias
+    expected_success: true
+- name: open_url
+  description: Open a URL in the active iOS browser
+  ref_prompt: Open a URL in the active iOS browser
+  params:
+  - name: url
+    type: str
+    required: false
+    default: https://ghostinthedroid.com
+  steps:
+  - python_action: helpers:run_open_url
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Open a URL in the active iOS browser
+    expected_success: true
+- name: verify_page
+  description: Verify expected text is visible in the iOS browser source
+  ref_prompt: Verify expected text is visible in the iOS browser source
+  params:
+  - name: expected
+    type: str
+    required: false
+    default: ghostinthedroid
+  steps:
+  - python_action: helpers:run_verify_page
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Verify expected text is visible in the iOS browser source
+    expected_success: true
+- name: read_news_action
+  description: Open a news site in iOS Chrome/browser and extract headlines plus article snippets
+  ref_prompt: Open a news site in iOS Chrome/browser and extract headlines plus article snippets
+  params:
+  - name: url
+    type: str
+    required: false
+    default: https://text.npr.org/
+  - name: max_headlines
+    type: int
+    required: false
+    default: 5
+  - name: max_articles
+    type: int
+    required: false
+    default: 3
+  - name: bundle_id
+    type: str
+    required: false
+  - name: wait_s
+    type: float
+    required: false
+    default: 2.0
+  - name: save_screenshots
+    type: bool
+    required: false
+    default: false
+  - name: out_dir
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_read_news_action
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Open a news site in iOS Chrome/browser and extract headlines plus article snippets
+    expected_success: true
+# <<< ghost skill migrate <<<

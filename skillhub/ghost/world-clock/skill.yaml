@@ -1,0 +1,130 @@
+name: world-clock
+version: 1.0.0
+author: ghost
+description: Read offline world clocks and current-time comparisons in Zham without
+  location, accounts or alarms. Add exact IANA city zones, read native times, inspect
+  converter snapshots and reset the app comparison to Now.
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access: []
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: io.github.haykh.zham
+  app_version: '>=1.1.2,<1.2'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/world-clock
+actions:
+- name: open
+  description: Open offline Zham city clocks
+  ref_prompt: Open offline Zham city clocks
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:clocks_ok
+  test_case:
+    ref_prompt_variants:
+    - Open offline Zham city clocks in world-clock
+    expected_success: true
+- name: read_clocks
+  description: Read visible cities, IANA zones and clock times
+  ref_prompt: Read visible cities, IANA zones and clock times
+  params: []
+  steps:
+  - python_action: helpers:read_clocks
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:clocks_ok
+  test_case:
+    ref_prompt_variants:
+    - Read visible cities, IANA zones and clock times in world-clock
+    expected_success: true
+- name: add_city
+  description: Add an exact public IANA time zone to the local city list
+  ref_prompt: Add an exact public IANA time zone to the local city list
+  params:
+  - name: zone
+    type: str
+    description: Area/City IANA zone such as Europe/Berlin; visible row capacity only
+    required: true
+  steps:
+  - python_action: helpers:add_city
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:clocks_ok
+  test_case:
+    ref_prompt_variants:
+    - Add an exact public IANA time zone to the local city list in world-clock
+    expected_success: true
+- name: open_converter
+  description: Open a time comparison snapshot for the listed cities
+  ref_prompt: Open a time comparison snapshot for the listed cities
+  params: []
+  steps:
+  - python_action: helpers:open_converter
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:conversion_ok
+  test_case:
+    ref_prompt_variants:
+    - Open a time comparison snapshot for the listed cities in world-clock
+    expected_success: true
+- name: read_conversion
+  description: Read the reference city/date and visible time comparison snapshot
+  ref_prompt: Read the reference city/date and visible time comparison snapshot
+  params: []
+  steps:
+  - python_action: helpers:read_conversion
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:conversion_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the reference city/date and visible time comparison snapshot in world-clock
+    expected_success: true
+- name: reset_now
+  description: Reset the converter snapshot to the current instant
+  ref_prompt: Reset the converter snapshot to the current instant
+  params: []
+  steps:
+  - python_action: helpers:reset_now
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:conversion_ok
+  test_case:
+    ref_prompt_variants:
+    - Reset the converter snapshot to the current instant in world-clock
+    expected_success: true
+- name: back_to_clocks
+  description: Return from the converter to the live city clock list
+  ref_prompt: Return from the converter to the live city clock list
+  params: []
+  steps:
+  - python_action: helpers:back_to_clocks
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:clocks_ok
+  test_case:
+    ref_prompt_variants:
+    - Return from the converter to the live city clock list in world-clock
+    expected_success: true

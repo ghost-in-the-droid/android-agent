@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/thermocouples",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "com.southerntemp.thermocouples",
+    "app_version": "4.0.3"
+  },
+  "fingerprint_hash": "bec89bf54f5f9dc1194109b474c0e70428c1d24566e1187dfee29c02bdf575df",
+  "app_version": "4.0.3",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T19:26:09.127525+00:00",
+  "finished_at": "2026-11-03T19:26:09.127525+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "compare_types",
+      "success": true,
+      "duration_ms": 14387.746048989356,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 11731.955981987994
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:a1463030208c18b185f01be8bd021dc628b3bc74105b4d480f1870bf781972f1",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQKB0w+7BXOOF14UvpsBG/wwpLlB27E0panVca+8MN/K26UYfcJ\n5kirCXryD6nsY0xMV1KxbzkjS7sLMVr0d33wY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

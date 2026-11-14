@@ -1,0 +1,105 @@
+# Ghost in the Droid: Google Photos (login-free seed skill)
+# Photos works without an account as a gallery for on-device media. The
+# "Keep your memories safe / Sign in to back up" sheet is dismissed by tapping
+# outside it; backup is never turned on.
+
+name: photos
+version: 1.0.1
+author: ghost
+description: "Google Photos without an account: list on-device photos and videos with dates and folders, open one in the viewer, check the Trash."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [photos]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.google.android.apps.photos
+  app_version: ">=6.29"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/photos"
+
+os_popup_policy:
+  allow_permissions: [storage]   # Photos needs media access to show the device library
+
+popup_detectors:
+  - {detect: "Allow Photos to send you notifications?", button: "Don’t allow", label: "Notification permission"}
+  - {detect: "Update your Google Photos app", button: "Not now", label: "Update promo (no Play account to update with)"}
+
+subroutines:
+  - name: open_home
+    description: "Cold-start Photos on the home grid with the backup sheet dismissed."
+    steps:
+      - python_action: "helpers:open_home"
+      - {action: wait_for_element, id: "com.google.android.apps.photos:id/tab_photos", timeout_s: 10}
+
+actions:
+  - name: list_photos
+    description: "List on-device photos and videos (newest first) with kind, date taken and folder; scrolls up to max_items."
+    ref_prompt: "What photos do I have on this phone?"
+    params:
+      - {name: max_items, type: int, default: 50, description: "Stop after this many items"}
+    steps:
+      - subroutine: open_home
+      - python_action: "helpers:list_photos"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.apps.photos:id/tab_photos"}
+        - {kind: custom_python, function: "helpers:items_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "how many pictures are in my gallery"
+        - "list my recent photos"
+        - "when was my last photo taken"
+      expected_success: true
+
+  - name: open_photo
+    description: "Open the index-th item of the library (0 = newest) full screen; videos open in the player. Returns kind (photo or video) and date."
+    ref_prompt: "Show me my latest photo"
+    params:
+      - {name: index, type: int, default: 0, description: "0 = newest"}
+    steps:
+      - subroutine: open_home
+      - python_action: "helpers:open_photo"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:viewer_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the last picture I took"
+        - "show the third newest photo"
+        - "view my most recent photo"
+      expected_success: true
+
+  - name: count_trash
+    description: "Open Trash from the navigation drawer and report how many items it holds."
+    ref_prompt: "Is there anything in my Photos trash?"
+    params: []
+    steps:
+      - subroutine: open_home
+      - {action: tap_element, desc: "Show Navigation Drawer"}
+      - {action: wait_for_text, text: "Trash", timeout_s: 8}
+      - {action: tap_element, text: "Trash"}
+      - {action: wait_for_element, desc: "Navigate up", timeout_s: 8}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:count_trash"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Trash"}
+        - {kind: custom_python, function: "helpers:trash_read"}
+    test_case:
+      ref_prompt_variants:
+        - "how many photos are in the trash"
+        - "check google photos bin"
+        - "is my photos trash empty"
+      expected_success: true

@@ -1,0 +1,109 @@
+# Ghost in the Droid: Scoreboard (login-free FOSS seed skill, installed from F-Droid)
+# A local score table for game nights: players, rounds, totals.
+
+name: scoreboard
+version: 1.0.0
+author: ghost
+description: "Scoreboard (F-Droid): add players, add rounds, set each player's score per round and read the table with totals. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: com.github.vatbub.scoreboard
+  app_version: ">=1.0"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/scoreboard"
+
+popup_detectors: []
+
+actions:
+  - name: add_player
+    description: "Add a player column and optionally name it."
+    ref_prompt: "Add a player called Anna to the scoreboard"
+    demo_params: {name: Anna}
+    params:
+      - {name: name, type: str, required: false, description: "Player name, letters digits spaces"}
+    steps:
+      - {action: launch_app, package: com.github.vatbub.scoreboard}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:add_player"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.github.vatbub.scoreboard:id/fab"}
+        - {kind: custom_python, function: "helpers:player_added"}
+    test_case:
+      ref_prompt_variants:
+        - "add a player"
+        - "new player named Ben"
+      expected_success: true
+
+  - name: add_round
+    description: "Add a round (a new row of scores)."
+    ref_prompt: "Add a new round to the scoreboard"
+    params: []
+    steps:
+      - {action: launch_app, package: com.github.vatbub.scoreboard}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:add_round"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.github.vatbub.scoreboard:id/fab"}
+        - {kind: custom_python, function: "helpers:round_added"}
+    test_case:
+      ref_prompt_variants:
+        - "next round"
+        - "add a row"
+      expected_success: true
+
+  - name: set_score
+    description: "Set one player's score in one round (1-based round and player numbers)."
+    ref_prompt: "Give player 1 a score of 7 in round 1"
+    demo_params: {round: 1, player: 1, value: 7}
+    params:
+      - {name: round, type: int, required: true, description: "Round number, 1-based"}
+      - {name: player, type: int, required: true, description: "Player number, 1-based"}
+      - {name: value, type: int, required: true, description: "Score"}
+    steps:
+      - {action: launch_app, package: com.github.vatbub.scoreboard}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:set_score"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.github.vatbub.scoreboard:id/fab"}
+        - {kind: custom_python, function: "helpers:score_set"}
+    test_case:
+      ref_prompt_variants:
+        - "score 5 for player 2 in round 1"
+      expected_success: true
+
+  - name: get_scores
+    description: "Read the players, the rounds and the totals."
+    ref_prompt: "Show the scoreboard"
+    params: []
+    steps:
+      - {action: launch_app, package: com.github.vatbub.scoreboard}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:get_scores"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.github.vatbub.scoreboard:id/fab"}
+        - {kind: custom_python, function: "helpers:table_read"}
+    test_case:
+      ref_prompt_variants:
+        - "who is winning"
+        - "read the scores"
+      expected_success: true
+

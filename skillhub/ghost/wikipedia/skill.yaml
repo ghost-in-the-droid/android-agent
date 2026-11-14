@@ -1,0 +1,155 @@
+# Ghost in the Droid: Wikipedia (official Wikimedia app, FOSS via F-Droid, login-free seed skill)
+
+name: wikipedia
+version: 1.0.0
+author: ghost
+description: "Wikipedia: search articles, read an article's title, description and lead, get today's featured article, save an article offline. No account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]      # save_article only adds to the on-device Saved list
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [network]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: org.wikipedia
+  app_version: "*"        # tested r/50606-r-2026-09-09; the app's versionName is not SemVer
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/wikipedia"
+
+# First-run onboarding (4 pages) and promos. Content-desc buttons match too.
+popup_detectors:
+  - {detect: "Learn more about Wikipedia", button: "Forward", label: "Onboarding 1/4"}
+  - {detect: "should not have to provide personal information", button: "Forward", label: "Onboarding 2/4 privacy"}
+  - {detect: "Add or edit your languages", button: "Forward", label: "Onboarding 3/4 languages"}
+  - {detect: "Select topics that interest you", button: "Skip", label: "Onboarding 4/4 interests"}
+  - {detect: "Select at least one interest", button: "Skip", label: "Onboarding 4/4 interests (scrolled)"}
+  - {detect: "A Faster way to Search", button: "Close", label: "Search widget promo"}
+os_popup_policy:
+  deny_permissions: [notifications]
+
+subroutines:
+  - name: home
+    description: "Launch Wikipedia, clear onboarding, back out of article/search screens to the Home feed."
+    steps:
+      - {action: launch_app, package: org.wikipedia}
+      - {action: sleep, duration_s: 2}
+      - if_visible:
+          selector: {desc: "Navigate up"}
+          then:
+            - {action: press_key, key: BACK}
+            - {action: sleep, duration_s: 1}
+      - if_visible:
+          selector: {desc: "Navigate up"}
+          then:
+            - {action: press_key, key: BACK}
+            - {action: sleep, duration_s: 1}
+      - {action: wait_for_element, id: "org.wikipedia:id/nav_tab_home", timeout_s: 30}
+
+actions:
+  - name: search_articles
+    description: "Search Wikipedia (English) and return the top article titles with their short descriptions."
+    ref_prompt: "Search Wikipedia for Alan Turing"
+    params:
+      - {name: query, type: str, required: true}
+      - {name: limit, type: int, default: 8}
+    steps:
+      - subroutine: home
+      - {action: tap_element, id: "org.wikipedia:id/nav_tab_search"}
+      - {action: wait_for_element, id: "org.wikipedia:id/search_card", timeout_s: 10}
+      - {action: tap_element, id: "org.wikipedia:id/search_card"}
+      - {action: wait_for_element, id: "org.wikipedia:id/search_src_text", timeout_s: 10}
+      - {action: type_text, text: "{query}"}
+      - {action: sleep, duration_s: 3}
+      - python_action: "helpers:search_results"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.wikipedia:id/search_src_text"}
+        - {kind: custom_python, function: "helpers:has_results"}
+    test_case:
+      ref_prompt_variants:
+        - "look up quantum computing on wikipedia"
+        - "find wikipedia articles about the Eiffel Tower"
+        - "wikipedia search black holes"
+      expected_success: true
+
+  - name: open_article
+    description: "Open an English Wikipedia article by title and return its title, short description and lead paragraph."
+    ref_prompt: "What does Wikipedia say about Ada Lovelace?"
+    params:
+      - {name: title, type: str, required: true, description: "Article title, e.g. Ada_Lovelace or Ada Lovelace"}
+    steps:
+      - subroutine: home
+      - action: launch_intent
+        intent_action: android.intent.action.VIEW
+        data: "https://en.wikipedia.org/wiki/{title}"
+        package: org.wikipedia
+      - {action: wait_for_element, id: "pcs-edit-section-title-description", timeout_s: 20}
+      - python_action: "helpers:read_article"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.wikipedia:id/page_save"}
+        - {kind: custom_python, function: "helpers:article_matches"}
+    test_case:
+      ref_prompt_variants:
+        - "summarize the wikipedia article on photosynthesis"
+        - "open the Mount Everest article"
+        - "read me the intro of Marie Curie on wikipedia"
+      expected_success: true
+
+  - name: get_featured_article
+    description: "Return today's Featured article from the Explore feed: date, title, description, extract."
+    ref_prompt: "What's today's featured article on Wikipedia?"
+    params: []
+    steps:
+      - subroutine: home
+      - {action: tap_element, id: "org.wikipedia:id/nav_tab_home"}
+      - {action: sleep, duration_s: 2}   # the feed keeps its scroll position; the helper scrolls to the top
+      - python_action: "helpers:featured_article"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.wikipedia:id/nav_tab_home"}
+        - {kind: custom_python, function: "helpers:featured_read"}
+    test_case:
+      ref_prompt_variants:
+        - "wikipedia featured article today"
+        - "show me the article of the day"
+      expected_success: true
+
+  - name: save_article
+    description: "Open an article by title and save it to the on-device Saved list (available offline)."
+    ref_prompt: "Save the Wikipedia article on Alan Turing for offline reading"
+    params:
+      - {name: title, type: str, required: true}
+    steps:
+      - subroutine: home
+      - action: launch_intent
+        intent_action: android.intent.action.VIEW
+        data: "https://en.wikipedia.org/wiki/{title}"
+        package: org.wikipedia
+      - {action: wait_for_element, id: "pcs-edit-section-title-description", timeout_s: 20}
+      - python_action: "helpers:read_article"
+      # Idempotent: on an already-saved article the same sheet opens with the bookmark filled.
+      - {action: tap_element, id: "org.wikipedia:id/page_save"}
+      - {action: wait_for_element, desc: "Drag handle", timeout_s: 10}
+      - python_action: "helpers:read_save_sheet"
+      - {action: press_key, key: BACK}
+      - {action: sleep, duration_s: 1}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.wikipedia:id/page_save"}
+        - {kind: custom_python, function: "helpers:article_saved"}
+    test_case:
+      ref_prompt_variants:
+        - "bookmark the wikipedia page for Berlin"
+        - "keep the Moon article for offline"
+      expected_success: true

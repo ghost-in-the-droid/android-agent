@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/weather",
+ "action": "add_location",
+ "prompt": "Add Berlin to my weather locations",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 52.61,
+  "tokens": 1007186,
+  "tool_calls": 23,
+  "ok": true
+ },
+ "after": {
+  "seconds": 14.86,
+  "tokens": 20541,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "Fixed skill 98e2b5bf, 3/3 clean-reset phone B replays before AFTER retake. Original BEFORE retained. Original AFTER (17.46s/80364 tokens, success=False) preserved in originals/weather.mp4. New AFTER 14.86s/20541 tokens/3 calls, actual run_skill success. Every-frame terminal OCR and source-cast gate passed. Country Germany verified; previous New Hampshire result remains in original clip.",
+ "source": "phone-b-before-after"
+}

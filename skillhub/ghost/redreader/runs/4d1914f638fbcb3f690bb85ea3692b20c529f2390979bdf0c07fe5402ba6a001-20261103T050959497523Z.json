@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/redreader",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.quantumbadger.redreader",
+    "app_version": "1.27"
+  },
+  "fingerprint_hash": "4d1914f638fbcb3f690bb85ea3692b20c529f2390979bdf0c07fe5402ba6a001",
+  "app_version": "1.27",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T05:09:59.497523+00:00",
+  "finished_at": "2026-11-03T05:09:59.497523+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "open_post",
+      "success": true,
+      "duration_ms": 14682.734906993574,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 12049.59979600244
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:5764da677333c58bc23149a9889f1094d3c804bd4e9da44af246b70e26017e4b",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQK9UYEf3v92yQLbOzFv/tN5YDLLotYZaXhSZOym0rOLnnxEosl\nYdRdhQcOPLmblWgId6CF4x/RGOwbmTq5W3DQg=\n-----END SSH SIGNATURE-----\n"
+  }
+}

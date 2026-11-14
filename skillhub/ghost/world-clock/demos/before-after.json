@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/world-clock",
+ "action": "add_city",
+ "prompt": "In Zham, add Europe/Berlin and list the visible cities with their IANA time-zone identifiers. Tell me how many hours Tokyo is ahead of London, using the displayed clocks. Do not change settings or use alarms.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 30.77,
+  "tokens": 74545,
+  "tool_calls": 10,
+  "ok": true
+ },
+ "after": {
+  "seconds": 22.53,
+  "tokens": 40077,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Original BEFORE retained and verified from end.png plus recorded public UI: 30.77s/74,545 tokens/10 calls. AFTER 22.53s/40,077 tokens/5 calls succeeded with wake/keyguard preparation and keep-awake; the initial screen-off AFTER failure is preserved privately and its tokens remain in the proxy ledger. No skill definition changed. The post-filming task check verifies displayed zones and a 9-hour Tokyo/London difference; each canonical skill run separately enforces live epoch freshness. Capture restores the original keep-awake setting. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

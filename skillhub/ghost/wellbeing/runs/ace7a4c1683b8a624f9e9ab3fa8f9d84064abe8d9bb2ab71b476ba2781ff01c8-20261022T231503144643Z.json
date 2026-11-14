@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/wellbeing",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.apps.wellbeing",
+    "app_version": "1.4.489941911"
+  },
+  "fingerprint_hash": "ace7a4c1683b8a624f9e9ab3fa8f9d84064abe8d9bb2ab71b476ba2781ff01c8",
+  "app_version": "1.4.489941911",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T23:15:03.144643+00:00",
+  "finished_at": "2026-10-22T23:15:03.144643+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "remove_app_timer",
+      "success": true,
+      "duration_ms": 28060.37639605347,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 13767.832097946666
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 9613.998532062396
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:714c0581ce5009c9d9e22df2c8842fa97fee2ca1ee24d5450f4440cbf01e822d",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQD8RvllIvB6bwih3Q6rD4U2x2DLuGZQZwBW+EXTwqq680xYi40\nyILFSF5MUCyy6ClzgJBoYnIymPO2zEoa6jDwc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

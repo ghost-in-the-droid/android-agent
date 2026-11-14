@@ -1,0 +1,124 @@
+name: thermocouples
+version: 1.0.0
+author: ghost
+description: Read and compare offline Thermocouples material and temperature-range
+  references without hardware access
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access: []
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: com.southerntemp.thermocouples
+  app_version: '>=4.0.3'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/thermocouples
+actions:
+- name: open
+  description: Open the offline Thermocouples reference
+  ref_prompt: Open the offline Thermocouples reference
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:details_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the offline Thermocouples reference in thermocouples
+    expected_success: true
+- name: select_type
+  description: Show one of the five fully exposed thermocouple types
+  ref_prompt: Show one of the five fully exposed thermocouple types
+  params:
+  - name: type
+    type: enum
+    values:
+    - B
+    - E
+    - J
+    - K
+    - N
+    required: true
+  steps:
+  - python_action: helpers:select_type
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:details_ok
+  test_case:
+    ref_prompt_variants:
+    - Show one of the five fully exposed thermocouple types in thermocouples
+    expected_success: true
+- name: list_types
+  description: List fully exposed reference type tabs and current selection
+  ref_prompt: List fully exposed reference type tabs and current selection
+  params: []
+  steps:
+  - python_action: helpers:list_types
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:types_ok
+  test_case:
+    ref_prompt_variants:
+    - List fully exposed reference type tabs and current selection in thermocouples
+    expected_success: true
+- name: compare_types
+  description: Read two thermocouple reference records, leaving the second selected
+  ref_prompt: Read two thermocouple reference records, leaving the second selected
+  params:
+  - name: left
+    type: enum
+    values:
+    - B
+    - E
+    - J
+    - K
+    - N
+    required: true
+  - name: right
+    type: enum
+    values:
+    - B
+    - E
+    - J
+    - K
+    - N
+    required: true
+  steps:
+  - python_action: helpers:compare_types
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:comparison_ok
+  test_case:
+    ref_prompt_variants:
+    - Read two thermocouple reference records, leaving the second selected in thermocouples
+    expected_success: true
+- name: read_details
+  description: Read native positive/negative metals and temperature range
+  ref_prompt: Read native positive/negative metals and temperature range
+  params: []
+  steps:
+  - python_action: helpers:read_details
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:details_ok
+  test_case:
+    ref_prompt_variants:
+    - Read native positive/negative metals and temperature range in thermocouples
+    expected_success: true

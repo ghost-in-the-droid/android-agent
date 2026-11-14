@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/sgt-puzzles",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "name.boyle.chris.sgtpuzzles",
+    "app_version": "2025-09-12-1919-23762278-fdroid"
+  },
+  "fingerprint_hash": "6565b8b750112ae567db2178608d55436149320c6fea2d0cf791ddd6e31f1710",
+  "app_version": "2025-09-12-1919-23762278-fdroid",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T05:29:52.880459+00:00",
+  "finished_at": "2026-11-03T05:29:52.880459+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_state",
+      "success": true,
+      "duration_ms": 3203.4685450053075,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2899.9549629952526
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 59.80748600268271
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:39ab8ceaab4dbaa97651b828a4d003153f0f21b3e421e38164e8dd784ee12dcc",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQFP5fUSUNazB6YLC6521hmMUblJprSNjA38ie5Q3jDLucsLCiY\nS8mB4An0TsfXtITkwFns7EgS5jAEofDjMNKwE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

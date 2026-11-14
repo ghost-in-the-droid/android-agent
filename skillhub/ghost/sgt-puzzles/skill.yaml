@@ -1,0 +1,174 @@
+# Ghost in the Droid: Simon Tatham's Puzzles (login-free FOSS seed skill, installed from F-Droid)
+# 40 logic puzzles in one app; the skill drives Net (rotate tiles to connect everything) and can open any other puzzle.
+
+name: sgt-puzzles
+version: 1.0.0
+author: ghost
+description: "Simon Tatham's Puzzles (F-Droid): open a puzzle (Net by default), start a new game, rotate tiles, undo, show the solution, read the status line. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: name.boyle.chris.sgtpuzzles
+  app_version: ">=2025"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/sgt-puzzles"
+
+popup_detectors: []
+
+subroutines:
+  - name: puzzle_list
+    description: "Launch the app and get to the puzzle list (BACK out of a puzzle)."
+    steps:
+      - {action: launch_app, package: name.boyle.chris.sgtpuzzles}
+      - {action: sleep, duration_s: 2}
+      - if_visible:
+          selector: {id: "name.boyle.chris.sgtpuzzles:id/game_menu"}
+          then:
+            - {action: press_key, key: BACK}
+            - {action: sleep, duration_s: 1}
+      - {action: wait_for_element, id: "name.boyle.chris.sgtpuzzles:id/games_starred", timeout_s: 10}
+  - name: open_net
+    description: "From any state open the Net puzzle."
+    steps:
+      - subroutine: puzzle_list
+      - python_action: "helpers:open_by_name"
+      - {action: wait_for_element, id: "name.boyle.chris.sgtpuzzles:id/game_menu", timeout_s: 10}
+  - name: current_puzzle
+    description: "Launch the app; a puzzle in progress is reopened by the app itself."
+    steps:
+      - {action: launch_app, package: name.boyle.chris.sgtpuzzles}
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "name.boyle.chris.sgtpuzzles:id/game_menu", timeout_s: 8}
+
+actions:
+  - name: open_puzzle
+    description: "Open a puzzle from the list by its name (Net, Light Up, Towers, Solo, ...); returns the puzzle state."
+    ref_prompt: "Open the Net puzzle"
+    demo_params: {name: Net}
+    params:
+      - {name: name, type: str, default: Net, description: "Puzzle name as listed, e.g. Net, Light Up, Towers"}
+    steps:
+      - subroutine: puzzle_list
+      - python_action: "helpers:open_by_name"
+      - {action: wait_for_element, id: "name.boyle.chris.sgtpuzzles:id/game_menu", timeout_s: 10}
+      - python_action: "helpers:get_state"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "name.boyle.chris.sgtpuzzles:id/game_menu"}
+        - {kind: element_present, id: "name.boyle.chris.sgtpuzzles:id/status_bar"}
+        - {kind: custom_python, function: "helpers:puzzle_open"}
+    test_case:
+      ref_prompt_variants:
+        - "play a logic puzzle"
+        - "open Light Up"
+        - "start Simon Tatham's Net"
+      expected_success: true
+
+  - name: new_game
+    description: "Open Net and generate a fresh random board (Game > New game); optionally pick a size first (type, e.g. 7x7)."
+    ref_prompt: "Start a new Net puzzle"
+    params:
+      - {name: type, type: str, default: "", description: "Size/type menu entry, e.g. 5x5, 7x7, 5x5 wrapping; empty keeps the current one"}
+    steps:
+      - subroutine: open_net
+      - python_action: "helpers:menu_new_game"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "name.boyle.chris.sgtpuzzles:id/game_menu"}
+        - {kind: element_present, id: "name.boyle.chris.sgtpuzzles:id/status_bar"}
+        - {kind: custom_python, function: "helpers:new_started"}
+    test_case:
+      ref_prompt_variants:
+        - "new puzzle"
+        - "give me a fresh net board"
+      expected_success: true
+
+  - name: tap_tile
+    description: "Rotate tile (row, col) of the running 5x5 Net board clockwise, times times; returns the status before/after (Active: n/25)."
+    ref_prompt: "Rotate the centre tile of the Net puzzle"
+    demo_params: {row: "3", col: "3", times: "1"}
+    params:
+      - {name: row, type: str, required: true, description: "Row 1-5 from the top"}
+      - {name: col, type: str, required: true, description: "Column 1-5 from the left"}
+      - {name: times, type: str, default: "1", description: "Taps (rotations)"}
+      - {name: size, type: str, default: "5", description: "Grid size of the running board"}
+    steps:
+      - subroutine: current_puzzle
+      - python_action: "helpers:tap_tile"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "name.boyle.chris.sgtpuzzles:id/status_bar"}
+        - {kind: element_present, id: "name.boyle.chris.sgtpuzzles:id/game_menu"}
+        - {kind: custom_python, function: "helpers:tile_tapped"}
+    test_case:
+      ref_prompt_variants:
+        - "turn the top left tile"
+        - "tap tile row 2 column 4 twice"
+      expected_success: true
+
+  - name: undo_move
+    description: "Take back the last rotation (Undo button)."
+    ref_prompt: "Undo my last move in the puzzle"
+    params: []
+    steps:
+      - subroutine: current_puzzle
+      - python_action: "helpers:undo_move"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "name.boyle.chris.sgtpuzzles:id/status_bar"}
+        - {kind: element_present, desc: "Undo"}
+        - {kind: custom_python, function: "helpers:undone"}
+    test_case:
+      ref_prompt_variants:
+        - "take that move back"
+      expected_success: true
+
+  - name: show_solution
+    description: "Let the app solve the running puzzle (Game > Show solution); the status line reads 'Auto-solved.'"
+    ref_prompt: "Solve the puzzle"
+    params: []
+    steps:
+      - subroutine: current_puzzle
+      - python_action: "helpers:menu_solution"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "name.boyle.chris.sgtpuzzles:id/status_bar"}
+        - {kind: text_visible, text: "Auto-solved."}
+        - {kind: custom_python, function: "helpers:solved"}
+    test_case:
+      ref_prompt_variants:
+        - "show me the solution"
+        - "auto-solve this net"
+      expected_success: true
+
+  - name: get_state
+    description: "Read the screen (puzzle list or puzzle), the puzzle name, the status line, active/total tiles and whether it is solved."
+    ref_prompt: "How far along is my puzzle?"
+    params: []
+    steps:
+      - subroutine: current_puzzle
+      - python_action: "helpers:get_state"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "name.boyle.chris.sgtpuzzles:id/status_bar"}
+        - {kind: element_present, id: "name.boyle.chris.sgtpuzzles:id/game_menu"}
+        - {kind: custom_python, function: "helpers:state_read"}
+    test_case:
+      ref_prompt_variants:
+        - "is the net solved"
+        - "what is the puzzle status"
+      expected_success: true

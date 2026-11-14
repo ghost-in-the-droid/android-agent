@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/tasks",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "org.tasks",
+    "app_version": "15.12"
+  },
+  "fingerprint_hash": "20667430871294394ffb59aa2c5b18e6fe2ac0cb38358ac68499e35d6e0bd527",
+  "app_version": "15.12",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:34:36.561300+00:00",
+  "finished_at": "2026-10-05T18:34:36.561300+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "complete_task",
+      "success": true,
+      "duration_ms": 6892.471825005487,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2341.9630200078245
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 2658.747345994925
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 1004.9559109902475
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQB7nExOhnXMnXOcokLZUrYOoOzsi7BbwavnIrhpVQsBtaGbfYu\nd9trbm5mi+RYE63gnoc/FFVK/HR8FzLQOumQQ=\n-----END SSH SIGNATURE-----\n"
+  }
+}

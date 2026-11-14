@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/reckoning-skills",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.secuso.privacyfriendlyrecknoningskills",
+    "app_version": "1.1.2"
+  },
+  "fingerprint_hash": "64984cceb252defc9e3cd17da9d9a8df71db2736b4692dd198d0de0f720f4c53",
+  "app_version": "1.1.2",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T16:36:31.472091+00:00",
+  "finished_at": "2026-11-03T16:36:31.472091+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "answer",
+      "success": true,
+      "duration_ms": 5980.032213003142,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3268.978893000167
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 246.06145100551657
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 2232.0058140030596
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:3bbc2f02a449d1841cfb804d68657a21b4152308ac067d0a10843e6c60b24df8",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQOeSObebRqKabdRwiS6Xk3uGhYjz3qmu48LVfoIBY+ZxTUB7eT\nDk1evuIBjyuzCe/UlN6+X/XQmfp+wPbkcw3AE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

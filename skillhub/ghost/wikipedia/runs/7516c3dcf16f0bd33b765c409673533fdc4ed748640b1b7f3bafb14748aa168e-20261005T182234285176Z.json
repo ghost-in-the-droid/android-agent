@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/wikipedia",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "org.wikipedia",
+    "app_version": "r/50606-r-2026-09-09"
+  },
+  "fingerprint_hash": "7516c3dcf16f0bd33b765c409673533fdc4ed748640b1b7f3bafb14748aa168e",
+  "app_version": "r/50606-r-2026-09-09",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:22:34.285176+00:00",
+  "finished_at": "2026-10-05T18:22:34.285176+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "search_articles",
+      "success": true,
+      "duration_ms": 10001.037703012116,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 5304.146067996044
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 644.2241000186186
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 76.38688298175111
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 642.5944750080816
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 27.325851988280192
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 260.8712759974878
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 3014.764746010769
+        },
+        {
+          "index": 7,
+          "success": true,
+          "duration_ms": 22.2864160023164
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQEpOST2zNmwtoyl2THGL1uywQOBBzFH4eo+N9inLpEfexs/jub\nAdV3lKGvY4wrTr0b1VGUxwlFjeWz8OnjDdrAc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

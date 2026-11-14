@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/wikipedia",
+ "action": "search_articles",
+ "prompt": "Search Wikipedia for the Berlin Wall",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 43.68,
+  "tokens": 375975,
+  "tool_calls": 19,
+  "ok": true
+ },
+ "after": {
+  "seconds": 25.1,
+  "tokens": 30861,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "Same prompt and clean temporary app per side; 'ok' is an independent check of the final phone state.",
+ "source": "phone-b-before-after"
+}

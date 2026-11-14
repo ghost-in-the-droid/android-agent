@@ -1,0 +1,54 @@
+{
+  "author": "ghost",
+  "slug": "dart-checker",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "1f74e7a1523f234ec12af9be0476d1fe6a449e8c",
+      "git_tree": null,
+      "sha256": "sha256:4654418662ceb6f321ce27f48e18c0bfc3e89e8bef07fdf9c09ab4a0e4ca212a",
+      "size": 21766,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demos/new_game.webm",
+        "bytes": 221839,
+        "type": "video/webm"
+      },
+      "demos": {
+        "end_turn": {
+          "path": "demos/end_turn.webm",
+          "bytes": 533079,
+          "type": "video/webm"
+        },
+        "get_state": {
+          "path": "demos/get_state.webm",
+          "bytes": 173149,
+          "type": "video/webm"
+        },
+        "new_game": {
+          "path": "demos/new_game.webm",
+          "bytes": 221839,
+          "type": "video/webm"
+        },
+        "throw": {
+          "path": "demos/throw.webm",
+          "bytes": 269077,
+          "type": "video/webm"
+        },
+        "throw_darts": {
+          "path": "demos/throw_darts.webm",
+          "bytes": 423144,
+          "type": "video/webm"
+        },
+        "undo": {
+          "path": "demos/undo.webm",
+          "bytes": 444425,
+          "type": "video/webm"
+        }
+      }
+    }
+  ]
+}

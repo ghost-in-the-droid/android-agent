@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/shopping-list",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.woefe.shoppinglist",
+    "app_version": "0.11.0"
+  },
+  "fingerprint_hash": "3b047bc5d282639fb545a41ee6219a90633c3b21ce52d8b605225b3d87fa130e",
+  "app_version": "0.11.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T05:15:22.706873+00:00",
+  "finished_at": "2026-11-03T05:15:22.706873+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "check_item",
+      "success": true,
+      "duration_ms": 4150.817173998803,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2354.717130001518
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1364.9820659993566
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:4922b52e294208eb8c5fb2e045feb6e56c2a34cb3ec262e11c691cbd8dc47903",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQJ6CjsfZ8dg3UjRMg/hiX/QuPbCwESjOQx3kdHMYWYHbl1m2M0\nQMfRrNDiBbhcot+cA866mA0IK4l4pueS8R7wc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

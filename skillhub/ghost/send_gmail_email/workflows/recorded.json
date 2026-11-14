@@ -1,0 +1,50 @@
+[
+  {
+    "action": "launch",
+    "description": "Launch the Gmail app",
+    "goal": "Ensure Gmail is open",
+    "package": "com.google.android.gm",
+    "status": "success",
+    "_wait_after": 5
+  },
+  {
+    "action": "tap",
+    "description": "Tap the To autocomplete field to ensure it's focused",
+    "element_idx": 10,
+    "goal": "Focus To field",
+    "status": "success",
+    "_wait_after": 5
+  },
+  {
+    "action": "type",
+    "description": "Type email subject \u2014 Subject field is already focused",
+    "goal": "Set subject",
+    "status": "success",
+    "text": "{subject}",
+    "_wait_after": 5
+  },
+  {
+    "action": "tap",
+    "description": "Tap the Compose email body field",
+    "element_idx": 17,
+    "goal": "Focus body",
+    "status": "success",
+    "_wait_after": 5
+  },
+  {
+    "action": "type",
+    "description": "Type email body text",
+    "goal": "Write body",
+    "status": "success",
+    "text": "{body}",
+    "_wait_after": 5
+  },
+  {
+    "action": "tap",
+    "description": "Tap the Send button",
+    "element_idx": 4,
+    "goal": "Send email",
+    "status": "success",
+    "_wait_after": 5
+  }
+]

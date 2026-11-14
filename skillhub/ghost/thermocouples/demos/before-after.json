@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/thermocouples",
+ "action": "compare_types",
+ "prompt": "Use device phone-b-demo. In Thermocouples, read Type K then Type E. For each, copy the positive metal, negative metal and temperature range in Celsius, then compare their displayed maximum temperatures. Stay in Details; do not use Search, Conversions, Info or external links.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 23.1,
+  "tokens": 266226,
+  "tool_calls": 7,
+  "ok": false
+ },
+ "after": {
+  "seconds": 28.82,
+  "tokens": 29350,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. BEFORE23.10s/266226tokens/7calls copies TypeK metals and both temperature ranges and350C comparison correctly, but omits TypeE positive metal; manual completion review marks it FAILED (native final UI alone was insufficient). First take retained; no retake. AFTER28.82s/29350/3succeeds through actual compare_types, correctly supplies both metals for each and350C maximum difference. AFTER slower due to two owned native tab reads plus validation; about9.1x fewer tokens despite extra native latency. Every5 action separately passed3/3 current-digest default-key signed CLI runs; no network/sensors/Conversions/Search/Info. Both prompts explicitly use the real public alias phone-b-demo. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

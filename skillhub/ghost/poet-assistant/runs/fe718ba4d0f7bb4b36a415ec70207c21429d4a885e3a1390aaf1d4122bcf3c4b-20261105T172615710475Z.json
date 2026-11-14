@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/poet-assistant",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "ca.rmen.android.poetassistant",
+    "app_version": "1.32.1"
+  },
+  "fingerprint_hash": "fe718ba4d0f7bb4b36a415ec70207c21429d4a885e3a1390aaf1d4122bcf3c4b",
+  "app_version": "1.32.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T17:26:15.710475+00:00",
+  "finished_at": "2026-11-05T17:26:15.710475+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "open_poet",
+      "success": true,
+      "duration_ms": 12763.050273999397,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 1176.771207996353
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 10753.450143994996
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 682.9873319948092
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:f4783b0a483d531b0a17a61eabc86a1ef2a0e275201fbef9eb0c754c7e7bf08d",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQF1Mq7sTDJnlHd4wZWmTKajvyfd7fIj1bikudRpdyTgFEnx0OT\nr0e00AjhLeUY1En/66706vJK+vk/wCHZrWNwY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

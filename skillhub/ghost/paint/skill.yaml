@@ -1,0 +1,133 @@
+# Ghost in the Droid: Fossify Paint (login-free FOSS seed skill, installed from F-Droid)
+# A simple offline drawing app. Canvas has no accessibility nodes: draw by percent coordinates, read back from a screenshot.
+
+name: paint
+version: 1.0.0
+author: ghost
+description: "Fossify Paint (F-Droid): draw lines and fill areas on a canvas by percent coordinates, pick a colour, set the brush size, read back the ink coverage and colours. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [deletes_data]
+destructive: true
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.fossify.paint
+  app_version: ">=1.4.0"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/paint"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_canvas
+    description: "Launch the app (the canvas is the main screen)."
+    steps:
+      - {action: launch_app, package: org.fossify.paint}
+      - {action: sleep, duration_s: 1.5}
+
+actions:
+  - name: new_drawing
+    description: "Clear the canvas (and confirm) so a fresh drawing can start."
+    ref_prompt: "Start a new drawing"
+    demo_params: {confirm: yes}
+    params:
+      - {name: confirm, type: str, required: true, description: "Must be yes: this wipes the canvas"}
+    steps:
+      - subroutine: open_canvas
+      - python_action: "helpers:clear_canvas"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.paint:id/color_picker"}
+        - {kind: custom_python, function: "helpers:canvas_blank"}
+    test_case:
+      ref_prompt_variants:
+        - "clear the canvas"
+        - "new blank drawing"
+      expected_success: true
+
+  - name: set_color
+    description: "Pick the drawing colour: red, blue, green, yellow or orange."
+    ref_prompt: "Switch the drawing colour to red"
+    demo_params: {color: red}
+    params: 
+      - {name: color, type: str, required: true, description: "red, blue, green, yellow or orange"}
+    steps:
+      - subroutine: open_canvas
+      - python_action: "helpers:set_color"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.paint:id/color_picker"}
+        - {kind: custom_python, function: "helpers:colour_set"}
+    test_case:
+      ref_prompt_variants:
+        - "use blue"
+        - "switch to orange"
+      expected_success: true
+
+  - name: draw_path
+    description: "Draw connected line segments through points given as percent coordinates, e.g. 20,30;50,70;80,30 (0,0 top-left of the canvas, 100,100 bottom-right)."
+    ref_prompt: "Draw a triangle"
+    demo_params: {points: "20,70;50,20;80,70;20,70"}
+    params: 
+      - {name: points, type: str, required: true, description: "x,y;x,y;... in percent, at least two points"}
+    steps:
+      - subroutine: open_canvas
+      - python_action: "helpers:draw_path"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.paint:id/color_picker"}
+        - {kind: custom_python, function: "helpers:ink_added"}
+    test_case:
+      ref_prompt_variants:
+        - "draw a line"
+        - "draw a zigzag"
+      expected_success: true
+
+  - name: fill
+    description: "Flood-fill the area at a percent coordinate with the current colour (bucket tool)."
+    ref_prompt: "Fill the triangle"
+    demo_params: {x: "50", y: "60"}
+    params:
+      - {name: x, type: str, required: true, description: "percent 0-100"}
+      - {name: y, type: str, required: true, description: "percent 0-100"}
+    steps:
+      - subroutine: open_canvas
+      - python_action: "helpers:fill"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.paint:id/color_picker"}
+        - {kind: custom_python, function: "helpers:ink_added"}
+    test_case:
+      ref_prompt_variants:
+        - "fill the shape"
+        - "paint the inside"
+      expected_success: true
+
+  - name: get_canvas
+    description: "Read the canvas ink coverage and which colours are on it (from a screenshot)."
+    ref_prompt: "What is on the canvas?"
+    params: []
+    steps:
+      - subroutine: open_canvas
+      - python_action: "helpers:get_canvas"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.paint:id/color_picker"}
+        - {kind: custom_python, function: "helpers:canvas_read"}
+    test_case:
+      ref_prompt_variants:
+        - "how much have I drawn"
+        - "which colours are on the canvas"
+      expected_success: true
+

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/redreader",
+ "action": "search_posts",
+ "prompt": "Search r/askscience for solar panels in RedReader. List the first three post titles with scores and comment counts; briefly compare their titles. Stay anonymous and do not vote or post.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 21.89,
+  "tokens": 81200,
+  "tool_calls": 4,
+  "ok": false
+ },
+ "after": {
+  "seconds": 35.7,
+  "tokens": 30433,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "BEFORE failed honestly: Haiku stopped at the Reddit User Agreement consent prompt after an initial package-policy launch refusal. AFTER handles standard anonymous first-run onboarding and completed the public search. BEFORE ended early, so elapsed times are not a completed-task speed comparison. Same clean temporary app per side; no login, votes or posts. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/privacy-friendly-notes",
+ "action": null,
+ "prompt": "Create a checklist called Groceries with Milk and Eggs in Privacy Friendly Notes, then tick Milk. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 114.72,
+  "tokens": 1246283,
+  "tool_calls": 42,
+  "ok": true
+ },
+ "after": {
+  "seconds": 66.11,
+  "tokens": 29845,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

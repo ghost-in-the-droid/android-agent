@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/tic-tac-toe",
+ "action": null,
+ "prompt": "Play tic-tac-toe: take the top left, then the centre, then the bottom right.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 54.99,
+  "tokens": 671757,
+  "tool_calls": 13,
+  "ok": true
+ },
+ "after": {
+  "seconds": 68.24,
+  "tokens": 56878,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

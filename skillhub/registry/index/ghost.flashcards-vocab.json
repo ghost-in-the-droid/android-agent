@@ -1,0 +1,54 @@
+{
+  "author": "ghost",
+  "slug": "flashcards-vocab",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "1f74e7a1523f234ec12af9be0476d1fe6a449e8c",
+      "git_tree": null,
+      "sha256": "sha256:a24af284173924d9e587282dea112a6f9a161a6e7c326e064c450c5ef8c7ea6e",
+      "size": 24030,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demos/open_decks.webm",
+        "bytes": 166452,
+        "type": "video/webm"
+      },
+      "demos": {
+        "answer": {
+          "path": "demos/answer.webm",
+          "bytes": 360379,
+          "type": "video/webm"
+        },
+        "answer_many": {
+          "path": "demos/answer_many.webm",
+          "bytes": 351286,
+          "type": "video/webm"
+        },
+        "get_question": {
+          "path": "demos/get_question.webm",
+          "bytes": 336608,
+          "type": "video/webm"
+        },
+        "get_results": {
+          "path": "demos/get_results.webm",
+          "bytes": 361161,
+          "type": "video/webm"
+        },
+        "open_decks": {
+          "path": "demos/open_decks.webm",
+          "bytes": 166452,
+          "type": "video/webm"
+        },
+        "start_quiz": {
+          "path": "demos/start_quiz.webm",
+          "bytes": 541991,
+          "type": "video/webm"
+        }
+      }
+    }
+  ]
+}

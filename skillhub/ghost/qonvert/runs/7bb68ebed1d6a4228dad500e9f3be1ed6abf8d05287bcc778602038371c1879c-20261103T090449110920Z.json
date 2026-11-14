@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/qonvert",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.tessoft.qonvert",
+    "app_version": "1.8.0"
+  },
+  "fingerprint_hash": "7bb68ebed1d6a4228dad500e9f3be1ed6abf8d05287bcc778602038371c1879c",
+  "app_version": "1.8.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T09:04:49.110920+00:00",
+  "finished_at": "2026-11-03T09:04:49.110920+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "clear_input",
+      "success": true,
+      "duration_ms": 4806.667306998861,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2768.6590230005095
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1775.5180690000998
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:418d9119f6bae01337db7980593626b44d098f28ff8f090853f5f667166930e0",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQH7iuJOYnhXmf3ypFWrnQXkcJw8aJLbLNbiB7nCyQi0avRnbfa\nm6C6tMr4brdEH3kUoTYPwk0YqMhVz03QF4WAs=\n-----END SSH SIGNATURE-----\n"
+  }
+}

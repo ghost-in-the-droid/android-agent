@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/settings",
+ "action": "set_dark_theme",
+ "prompt": "Turn on dark mode",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 23.1,
+  "tokens": 490271,
+  "tool_calls": 10,
+  "ok": true
+ },
+ "after": {
+  "seconds": 17.08,
+  "tokens": 20925,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "Fixed skill 44926a84, 3/3 clean-reset phone B replays before AFTER retake. Original BEFORE retained. Original AFTER (38.17s/266120 tokens, success=True) preserved in originals/settings.mp4. New AFTER 17.08s/20925 tokens/3 calls, actual run_skill success. Every-frame terminal OCR and source-cast gate passed.",
+ "source": "phone-b-before-after"
+}

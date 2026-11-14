@@ -1,0 +1,330 @@
+# Ghost in the Droid — TikTok skill (v2 schema, v1.6.0 reference example)
+# This is the "hardest hard-skill" reference. All 8 actions are ToS-safe (user's own account/data).
+# NOT included: outreach, mass-crawl, engagement automation. Out of scope for this skill.
+
+name: tiktok
+version: 2.0.1
+tos_risk: high   # vendor ToS bans automated access / account creation by bots; published for research, not for live accounts
+author: ghost
+description: "TikTok — user's-own-account actions: nav, account switching, self-stats, self-uploads. ToS-safe surface only."
+skill_class: hard
+data_access:
+  - files          # video upload
+  - notifications  # unread badge read
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"    # tested on ASUS ROG <serial> (Zenfone 10-class); wildcard for adapt-friendly
+  app_package: com.zhiliaoapp.musically
+  app_version: ">=44.0.0"
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/tiktok"
+
+# ── Popup catalog (Layer 2 of the popup-handling model) ──────────────────────
+# Auto-dismissed before every step in every action, unless action opts out
+# via not_in_actions or on_popup: override.
+popup_detectors:
+  - {detect: "Continue editing",              button: "Save draft",   label: "Draft resume overlay"}
+  - {detect: "Facebook friends list",         button: "Don't allow",  label: "FB friends access popup"}
+  - {detect: "connect with people",           button: "Don't allow",  label: "Contacts access popup"}
+  - {detect: "access to your Facebook",       button: "Don't allow",  label: "FB access popup"}
+  - {detect: "Make TikTok Shop more relevant", button: "Select",       label: "TikTok Shop relevance"}
+  - {detect: "shared collections",            button: "Not now",      label: "Shared collections popup"}
+  - {detect: "Turn on notifications",         button: "Not now",      label: "Notifications popup"}
+  - {detect: "security checkup",              button: "Close",        label: "Security checkup popup"}
+  - {detect: "Rate the app",                  button: "Not now",      label: "Rate prompt"}
+  - {detect: "Your avatar, your style",       method: back,           label: "Avatar upsell modal (X is a11y-invisible; BACK dismisses)"}
+  - {detect: "Allow precise location",        button: "Allow",         label: "Precise-location upgrade prompt (grant to skip future asks)"}
+  # NOTE: "Learn more" alone is too broad (appears on home-feed video captions/ads).
+  # Only trigger BACK when a MODAL-scoped hint accompanies it. Refine as we
+  # empirically catch this popup — for now, disabled to prevent nav-out-of-TT.
+  # - {detect: "Learn more",                  method: back,           label: "Invisible promo overlay"}
+
+os_popup_policy:
+  allow_permissions: [storage]   # need storage for video-upload flow; deny everything else (engine default)
+
+# ── SUBROUTINES (internal reusable step-lists — de-dup within skill) ─────────
+# Not agent-invocable; referenced from actions via `- subroutine: <name>`.
+subroutines:
+  - name: nav_to_profile_tab
+    description: "Launch TT + navigate to Profile tab. Idempotent."
+    steps:
+      - {action: launch_app, package: com.zhiliaoapp.musically}
+      # TT home feed autoplays videos → uiautomator can't reach idle. Use blind
+      # coord tap for the Profile bottom-nav (stable across TT versions on
+      # 1080x2400 devices), then dump AFTER landing on the static profile page.
+      # Cold start can take 6-10s (splash + ad), so retry the blind tap + verify
+      # up to 3 times instead of trusting one fixed sleep.
+      - {action: sleep, duration_s: 3}
+      - retry:
+          max: 3
+          backoff_s: 3
+          steps:
+            - {action: tap, x: 972, y: 2214}
+            - {action: sleep, duration_s: 2}
+            - {action: wait_for_element, desc: "Profile menu", timeout_s: 8}
+
+  - name: open_account_switcher
+    description: "From profile page, open the account-switcher drawer."
+    steps:
+      - subroutine: nav_to_profile_tab
+      - python_action: "helpers:tap_display_name_for_switcher"
+      - {action: wait_for_text, text: "Switch account", timeout_s: 5}
+
+# ── ACTIONS (first-class) ────────────────────────────────────────────────────
+
+# Positive visible-session probe; absence stops with needs_state.
+state_probes:
+  logged_in: {kind: element_present, desc: "Profile menu"}
+actions:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LOW-complexity actions (nav-only)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: open_my_profile
+    requires_state: [logged_in]
+    description: "Nav to my profile tab (Home → Profile). Idempotent."
+    ref_prompt: "Open my TikTok profile"
+    params: []
+    steps:
+      - subroutine: nav_to_profile_tab
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Profile menu"}
+        - {kind: element_present, desc: Profile}
+    test_case:
+      ref_prompt_variants:
+        - "open my profile"
+        - "go to my TikTok profile page"
+        - "show me my profile"
+      expected_success: true
+
+  - name: open_inbox
+    requires_state: [logged_in]
+    description: "Nav to Inbox tab."
+    ref_prompt: "Open my TikTok inbox"
+    params: []
+    steps:
+      - {action: launch_app, package: com.zhiliaoapp.musically}
+      - {action: wait_for_element, desc: Inbox, timeout_s: 20}
+      - {action: tap_element, desc: Inbox}
+      # Inbox typically has an "All activity" / "Inbox" header after tap
+      - {action: sleep, duration_s: 1.5}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: Inbox}
+      # NOTE: no post-tap header assertion — some inbox variants land on notification-list
+      # without a distinct header. Use custom_python for finer detection.
+    test_case:
+      ref_prompt_variants:
+        - "open my inbox"
+        - "check my TikTok messages"
+      expected_success: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # MEDIUM-complexity actions (read + light nav)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: get_active_account
+    requires_state: [logged_in]
+    description: "Return the currently-active TikTok account handle (@handle)."
+    ref_prompt: "What TikTok account am I logged in as?"
+    params: []
+    steps:
+      - subroutine: nav_to_profile_tab
+      - python_action: "helpers:scrape_active_handle"
+        # Reads the handle from the profile-header @xxx TextView; stores in run context as `result.handle`
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "validators:handle_scraped_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "which account am I using"
+        - "current tiktok handle"
+        - "who am I logged in as on tiktok"
+      expected_success: true
+
+  - name: get_unread_count
+    requires_state: [logged_in]
+    description: "Read the unread-notifications badge count from the Inbox bottom-nav icon."
+    ref_prompt: "How many unread TikTok notifications do I have?"
+    params: []
+    steps:
+      - subroutine: nav_to_profile_tab
+      # Badge is on the bottom-nav Inbox tab; visible from any tab. Screenshot + OCR-crop.
+      - python_action: "helpers:scrape_inbox_badge"
+        # Stores `result.unread_count: int` (0 if no badge)
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "validators:unread_count_scraped_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "check my tiktok notifications count"
+        - "how many unread messages on tiktok"
+      expected_success: true
+
+  - name: get_my_stats
+    requires_state: [logged_in]
+    description: "Scrape my profile stats: followers, following, likes, display name, handle."
+    ref_prompt: "How many followers do I have on TikTok?"
+    params: []
+    steps:
+      - subroutine: nav_to_profile_tab
+      - python_action: "helpers:scrape_profile_stats"
+        # Stores `result.stats: {handle, display_name, following, followers, likes, drafts?}`
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "validators:stats_scraped_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "my tiktok stats"
+        - "follower count"
+        - "how many likes do I have on tiktok"
+      expected_success: true
+
+  - name: list_accounts
+    requires_state: [logged_in]
+    description: "Enumerate all TikTok accounts currently logged in on this device."
+    ref_prompt: "List all my TikTok accounts on this phone"
+    params: []
+    steps:
+      - subroutine: open_account_switcher
+      - python_action: "helpers:scrape_switcher_accounts"
+        # Stores `result.accounts: [{handle, is_active, bounds}]`
+      # Close drawer w/o switching
+      - {action: press_key, key: BACK}
+      - {action: wait_for_element, desc: "Profile menu", timeout_s: 5}
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "validators:accounts_listed_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "list all my tiktok accounts"
+        - "which tiktok accounts are logged in"
+        - "show me all my tiktoks"
+      expected_success: true
+
+  - name: switch_account
+    requires_state: [logged_in]
+    description: "Switch the active TikTok account to the given handle. Handle must already be logged in."
+    ref_prompt: "Switch to my my_other_account TikTok account"
+    params:
+      - {name: handle, type: str, required: true, description: "Target handle without @, e.g. my_other_account"}
+    steps:
+      - subroutine: open_account_switcher
+      - python_action: "helpers:tap_account_by_handle"
+        # Reads {handle} param, looks up bounds in current switcher dump, taps.
+        # Raises SkillError if handle not in the current logged-in list.
+      # Post-switch: TT re-lands on For You (not Profile). Nav back to Profile
+      # so validator can verify @{handle} is now the active account.
+      - {action: sleep, duration_s: 3}       # let switch finish + For You render
+      - {action: tap, x: 972, y: 2214}       # Profile bottom-nav
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, desc: "Profile menu", timeout_s: 15}
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "@{handle}"}
+        - {kind: custom_python, function: "validators:active_handle_matches"}
+    test_case:
+      ref_prompt_variants:
+        - "switch to my_other_account on tiktok"
+        - "log into my my_other_account account"
+      expected_success: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # HIGH-complexity action (the monster — full upload flow)
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  - name: upload_video
+    requires_state: [logged_in]
+    description: "Upload a video to TikTok via share intent. Supports caption, hashtags, TTS voice-over, and draft-vs-post mode. Idempotent (re-run fine)."
+    ref_prompt: "Upload cat.mp4 to TikTok as a draft with caption 'look at this' and hashtags #cat #fyp"
+    params:
+      - {name: video_path,   type: path,     required: true,  description: "Local path to .mp4 on device"}
+      - {name: caption,      type: str,      required: true,  description: "Caption text (no # symbols)"}
+      - {name: hashtags,     type: "list[str]", required: false, default: [], description: "Hashtags without # prefix"}
+      - {name: inject_tts,   type: bool,     default: false,  description: "Add TikTok TTS voiceover of caption"}
+      - {name: action_mode,  type: enum,     values: [draft, post], default: draft}
+
+    pre_hooks:
+      - python_action: "helpers:prepare_video_with_tts"
+        # If inject_tts, generates TTS + injects into video, updates {video_path} param
+
+    steps:
+      # Step 0: snapshot the Drafts counter on the profile so the validator can prove
+      # the draft actually landed (the count must go up by one).
+      - subroutine: nav_to_profile_tab
+      - python_action: "helpers:scrape_profile_stats"
+      # Step 0: push video to /sdcard, media-scan, capture content-URI media_id
+      - python_action: "helpers:push_and_scan_video"
+        # Reads {video_path}, sets `context.media_id`
+
+      # Step 1: launch TT via share intent (NEW primitive: launch_intent)
+      - action: launch_intent
+        intent_action: "android.intent.action.SEND"
+        package: "com.zhiliaoapp.musically"
+        mime_type: "video/mp4"
+        extras:
+          "android.intent.extra.STREAM": "content://media/external/video/media/{context.media_id}"
+
+      # Wait for the video editor screen (has "Next" + "Add sound")
+      - {action: wait_for_text, text: "Next", timeout_s: 20}
+
+      # Step 2: caption + optional TTS (Aa button opens text overlay editor)
+      # NOTE: Aa is on-video toolbar; only visible after tap on the video preview.
+      # Skip the Aa flow if not visible — we still add hashtags in the description
+      # field on the metadata screen (step 4.1) which handles the caption too.
+      - if_visible:
+          selector: {text: "Aa"}
+          then:
+            - {action: tap_element, text: "Aa"}
+            - {action: type_text, text: "{caption}"}
+            - if_visible:
+                selector: {text: "Text-to-speech"}
+                then:
+                  - {action: tap_element, text: "Text-to-speech"}
+            - {action: tap_element, text: "Done"}
+
+      # Step 3: next → metadata screen
+      - {action: tap_element, text: "Next"}
+      - {action: wait_for_text, text: "Hashtags", timeout_s: 12}
+
+      # Step 4.1: hashtags (python because it requires description-field manipulation + regex)
+      - python_action: "helpers:append_hashtags_to_description"
+
+      # The hashtag autocomplete panel + keyboard cover the bottom bar. One BACK closes
+      # them without leaving the metadata page (a blind tap near the top opened the
+      # cover Preview instead). Verify the bottom bar is back before tapping.
+      # One BACK closes the hashtag panel + keyboard. Do NOT wait on a11y here: the
+      # metadata page autoplays the preview thumbnail, so uiautomator dumps are flaky
+      # and extra BACKs leave the page. The helper taps Drafts/Post by dump if it can,
+      # else by calibrated coords.
+      - {action: press_key, key: BACK}
+      - {action: sleep, duration_s: 2}
+      - python_action: "helpers:tap_action_mode_button"
+      # TikTok returns to the feed after saving. Go to the profile and read the
+      # Drafts counter; the validator compares it with the snapshot from step 0.
+      - {action: sleep, duration_s: 3}
+      - subroutine: nav_to_profile_tab
+      - {action: wait_for_text, text: "Drafts", timeout_s: 10}
+        # Reads {action_mode}, taps "Post" or "Drafts" — the button text varies by locale + tier
+
+    end_state_validator:
+      any_of:
+        # Post path — video visible on Profile, description contains ALL hashtags
+        - all_of:
+            - {kind: text_visible, text: "Posted"}
+            - {kind: custom_python, function: "validators:validate_publish_description"}
+        # Draft path — video visible in Drafts folder w/ description
+        - all_of:
+            - {kind: text_visible, text: "Draft"}
+            - {kind: custom_python, function: "validators:validate_draft_description"}
+    test_case:
+      ref_prompt_variants:
+        - "upload cat.mp4 to tiktok as a draft"
+        - "post this video to tiktok"
+        - "share my video on TikTok with caption 'hi' and tag #test"
+      expected_success: true

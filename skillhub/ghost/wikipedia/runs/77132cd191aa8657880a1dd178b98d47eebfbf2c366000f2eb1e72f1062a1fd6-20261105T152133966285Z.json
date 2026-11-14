@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/wikipedia",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.wikipedia",
+    "app_version": "r/50611-r-2026-10-07"
+  },
+  "fingerprint_hash": "77132cd191aa8657880a1dd178b98d47eebfbf2c366000f2eb1e72f1062a1fd6",
+  "app_version": "r/50611-r-2026-10-07",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T15:21:33.966285+00:00",
+  "finished_at": "2026-11-05T15:21:33.966285+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "search_articles",
+      "success": true,
+      "duration_ms": 21957.589755998924,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 12489.59552299857
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1283.8946750016476
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 1776.4010760001838
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 1355.4332230014552
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 461.49601000070106
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 1024.0071740008716
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 3233.965352999803
+        },
+        {
+          "index": 7,
+          "success": true,
+          "duration_ms": 305.37026099773357
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:48dda29431f26887ca7af9bd3a789ef6285d05f5fd2407ce4c4ffd5221aac150",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQEEOHhz7ITYBiyN45G/UnrWKp/0Q/yTCqHjvKdHmVp9Q+NMCMe\nuA0nreAtLc5ya4hh7KBKE08hSvVX1xdGjtOQI=\n-----END SSH SIGNATURE-----\n"
+  }
+}

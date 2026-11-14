@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/stoic-reading",
+ "action": null,
+ "prompt": "Open Marcus Aurelius, Meditations, Book 2 in Stoic Reading and quote me the first lines. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 29.28,
+  "tokens": 63716,
+  "tool_calls": 9,
+  "ok": true
+ },
+ "after": {
+  "seconds": 26.23,
+  "tokens": 22147,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

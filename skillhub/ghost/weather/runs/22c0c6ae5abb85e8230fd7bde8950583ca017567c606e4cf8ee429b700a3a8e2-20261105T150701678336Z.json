@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/weather",
+  "version": "1.0.2",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.breezyweather",
+    "app_version": "6.2.2_freenet"
+  },
+  "fingerprint_hash": "22c0c6ae5abb85e8230fd7bde8950583ca017567c606e4cf8ee429b700a3a8e2",
+  "app_version": "6.2.2_freenet",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T15:07:01.678336+00:00",
+  "finished_at": "2026-11-05T15:07:01.678336+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_daily_forecast",
+      "success": true,
+      "duration_ms": 6005.476016001921,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3864.0930430010485
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1542.9634309984976
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 346.99041200292413
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 218.55028799836873
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:8f69dc945f0f13451c58976ec997d2a5a4c91049d3ddd31cbf2ef2fac721bb3c",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQDn6TDj/MxBtRuASfVGilrrG/VW6bd5cZeYBkaXchJv0gh77U3\nj2SEoHGDWcHxfjxSVgfTzHS7JyelXdP241sQs=\n-----END SSH SIGNATURE-----\n"
+  }
+}

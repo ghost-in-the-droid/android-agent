@@ -1,0 +1,19 @@
+{
+  "author": "ghost",
+  "slug": "camera",
+  "latest": "1.0.1",
+  "versions": [
+    {
+      "version": "1.0.1",
+      "tag": null,
+      "commit": "3b44c3afc0b13802de82629f974cefb03f2dd07f",
+      "git_tree": null,
+      "sha256": "sha256:0368a08483127a2b92557bff6fdf72bba4a90569f655be4c06d30cc560e61732",
+      "size": 19095,
+      "released_at": null,
+      "attestation": null,
+      "demo": null,
+      "demos": {}
+    }
+  ]
+}

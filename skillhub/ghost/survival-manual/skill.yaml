@@ -1,0 +1,123 @@
+# Ghost in the Droid: Survival Manual (login-free FOSS seed skill, installed from F-Droid)
+# Survival Manual (F-Droid): an offline survival guide with about 30 chapters (water, fire, shelter, first aid, knots ...). Read a chapter, scroll through it. No account.
+
+name: survival-manual
+version: 1.0.0
+author: ghost
+description: "Survival Manual (F-Droid): an offline survival guide with about 30 chapters (water, fire, shelter, first aid, knots ...). Read a chapter, scroll through it. No account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.ligi.survivalmanual
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/survival-manual"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: org.ligi.survivalmanual}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_manual
+    description: "Restart the app and read the first page of the manual (Introduction)."
+    ref_prompt: "Open the Survival Manual app"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_manual"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:page_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the offline survival guide"
+      expected_success: true
+
+  - name: list_chapters
+    description: "Open the chapter drawer and list every chapter name."
+    ref_prompt: "What chapters does the survival manual have?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_page"
+      - python_action: "helpers:list_chapters"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:chapters_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "list the survival guide topics"
+      expected_success: true
+
+  - name: open_chapter
+    description: "Open a chapter by name (for example Water, Fire, Shelter) and return the text shown."
+    ref_prompt: "Open the Fire chapter of the survival manual"
+    demo_params: {name: "Fire"}
+    params:
+      - {name: name, type: str, required: true, description: "chapter name, for example Water or Fire"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_chapter"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:chapter_opened"}
+    test_case:
+      ref_prompt_variants:
+        - "how do I purify water offline"
+        - "read the shelter chapter"
+      expected_success: true
+
+  - name: read_page
+    description: "Read the text currently visible on the chapter page."
+    ref_prompt: "What does the survival manual page say now?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_page"
+      - python_action: "helpers:read_page"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:page_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the current survival page"
+      expected_success: true
+
+  - name: scroll_page
+    description: "Scroll down one to five screens and return the new visible text."
+    ref_prompt: "Scroll down the survival manual page"
+    demo_params: {pages: 2}
+    params:
+      - {name: pages, type: int, required: false, description: "screens to scroll, 1 to 5 (default 1)"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_page"
+      - python_action: "helpers:scroll_page"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:page_scrolled"}
+    test_case:
+      ref_prompt_variants:
+        - "read further down the chapter"
+      expected_success: true

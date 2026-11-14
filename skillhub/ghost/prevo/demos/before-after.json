@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/prevo",
+ "action": null,
+ "prompt": "Look up the English word cat in the Esperanto dictionary, then tell me the Esperanto word and its French translation. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 48.89,
+  "tokens": 331512,
+  "tool_calls": 16,
+  "ok": true
+ },
+ "after": {
+  "seconds": 129.59,
+  "tokens": 183416,
+  "tool_calls": 8,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

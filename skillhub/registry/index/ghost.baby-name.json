@@ -1,0 +1,54 @@
+{
+  "author": "ghost",
+  "slug": "baby-name",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "1f74e7a1523f234ec12af9be0476d1fe6a449e8c",
+      "git_tree": null,
+      "sha256": "sha256:f7a36fc15b81725a6978c8d962e16f708f8f9ed7595ea5ee92eb017762ef25a9",
+      "size": 22255,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demos/open_filter.webm",
+        "bytes": 428047,
+        "type": "video/webm"
+      },
+      "demos": {
+        "get_name": {
+          "path": "demos/get_name.webm",
+          "bytes": 409484,
+          "type": "video/webm"
+        },
+        "list_names": {
+          "path": "demos/list_names.webm",
+          "bytes": 328170,
+          "type": "video/webm"
+        },
+        "next_name": {
+          "path": "demos/next_name.webm",
+          "bytes": 298241,
+          "type": "video/webm"
+        },
+        "open_filter": {
+          "path": "demos/open_filter.webm",
+          "bytes": 428047,
+          "type": "video/webm"
+        },
+        "previous_name": {
+          "path": "demos/previous_name.webm",
+          "bytes": 334059,
+          "type": "video/webm"
+        },
+        "set_filter": {
+          "path": "demos/set_filter.webm",
+          "bytes": 317737,
+          "type": "video/webm"
+        }
+      }
+    }
+  ]
+}

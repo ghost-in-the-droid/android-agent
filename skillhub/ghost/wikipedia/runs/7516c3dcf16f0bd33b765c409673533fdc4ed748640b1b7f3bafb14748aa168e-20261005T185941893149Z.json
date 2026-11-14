@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/wikipedia",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "org.wikipedia",
+    "app_version": "r/50606-r-2026-09-09"
+  },
+  "fingerprint_hash": "7516c3dcf16f0bd33b765c409673533fdc4ed748640b1b7f3bafb14748aa168e",
+  "app_version": "r/50606-r-2026-09-09",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:59:41.893149+00:00",
+  "finished_at": "2026-10-05T18:59:41.893149+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_featured_article",
+      "success": true,
+      "duration_ms": 11342.974229017273,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4461.144694010727
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 656.477040000027
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 2009.679430979304
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 4200.460477994056
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQL5oZvD+B6iywmZ4MTRvjCT0zsvPYY/kFoLZCBGYgx7qolbFVZ\njZ9CfvYtjo9UzOlBBaLc6AWj1RVLRVlqQSQQw=\n-----END SSH SIGNATURE-----\n"
+  }
+}

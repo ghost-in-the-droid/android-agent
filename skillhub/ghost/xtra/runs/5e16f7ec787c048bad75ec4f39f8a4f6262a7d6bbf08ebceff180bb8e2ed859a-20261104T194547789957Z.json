@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/xtra",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "com.github.andreyasadchy.xtra",
+    "app_version": "2.60.8"
+  },
+  "fingerprint_hash": "5e16f7ec787c048bad75ec4f39f8a4f6262a7d6bbf08ebceff180bb8e2ed859a",
+  "app_version": "2.60.8",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T19:45:47.789957+00:00",
+  "finished_at": "2026-11-04T19:45:47.789957+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "back_to_games",
+      "success": true,
+      "duration_ms": 5247.328441000718,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 5014.173135998135
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:045e8f9bfabc1b68abec4044bf9404fbc71be77abd8f5782df7d35fbdd0d940e",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQDCcl6awT7etDNn2HaMRbcnGFKteyKCatqSALw/D2rbsxZ8rzr\nV7vOD2Q8DINociFRzKtJqXUcdct2W16qoHEAs=\n-----END SSH SIGNATURE-----\n"
+  }
+}

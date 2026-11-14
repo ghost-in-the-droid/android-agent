@@ -1,0 +1,178 @@
+# Ghost in the Droid: Counter (login-free FOSS seed skill, installed from F-Droid)
+# A tally counter app: several named counters, tap to count up. Offline, no permissions.
+
+name: tally-counter
+version: 1.0.0
+author: ghost
+description: "Counter tally app (F-Droid): create a named counter, count up by tapping, list every counter with its value. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: me.tsukanov.counter
+  app_version: ">=1.0"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/tally-counter"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_counter
+    description: "Launch Counter on its main screen."
+    steps:
+      - {action: launch_app, package: me.tsukanov.counter}
+      - {action: sleep, duration_s: 1.5}
+      # a dialog left open by an earlier run would hide the counter screen
+      - if_visible:
+          selector: {id: "android:id/alertTitle"}
+          then:
+            - {action: press_key, key: BACK}
+      - {action: wait_for_element, id: "me.tsukanov.counter:id/counterLabel", timeout_s: 10}
+  - name: open_list
+    description: "Open the navigation drawer with all counters."
+    steps:
+      - subroutine: open_counter
+      # the drawer may already be open from an earlier run: only tap the hamburger when it is closed
+      - if_visible:
+          selector: {id: "me.tsukanov.counter:id/add_counter"}
+          else:
+            - {action: tap_element, desc: "Open the list of counters"}
+      - {action: wait_for_element, id: "me.tsukanov.counter:id/add_counter", timeout_s: 5}
+
+actions:
+  - name: add_counter
+    description: "Create a new named counter with a starting value; it becomes the active counter."
+    ref_prompt: "Create a counter called Groceries"
+    demo_params: {name: Groceries, value: "0"}
+    params:
+      - {name: name, type: str, required: true, description: "Counter title"}
+      - {name: value, type: str, default: "0", description: "Starting value (digits)"}
+    steps:
+      - subroutine: open_list
+      - {action: tap_element, id: "me.tsukanov.counter:id/add_counter"}
+      - {action: wait_for_element, id: "me.tsukanov.counter:id/edit_name", timeout_s: 5}
+      - {action: tap_element, id: "me.tsukanov.counter:id/edit_name"}
+      - {action: type_text, text: "{name}"}
+      - {action: tap_element, id: "me.tsukanov.counter:id/edit_value"}
+      # CLI/agent callers pass digits as ints, which type_text cannot take: helper stringifies
+      - python_action: "helpers:type_value"
+      - {action: tap_element, id: "android:id/button1"}
+      - {action: sleep, duration_s: 1}
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "{name}"}
+        - {kind: element_present, id: "me.tsukanov.counter:id/counterLabel"}
+        - {kind: custom_python, function: "helpers:counter_created"}
+    test_case:
+      ref_prompt_variants:
+        - "make a new tally counter named Steps"
+        - "add a counter for pushups starting at 5"
+        - "start counting Coffee cups"
+      expected_success: true
+
+  - name: increment_counter
+    description: "Select a counter by name and tap it N times; returns the value before and after."
+    ref_prompt: "Add 3 to the Groceries counter"
+    demo_params: {name: Groceries, times: "3"}
+    params:
+      - {name: name, type: str, required: true, description: "Existing counter title, e.g. 'First counter'"}
+      - {name: times, type: int, default: 1, description: "How many taps (1-50)"}
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:select_counter"
+      - {action: wait_for_text, text: "{name}", timeout_s: 5}
+      - python_action: "helpers:tap_counter"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "me.tsukanov.counter:id/counterLabel"}
+        - {kind: text_visible, text: "{name}"}
+        - {kind: custom_python, function: "helpers:incremented"}
+    test_case:
+      ref_prompt_variants:
+        - "count 5 on First counter"
+        - "increase the Steps tally by two"
+        - "tap the counter once"
+      expected_success: true
+
+  - name: get_counters
+    description: "Open the counters list and return every counter with its value."
+    ref_prompt: "Show all my tally counters"
+    params: []
+    steps:
+      - subroutine: open_list
+      - {action: sleep, duration_s: 0.5}
+      - python_action: "helpers:read_counters"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "me.tsukanov.counter:id/add_counter"}
+        - {kind: element_present, id: "me.tsukanov.counter:id/row_title"}
+        - {kind: custom_python, function: "helpers:counters_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what counters do I have"
+        - "list my tallies"
+        - "how many are on each counter"
+      expected_success: true
+
+  - name: select_counter
+    description: "Make a counter the active one (opens the list and taps its row); returns its current value."
+    ref_prompt: "Switch to the Groceries counter"
+    params:
+      - {name: name, type: str, required: true, description: "Existing counter title"}
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:select_counter"
+      - {action: wait_for_text, text: "{name}", timeout_s: 5}
+      - python_action: "helpers:read_active"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "me.tsukanov.counter:id/counterLabel"}
+        - {kind: text_visible, text: "{name}"}
+        - {kind: custom_python, function: "helpers:active_read"}
+    test_case:
+      ref_prompt_variants:
+        - "go to the Steps tally"
+        - "open the First counter"
+      expected_success: true
+
+  - name: reset_counter
+    description: "Reset the named counter to zero (Reset button in the toolbar); returns the value before and after."
+    ref_prompt: "Reset the Groceries counter to zero"
+    params:
+      - {name: name, type: str, required: true, description: "Existing counter title"}
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:select_counter"
+      - {action: wait_for_text, text: "{name}", timeout_s: 5}
+      - python_action: "helpers:note_before"
+      - {action: tap_element, desc: "Reset counter"}
+      - {action: sleep, duration_s: 1}
+      - if_visible:
+          selector: {id: "android:id/button1"}
+          then:
+            - {action: tap_element, id: "android:id/button1"}
+            - {action: sleep, duration_s: 1}
+      - python_action: "helpers:read_active"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "me.tsukanov.counter:id/counterLabel"}
+        - {kind: text_visible, text: "{name}"}
+        - {kind: custom_python, function: "helpers:was_reset"}
+    test_case:
+      ref_prompt_variants:
+        - "zero the Steps counter"
+        - "start the tally over"
+      expected_success: true

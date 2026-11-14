@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/play_store",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.android.vending",
+    "app_version": "1.8"
+  },
+  "fingerprint_hash": "45956a15b0f76bf5a4c8f1f63cc30cf3939b5f9d32514ea21b4d686b440a65aa",
+  "app_version": "1.8",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T23:20:20.543000+00:00",
+  "finished_at": "2026-10-22T23:20:20.543000+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": false,
+  "actions": [
+    {
+      "name": "update_app",
+      "success": false,
+      "duration_ms": 10539.563272963278,
+      "error_kind": "StepFailedError",
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": false,
+          "duration_ms": 10539.45802198723
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:c63c14912255190cb9dd68d134c029d509777ab8285de12c3c6b336ab30fef08",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQPRYv8X5JkW6hs1czCM5d9aDz/s84Vi9ORDVxHnEh8u6vXds78\n4EXYHzr/BqCQE/fk8X83+r5TBhbMyDzPV/qgc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

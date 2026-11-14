@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/prevo",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "uk.co.busydoingnothing.prevo",
+    "app_version": "0.27"
+  },
+  "fingerprint_hash": "87a2c4f9df93ab6ba910a3ab07804bf5e64dc64393dcdde7ff4847235ae0da18",
+  "app_version": "0.27",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T18:35:42.313585+00:00",
+  "finished_at": "2026-11-03T18:35:42.313585+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "open_entry",
+      "success": true,
+      "duration_ms": 16483.580937012448,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4009.5745760045247
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 154.17070899275132
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 3339.447011006996
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 8102.303790990845
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:10072bf6bc886f82859966fb86182eb2d2d7a81339130df5fc844cedf67c434a",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQBfFxBItD7dnx7N5lMAR9Rgm/YuiT9AXbIN3XJmPVRzPnjIRGt\n/Qiq0283Sca1iEwQKK6hmniw8omm/yRwZoyAo=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,123 @@
+# Ghost in the Droid: Digital Wellbeing (login-free seed skill, preinstalled)
+# Reads screen time and per-app usage; sets and removes daily app timers. Timers
+# reset at midnight and remove_app_timer undoes set_app_timer.
+
+name: wellbeing
+version: 1.0.0
+author: ghost
+description: "Digital Wellbeing: today's screen time, per-app usage, set or remove a daily app timer. No account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]     # app timers are local and reversible (remove_app_timer)
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.google.android.apps.wellbeing
+  app_version: ">=1.4.489941911"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/wellbeing"
+
+popup_detectors:
+  - {detect: "Allow Digital Wellbeing to send you notifications", button: "Don’t allow", label: "Notification permission prompt"}
+
+subroutines:
+  - name: open_home
+    description: "Fresh launch of the Digital Wellbeing overview (the launcher entry is hidden; the activity is started directly)."
+    steps:
+      - python_action: "helpers:open_wellbeing"
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "com.google.android.apps.wellbeing:id/today_screen_time", timeout_s: 25}
+
+  - name: open_dashboard
+    description: "Overview, then the per-app Dashboard via the chart centre."
+    steps:
+      - subroutine: open_home
+      - python_action: "helpers:open_dashboard"
+
+actions:
+  - name: get_screen_time_today
+    description: "Return today's screen time, unlocks and notification count from the overview."
+    ref_prompt: "How much screen time have I had today?"
+    params: []
+    steps:
+      - subroutine: open_home
+      - python_action: "helpers:read_today"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.apps.wellbeing:id/today_screen_time"}
+        - {kind: custom_python, function: "helpers:today_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "how long was I on my phone today"
+        - "how many notifications did I get today"
+        - "today's screen time"
+      expected_success: true
+
+  - name: list_app_usage
+    description: "Return today's per-app usage from the Dashboard, with any app timer set."
+    ref_prompt: "Which apps did I use most today?"
+    params:
+      - {name: limit, type: int, default: 20, description: "Maximum apps to return"}
+    steps:
+      - subroutine: open_dashboard
+      - python_action: "helpers:list_usage"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Dashboard"}
+        - {kind: custom_python, function: "helpers:usage_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "show my app usage"
+        - "how long did I spend in Clock today"
+        - "top 5 apps by screen time"
+      expected_success: true
+
+  - name: set_app_timer
+    description: "Set a daily timer (multiple of 5 minutes) on an app listed in the Dashboard. Reversible with remove_app_timer."
+    ref_prompt: "Limit Clock to 30 minutes a day"
+    params:
+      - {name: app, type: str, required: true, description: "App name as shown in the Dashboard, e.g. Clock"}
+      - {name: minutes, type: int, required: true, description: "5 to 1435, multiple of 5"}
+    steps:
+      - subroutine: open_dashboard
+      - python_action: "helpers:set_timer"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "set for"}
+        - {kind: custom_python, function: "helpers:timer_matches"}
+    test_case:
+      ref_prompt_variants:
+        - "set a 1 hour timer on Files"
+        - "give Notes a 45 minute daily limit"
+        - "restrict Tasks to 15 minutes per day"
+      expected_success: true
+
+  - name: remove_app_timer
+    description: "Delete an app's daily timer (no-op when none is set)."
+    ref_prompt: "Remove the app timer on Clock"
+    params:
+      - {name: app, type: str, required: true, description: "App name as shown in the Dashboard"}
+    steps:
+      - subroutine: open_dashboard
+      - python_action: "helpers:delete_timer"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Dashboard"}
+        - {kind: custom_python, function: "helpers:timer_cleared"}
+    test_case:
+      ref_prompt_variants:
+        - "delete the Files timer"
+        - "stop limiting Notes"
+        - "clear app timer for Tasks"
+      expected_success: true

@@ -1,0 +1,118 @@
+# Ghost in the Droid: Regex Crossword (login-free FOSS seed skill, installed from F-Droid)
+# Crosswords whose clues are regular expressions; the agent reads the regexes and fills the cells.
+
+name: regex-crossword
+version: 1.0.0
+author: ghost
+description: "Regex Crossword (F-Droid): list categories, open a level, read the regex clues and the grid, type the cells and verify. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: de.chagemann.regexcrossword
+  app_version: ">=1.0"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/regex-crossword"
+
+popup_detectors: []
+
+actions:
+  - name: list_levels
+    description: "List the level categories (Tutorial, Beginner, ...) and how many levels are solved."
+    ref_prompt: "Which regex crossword categories are there?"
+    params: []
+    steps:
+      - {action: launch_app, package: de.chagemann.regexcrossword}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:list_levels"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:categories_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "show the crossword categories"
+      expected_success: true
+
+  - name: open_level
+    description: "Open a level by category and level name; returns the clues and the grid."
+    ref_prompt: "Open the Backreference regex crossword level"
+    demo_params: {category: Tutorial, level: Backreference}
+    params:
+      - {name: category, type: str, required: true, description: "e.g. Tutorial"}
+      - {name: level, type: str, required: true, description: "Level name, e.g. Backreference"}
+    steps:
+      - {action: launch_app, package: de.chagemann.regexcrossword}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:open_level"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:level_open"}
+    test_case:
+      ref_prompt_variants:
+        - "play the first tutorial level"
+        - "open a beginner regex crossword"
+      expected_success: true
+
+  - name: get_puzzle
+    description: "Read the clues (regexes above the columns and left of the rows) and the grid typed so far."
+    ref_prompt: "Show me the regex crossword clues"
+    params: []
+    steps:
+      - {action: launch_app, package: de.chagemann.regexcrossword}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:get_puzzle"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:puzzle_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what are the clues"
+      expected_success: true
+
+  - name: enter
+    description: "Type the grid: one string per row separated by slashes (II/AB); a dot leaves a cell untouched."
+    ref_prompt: "Type II in the crossword"
+    demo_params: {rows: "I/I"}
+    params:
+      - {name: rows, type: str, required: true, description: "Rows separated by /, e.g. I/I for two rows of one cell"}
+    steps:
+      - {action: launch_app, package: de.chagemann.regexcrossword}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:enter"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:typed"}
+    test_case:
+      ref_prompt_variants:
+        - "fill the crossword with AB/CD"
+      expected_success: true
+
+  - name: verify
+    description: "Press Verify and report whether the level is solved (title and message of the dialog)."
+    ref_prompt: "Verify my crossword answer"
+    params: []
+    steps:
+      - {action: launch_app, package: de.chagemann.regexcrossword}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:verify"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:verified"}
+    test_case:
+      ref_prompt_variants:
+        - "check the solution"
+      expected_success: true
+

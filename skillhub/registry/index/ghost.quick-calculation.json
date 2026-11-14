@@ -1,0 +1,59 @@
+{
+  "author": "ghost",
+  "slug": "quick-calculation",
+  "latest": "1.0.0",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "tag": null,
+      "commit": "1f74e7a1523f234ec12af9be0476d1fe6a449e8c",
+      "git_tree": null,
+      "sha256": "sha256:89cd688124feaa58d45b1fb46e8bd9d937d090d3b4c1b0e09c4a885b44513503",
+      "size": 22782,
+      "released_at": null,
+      "attestation": null,
+      "demo": {
+        "path": "demos/open_setup.webm",
+        "bytes": 171659,
+        "type": "video/webm"
+      },
+      "demos": {
+        "answer": {
+          "path": "demos/answer.webm",
+          "bytes": 312827,
+          "type": "video/webm"
+        },
+        "answer_many": {
+          "path": "demos/answer_many.webm",
+          "bytes": 325270,
+          "type": "video/webm"
+        },
+        "finish_game": {
+          "path": "demos/finish_game.webm",
+          "bytes": 345530,
+          "type": "video/webm"
+        },
+        "get_question": {
+          "path": "demos/get_question.webm",
+          "bytes": 283221,
+          "type": "video/webm"
+        },
+        "get_result": {
+          "path": "demos/get_result.webm",
+          "bytes": 291517,
+          "type": "video/webm"
+        },
+        "open_setup": {
+          "path": "demos/open_setup.webm",
+          "bytes": 171659,
+          "type": "video/webm"
+        },
+        "start_game": {
+          "path": "demos/start_game.webm",
+          "bytes": 375361,
+          "type": "video/webm"
+        }
+      }
+    }
+  ]
+}
