@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/birdipedia",
+ "action": "filter_birds",
+ "prompt": "In Birdipedia, filter robin and list the first two complete common and scientific names. Briefly compare their names; stay in the catalog and do not open bird cards, links, settings or share anything.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 19.0,
+  "tokens": 29287,
+  "tool_calls": 6,
+  "ok": true
+ },
+ "after": {
+  "seconds": 28.63,
+  "tokens": 48799,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "Original-prompt replacement after product device-ID normalization f3d9699f merged in9394f9aa. Both sides use the exact original prompt and clean temporary app on phone B. BEFORE19.00s/29287tokens/6calls passes; AFTER28.63s/48799tokens/5calls passes via filter_birds/read_results. AFTER takes longer and more tokens on this task; no speedup claimed. Previous failed AFTER/pair archived privately outside hub inputs. One incidentally terminated partial AFTER also archived and all tokens counted. Maintainer-run actual replay, separate native final-state checks; not independent verification. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

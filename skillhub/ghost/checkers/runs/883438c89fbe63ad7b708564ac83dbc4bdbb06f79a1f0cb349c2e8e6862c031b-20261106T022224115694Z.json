@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/checkers",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.secuso.privacyfriendlydame",
+    "app_version": "1.3.4"
+  },
+  "fingerprint_hash": "883438c89fbe63ad7b708564ac83dbc4bdbb06f79a1f0cb349c2e8e6862c031b",
+  "app_version": "1.3.4",
+  "model": "deterministic",
+  "timestamp": "2026-11-06T02:22:24.115694+00:00",
+  "finished_at": "2026-11-06T02:22:24.115694+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "new_game",
+      "success": true,
+      "duration_ms": 14182.527349003067,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 7108.17861599935
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 5564.86273399787
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:4375e3ce9b7db5045dac7a3b31008e3dd0eadd78010141f539d9ac88ce052d02",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQJwidpixw0jBi4WvTEpxmoSjKMK5gUWmM4m0X5Djj+TiZiioKy\nyu4GuAI0eZ6MKmK5ygla/aHlVapY59Wl3GVwo=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/currencies",
+ "action": "set_amount",
+ "prompt": "In Currencies, convert 125.50 GBP to JPY. Report the displayed result and copy the Rates as of date/provider line. Do not change data providers or use arithmetic operators.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 92.77,
+  "tokens": 1006093,
+  "tool_calls": 44,
+  "ok": true
+ },
+ "after": {
+  "seconds": 79.35,
+  "tokens": 98976,
+  "tool_calls": 8,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Both original takes succeeded: BEFORE 92.77s/1,006,093 tokens/44 calls (TOKCAP 1.5M), AFTER 79.35s/98,976 tokens/8 calls. The native source/target/input/output and dated provider line were checked. BEFORE initially hit a checker-only false negative because its answer used £ rather than GBP; native GBP was proven and the original take was correctly accepted without a retake. The toolkit reports the app-displayed cached rate, without a live-market-rate claim. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

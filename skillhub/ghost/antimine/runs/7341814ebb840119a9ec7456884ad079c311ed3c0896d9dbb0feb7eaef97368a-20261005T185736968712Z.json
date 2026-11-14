@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/antimine",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "dev.lucanlm.antimine",
+    "app_version": "17.6.3"
+  },
+  "fingerprint_hash": "7341814ebb840119a9ec7456884ad079c311ed3c0896d9dbb0feb7eaef97368a",
+  "app_version": "17.6.3",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:57:36.968712+00:00",
+  "finished_at": "2026-10-05T18:57:36.968712+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "start_new_game",
+      "success": true,
+      "duration_ms": 5692.140948027372,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 5638.842401996953
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 5.363280011806637
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQGuOHS/6kfQknLOM2XjwVTwYUvam0QT05ZQSjGRoHdmTFDXxG+\n+xUiH0Tn7zQ+MuZ6lRbSpoWXn/7U4+fjh0RAY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

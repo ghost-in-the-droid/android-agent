@@ -1,0 +1,121 @@
+# Ghost in the Droid: Africa Quiz (login-free FOSS seed skill, installed from F-Droid)
+# Africa Quiz (F-Droid): a 10 question quiz on the capitals of African countries. Start a round, read and answer questions, then read the score and the answer review. Offline, no account.
+
+name: africa-quiz
+version: 1.0.0
+author: ghost
+description: "Africa Quiz (F-Droid): a 10 question quiz on the capitals of African countries. Start a round, read and answer questions, then read the score and the answer review. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.mufradat.africaquiz
+  app_version: ">=1.0"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/africa-quiz"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.mufradat.africaquiz}
+      - {action: sleep, duration_s: 2.0}
+
+actions:
+  - name: start_quiz
+    description: "Restart the app and start a new 10 question round."
+    ref_prompt: "Start the Africa capitals quiz"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:start_quiz"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:quiz_started"}
+    test_case:
+      ref_prompt_variants:
+        - "quiz me on African capitals"
+        - "start a new Africa quiz round"
+      expected_success: true
+
+  - name: get_question
+    description: "Read the current question: number, score, the prompt and the four options."
+    ref_prompt: "What is the current Africa quiz question?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_question"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:question_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read me the quiz question"
+      expected_success: true
+
+  - name: answer
+    description: "Pick an option by position (1-4) or by its text; the quiz moves on at once."
+    ref_prompt: "Answer Kigali in the Africa quiz"
+    demo_params: {option: "1"}
+    params:
+      - {name: option, type: str, required: true, description: "1-4 or the option text"}
+      - {name: expect_question, type: str, required: false, description: "optional question number; the call fails if the quiz is already further on"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:answer"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered"}
+    test_case:
+      ref_prompt_variants:
+        - "pick option 2"
+        - "answer Nairobi"
+      expected_success: true
+
+  - name: answer_many
+    description: "Answer several questions in a row, e.g. options=1,3,2."
+    ref_prompt: "Answer the next three Africa quiz questions with options 1, 1 and 2"
+    demo_params: {options: "1,1,1,1,1,1,1,1,1,1"}
+    params:
+      - {name: options, type: str, required: true, description: "Comma separated positions or texts"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:answer_many"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered"}
+    test_case:
+      ref_prompt_variants:
+        - "answer 2,2,1"
+      expected_success: true
+
+  - name: get_results
+    description: "After the last question: the percent, the score and the full answer review (country, correct capital, your answer)."
+    ref_prompt: "Show the Africa quiz results"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_results"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:results_read"}
+    test_case:
+      ref_prompt_variants:
+        - "how did I do in the Africa quiz"
+      expected_success: true

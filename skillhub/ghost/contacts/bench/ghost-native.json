@@ -1,0 +1,2492 @@
+{
+  "tasks": [
+    {
+      "task_id": "contacts_create",
+      "action": "create_contact",
+      "label": "Contacts: create Ada Lovelace",
+      "seeds": 5,
+      "arms": {
+        "after_mcp": {
+          "passed": 5,
+          "total": 5,
+          "wall_ms_median": 84339.0,
+          "tokens_median": 367882.0,
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        "after_replay": {
+          "passed": 5,
+          "total": 5,
+          "wall_ms_median": 32781.0,
+          "tokens_median": 0.0,
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        "before": {
+          "passed": 5,
+          "total": 5,
+          "wall_ms_median": 74521.0,
+          "tokens_median": 889687.0,
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        }
+      },
+      "episodes": [
+        {
+          "arm": "after_mcp",
+          "seed": 0,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 553463,
+          "tokens_in": 70787,
+          "tokens_out": 1445,
+          "tokens_cache_read": 481231,
+          "wall_ms": 82125,
+          "steps": 11,
+          "llm_calls": 8,
+          "ui_actions": {
+            "tap": 1,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 0,
+            "total": 1
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "create_contact"
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Ada Lovelace"
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "+1 555 0100"
+            },
+            {
+              "i": 7,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Ada Lovelace"
+            },
+            {
+              "i": 8,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3183,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 34808,
+              "tokens_out": null,
+              "tokens_cache_read": 18556
+            },
+            {
+              "i": 3,
+              "tokens_in": 1293,
+              "tokens_out": null,
+              "tokens_cache_read": 53362
+            },
+            {
+              "i": 4,
+              "tokens_in": 29405,
+              "tokens_out": null,
+              "tokens_cache_read": 54653
+            },
+            {
+              "i": 5,
+              "tokens_in": 221,
+              "tokens_out": null,
+              "tokens_cache_read": 84056
+            },
+            {
+              "i": 6,
+              "tokens_in": 1021,
+              "tokens_out": null,
+              "tokens_cache_read": 84275
+            },
+            {
+              "i": 7,
+              "tokens_in": 368,
+              "tokens_out": null,
+              "tokens_cache_read": 85294
+            },
+            {
+              "i": 8,
+              "tokens_in": 488,
+              "tokens_out": null,
+              "tokens_cache_read": 85660
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "after_replay",
+          "seed": 0,
+          "instance_seed": null,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 32781,
+          "steps": 6,
+          "llm_calls": 0,
+          "ui_actions": {
+            "total": 6
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "actions": [],
+          "calls": [],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "before",
+          "seed": 0,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 896962,
+          "tokens_in": 89431,
+          "tokens_out": 1695,
+          "tokens_cache_read": 805836,
+          "wall_ms": 65642,
+          "steps": 17,
+          "llm_calls": 13,
+          "ui_actions": {
+            "tap": 5,
+            "type": 3,
+            "swipe": 0,
+            "key": 0,
+            "launch": 2,
+            "total": 10
+          },
+          "skill_calls": 0,
+          "tool_errors": 1,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": false,
+              "target": "com.android.contacts"
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.contacts"
+            },
+            {
+              "i": 4,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Ada"
+            },
+            {
+              "i": 8,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Lovelace"
+            },
+            {
+              "i": 10,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "+1 555 0100"
+            },
+            {
+              "i": 12,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "+1 555 0100"
+            },
+            {
+              "i": 14,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Lovelace"
+            },
+            {
+              "i": 15,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Ada Lovelace"
+            },
+            {
+              "i": 17,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "+1 555 0100"
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3064,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 34363,
+              "tokens_out": null,
+              "tokens_cache_read": 15347
+            },
+            {
+              "i": 3,
+              "tokens_in": 1094,
+              "tokens_out": null,
+              "tokens_cache_read": 49708
+            },
+            {
+              "i": 4,
+              "tokens_in": 151,
+              "tokens_out": null,
+              "tokens_cache_read": 50800
+            },
+            {
+              "i": 5,
+              "tokens_in": 4248,
+              "tokens_out": null,
+              "tokens_cache_read": 50949
+            },
+            {
+              "i": 6,
+              "tokens_in": 209,
+              "tokens_out": null,
+              "tokens_cache_read": 55195
+            },
+            {
+              "i": 7,
+              "tokens_in": 299,
+              "tokens_out": null,
+              "tokens_cache_read": 55402
+            },
+            {
+              "i": 8,
+              "tokens_in": 303,
+              "tokens_out": null,
+              "tokens_cache_read": 55699
+            },
+            {
+              "i": 9,
+              "tokens_in": 44592,
+              "tokens_out": null,
+              "tokens_cache_read": 56000
+            },
+            {
+              "i": 10,
+              "tokens_in": 530,
+              "tokens_out": null,
+              "tokens_cache_read": 100590
+            },
+            {
+              "i": 11,
+              "tokens_in": 151,
+              "tokens_out": null,
+              "tokens_cache_read": 101118
+            },
+            {
+              "i": 12,
+              "tokens_in": 211,
+              "tokens_out": null,
+              "tokens_cache_read": 101267
+            },
+            {
+              "i": 13,
+              "tokens_in": 216,
+              "tokens_out": null,
+              "tokens_cache_read": 101476
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 1,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 313640,
+          "tokens_in": 36214,
+          "tokens_out": 1267,
+          "tokens_cache_read": 276159,
+          "wall_ms": 84339,
+          "steps": 11,
+          "llm_calls": 8,
+          "ui_actions": {
+            "tap": 1,
+            "type": 0,
+            "swipe": 0,
+            "key": 1,
+            "launch": 0,
+            "total": 2
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "get_phone_state",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "create_contact"
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Ada Lovelace"
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "555 0100"
+            },
+            {
+              "i": 7,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "key",
+              "tool": "press_back",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3183,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 1300,
+              "tokens_out": null,
+              "tokens_cache_read": 18556
+            },
+            {
+              "i": 3,
+              "tokens_in": 1235,
+              "tokens_out": null,
+              "tokens_cache_read": 19854
+            },
+            {
+              "i": 4,
+              "tokens_in": 28479,
+              "tokens_out": null,
+              "tokens_cache_read": 21087
+            },
+            {
+              "i": 5,
+              "tokens_in": 208,
+              "tokens_out": null,
+              "tokens_cache_read": 49564
+            },
+            {
+              "i": 6,
+              "tokens_in": 800,
+              "tokens_out": null,
+              "tokens_cache_read": 49770
+            },
+            {
+              "i": 7,
+              "tokens_in": 819,
+              "tokens_out": null,
+              "tokens_cache_read": 50568
+            },
+            {
+              "i": 8,
+              "tokens_in": 190,
+              "tokens_out": null,
+              "tokens_cache_read": 51385
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "after_replay",
+          "seed": 1,
+          "instance_seed": null,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 31945,
+          "steps": 6,
+          "llm_calls": 0,
+          "ui_actions": {
+            "total": 6
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "actions": [],
+          "calls": [],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "before",
+          "seed": 1,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 1411849,
+          "tokens_in": 82005,
+          "tokens_out": 6619,
+          "tokens_cache_read": 1323225,
+          "wall_ms": 105181,
+          "steps": 58,
+          "llm_calls": 23,
+          "ui_actions": {
+            "tap": 11,
+            "type": 5,
+            "swipe": 0,
+            "key": 27,
+            "launch": 2,
+            "total": 45
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "launch",
+              "tool": "launch_intent",
+              "ok": true,
+              "target": "com.android.contacts"
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "read",
+              "tool": "search_apps",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.contacts"
+            },
+            {
+              "i": 5,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Ada"
+            },
+            {
+              "i": 10,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Lovelace"
+            },
+            {
+              "i": 12,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "+1 555 0100"
+            },
+            {
+              "i": 14,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 15,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 17,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 20,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 21,
+              "type": "tap",
+              "tool": "long_press",
+              "ok": true
+            },
+            {
+              "i": 22,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 23,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 24,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 25,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 26,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 27,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 28,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 29,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 30,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 31,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 32,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 33,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 34,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 35,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 36,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 37,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 38,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 39,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 40,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 41,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 42,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 43,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 44,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 45,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 46,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 47,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 48,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 49,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Lovelace"
+            },
+            {
+              "i": 50,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 51,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 52,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 53,
+              "type": "read",
+              "tool": "get_phone_state",
+              "ok": true
+            },
+            {
+              "i": 54,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "+1 555 0100"
+            },
+            {
+              "i": 55,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 56,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 57,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 58,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3064,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 228,
+              "tokens_out": null,
+              "tokens_cache_read": 15347
+            },
+            {
+              "i": 3,
+              "tokens_in": 6960,
+              "tokens_out": null,
+              "tokens_cache_read": 15573
+            },
+            {
+              "i": 4,
+              "tokens_in": 544,
+              "tokens_out": null,
+              "tokens_cache_read": 22531
+            },
+            {
+              "i": 5,
+              "tokens_in": 759,
+              "tokens_out": null,
+              "tokens_cache_read": 23073
+            },
+            {
+              "i": 6,
+              "tokens_in": 284,
+              "tokens_out": null,
+              "tokens_cache_read": 23830
+            },
+            {
+              "i": 7,
+              "tokens_in": 780,
+              "tokens_out": null,
+              "tokens_cache_read": 24112
+            },
+            {
+              "i": 8,
+              "tokens_in": 336,
+              "tokens_out": null,
+              "tokens_cache_read": 24890
+            },
+            {
+              "i": 9,
+              "tokens_in": 599,
+              "tokens_out": null,
+              "tokens_cache_read": 25224
+            },
+            {
+              "i": 10,
+              "tokens_in": 11844,
+              "tokens_out": null,
+              "tokens_cache_read": 25821
+            },
+            {
+              "i": 11,
+              "tokens_in": 46880,
+              "tokens_out": null,
+              "tokens_cache_read": 37663
+            },
+            {
+              "i": 12,
+              "tokens_in": 1061,
+              "tokens_out": null,
+              "tokens_cache_read": 84541
+            },
+            {
+              "i": 13,
+              "tokens_in": 388,
+              "tokens_out": null,
+              "tokens_cache_read": 85600
+            },
+            {
+              "i": 14,
+              "tokens_in": 134,
+              "tokens_out": null,
+              "tokens_cache_read": 85986
+            },
+            {
+              "i": 15,
+              "tokens_in": 855,
+              "tokens_out": null,
+              "tokens_cache_read": 86118
+            },
+            {
+              "i": 16,
+              "tokens_in": 3370,
+              "tokens_out": null,
+              "tokens_cache_read": 86971
+            },
+            {
+              "i": 17,
+              "tokens_in": 514,
+              "tokens_out": null,
+              "tokens_cache_read": 90339
+            },
+            {
+              "i": 18,
+              "tokens_in": 352,
+              "tokens_out": null,
+              "tokens_cache_read": 90851
+            },
+            {
+              "i": 19,
+              "tokens_in": 774,
+              "tokens_out": null,
+              "tokens_cache_read": 91201
+            },
+            {
+              "i": 20,
+              "tokens_in": 449,
+              "tokens_out": null,
+              "tokens_cache_read": 91973
+            },
+            {
+              "i": 21,
+              "tokens_in": 858,
+              "tokens_out": null,
+              "tokens_cache_read": 92420
+            },
+            {
+              "i": 22,
+              "tokens_in": 326,
+              "tokens_out": null,
+              "tokens_cache_read": 93276
+            },
+            {
+              "i": 23,
+              "tokens_in": 646,
+              "tokens_out": null,
+              "tokens_cache_read": 93600
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 2,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 367882,
+          "tokens_in": 36953,
+          "tokens_out": 1151,
+          "tokens_cache_read": 329778,
+          "wall_ms": 79268,
+          "steps": 10,
+          "llm_calls": 9,
+          "ui_actions": {
+            "tap": 1,
+            "type": 0,
+            "swipe": 0,
+            "key": 1,
+            "launch": 0,
+            "total": 2
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "create_contact"
+            },
+            {
+              "i": 3,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Ada Lovelace"
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "+1 555 0100"
+            },
+            {
+              "i": 6,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "key",
+              "tool": "press_back",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3185,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 1160,
+              "tokens_out": null,
+              "tokens_cache_read": 18558
+            },
+            {
+              "i": 3,
+              "tokens_in": 1235,
+              "tokens_out": null,
+              "tokens_cache_read": 19716
+            },
+            {
+              "i": 4,
+              "tokens_in": 29427,
+              "tokens_out": null,
+              "tokens_cache_read": 20949
+            },
+            {
+              "i": 5,
+              "tokens_in": 246,
+              "tokens_out": null,
+              "tokens_cache_read": 50374
+            },
+            {
+              "i": 6,
+              "tokens_in": 131,
+              "tokens_out": null,
+              "tokens_cache_read": 50618
+            },
+            {
+              "i": 7,
+              "tokens_in": 553,
+              "tokens_out": null,
+              "tokens_cache_read": 50747
+            },
+            {
+              "i": 8,
+              "tokens_in": 847,
+              "tokens_out": null,
+              "tokens_cache_read": 51298
+            },
+            {
+              "i": 9,
+              "tokens_in": 169,
+              "tokens_out": null,
+              "tokens_cache_read": 52143
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "after_replay",
+          "seed": 2,
+          "instance_seed": null,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 33948,
+          "steps": 6,
+          "llm_calls": 0,
+          "ui_actions": {
+            "total": 6
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "actions": [],
+          "calls": [],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "before",
+          "seed": 2,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 401848,
+          "tokens_in": 55615,
+          "tokens_out": 1320,
+          "tokens_cache_read": 344913,
+          "wall_ms": 62391,
+          "steps": 14,
+          "llm_calls": 11,
+          "ui_actions": {
+            "tap": 5,
+            "type": 3,
+            "swipe": 0,
+            "key": 0,
+            "launch": 2,
+            "total": 10
+          },
+          "skill_calls": 0,
+          "tool_errors": 1,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": false,
+              "target": "com.android.contacts"
+            },
+            {
+              "i": 2,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.contacts"
+            },
+            {
+              "i": 3,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Ada"
+            },
+            {
+              "i": 7,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Lovelace"
+            },
+            {
+              "i": 9,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "+1 555 0100"
+            },
+            {
+              "i": 11,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3068,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 712,
+              "tokens_out": null,
+              "tokens_cache_read": 15351
+            },
+            {
+              "i": 3,
+              "tokens_in": 1007,
+              "tokens_out": null,
+              "tokens_cache_read": 16061
+            },
+            {
+              "i": 4,
+              "tokens_in": 151,
+              "tokens_out": null,
+              "tokens_cache_read": 17066
+            },
+            {
+              "i": 5,
+              "tokens_in": 4248,
+              "tokens_out": null,
+              "tokens_cache_read": 17215
+            },
+            {
+              "i": 6,
+              "tokens_in": 325,
+              "tokens_out": null,
+              "tokens_cache_read": 21461
+            },
+            {
+              "i": 7,
+              "tokens_in": 575,
+              "tokens_out": null,
+              "tokens_cache_read": 21784
+            },
+            {
+              "i": 8,
+              "tokens_in": 44348,
+              "tokens_out": null,
+              "tokens_cache_read": 22357
+            },
+            {
+              "i": 9,
+              "tokens_in": 531,
+              "tokens_out": null,
+              "tokens_cache_read": 66703
+            },
+            {
+              "i": 10,
+              "tokens_in": 168,
+              "tokens_out": null,
+              "tokens_cache_read": 67232
+            },
+            {
+              "i": 11,
+              "tokens_in": 482,
+              "tokens_out": null,
+              "tokens_cache_read": 67398
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 3,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 466520,
+          "tokens_in": 36944,
+          "tokens_out": 1622,
+          "tokens_cache_read": 427954,
+          "wall_ms": 85890,
+          "steps": 12,
+          "llm_calls": 11,
+          "ui_actions": {
+            "tap": 2,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 0,
+            "total": 2
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "create_contact"
+            },
+            {
+              "i": 3,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Ada Lovelace"
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "read",
+              "tool": "get_phone_state",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3181,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 1161,
+              "tokens_out": null,
+              "tokens_cache_read": 18554
+            },
+            {
+              "i": 3,
+              "tokens_in": 1235,
+              "tokens_out": null,
+              "tokens_cache_read": 19713
+            },
+            {
+              "i": 4,
+              "tokens_in": 28262,
+              "tokens_out": null,
+              "tokens_cache_read": 20946
+            },
+            {
+              "i": 5,
+              "tokens_in": 528,
+              "tokens_out": null,
+              "tokens_cache_read": 49206
+            },
+            {
+              "i": 6,
+              "tokens_in": 276,
+              "tokens_out": null,
+              "tokens_cache_read": 49732
+            },
+            {
+              "i": 7,
+              "tokens_in": 466,
+              "tokens_out": null,
+              "tokens_cache_read": 50006
+            },
+            {
+              "i": 8,
+              "tokens_in": 238,
+              "tokens_out": null,
+              "tokens_cache_read": 50470
+            },
+            {
+              "i": 9,
+              "tokens_in": 731,
+              "tokens_out": null,
+              "tokens_cache_read": 50706
+            },
+            {
+              "i": 10,
+              "tokens_in": 378,
+              "tokens_out": null,
+              "tokens_cache_read": 51435
+            },
+            {
+              "i": 11,
+              "tokens_in": 488,
+              "tokens_out": null,
+              "tokens_cache_read": 51811
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "after_replay",
+          "seed": 3,
+          "instance_seed": null,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 32044,
+          "steps": 6,
+          "llm_calls": 0,
+          "ui_actions": {
+            "total": 6
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "actions": [],
+          "calls": [],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "before",
+          "seed": 3,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 743265,
+          "tokens_in": 45875,
+          "tokens_out": 2011,
+          "tokens_cache_read": 695379,
+          "wall_ms": 74521,
+          "steps": 21,
+          "llm_calls": 15,
+          "ui_actions": {
+            "tap": 5,
+            "type": 3,
+            "swipe": 0,
+            "key": 0,
+            "launch": 2,
+            "total": 10
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "launch",
+              "tool": "launch_intent",
+              "ok": true,
+              "target": "android.intent.action.INSERT"
+            },
+            {
+              "i": 2,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "search_apps",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.contacts"
+            },
+            {
+              "i": 7,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Ada"
+            },
+            {
+              "i": 13,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Lovelace"
+            },
+            {
+              "i": 15,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "+1 555 0100"
+            },
+            {
+              "i": 17,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 20,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Ada Lovelace"
+            },
+            {
+              "i": 21,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "+1 555 0100"
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3064,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 261,
+              "tokens_out": null,
+              "tokens_cache_read": 15347
+            },
+            {
+              "i": 3,
+              "tokens_in": 33743,
+              "tokens_out": null,
+              "tokens_cache_read": 15606
+            },
+            {
+              "i": 4,
+              "tokens_in": 711,
+              "tokens_out": null,
+              "tokens_cache_read": 49347
+            },
+            {
+              "i": 5,
+              "tokens_in": 537,
+              "tokens_out": null,
+              "tokens_cache_read": 50056
+            },
+            {
+              "i": 6,
+              "tokens_in": 894,
+              "tokens_out": null,
+              "tokens_cache_read": 50591
+            },
+            {
+              "i": 7,
+              "tokens_in": 284,
+              "tokens_out": null,
+              "tokens_cache_read": 51483
+            },
+            {
+              "i": 8,
+              "tokens_in": 4248,
+              "tokens_out": null,
+              "tokens_cache_read": 51765
+            },
+            {
+              "i": 9,
+              "tokens_in": 325,
+              "tokens_out": null,
+              "tokens_cache_read": 56011
+            },
+            {
+              "i": 10,
+              "tokens_in": 303,
+              "tokens_out": null,
+              "tokens_cache_read": 56334
+            },
+            {
+              "i": 11,
+              "tokens_in": 307,
+              "tokens_out": null,
+              "tokens_cache_read": 56635
+            },
+            {
+              "i": 12,
+              "tokens_in": 464,
+              "tokens_out": null,
+              "tokens_cache_read": 56940
+            },
+            {
+              "i": 13,
+              "tokens_in": 284,
+              "tokens_out": null,
+              "tokens_cache_read": 57402
+            },
+            {
+              "i": 14,
+              "tokens_in": 211,
+              "tokens_out": null,
+              "tokens_cache_read": 57684
+            },
+            {
+              "i": 15,
+              "tokens_in": 239,
+              "tokens_out": null,
+              "tokens_cache_read": 57893
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 4,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 318140,
+          "tokens_in": 37194,
+          "tokens_out": 1238,
+          "tokens_cache_read": 279708,
+          "wall_ms": 88190,
+          "steps": 9,
+          "llm_calls": 8,
+          "ui_actions": {
+            "tap": 1,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 0,
+            "total": 1
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "create_contact"
+            },
+            {
+              "i": 3,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Ada Lovelace"
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "555 0100"
+            },
+            {
+              "i": 6,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3183,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 1161,
+              "tokens_out": null,
+              "tokens_cache_read": 18556
+            },
+            {
+              "i": 3,
+              "tokens_in": 1235,
+              "tokens_out": null,
+              "tokens_cache_read": 19715
+            },
+            {
+              "i": 4,
+              "tokens_in": 29483,
+              "tokens_out": null,
+              "tokens_cache_read": 20948
+            },
+            {
+              "i": 5,
+              "tokens_in": 467,
+              "tokens_out": null,
+              "tokens_cache_read": 50429
+            },
+            {
+              "i": 6,
+              "tokens_in": 832,
+              "tokens_out": null,
+              "tokens_cache_read": 50894
+            },
+            {
+              "i": 7,
+              "tokens_in": 345,
+              "tokens_out": null,
+              "tokens_cache_read": 51724
+            },
+            {
+              "i": 8,
+              "tokens_in": 488,
+              "tokens_out": null,
+              "tokens_cache_read": 52067
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "after_replay",
+          "seed": 4,
+          "instance_seed": null,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 33535,
+          "steps": 6,
+          "llm_calls": 0,
+          "ui_actions": {
+            "total": 6
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "actions": [],
+          "calls": [],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        },
+        {
+          "arm": "before",
+          "seed": 4,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 889687,
+          "tokens_in": 92795,
+          "tokens_out": 1708,
+          "tokens_cache_read": 795184,
+          "wall_ms": 139153,
+          "steps": 19,
+          "llm_calls": 12,
+          "ui_actions": {
+            "tap": 5,
+            "type": 3,
+            "swipe": 0,
+            "key": 0,
+            "launch": 2,
+            "total": 10
+          },
+          "skill_calls": 0,
+          "tool_errors": 1,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": false,
+              "target": "com.android.contacts"
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.contacts"
+            },
+            {
+              "i": 4,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Ada"
+            },
+            {
+              "i": 11,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Lovelace"
+            },
+            {
+              "i": 13,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "+1 555 0100"
+            },
+            {
+              "i": 15,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "read",
+              "tool": "extract_visible_text",
+              "ok": true
+            },
+            {
+              "i": 17,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Ada Lovelace"
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3062,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 34196,
+              "tokens_out": null,
+              "tokens_cache_read": 15345
+            },
+            {
+              "i": 3,
+              "tokens_in": 4688,
+              "tokens_out": null,
+              "tokens_cache_read": 49539
+            },
+            {
+              "i": 4,
+              "tokens_in": 272,
+              "tokens_out": null,
+              "tokens_cache_read": 54225
+            },
+            {
+              "i": 5,
+              "tokens_in": 4248,
+              "tokens_out": null,
+              "tokens_cache_read": 54495
+            },
+            {
+              "i": 6,
+              "tokens_in": 2,
+              "tokens_out": null,
+              "tokens_cache_read": 59064
+            },
+            {
+              "i": 7,
+              "tokens_in": 303,
+              "tokens_out": null,
+              "tokens_cache_read": 59064
+            },
+            {
+              "i": 8,
+              "tokens_in": 307,
+              "tokens_out": null,
+              "tokens_cache_read": 59365
+            },
+            {
+              "i": 9,
+              "tokens_in": 44339,
+              "tokens_out": null,
+              "tokens_cache_read": 59670
+            },
+            {
+              "i": 10,
+              "tokens_in": 534,
+              "tokens_out": null,
+              "tokens_cache_read": 104007
+            },
+            {
+              "i": 11,
+              "tokens_in": 308,
+              "tokens_out": null,
+              "tokens_cache_read": 104539
+            },
+            {
+              "i": 12,
+              "tokens_in": 211,
+              "tokens_out": null,
+              "tokens_cache_read": 104845
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.0"
+        }
+      ],
+      "stats": {
+        "arms": {
+          "after_mcp": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 367882.0,
+              "q1": 318140.0,
+              "q3": 466520.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 84339.0,
+              "q1": 82125.0,
+              "q3": 85890.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 8.0,
+              "q1": 8.0,
+              "q3": 9.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 2.0,
+              "q1": 1.0,
+              "q3": 2.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+            "skill_version": "1.0.0"
+          },
+          "after_replay": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": null,
+            "tokens": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 32781.0,
+              "q1": 32044.0,
+              "q3": 33535.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 6.0,
+              "q1": 6.0,
+              "q3": 6.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+            "skill_version": "1.0.0"
+          },
+          "before": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 889687.0,
+              "q1": 743265.0,
+              "q3": 896962.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 74521.0,
+              "q1": 65642.0,
+              "q3": 105181.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 13.0,
+              "q1": 12.0,
+              "q3": 15.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 10.0,
+              "q1": 10.0,
+              "q3": 10.0,
+              "n": 5
+            },
+            "tool_errors": 3,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+            "skill_version": "1.0.0"
+          }
+        },
+        "paired": {
+          "after_mcp_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 0,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 343499,
+            "break_even_reuses": null
+          },
+          "after_replay_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 0,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 889687,
+            "break_even_reuses": null
+          }
+        }
+      },
+      "generated_at": "2026-10-22T22:27:36.654930Z",
+      "run_ids": [
+        "nat2"
+      ]
+    }
+  ],
+  "suite": "ghost-native",
+  "skill": "ghost/contacts",
+  "evidence_class": "maintainer",
+  "label": "maintainer-run, not independent",
+  "model": [
+    "claude-haiku-5-5"
+  ],
+  "generated_at": "2026-10-22T22:27:36.654930Z",
+  "run_ids": [
+    "nat2"
+  ]
+}

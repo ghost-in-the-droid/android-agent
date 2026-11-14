@@ -1,0 +1,84 @@
+name: apodroid
+version: 1.0.0
+author: ghost
+description: Read NASA picture-of-the-day title, date and explanation in APODroid
+  with wallpaper writes denied
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: io.github.buerlino.apodroid
+  app_version: '>=0.3.1'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/apodroid
+actions:
+- name: open
+  description: Open APODroid with wallpaper writes and background execution denied
+  ref_prompt: Open APODroid with wallpaper writes and background execution denied
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:picture_ok
+  test_case:
+    ref_prompt_variants:
+    - Open APODroid with wallpaper writes and background execution denied in apodroid
+    expected_success: true
+- name: read_picture
+  description: Read the displayed NASA picture title and date
+  ref_prompt: Read the displayed NASA picture title and date
+  params: []
+  steps:
+  - python_action: helpers:read_picture
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:picture_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the displayed NASA picture title and date in apodroid
+    expected_success: true
+- name: read_explanation
+  description: Expand and read the native astronomer explanation
+  ref_prompt: Expand and read the native astronomer explanation
+  params: []
+  steps:
+  - python_action: helpers:read_explanation
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:explanation_ok
+  test_case:
+    ref_prompt_variants:
+    - Expand and read the native astronomer explanation in apodroid
+    expected_success: true
+- name: hide_explanation
+  description: Collapse the explanation without image or wallpaper controls
+  ref_prompt: Collapse the explanation without image or wallpaper controls
+  params: []
+  steps:
+  - python_action: helpers:hide_explanation
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:picture_ok
+  test_case:
+    ref_prompt_variants:
+    - Collapse the explanation without image or wallpaper controls in apodroid
+    expected_success: true

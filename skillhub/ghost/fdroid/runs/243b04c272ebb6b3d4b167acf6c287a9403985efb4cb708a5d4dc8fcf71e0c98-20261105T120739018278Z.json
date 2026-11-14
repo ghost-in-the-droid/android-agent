@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/fdroid",
+  "version": "1.0.2",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.fdroid.fdroid",
+    "app_version": "2.0.0"
+  },
+  "fingerprint_hash": "243b04c272ebb6b3d4b167acf6c287a9403985efb4cb708a5d4dc8fcf71e0c98",
+  "app_version": "2.0.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T12:07:39.018278+00:00",
+  "finished_at": "2026-11-05T12:07:39.018278+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "list_installed_apps",
+      "success": true,
+      "duration_ms": 14679.568292000113,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 10381.375733000823
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1312.117188999764
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 450.98960700124735
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 2503.06873000045
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:9473ca51023d22294ad39673cf82d165b56474d0a13f77859505bf47881c16db",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQArQm8LaVL92tooJX7h69KdVkUqjoYHnnMtUVUX2T2WokCdT8X\nN1ubHaCM7GumF/qkDDuYAMTwK6vDwwVvAG1AE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

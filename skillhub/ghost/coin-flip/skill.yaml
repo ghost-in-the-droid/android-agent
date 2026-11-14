@@ -1,0 +1,102 @@
+# Ghost in the Droid: Flip a coin (login-free FOSS seed skill, installed from F-Droid)
+# Flip a coin (F-Droid): flip a coin once or many times and read head or tail. Offline, no account.
+
+name: coin-flip
+version: 1.0.0
+author: ghost
+description: "Flip a coin (F-Droid): flip a coin once or many times and read head or tail. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.ecos.logic.flip_a_coin
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/coin-flip"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: org.ecos.logic.flip_a_coin}
+      - {action: sleep, duration_s: 2.0}
+
+actions:
+  - name: open_coin
+    description: "Restart the app and read the coin screen."
+    ref_prompt: "Open the coin flip app"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_coin"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:coin_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open Flip a coin"
+      expected_success: true
+
+  - name: flip
+    description: "Flip the coin once and return head or tail."
+    ref_prompt: "Flip a coin for me please"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:flip"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:flipped"}
+    test_case:
+      ref_prompt_variants:
+        - "heads or tails"
+        - "toss a coin to decide"
+      expected_success: true
+
+  - name: flip_many
+    description: "Flip the coin several times (1 to 20) and return every result with the head and tail counts."
+    ref_prompt: "Flip a coin five times"
+    demo_params: {count: "3"}
+    params:
+      - {name: count, type: str, required: false, description: "1 to 20, default 5"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:flip_many"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:flipped_many"}
+    test_case:
+      ref_prompt_variants:
+        - "flip a coin 10 times and count heads"
+      expected_success: true
+
+  - name: get_result
+    description: "Read the current coin result."
+    ref_prompt: "What does the coin show?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_result"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:result_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what was the last flip"
+      expected_success: true

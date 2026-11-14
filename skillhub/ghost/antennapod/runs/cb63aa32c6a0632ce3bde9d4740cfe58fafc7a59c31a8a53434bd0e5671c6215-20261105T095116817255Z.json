@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/antennapod",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "de.danoeh.antennapod",
+    "app_version": "3.12.2"
+  },
+  "fingerprint_hash": "cb63aa32c6a0632ce3bde9d4740cfe58fafc7a59c31a8a53434bd0e5671c6215",
+  "app_version": "3.12.2",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T09:51:16.817255+00:00",
+  "finished_at": "2026-11-05T09:51:16.817255+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "list_subscriptions",
+      "success": true,
+      "duration_ms": 9107.938047999596,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 315.4090600000927
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1028.931496000041
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 3278.379975000462
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 374.19347600007313
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 329.5830520000891
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 1237.7890709994972
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 2197.570196000015
+        },
+        {
+          "index": 7,
+          "success": true,
+          "duration_ms": 311.31754700072634
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:4c074e66c83071a290c9338d4fa81dc8b11dae606d19201570f72de6647123eb",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQMF1/U0//cVsLlsXFY4r2Qaf+Pv9lOpezDikzLDNAF4aZkuOou\nLssrP2SFImkC4iCe5QcpTRBBdI0BKZ/3SmjAE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

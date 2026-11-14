@@ -1,0 +1,142 @@
+name: firefox
+version: 1.0.0
+author: ghost
+description: Open public HTTPS landing pages in Fennec (Firefox), read native URL/title
+  and visible text, scroll, find text, close find and go back. No sign-in, forms or
+  personal browser data.
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: org.mozilla.fennec_fdroid
+  app_version: '>=158.0,<159'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/firefox
+actions:
+- name: open_browser
+  description: Open the separate Fennec browser; cancel default-browser setup, no
+    account
+  ref_prompt: Open the separate Fennec browser; cancel default-browser setup, no account
+  params: []
+  steps:
+  - python_action: helpers:open_browser
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:browser_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the separate Fennec browser; cancel default-browser setup, no account in
+      firefox
+    expected_success: true
+- name: open_url
+  description: Open and verify a public HTTPS landing-page URL
+  ref_prompt: Open and verify a public HTTPS landing-page URL
+  params:
+  - name: url
+    type: str
+    description: Public HTTPS landing page without query, fragment, credentials or
+      account path
+    required: true
+  steps:
+  - python_action: helpers:open_url
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:page_ok
+  test_case:
+    ref_prompt_variants:
+    - Open and verify a public HTTPS landing-page URL in firefox
+    expected_success: true
+- name: read_page
+  description: Read native URL, page title and accessible viewport text
+  ref_prompt: Read native URL, page title and accessible viewport text
+  params: []
+  steps:
+  - python_action: helpers:read_page
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:page_ok
+  test_case:
+    ref_prompt_variants:
+    - Read native URL, page title and accessible viewport text in firefox
+    expected_success: true
+- name: scroll_page
+  description: Scroll the current public page one viewport segment
+  ref_prompt: Scroll the current public page one viewport segment
+  params:
+  - name: direction
+    type: str
+    description: up or down
+    default: down
+  steps:
+  - python_action: helpers:scroll_page
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:page_ok
+  test_case:
+    ref_prompt_variants:
+    - Scroll the current public page one viewport segment in firefox
+    expected_success: true
+- name: find_text
+  description: Use native Find in page and return its query and match count
+  ref_prompt: Use native Find in page and return its query and match count
+  params:
+  - name: query
+    type: str
+    description: 1–80 printable ASCII characters
+    required: true
+  steps:
+  - python_action: helpers:find_text
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:find_ok
+  test_case:
+    ref_prompt_variants:
+    - Use native Find in page and return its query and match count in firefox
+    expected_success: true
+- name: close_find
+  description: Dismiss native find UI and read the current viewport
+  ref_prompt: Dismiss native find UI and read the current viewport
+  params: []
+  steps:
+  - python_action: helpers:close_find
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:page_ok
+  test_case:
+    ref_prompt_variants:
+    - Dismiss native find UI and read the current viewport in firefox
+    expected_success: true
+- name: go_back
+  description: Use native browser Back within public page history
+  ref_prompt: Use native browser Back within public page history
+  params: []
+  steps:
+  - python_action: helpers:go_back
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:page_ok
+  test_case:
+    ref_prompt_variants:
+    - Use native browser Back within public page history in firefox
+    expected_success: true

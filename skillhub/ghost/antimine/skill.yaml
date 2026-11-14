@@ -1,0 +1,137 @@
+# Ghost in the Droid: Antimine (login-free FOSS seed skill, installed from F-Droid)
+# Minesweeper. The board is a canvas, so actions read the app bar, statistics and
+# settings; the only board tap is the opening move, which Antimine guarantees is safe.
+
+name: antimine
+version: 1.0.0
+author: ghost
+description: "Antimine minesweeper (F-Droid): start a new game by difficulty, make the safe opening move, read statistics and settings. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: dev.lucanlm.antimine
+  app_version: ">=17.6.3"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/antimine"
+
+popup_detectors:
+  - {detect: "Do you know how to play minesweeper?", button: "Close", label: "First-game tutorial offer"}
+
+subroutines:
+  - name: open_menu
+    description: "Fresh launch to the main menu."
+    steps:
+      - python_action: "helpers:close_app"
+      - {action: launch_app, package: dev.lucanlm.antimine}
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "dev.lucanlm.antimine:id/newGameShow", timeout_s: 20}
+
+  - name: new_game
+    description: "Menu > NEW GAME > difficulty button; waits for the untouched board."
+    steps:
+      - python_action: "helpers:check_difficulty"
+      - subroutine: open_menu
+      - {action: tap_element, id: "dev.lucanlm.antimine:id/newGameShow"}
+      - {action: wait_for_element, id: "dev.lucanlm.antimine:id/startBeginner", timeout_s: 10}
+      - if_visible:
+          selector: {text: "{difficulty | upper}"}
+          then:
+            - {action: tap_element, text: "{difficulty | upper}"}
+      - {action: sleep, duration_s: 2}
+      - {action: dismiss_popups}
+      - {action: wait_for_element, id: "dev.lucanlm.antimine:id/tapToBegin", timeout_s: 15}
+
+actions:
+  - name: start_new_game
+    description: "Start a new game at a difficulty (beginner 9x9/10, intermediate 16x16/40, expert 24x24/99, master 50x50/450)."
+    ref_prompt: "Start a new beginner minesweeper game"
+    params:
+      - {name: difficulty, type: enum, values: [beginner, intermediate, expert, master], default: beginner}
+    steps:
+      - subroutine: new_game
+      - python_action: "helpers:read_game"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "dev.lucanlm.antimine:id/minesCount"}
+        - {kind: custom_python, function: "helpers:new_game_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "new expert game in Antimine"
+        - "play minesweeper, intermediate"
+        - "start an easy minesweeper"
+      expected_success: true
+
+  - name: reveal_first_tile
+    description: "Start a new game and make the opening move (tap the centre; Antimine's first tap is always safe). The clock starts."
+    ref_prompt: "Start a minesweeper game and make the first move"
+    params:
+      - {name: difficulty, type: enum, values: [beginner, intermediate, expert, master], default: beginner}
+    steps:
+      - subroutine: new_game
+      - python_action: "helpers:reveal_center"
+      - python_action: "helpers:read_game"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "dev.lucanlm.antimine:id/timer"}
+        - {kind: custom_python, function: "helpers:opened_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "open the first square in a new expert game"
+        - "begin a minesweeper round"
+        - "make the opening click"
+      expected_success: true
+
+  - name: get_stats
+    description: "Open Statistics and return the recorded stats (empty until a game has ended)."
+    ref_prompt: "Show my minesweeper statistics"
+    params: []
+    steps:
+      - subroutine: open_menu
+      - {action: tap_element, id: "dev.lucanlm.antimine:id/stats"}
+      - {action: wait_for_text, text: "Statistics", timeout_s: 10}
+      - {action: sleep, duration_s: 1}
+      - python_action: "helpers:read_stats"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Statistics"}
+        - {kind: custom_python, function: "helpers:stats_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "how many minesweeper games have I won"
+        - "my Antimine stats"
+        - "what is my best time"
+      expected_success: true
+
+  - name: get_settings
+    description: "Open Settings and return every on/off option with its state (read-only)."
+    ref_prompt: "Is no-guessing mode on in Antimine?"
+    params: []
+    steps:
+      - subroutine: open_menu
+      - {action: tap_element, id: "dev.lucanlm.antimine:id/settings"}
+      - {action: wait_for_element, id: "dev.lucanlm.antimine:id/hapticFeedback", timeout_s: 10}
+      - python_action: "helpers:read_settings"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Settings"}
+        - {kind: custom_python, function: "helpers:settings_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "are sounds enabled in minesweeper"
+        - "list Antimine settings"
+        - "is the clock shown in Antimine"
+      expected_success: true

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/firefox",
+ "action": "open_url",
+ "prompt": "Open https://example.org in Fennec and summarize its English landing-page message in two sentences. Do not follow links or sign in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 27.93,
+  "tokens": 47374,
+  "tool_calls": 8,
+  "ok": true
+ },
+ "after": {
+  "seconds": 46.7,
+  "tokens": 22898,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Anonymous Fennec onboarding is prepared identically off camera on each side; no website is pre-opened. Cold onboarding is covered separately by CLI recordings. Native default-browser role is preserved. Both tasks completed. BEFORE27.93s/47,374tokens/8calls; AFTER46.70s/22,898tokens/3calls. AFTER is18.77s slower despite2.07x fewer tokens: it uses complete native hierarchy reads, stable control bounds and native full-URL readback; The filmed native replay measured38.19s; CLI open_url measured38.76–40.53s. No fallback or unsupported parameter retry was needed. BEFORE adds an opening/title confirmation before its two-sentence message summary. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

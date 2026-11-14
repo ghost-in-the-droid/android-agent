@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/antennapod",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "de.danoeh.antennapod",
+    "app_version": "3.12.2"
+  },
+  "fingerprint_hash": "1492ec4f73443759231630fb0bb09b18d517fc03a83cce413f05846106f9b6c5",
+  "app_version": "3.12.2",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T23:42:20.062440+00:00",
+  "finished_at": "2026-10-22T23:42:20.062440+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "preview_podcast",
+      "success": true,
+      "duration_ms": 40717.586789047346,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 20832.097648992203
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3346.4460750110447
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 3014.477289048955
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 4767.439336050302
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 2012.133264914155
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 2276.75639197696
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:cbccbcbe4d454a6d22044a42543d73ecc19e2c418a7798ede935bebc0589b318",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQM0W2UUWSq86INsG3aGwHWOAmDo9f+B7gKXJPeMZj5Sqa9f/Pu\npJV9jn7Ap32o3C0/VfYH72NRCFEI3nNkycngg=\n-----END SSH SIGNATURE-----\n"
+  }
+}

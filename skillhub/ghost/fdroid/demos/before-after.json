@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/fdroid",
+ "action": "search_apps",
+ "prompt": "Search F-Droid for Markor",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 67.18,
+  "tokens": 615049,
+  "tool_calls": 26,
+  "ok": true
+ },
+ "after": {
+  "seconds": 101.53,
+  "tokens": 20858,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "Fixed skill ccfbcffd, 3/3 clean-reset phone B replays before AFTER retake. Original BEFORE retained. Original AFTER (69.47s/866042 tokens, success=True) preserved in originals/fdroid.mp4. New AFTER 101.53s/20858 tokens/3 calls, actual run_skill success. Every-frame terminal OCR and source-cast gate passed. AFTER was slower than BEFORE (101.53 vs67.18s): trace shows catalogue preparation/navigation71.29s, exact input verification7.23s, result readiness2.56s, collection9.62s. Token count fell from615049 to20858; no elapsed-time advantage is claimed.",
+ "source": "phone-b-before-after"
+}

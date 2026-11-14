@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/firefox",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.mozilla.fennec_fdroid",
+    "app_version": "158.0.0"
+  },
+  "fingerprint_hash": "8dab11bfc82aa94787b101755f658c297557043ca64997c87bc558cbcdfc7e74",
+  "app_version": "158.0.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T07:01:14.009528+00:00",
+  "finished_at": "2026-11-03T07:01:14.009528+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "scroll_page",
+      "success": true,
+      "duration_ms": 4612.215434004611,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4585.517919003905
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:a8d8c155200c21180f19b3f516ac0ee9cb794aa6d3c39261a4059d96022542bc",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQAD2byIGbw6q9zV9pwAEA/Vw3mZE2qoGRvJjngNr43j73FAP2p\ntnTBmT/wMg5f34dN5d5kxo08E0yV/55hHz4A8=\n-----END SSH SIGNATURE-----\n"
+  }
+}

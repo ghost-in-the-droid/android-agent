@@ -1,0 +1,156 @@
+# Ghost in the Droid: Fossify Calculator (FOSS, F-Droid, login-free seed skill)
+# Fills the "no calculator on the image" gap of stock emulators. Installed from the
+# official f-droid.org repo (sha256 checked against index-v2).
+
+name: calculator
+version: 1.0.3
+demo: demos/convert_units.webm   # per-action clips live in demos/<action>.webm
+author: ghost
+description: "Fossify Calculator: evaluate arithmetic, read the display and history, convert units. No account, no network."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US, en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: org.fossify.math
+  app_version: ">=1.4.0"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/calculator"
+
+# Fossify apps show no first-run dialogs; the History dialog is closed explicitly.
+popup_detectors: []
+
+subroutines:
+  - name: open_calculator
+    description: "Launch the calculator main screen (back out of history or converter screens first)."
+    steps:
+      # MainActivity is not exported (the launcher entry is a SplashActivity alias), so
+      # launch the package and back out of whatever screen the task was left on.
+      - {action: launch_app, package: org.fossify.math}
+      - {action: sleep, duration_s: 1.5}
+      - if_visible:
+          selector: {id: "org.fossify.math:id/alertTitle"}
+          then:
+            - {action: press_key, key: BACK}
+      - if_visible:
+          selector: {id: "org.fossify.math:id/top_unit_name"}
+          then:
+            - {action: press_key, key: BACK}
+      - if_visible:
+          selector: {id: "org.fossify.math:id/unit_label"}
+          then:
+            - {action: press_key, key: BACK}
+      - {action: wait_for_element, id: "org.fossify.math:id/btn_equals", timeout_s: 10}
+
+actions:
+  - name: calculate
+    description: "Clear the display, key in an expression (numbers and + - * / ^), press = and return the result. The app evaluates left to right without precedence."
+    ref_prompt: "Calculate 1234 times 5"
+    demo_params: {expression: "1234*5"}
+    params:
+      - {name: expression, type: str, required: true, description: "e.g. 12.5*4+3; evaluated left to right like the app"}
+    steps:
+      - subroutine: open_calculator
+      # Long-press C clears everything; then key the expression and = through the button ids.
+      - {action: long_press, id: "org.fossify.math:id/btn_clear", duration_ms: 800}
+      - for_each:
+          over: "{expression}="
+          as: ch
+          skip: [" "]
+          strict: true
+          map: {"0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9",
+                "+": plus, "-": minus, "*": multiply, "x": multiply, "×": multiply, "/": divide, "÷": divide,
+                "^": power, "%": percent, ".": decimal, "=": equals}
+          steps:
+            - {action: tap_nth, id: "org.fossify.math:id/btn_{{context.ch_mapped}}", delay_s: 0.15}
+      - {action: sleep, duration_s: 0.5}
+      - {action: read_text, id: "org.fossify.math:id/result", store_as: display}
+      - {action: read_text, id: "org.fossify.math:id/result", store_as: value, parse: number}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.math:id/result"}
+        - {kind: custom_python, function: "helpers:result_matches"}
+    test_case:
+      ref_prompt_variants:
+        - "calculate 1234 times 5"
+        - "use the calculator to divide 100 by 8"
+        - "what's 2 to the power of 10"
+      expected_success: true
+
+  - name: read_result
+    description: "Return the number currently on the calculator display."
+    ref_prompt: "What does the calculator show right now?"
+    params: []
+    steps:
+      - subroutine: open_calculator
+      - {action: read_text, id: "org.fossify.math:id/result", store_as: display}
+      - {action: read_text, id: "org.fossify.math:id/result", store_as: value, parse: number}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.math:id/result"}
+        - {kind: custom_python, function: "helpers:result_readable"}
+    test_case:
+      ref_prompt_variants:
+        - "read the calculator display"
+        - "what's the current result on the calculator"
+      expected_success: true
+
+  - name: get_history
+    description: "Open the History dialog and return the visible past calculations (formula and result), newest first."
+    ref_prompt: "Show my recent calculations"
+    params: []
+    steps:
+      - subroutine: open_calculator
+      - {action: tap_element, desc: "History"}
+      - {action: wait_for_text, text: "History", timeout_s: 5}
+      - {action: sleep, duration_s: 0.5}
+      - {action: read_text, id: "org.fossify.math:id/item_formula", store_as: formulas, all: true, required: false}
+      - {action: read_text, id: "org.fossify.math:id/item_result", store_as: results, all: true, required: false}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.math:id/alertTitle"}
+        - {kind: custom_python, function: "helpers:history_read"}
+    test_case:
+      ref_prompt_variants:
+        - "calculator history"
+        - "what did I calculate before"
+      expected_success: true
+
+  - name: convert_units
+    description: "Convert a value between two units of one category with the built-in unit converter."
+    ref_prompt: "Convert 100 Fahrenheit to Celsius"
+    demo_params: {category: Temperature, value: "100", from_unit: Fahrenheit, to_unit: Celsius}
+    params:
+      - {name: category, type: enum, values: [Length, Area, Volume, Mass, Temperature, Time, Speed, Pressure, Energy], required: true}
+      - {name: value, type: str, required: true, description: "Number, may be negative or decimal"}
+      - {name: from_unit, type: str, required: true, description: "Unit name as the app lists it, e.g. Fahrenheit, Kilometer, Pound"}
+      - {name: to_unit, type: str, required: true, description: "Target unit name, e.g. Celsius"}
+    steps:
+      - subroutine: open_calculator
+      - {action: tap_element, desc: "Unit converter"}
+      - {action: wait_for_element, id: "org.fossify.math:id/unit_label", timeout_s: 5}
+      - {action: tap_element, text: "{category}"}
+      - {action: wait_for_element, id: "org.fossify.math:id/top_unit_name", timeout_s: 5}
+      - python_action: "helpers:convert_units"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.math:id/bottom_unit_text"}
+        - {kind: custom_python, function: "helpers:conversion_done"}
+    test_case:
+      ref_prompt_variants:
+        - "how many kilometers is 26.2 miles"
+        - "convert 70 kilograms to pounds"
+        - "what is -40 celsius in fahrenheit"
+      expected_success: true

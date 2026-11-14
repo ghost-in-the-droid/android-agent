@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/based-cooking",
+ "action": "search_recipes",
+ "prompt": "In Based Cooking, search apple and list the first two complete results with their titles and all visible tags. Briefly compare what the titles and tags suggest. Do not open external links, use About, contribute, refresh or change settings.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 51.51,
+  "tokens": 442262,
+  "tool_calls": 19,
+  "ok": false
+ },
+ "after": {
+  "seconds": 39.6,
+  "tokens": 48875,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. BEFORE stopped at400k cap:51.51s/442262 actual tokens/19 calls, including42262 in-flight overshoot; first attempt retained with no completion although final query/results UI was correct. AFTER succeeds39.60s/48875/5; native title/tag results and topic comparison reviewed. Public recipe insertion order can differ between fresh profiles. Search/header/menu ownership and validation overhead is included. Both profiles use only public recipe catalog metadata; no external links, About, contributions, files, cooking actions or tag toggles. Comparative language is explicitly inference from titles/tags, not verified nutrition or recipe-content claims. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/checkers",
+ "action": null,
+ "prompt": "Start a checkers game and play c3-b4, then e3-d4.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 109.79,
+  "tokens": 1542147,
+  "tool_calls": 28,
+  "ok": false
+ },
+ "after": {
+  "seconds": 33.55,
+  "tokens": 29800,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

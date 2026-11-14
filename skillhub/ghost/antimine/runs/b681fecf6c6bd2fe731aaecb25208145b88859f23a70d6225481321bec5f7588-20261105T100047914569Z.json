@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/antimine",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "dev.lucanlm.antimine",
+    "app_version": "17.6.3"
+  },
+  "fingerprint_hash": "b681fecf6c6bd2fe731aaecb25208145b88859f23a70d6225481321bec5f7588",
+  "app_version": "17.6.3",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T10:00:47.914569+00:00",
+  "finished_at": "2026-11-05T10:00:47.914569+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_stats",
+      "success": true,
+      "duration_ms": 7047.935931999746,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4064.7119049999674
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1208.8404149999405
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 324.9284200001057
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 1203.0165169999236
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 219.66809400055354
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:53b49e10778522168ba397101d44b182b705210eb4f27c8ac54bfd5d1a7658ad",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQAFd8L9xq0ITuV3Ncb/Pn7Td+SgpbX9oyozv0HFYwDvP13w9LM\nNfHo1eS3HDZcYKYsrvh3hESGOQzHaNlXk5qgQ=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,123 @@
+# Ghost in the Droid: Easy Notes (login-free FOSS seed skill, installed from F-Droid)
+# Easy Notes (F-Droid): create markdown notes, list, search and read them. Private, offline, no account.
+
+name: easy-notes
+version: 1.0.0
+author: ghost
+description: "Easy Notes (F-Droid): create markdown notes, list, search and read them. Private, offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.kin.easynotes
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/easy-notes"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.kin.easynotes}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_notes
+    description: "Restart the app and read the note list."
+    ref_prompt: "Open my Easy Notes list"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_notes"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:notes_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open Easy Notes"
+      expected_success: true
+
+  - name: create_note
+    description: "Create a note with a title and a text body."
+    ref_prompt: "Create a note called Groceries in Easy Notes"
+    demo_params: {title: "Shopping list", text: "Milk eggs bread"}
+    params:
+      - {name: title, type: str, required: true, description: "note title, 1 to 60 characters"}
+      - {name: text, type: str, required: true, description: "note text, 1 to 300 characters"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:create_note"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:note_created"}
+    test_case:
+      ref_prompt_variants:
+        - "make a new markdown note"
+      expected_success: true
+
+  - name: list_notes
+    description: "Return every note on the list with its title and text preview."
+    ref_prompt: "List my notes in Easy Notes"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:list_notes"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:notes_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "what notes do I have"
+      expected_success: true
+
+  - name: read_note
+    description: "Open a note by exact title and return its title and body."
+    ref_prompt: "Read my note called Shopping list"
+    demo_params: {title: "Shopping list"}
+    params:
+      - {name: title, type: str, required: true, description: "exact note title"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_note"
+      - python_action: "helpers:read_note"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:note_read"}
+    test_case:
+      ref_prompt_variants:
+        - "open the note Groceries"
+      expected_success: true
+
+  - name: search_notes
+    description: "Type a query in the search field and return the matching notes, then clear it."
+    ref_prompt: "Search my Easy Notes for milk"
+    demo_params: {query: "Shopping"}
+    params:
+      - {name: query, type: str, required: true, description: "search text"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_note"
+      - python_action: "helpers:search_notes"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:searched"}
+    test_case:
+      ref_prompt_variants:
+        - "find notes about shopping"
+      expected_success: true

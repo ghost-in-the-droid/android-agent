@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/antimine",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "dev.lucanlm.antimine",
+    "app_version": "17.6.3"
+  },
+  "fingerprint_hash": "7341814ebb840119a9ec7456884ad079c311ed3c0896d9dbb0feb7eaef97368a",
+  "app_version": "17.6.3",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:58:09.105995+00:00",
+  "finished_at": "2026-10-05T18:58:09.105995+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_stats",
+      "success": true,
+      "duration_ms": 4366.045642003883,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2591.400164004881
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 695.4941129952203
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 61.012882011709735
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 1004.6561119961552
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 7.4180709780193865
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQALksutBEb6ngzlrsEJys8y6LLKtphrem7XbBCwo0Ae5SK+rhA\ncKamsWkL7HyUx4nijuy05VyncMsRtW2SS4dwE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

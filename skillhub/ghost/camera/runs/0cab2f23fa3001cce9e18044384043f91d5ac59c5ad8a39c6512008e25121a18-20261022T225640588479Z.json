@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/camera",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.android.camera2",
+    "app_version": "2.0.002"
+  },
+  "fingerprint_hash": "0cab2f23fa3001cce9e18044384043f91d5ac59c5ad8a39c6512008e25121a18",
+  "app_version": "2.0.002",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T22:56:40.588479+00:00",
+  "finished_at": "2026-10-22T22:56:40.588479+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "last_capture",
+      "success": true,
+      "duration_ms": 2376.3293540105224,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2375.792724080384
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:6976e3171ae2d1d7dc8e1f778f2febd3c3dc919c6c7cce04cd3e29627020e7ab",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQDmV8HE4/uv3S+jx74qsyjadtLQ0N3Sc9fuGtA0GDK4MHi/gmP\n//7DUJGHNGJsT1ijBaCTLV9E0NC2zHWmvZZwY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

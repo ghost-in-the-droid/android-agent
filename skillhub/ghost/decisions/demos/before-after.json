@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/decisions",
+ "action": null,
+ "prompt": "Start a pros and cons list called Buy a new phone, add the pro Cheaper with weight 5 and the con Worse camera with weight -4, then read back the list. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 181.28,
+  "tokens": 1562788,
+  "tool_calls": 68,
+  "ok": false
+ },
+ "after": {
+  "seconds": 85.67,
+  "tokens": 90508,
+  "tool_calls": 7,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/block-night",
+ "action": null,
+ "prompt": "Start the first floor in Block Night and drop three pieces: one to the left, one to the right and one in the middle.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 68.65,
+  "tokens": 1656598,
+  "tool_calls": 27,
+  "ok": false
+ },
+ "after": {
+  "seconds": 31.56,
+  "tokens": 38214,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

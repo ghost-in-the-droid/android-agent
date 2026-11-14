@@ -1,0 +1,141 @@
+# Ghost in the Droid: Dart Checker (login-free FOSS seed skill, installed from F-Droid)
+# Dart Checker (F-Droid): start an X01 game, enter each dart (single, double, triple, bull, miss), end turns and read the remaining scores. Offline, no account.
+
+name: dart-checker
+version: 1.0.0
+author: ghost
+description: "Dart Checker (F-Droid): start an X01 game, enter each dart (single, double, triple, bull, miss), end turns and read the remaining scores. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.DartChecker
+  app_version: ">=0.9"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/dart-checker"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.DartChecker}
+      - {action: sleep, duration_s: 2.0}
+
+actions:
+  - name: new_game
+    description: "Restart the app and start an X01 game: mode (101 to 1001, default 301) and 1 to 8 players."
+    ref_prompt: "Start a 301 darts game with one player"
+    demo_params: {mode: "301", players: "1"}
+    params:
+      - {name: mode, type: str, required: false, description: "101, 201, 301, 401, 501, 601, 701, 801, 901 or 1001; default 301"}
+      - {name: players, type: str, required: false, description: "1 to 8, default 1"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:new_game"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:game_started"}
+    test_case:
+      ref_prompt_variants:
+        - "new 501 darts game"
+        - "start darts for two players"
+      expected_success: true
+
+  - name: throw
+    description: "Enter one dart: 1-20, d1-d20 (double), t1-t20 (triple), bull (25), dbull (50) or miss."
+    ref_prompt: "Score a triple twenty in the darts game"
+    demo_params: {dart: "t20"}
+    params:
+      - {name: dart, type: str, required: true, description: "e.g. t20, d16, 5, bull, dbull, miss"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:throw"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:threw"}
+    test_case:
+      ref_prompt_variants:
+        - "I hit double 16"
+        - "dart: bull"
+        - "record a miss"
+      expected_success: true
+
+  - name: throw_darts
+    description: "Enter several darts in a row, e.g. t20,t20,d10 (three darts is one turn)."
+    ref_prompt: "Enter the darts treble twenty, twenty and miss"
+    demo_params: {darts: "t20,20,miss"}
+    params:
+      - {name: darts, type: str, required: true, description: "Comma separated darts"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:throw_darts"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:darts_thrown"}
+    test_case:
+      ref_prompt_variants:
+        - "enter my three darts: 19, 19, d8"
+      expected_success: true
+
+  - name: end_turn
+    description: "Press continue: the remaining darts of the turn count as misses and the next player is up."
+    ref_prompt: "End my turn in the darts game"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:end_turn"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:turn_ended"}
+    test_case:
+      ref_prompt_variants:
+        - "next player"
+        - "continue to the next turn"
+      expected_success: true
+
+  - name: undo
+    description: "Take back the last dart."
+    ref_prompt: "Undo the last dart"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:undo"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:undone"}
+    test_case:
+      ref_prompt_variants:
+        - "undo that throw"
+      expected_success: true
+
+  - name: get_state
+    description: "Read the scores left, the darts of the current turn, the average, the darts thrown and any message."
+    ref_prompt: "What is the darts score?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_state"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:state_read"}
+    test_case:
+      ref_prompt_variants:
+        - "how many points are left"
+        - "show the darts scoreboard"
+      expected_success: true

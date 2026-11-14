@@ -1,0 +1,121 @@
+name: feeder
+version: 1.0.0
+author: ghost
+description: Read public RSS news in Feeder without an account. Add a public HTTPS
+  feed, list visible previews and read stored RSS article text through an explicit
+  native-reader route; no external browser or posting.
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: com.nononsenseapps.feeder
+  app_version: '>=2.24.0,<2.25'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/feeder
+actions:
+- name: open
+  description: Open Feeder public RSS article listing
+  ref_prompt: Open Feeder public RSS article listing
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:articles_ok
+  test_case:
+    ref_prompt_variants:
+    - Open Feeder public RSS article listing in feeder
+    expected_success: true
+- name: add_feed
+  description: Discover and add a public HTTPS RSS feed to the local app
+  ref_prompt: Discover and add a public HTTPS RSS feed to the local app
+  params:
+  - name: feed_url
+    type: str
+    description: Public HTTPS URL, plain ASCII path; no credentials/query/fragment/IP
+    required: true
+  steps:
+  - python_action: helpers:add_feed
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:articles_ok
+  test_case:
+    ref_prompt_variants:
+    - Discover and add a public HTTPS RSS feed to the local app in feeder
+    expected_success: true
+- name: list_articles
+  description: List complete visible article previews from the current feed
+  ref_prompt: List complete visible article previews from the current feed
+  params: []
+  steps:
+  - python_action: helpers:list_articles
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:articles_ok
+  test_case:
+    ref_prompt_variants:
+    - List complete visible article previews from the current feed in feeder
+    expected_success: true
+- name: open_article
+  description: Open a visible article using the explicit internal reader menu
+  ref_prompt: Open a visible article using the explicit internal reader menu
+  params:
+  - name: index
+    type: int
+    description: Zero-based complete visible article preview index
+    required: true
+  steps:
+  - python_action: helpers:open_article
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:reader_ok
+  test_case:
+    ref_prompt_variants:
+    - Open a visible article using the explicit internal reader menu in feeder
+    expected_success: true
+- name: read_article
+  description: Read stored RSS article text in the native internal reader
+  ref_prompt: Read stored RSS article text in the native internal reader
+  params: []
+  steps:
+  - python_action: helpers:read_article
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:reader_ok
+  test_case:
+    ref_prompt_variants:
+    - Read stored RSS article text in the native internal reader in feeder
+    expected_success: true
+- name: back_to_list
+  description: Return from the native article reader to the feed listing
+  ref_prompt: Return from the native article reader to the feed listing
+  params: []
+  steps:
+  - python_action: helpers:back_to_list
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:articles_ok
+  test_case:
+    ref_prompt_variants:
+    - Return from the native article reader to the feed listing in feeder
+    expected_success: true

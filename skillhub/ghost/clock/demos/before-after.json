@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/clock",
+ "action": "start_timer",
+ "prompt": "Start a one-minute timer, then cancel it immediately. Stay on the Timer tab.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 23.31,
+  "tokens": 475871,
+  "tool_calls": 11,
+  "ok": true
+ },
+ "after": {
+  "seconds": 35.9,
+  "tokens": 116079,
+  "tool_calls": 6,
+  "ok": true
+ },
+ "notes": "Original BEFORE and exact original prompt retained. AFTER refreshed on current 1.0.5 with Samsung Keyboard suggestions disabled and verified; defaults restored after filming. Source,readiness,terminal,phone and overlay audits passed.",
+ "source": "phone-b-before-after"
+}

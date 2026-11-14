@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/antimine",
+ "action": "start_new_game",
+ "prompt": "Start a new beginner minesweeper game",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 24.06,
+  "tokens": 248452,
+  "tool_calls": 12,
+  "ok": true
+ },
+ "after": {
+  "seconds": 13.72,
+  "tokens": 20337,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "Same prompt and clean temporary app per side; 'ok' is an independent check of the final phone state.",
+ "source": "phone-b-before-after"
+}

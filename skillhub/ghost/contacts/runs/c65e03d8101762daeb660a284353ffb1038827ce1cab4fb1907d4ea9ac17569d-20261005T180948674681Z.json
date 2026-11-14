@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/contacts",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.contacts",
+    "app_version": "4.8.17.529259023"
+  },
+  "fingerprint_hash": "c65e03d8101762daeb660a284353ffb1038827ce1cab4fb1907d4ea9ac17569d",
+  "app_version": "4.8.17.529259023",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:09:48.674681+00:00",
+  "finished_at": "2026-10-05T18:09:48.674681+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_contact_details",
+      "success": true,
+      "duration_ms": 8024.944050994236,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2433.511017006822
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 4833.756315987557
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 648.5207029909361
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 78.50162600516342
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 16.470757022034377
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHxosKmWrmUS654FKxzlWQYvWoT9y9+oYsv+QOFh4QzWyC4+eP\nfu09QFWSy42LXHhbpL4ZHZiVHXNY2KreSo5A4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

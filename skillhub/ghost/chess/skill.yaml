@@ -1,0 +1,164 @@
+# Ghost in the Droid: Square Chess (login-free FOSS seed skill, installed from F-Droid)
+# Play chess against an offline engine: every square is readable and a move is two taps.
+
+name: chess
+version: 1.0.0
+author: ghost
+description: "Square Chess (F-Droid): start a game (side, engine level 1-9), play moves like e2e4 one at a time or as a list, read the position (placement, status, opening, move list), take back a move or resign. Offline engine, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [deletes_data]
+destructive: true
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.dataespresso.squarechess
+  app_version: ">=1.4.1"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/chess"
+
+popup_detectors: []
+
+subroutines:
+  - name: home
+    description: "Launch the app and reach the home list (closing a game with Menu > Save & home)."
+    steps:
+      - {action: launch_app, package: com.dataespresso.squarechess}
+      - {action: sleep, duration_s: 2}
+      - python_action: "helpers:to_home"
+  - name: game_screen
+    description: "Reopen the app on the running game (the app resumes it)."
+    steps:
+      - {action: launch_app, package: com.dataespresso.squarechess}
+      - {action: sleep, duration_s: 2}
+      - python_action: "helpers:to_board"
+
+actions:
+  - name: new_game
+    description: "Start a game against the computer: side white or black, engine level 1 (casual) to 9 (strongest). As black the computer opens."
+    ref_prompt: "Start a chess game as white"
+    demo_params: {side: white, level: "3"}
+    params:
+      - {name: side, type: str, default: white, description: "white or black"}
+      - {name: level, type: str, default: "3", description: "Engine level 1-9"}
+    steps:
+      - subroutine: home
+      - python_action: "helpers:start"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Menu"}
+        - {kind: element_present, text: "Review"}
+        - {kind: custom_python, function: "helpers:new_started"}
+    test_case:
+      ref_prompt_variants:
+        - "play chess against the computer"
+        - "new chess game as black, level 5"
+        - "start an easy chess game"
+      expected_success: true
+
+  - name: make_move
+    description: "Play one move on the running game in UCI squares (e2e4, g1f3, e7e8q to promote) and wait for the computer's reply; returns the board and the reply."
+    ref_prompt: "Play e2e4 in chess"
+    demo_params: {move: e2e4}
+    params:
+      - {name: move, type: str, required: true, description: "UCI move, e.g. e2e4 or e7e8q"}
+    steps:
+      - subroutine: game_screen
+      - python_action: "helpers:make_move"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Menu"}
+        - {kind: element_present, text: "Review"}
+        - {kind: custom_python, function: "helpers:moved"}
+    test_case:
+      ref_prompt_variants:
+        - "move the knight to f3"
+        - "play d2d4"
+        - "advance the king pawn two squares"
+      expected_success: true
+
+  - name: make_moves
+    description: "Play several of your moves in a row (comma or space separated UCI, e.g. e2e4,g1f3,f1c4), waiting for the reply after each."
+    ref_prompt: "Play the Italian opening in chess: e2e4, g1f3, f1c4"
+    demo_params: {moves: "e2e4,g1f3,f1c4"}
+    params:
+      - {name: moves, type: str, required: true, description: "UCI moves for your side, in order"}
+    steps:
+      - subroutine: game_screen
+      - python_action: "helpers:make_moves"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Menu"}
+        - {kind: element_present, text: "Review"}
+        - {kind: custom_python, function: "helpers:moves_played"}
+    test_case:
+      ref_prompt_variants:
+        - "play e4, Nf3 and Bc4 for me"
+        - "open with d4 then c4"
+      expected_success: true
+
+  - name: undo_move
+    description: "Take back your last move (Menu > Undo / take back); returns the board."
+    ref_prompt: "Take back my last chess move"
+    params: []
+    steps:
+      - subroutine: game_screen
+      - python_action: "helpers:undo"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Menu"}
+        - {kind: element_present, text: "Review"}
+        - {kind: custom_python, function: "helpers:undone"}
+    test_case:
+      ref_prompt_variants:
+        - "undo that chess move"
+      expected_success: true
+
+  - name: resign
+    description: "Resign the running game (Menu > Resign > confirm); the game stays in the app's history."
+    ref_prompt: "Resign the chess game"
+    demo_params: {confirm: yes}
+    params:
+      - {name: confirm, type: str, required: true, description: "Must be yes: this ends the game"}
+    steps:
+      - subroutine: game_screen
+      - python_action: "helpers:resign"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "You lost"}
+        - {kind: text_visible, text: "Play again"}
+        - {kind: custom_python, function: "helpers:resigned"}
+    test_case:
+      ref_prompt_variants:
+        - "I give up"
+        - "resign this game"
+      expected_success: true
+
+  - name: get_board
+    description: "Read the position: FEN piece placement, status (Your move / Game over), opening name, SAN move list and the computer's last move."
+    ref_prompt: "What is the chess position?"
+    params: []
+    steps:
+      - subroutine: game_screen
+      - python_action: "helpers:get_board"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Menu"}
+        - {kind: element_present, text: "Review"}
+        - {kind: custom_python, function: "helpers:board_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what did the computer just play"
+        - "show me the board"
+        - "which opening is this"
+      expected_success: true

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/currencies",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "de.salomax.currencies",
+    "app_version": "1.23.0"
+  },
+  "fingerprint_hash": "abffff2a4f41de444bfdab15188e6a19c21a543afbfeedfe2834ed555199d1ea",
+  "app_version": "1.23.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T11:36:07.779614+00:00",
+  "finished_at": "2026-11-05T11:36:07.779614+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "select_target",
+      "success": true,
+      "duration_ms": 19938.889191998896,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 17261.798548001025
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:6cdc7066037f217231b7e81a0c55b20800d48172326101d18a77dd863d6916b3",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQOtb5/Z5LGU1CTJKPwl5RQP5q98ga8PniRa0ZS1A96elXKmkMw\ntdqy7Z1wPa28l5N29s64detpSthxmPxxeIUwU=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,121 @@
+# Ghost in the Droid: AOSP Camera (login-free seed skill)
+# Opens the camera through the public MediaStore camera intents, picks lens and
+# countdown in the Options row, presses the shutter, and verifies the capture
+# by a new MediaStore row (not by the UI).
+
+name: camera
+version: 1.0.1
+author: ghost
+description: "AOSP Camera: take a photo (back or front lens, optional countdown), take a selfie, record a short video, report the newest capture."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [camera, microphone, photos]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.android.camera2
+  app_version: ">=2.0"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/camera"
+
+os_popup_policy:
+  allow_permissions: [camera, microphone]
+
+popup_detectors:
+  - {detect: "to take pictures and record video?", button: "While using the app", label: "Camera permission (required)"}
+  - {detect: "Camera to record audio?", button: "While using the app", label: "Microphone permission (video sound)"}
+  - {detect: "access this device’s location?", button: "Don’t allow", label: "Location permission (geotagging stays off)"}
+
+actions:
+  - name: take_photo
+    description: "Take one photo with the back or front lens and an optional countdown; returns the saved file path."
+    ref_prompt: "Take a photo"
+    params:
+      - {name: camera, type: enum, values: [back, front], default: back}
+      - {name: timer_s, type: enum, values: [0, 3, 10], default: 0, description: "Countdown seconds"}
+    steps:
+      - python_action: "helpers:mark_start"
+      - {action: launch_intent, intent_action: android.media.action.STILL_IMAGE_CAMERA, package: com.android.camera2}
+      - python_action: "helpers:ready_camera"
+      - python_action: "helpers:shoot_photo"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.android.camera2:id/shutter_button"}
+        - {kind: custom_python, function: "helpers:new_photo_saved"}
+    test_case:
+      ref_prompt_variants:
+        - "snap a picture"
+        - "take a photo with a 3 second timer"
+        - "capture an image with the rear camera"
+      expected_success: true
+
+  - name: take_selfie
+    description: "Take one photo with the front lens; returns the saved file path."
+    ref_prompt: "Take a selfie"
+    params:
+      - {name: camera, type: enum, values: [front], default: front, description: "fixed: front lens"}
+      - {name: timer_s, type: enum, values: [0, 3, 10], default: 0}
+    steps:
+      - python_action: "helpers:mark_start"
+      - {action: launch_intent, intent_action: android.media.action.STILL_IMAGE_CAMERA, package: com.android.camera2}
+      - python_action: "helpers:ready_camera"
+      - python_action: "helpers:shoot_photo"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.android.camera2:id/shutter_button"}
+        - {kind: custom_python, function: "helpers:front_camera_used"}
+    test_case:
+      ref_prompt_variants:
+        - "selfie with a 3 second countdown"
+        - "take a picture of myself"
+        - "front camera photo"
+      expected_success: true
+
+  - name: record_video
+    description: "Record a video clip of N seconds (1 to 60) with the chosen lens; returns the saved file path."
+    ref_prompt: "Record a 5 second video"
+    params:
+      - {name: seconds, type: int, default: 3, description: "1 to 60"}
+      - {name: camera, type: enum, values: [back, front], default: back}
+    steps:
+      - python_action: "helpers:mark_start"
+      - {action: launch_intent, intent_action: android.media.action.VIDEO_CAMERA, package: com.android.camera2}
+      - python_action: "helpers:ready_camera"
+      - python_action: "helpers:record_clip"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.android.camera2:id/shutter_button"}
+        - {kind: custom_python, function: "helpers:new_video_saved"}
+    test_case:
+      ref_prompt_variants:
+        - "film a short clip"
+        - "record video for 10 seconds with the front camera"
+        - "shoot a quick video"
+      expected_success: true
+
+  - name: last_capture
+    description: "Report the newest photo and newest video in MediaStore (path, size, date_added) without opening the camera."
+    ref_prompt: "Where is the last photo I took?"
+    params: []
+    steps:
+      - python_action: "helpers:last_capture"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:capture_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what was the latest picture saved"
+        - "show the file path of my last video"
+        - "did the camera save anything"
+      expected_success: true

@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/calculator",
+  "version": "1.0.2",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.fossify.math",
+    "app_version": "1.4.0",
+    "screen_wxh": "720x1600",
+    "density": 300,
+    "locale": "en-GB"
+  },
+  "fingerprint_hash": "85b18d3caa77eaf99c5cee2e9160fc33b12b844d6ee385d42537995520e3f293",
+  "app_version": "1.4.0",
+  "model": "deterministic",
+  "timestamp": "2026-10-23T21:51:05.067539+00:00",
+  "finished_at": "2026-10-23T21:51:05.067539+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "calculate",
+      "success": true,
+      "duration_ms": 6866.433513001539,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2057.02230904717
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 949.8363999882713
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 2767.266870010644
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 502.05368094611913
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 218.90877094119787
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 298.973111086525
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:c46f24b65306970d5085f11d12a39db9c2d7834260e3c2d89473ecb7f76dd940",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQKXwaiTdvX2QB0Ky4Yh2uDRbCvUD9YpSSQ3Q4g8uAKQodgju1z\nqteuwCYbIUaVzo5DrKa3v/x3RnSkAss2muxAE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

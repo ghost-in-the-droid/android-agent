@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/coin-flip",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.ecos.logic.flip_a_coin",
+    "app_version": "DVNE"
+  },
+  "fingerprint_hash": "a50598849cdc025b7cd2461d9412af2c21d2df73d2a71cb15e9a4cbd80462818",
+  "app_version": "DVNE",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T22:00:49.041935+00:00",
+  "finished_at": "2026-11-04T22:00:49.041935+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "flip_many",
+      "success": true,
+      "duration_ms": 18897.677665001538,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4109.256435003772
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 14686.563424998894
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:bb5f02ef70ede0a21f1b8fb5fd5de9052d486a3459e972d92c91b83ddf902703",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQPMTVfVz6tf25Z9hGYNYUjbu9VOHyccTLuMmFbs+i9TsungPp2\n/ljYYJQu7sN33TXhN+de3wUlHygLU5bxcsTQ4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

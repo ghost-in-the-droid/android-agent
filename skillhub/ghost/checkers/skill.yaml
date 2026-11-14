@@ -1,0 +1,128 @@
+# Ghost in the Droid: Checkers Privacy Friendly (login-free FOSS seed skill, installed from F-Droid)
+# Coordinate toolkit: the pieces are not in the accessibility tree, only the turn text is.
+
+name: checkers
+version: 1.0.1
+author: ghost
+description: "Checkers (Privacy Friendly, F-Droid): start a game against the bot or a human, play moves by square name (c3-b4), read the turn/game-over text. The position itself is not readable (pieces are unlabelled images). Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.secuso.privacyfriendlydame
+  app_version: ">=1.3.4"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/checkers"
+
+popup_detectors: []
+
+subroutines:
+  - name: start_screen
+    description: "Launch the app to the start screen: skip the 4 welcome slides, leave a running game with BACK."
+    steps:
+      - {action: launch_app, package: org.secuso.privacyfriendlydame}
+      - {action: sleep, duration_s: 2}
+      - if_visible:
+          selector: {id: "org.secuso.privacyfriendlydame:id/btn_skip"}
+          then:
+            - {action: tap_element, id: "org.secuso.privacyfriendlydame:id/btn_skip"}
+            - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:leave_game"
+      - {action: wait_for_element, id: "org.secuso.privacyfriendlydame:id/play_button", timeout_s: 8}
+  - name: running_game
+    description: "Back to the game in progress."
+    steps:
+      - {action: launch_app, package: org.secuso.privacyfriendlydame}
+      - {action: sleep, duration_s: 2}
+
+actions:
+  - name: new_game
+    description: "Start a game against the bot (white, you move first) or a human opponent on the same phone."
+    ref_prompt: "Start a game of checkers"
+    demo_params: {opponent: bot}
+    params:
+      - {name: opponent, type: str, default: bot, description: "bot or human"}
+    steps:
+      - subroutine: start_screen
+      - python_action: "helpers:start"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Checkers"}
+        - {kind: text_visible, text: "turn"}
+        - {kind: custom_python, function: "helpers:started"}
+    test_case:
+      ref_prompt_variants:
+        - "play checkers against the computer"
+        - "new draughts game"
+      expected_success: true
+
+  - name: move
+    description: "Move a piece by square name (from, to; a1 is the dark bottom-left square, you are white at the bottom). Reports whether the app accepted it (the turn text flips) and the turn text afterwards."
+    ref_prompt: "Move the checker from c3 to b4"
+    demo_params: {from: c3, to: b4}
+    params:
+      - {name: from, type: str, required: true, description: "Source square, e.g. c3"}
+      - {name: to, type: str, required: true, description: "Destination square, e.g. b4"}
+    steps:
+      - subroutine: running_game
+      - python_action: "helpers:move"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Checkers"}
+        - {kind: text_visible, text: "turn"}
+        - {kind: custom_python, function: "helpers:moved"}
+    test_case:
+      ref_prompt_variants:
+        - "play e3 to d4"
+        - "advance the piece on g3 to h4"
+      expected_success: true
+
+  - name: play_moves
+    description: "Play several of your moves (comma separated, e.g. c3-b4,e3-d4), waiting for the bot after each; stops at the first rejected move."
+    ref_prompt: "Play the checkers moves c3-b4 and e3-d4"
+    demo_params: {moves: "c3-b4,e3-d4"}
+    params:
+      - {name: moves, type: str, required: true, description: "from-to pairs, comma separated"}
+    steps:
+      - subroutine: running_game
+      - python_action: "helpers:play_moves"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Checkers"}
+        - {kind: text_visible, text: "turn"}
+        - {kind: custom_python, function: "helpers:moves_played"}
+    test_case:
+      ref_prompt_variants:
+        - "play two moves in checkers"
+      expected_success: true
+
+  - name: get_turn
+    description: "Read whose turn it is or the game-over text."
+    ref_prompt: "Whose turn is it in checkers?"
+    params: []
+    steps:
+      - subroutine: running_game
+      - python_action: "helpers:get_turn"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Checkers"}
+        - {kind: text_visible, text: "turn"}
+        - {kind: custom_python, function: "helpers:turn_read"}
+    test_case:
+      ref_prompt_variants:
+        - "is it my move"
+        - "who is winning in checkers"
+      expected_success: true

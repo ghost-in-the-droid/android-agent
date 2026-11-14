@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/feeder",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "com.nononsenseapps.feeder",
+    "app_version": "2.24.0"
+  },
+  "fingerprint_hash": "76edd0fcd5e06459825ca433b840950b6891470acd11dc27525712f9265098a1",
+  "app_version": "2.24.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T16:48:22.582656+00:00",
+  "finished_at": "2026-11-04T16:48:22.582656+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "open",
+      "success": true,
+      "duration_ms": 10020.764591001353,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 7419.736128002114
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:e889252cfc3ebf76c252e723e9379b3db7ddb0d886f150105828611366b6bf96",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQEmA5/3DFOof321OnvPslQWCu8YMOivcQtn+Q2yRyFPQ+tMpjZ\nOjUnCwBLOtVJFbdT0yRXY7O8dg8SdvuU7HwQY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,69 @@
+name: buddha-quotes
+version: 1.0.0
+author: ghost
+description: Read and advance offline Buddha Quotes without likes, lists, sharing
+  or timers
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access: []
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: org.bandev.buddhaquotes
+  app_version: '>=2.2.0'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/buddha-quotes
+actions:
+- name: open
+  description: Open the offline Buddha Quotes reader
+  ref_prompt: Open the offline Buddha Quotes reader
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:quote_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the offline Buddha Quotes reader in buddha-quotes
+    expected_success: true
+- name: read_quote
+  description: Read the exposed quote text without liking or saving
+  ref_prompt: Read the exposed quote text without liking or saving
+  params: []
+  steps:
+  - python_action: helpers:read_quote
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:quote_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the exposed quote text without liking or saving in buddha-quotes
+    expected_success: true
+- name: next_quote
+  description: Advance once with the native Next control and read the new quote
+  ref_prompt: Advance once with the native Next control and read the new quote
+  params: []
+  steps:
+  - python_action: helpers:next_quote
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:quote_ok
+  test_case:
+    ref_prompt_variants:
+    - Advance once with the native Next control and read the new quote in buddha-quotes
+    expected_success: true

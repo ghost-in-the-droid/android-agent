@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/apodroid",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "io.github.buerlino.apodroid",
+    "app_version": "0.3.1"
+  },
+  "fingerprint_hash": "af217db044d03605b6b6d471d90f5a8c89eebfdc71b58996c733f29046cbd7c5",
+  "app_version": "0.3.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T11:05:21.870421+00:00",
+  "finished_at": "2026-11-03T11:05:21.870421+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "hide_explanation",
+      "success": true,
+      "duration_ms": 10028.166152995254,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 7134.667309001088
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:4328846c4c9242c4536e958b644503cb03b561243b53fc2e2465cf5756bcf4a5",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQEq+Bszfd+TYnWZaD01f5yDk8kWhuH4AxgW7xqCjdfnVhl4BM5\nkorYvrV1hkqV+p9/j875In4YC7IWHMNDVelAk=\n-----END SSH SIGNATURE-----\n"
+  }
+}

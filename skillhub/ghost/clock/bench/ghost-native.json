@@ -1,0 +1,2636 @@
+{
+  "tasks": [
+    {
+      "task_id": "clock_alarm",
+      "action": "set_alarm",
+      "label": "Clock: alarm 7:30 \"Gym\"",
+      "seeds": 5,
+      "arms": {
+        "after_mcp": {
+          "passed": 5,
+          "total": 5,
+          "wall_ms_median": 44791.0,
+          "tokens_median": 84163.0,
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        "after_replay": {
+          "passed": 5,
+          "total": 5,
+          "wall_ms_median": 22100.0,
+          "tokens_median": 0.0,
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        "before": {
+          "passed": 4,
+          "total": 5,
+          "wall_ms_median": 115913.0,
+          "tokens_median": 1113113.0,
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        }
+      },
+      "episodes": [
+        {
+          "arm": "after_mcp",
+          "seed": 0,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 84954,
+          "tokens_in": 7898,
+          "tokens_out": 691,
+          "tokens_cache_read": 76365,
+          "wall_ms": 71349,
+          "steps": 4,
+          "llm_calls": 4,
+          "ui_actions": {
+            "tap": 0,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 1,
+            "total": 1
+          },
+          "skill_calls": 2,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.deskclock"
+            },
+            {
+              "i": 3,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "set_alarm"
+            },
+            {
+              "i": 4,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "list_alarms"
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3184,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 1922,
+              "tokens_out": null,
+              "tokens_cache_read": 18557
+            },
+            {
+              "i": 3,
+              "tokens_in": 1481,
+              "tokens_out": null,
+              "tokens_cache_read": 20477
+            },
+            {
+              "i": 4,
+              "tokens_in": 1311,
+              "tokens_out": null,
+              "tokens_cache_read": 21956
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "after_replay",
+          "seed": 0,
+          "instance_seed": null,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 22100,
+          "steps": 6,
+          "llm_calls": 0,
+          "ui_actions": {
+            "total": 6
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "actions": [],
+          "calls": [],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "before",
+          "seed": 0,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 1010774,
+          "tokens_in": 60956,
+          "tokens_out": 4520,
+          "tokens_cache_read": 945298,
+          "wall_ms": 119589,
+          "steps": 41,
+          "llm_calls": 20,
+          "ui_actions": {
+            "tap": 12,
+            "type": 1,
+            "swipe": 0,
+            "key": 0,
+            "launch": 1,
+            "total": 14
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.deskclock"
+            },
+            {
+              "i": 2,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 15,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 17,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 20,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 21,
+              "type": "read",
+              "tool": "ocr_region",
+              "ok": true
+            },
+            {
+              "i": 22,
+              "type": "read",
+              "tool": "get_screen_xml",
+              "ok": true
+            },
+            {
+              "i": 23,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 24,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 25,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 26,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 27,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 28,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 29,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 30,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 31,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 32,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 33,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 34,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 35,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 36,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Gym"
+            },
+            {
+              "i": 37,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 38,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 39,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 40,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 41,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3063,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 663,
+              "tokens_out": null,
+              "tokens_cache_read": 15346
+            },
+            {
+              "i": 3,
+              "tokens_in": 284,
+              "tokens_out": null,
+              "tokens_cache_read": 16007
+            },
+            {
+              "i": 4,
+              "tokens_in": 5047,
+              "tokens_out": null,
+              "tokens_cache_read": 16289
+            },
+            {
+              "i": 5,
+              "tokens_in": 297,
+              "tokens_out": null,
+              "tokens_cache_read": 21334
+            },
+            {
+              "i": 6,
+              "tokens_in": 761,
+              "tokens_out": null,
+              "tokens_cache_read": 21629
+            },
+            {
+              "i": 7,
+              "tokens_in": 31570,
+              "tokens_out": null,
+              "tokens_cache_read": 22388
+            },
+            {
+              "i": 8,
+              "tokens_in": 929,
+              "tokens_out": null,
+              "tokens_cache_read": 53956
+            },
+            {
+              "i": 9,
+              "tokens_in": 1060,
+              "tokens_out": null,
+              "tokens_cache_read": 54883
+            },
+            {
+              "i": 10,
+              "tokens_in": 1318,
+              "tokens_out": null,
+              "tokens_cache_read": 55941
+            },
+            {
+              "i": 11,
+              "tokens_in": 1128,
+              "tokens_out": null,
+              "tokens_cache_read": 57257
+            },
+            {
+              "i": 12,
+              "tokens_in": 565,
+              "tokens_out": null,
+              "tokens_cache_read": 58383
+            },
+            {
+              "i": 13,
+              "tokens_in": 6262,
+              "tokens_out": null,
+              "tokens_cache_read": 58946
+            },
+            {
+              "i": 14,
+              "tokens_in": 1850,
+              "tokens_out": null,
+              "tokens_cache_read": 65206
+            },
+            {
+              "i": 15,
+              "tokens_in": 337,
+              "tokens_out": null,
+              "tokens_cache_read": 67054
+            },
+            {
+              "i": 16,
+              "tokens_in": 1068,
+              "tokens_out": null,
+              "tokens_cache_read": 67389
+            },
+            {
+              "i": 17,
+              "tokens_in": 1872,
+              "tokens_out": null,
+              "tokens_cache_read": 68455
+            },
+            {
+              "i": 18,
+              "tokens_in": 492,
+              "tokens_out": null,
+              "tokens_cache_read": 70325
+            },
+            {
+              "i": 19,
+              "tokens_in": 597,
+              "tokens_out": null,
+              "tokens_cache_read": 70815
+            },
+            {
+              "i": 20,
+              "tokens_in": 1793,
+              "tokens_out": null,
+              "tokens_cache_read": 71410
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 1,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 83975,
+          "tokens_in": 6911,
+          "tokens_out": 664,
+          "tokens_cache_read": 76400,
+          "wall_ms": 44791,
+          "steps": 4,
+          "llm_calls": 4,
+          "ui_actions": {
+            "tap": 0,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 1,
+            "total": 1
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.deskclock"
+            },
+            {
+              "i": 3,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "set_alarm"
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Gym"
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3184,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 1922,
+              "tokens_out": null,
+              "tokens_cache_read": 18557
+            },
+            {
+              "i": 3,
+              "tokens_in": 1516,
+              "tokens_out": null,
+              "tokens_cache_read": 20477
+            },
+            {
+              "i": 4,
+              "tokens_in": 289,
+              "tokens_out": null,
+              "tokens_cache_read": 21991
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "after_replay",
+          "seed": 1,
+          "instance_seed": null,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 20509,
+          "steps": 6,
+          "llm_calls": 0,
+          "ui_actions": {
+            "total": 6
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "actions": [],
+          "calls": [],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "before",
+          "seed": 1,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 535038,
+          "tokens_in": 46092,
+          "tokens_out": 2598,
+          "tokens_cache_read": 486348,
+          "wall_ms": 73973,
+          "steps": 29,
+          "llm_calls": 13,
+          "ui_actions": {
+            "tap": 9,
+            "type": 1,
+            "swipe": 0,
+            "key": 0,
+            "launch": 1,
+            "total": 11
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.deskclock"
+            },
+            {
+              "i": 2,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 15,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 17,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 20,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 21,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 22,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 23,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 24,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Gym"
+            },
+            {
+              "i": 25,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 26,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 27,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 28,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 29,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Gym"
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3059,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 663,
+              "tokens_out": null,
+              "tokens_cache_read": 15342
+            },
+            {
+              "i": 3,
+              "tokens_in": 284,
+              "tokens_out": null,
+              "tokens_cache_read": 16003
+            },
+            {
+              "i": 4,
+              "tokens_in": 5047,
+              "tokens_out": null,
+              "tokens_cache_read": 16285
+            },
+            {
+              "i": 5,
+              "tokens_in": 272,
+              "tokens_out": null,
+              "tokens_cache_read": 21330
+            },
+            {
+              "i": 6,
+              "tokens_in": 29811,
+              "tokens_out": null,
+              "tokens_cache_read": 21600
+            },
+            {
+              "i": 7,
+              "tokens_in": 809,
+              "tokens_out": null,
+              "tokens_cache_read": 51409
+            },
+            {
+              "i": 8,
+              "tokens_in": 1241,
+              "tokens_out": null,
+              "tokens_cache_read": 52216
+            },
+            {
+              "i": 9,
+              "tokens_in": 1147,
+              "tokens_out": null,
+              "tokens_cache_read": 53455
+            },
+            {
+              "i": 10,
+              "tokens_in": 2106,
+              "tokens_out": null,
+              "tokens_cache_read": 54600
+            },
+            {
+              "i": 11,
+              "tokens_in": 560,
+              "tokens_out": null,
+              "tokens_cache_read": 56704
+            },
+            {
+              "i": 12,
+              "tokens_in": 597,
+              "tokens_out": null,
+              "tokens_cache_read": 57262
+            },
+            {
+              "i": 13,
+              "tokens_in": 496,
+              "tokens_out": null,
+              "tokens_cache_read": 57857
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 2,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 167437,
+          "tokens_in": 37716,
+          "tokens_out": 802,
+          "tokens_cache_read": 128919,
+          "wall_ms": 61743,
+          "steps": 6,
+          "llm_calls": 5,
+          "ui_actions": {
+            "tap": 0,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 1,
+            "total": 1
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.deskclock"
+            },
+            {
+              "i": 3,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "set_alarm"
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Gym"
+            },
+            {
+              "i": 6,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "7:30"
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3184,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 1922,
+              "tokens_out": null,
+              "tokens_cache_read": 18557
+            },
+            {
+              "i": 3,
+              "tokens_in": 1458,
+              "tokens_out": null,
+              "tokens_cache_read": 20477
+            },
+            {
+              "i": 4,
+              "tokens_in": 30646,
+              "tokens_out": null,
+              "tokens_cache_read": 21933
+            },
+            {
+              "i": 5,
+              "tokens_in": 506,
+              "tokens_out": null,
+              "tokens_cache_read": 52577
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "after_replay",
+          "seed": 2,
+          "instance_seed": null,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 22327,
+          "steps": 6,
+          "llm_calls": 0,
+          "ui_actions": {
+            "total": 6
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "actions": [],
+          "calls": [],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "before",
+          "seed": 2,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 2000860,
+          "tokens_in": 95116,
+          "tokens_out": 3744,
+          "tokens_cache_read": 1902000,
+          "wall_ms": 115913,
+          "steps": 29,
+          "llm_calls": 25,
+          "ui_actions": {
+            "tap": 13,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 1,
+            "total": 14
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.deskclock"
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 15,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "read",
+              "tool": "screenshot_cropped",
+              "ok": true
+            },
+            {
+              "i": 17,
+              "type": "read",
+              "tool": "get_screen_xml",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "AM"
+            },
+            {
+              "i": 20,
+              "type": "read",
+              "tool": "get_screen_xml",
+              "ok": true
+            },
+            {
+              "i": 21,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 22,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 23,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 24,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 25,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 26,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 27,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 28,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 29,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3067,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 26939,
+              "tokens_out": null,
+              "tokens_cache_read": 15350
+            },
+            {
+              "i": 3,
+              "tokens_in": 151,
+              "tokens_out": null,
+              "tokens_cache_read": 42287
+            },
+            {
+              "i": 4,
+              "tokens_in": 5047,
+              "tokens_out": null,
+              "tokens_cache_read": 42436
+            },
+            {
+              "i": 5,
+              "tokens_in": 163,
+              "tokens_out": null,
+              "tokens_cache_read": 47481
+            },
+            {
+              "i": 6,
+              "tokens_in": 761,
+              "tokens_out": null,
+              "tokens_cache_read": 47642
+            },
+            {
+              "i": 7,
+              "tokens_in": 362,
+              "tokens_out": null,
+              "tokens_cache_read": 48401
+            },
+            {
+              "i": 8,
+              "tokens_in": 30715,
+              "tokens_out": null,
+              "tokens_cache_read": 48761
+            },
+            {
+              "i": 9,
+              "tokens_in": 884,
+              "tokens_out": null,
+              "tokens_cache_read": 79474
+            },
+            {
+              "i": 10,
+              "tokens_in": 338,
+              "tokens_out": null,
+              "tokens_cache_read": 80356
+            },
+            {
+              "i": 11,
+              "tokens_in": 761,
+              "tokens_out": null,
+              "tokens_cache_read": 80692
+            },
+            {
+              "i": 12,
+              "tokens_in": 403,
+              "tokens_out": null,
+              "tokens_cache_read": 81451
+            },
+            {
+              "i": 13,
+              "tokens_in": 761,
+              "tokens_out": null,
+              "tokens_cache_read": 81852
+            },
+            {
+              "i": 14,
+              "tokens_in": 6286,
+              "tokens_out": null,
+              "tokens_cache_read": 82611
+            },
+            {
+              "i": 15,
+              "tokens_in": 6124,
+              "tokens_out": null,
+              "tokens_cache_read": 88895
+            },
+            {
+              "i": 16,
+              "tokens_in": 465,
+              "tokens_out": null,
+              "tokens_cache_read": 95017
+            },
+            {
+              "i": 17,
+              "tokens_in": 6062,
+              "tokens_out": null,
+              "tokens_cache_read": 95480
+            },
+            {
+              "i": 18,
+              "tokens_in": 176,
+              "tokens_out": null,
+              "tokens_cache_read": 101540
+            },
+            {
+              "i": 19,
+              "tokens_in": 1503,
+              "tokens_out": null,
+              "tokens_cache_read": 101714
+            },
+            {
+              "i": 20,
+              "tokens_in": 216,
+              "tokens_out": null,
+              "tokens_cache_read": 103215
+            },
+            {
+              "i": 21,
+              "tokens_in": 1031,
+              "tokens_out": null,
+              "tokens_cache_read": 103429
+            },
+            {
+              "i": 22,
+              "tokens_in": 219,
+              "tokens_out": null,
+              "tokens_cache_read": 104458
+            },
+            {
+              "i": 23,
+              "tokens_in": 1509,
+              "tokens_out": null,
+              "tokens_cache_read": 104675
+            },
+            {
+              "i": 24,
+              "tokens_in": 136,
+              "tokens_out": null,
+              "tokens_cache_read": 106182
+            },
+            {
+              "i": 25,
+              "tokens_in": 1037,
+              "tokens_out": null,
+              "tokens_cache_read": 106316
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 3,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 84163,
+          "tokens_in": 6978,
+          "tokens_out": 727,
+          "tokens_cache_read": 76458,
+          "wall_ms": 44180,
+          "steps": 4,
+          "llm_calls": 4,
+          "ui_actions": {
+            "tap": 0,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 1,
+            "total": 1
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.deskclock"
+            },
+            {
+              "i": 3,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "set_alarm"
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Gym"
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3188,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 1922,
+              "tokens_out": null,
+              "tokens_cache_read": 18561
+            },
+            {
+              "i": 3,
+              "tokens_in": 1562,
+              "tokens_out": null,
+              "tokens_cache_read": 20481
+            },
+            {
+              "i": 4,
+              "tokens_in": 306,
+              "tokens_out": null,
+              "tokens_cache_read": 22041
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "after_replay",
+          "seed": 3,
+          "instance_seed": null,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 20946,
+          "steps": 6,
+          "llm_calls": 0,
+          "ui_actions": {
+            "total": 6
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "actions": [],
+          "calls": [],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "before",
+          "seed": 3,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": false,
+          "tokens": 1417012,
+          "tokens_in": 62448,
+          "tokens_out": 5418,
+          "tokens_cache_read": 1349146,
+          "wall_ms": 120752,
+          "steps": 44,
+          "llm_calls": 25,
+          "ui_actions": {
+            "tap": 11,
+            "type": 5,
+            "swipe": 0,
+            "key": 15,
+            "launch": 1,
+            "total": 32
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.deskclock"
+            },
+            {
+              "i": 2,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "type",
+              "tool": "paste_text",
+              "ok": true,
+              "target": "7"
+            },
+            {
+              "i": 11,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 15,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "7"
+            },
+            {
+              "i": 17,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 20,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 21,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "30"
+            },
+            {
+              "i": 22,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 23,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 24,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 25,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 26,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 27,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 28,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 29,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "7"
+            },
+            {
+              "i": 30,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 31,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 32,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 33,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 34,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 35,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 36,
+              "type": "key",
+              "tool": "press_key",
+              "ok": true
+            },
+            {
+              "i": 37,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "30"
+            },
+            {
+              "i": 38,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 39,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 40,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 41,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 42,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 43,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 44,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3063,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 663,
+              "tokens_out": null,
+              "tokens_cache_read": 15346
+            },
+            {
+              "i": 3,
+              "tokens_in": 26074,
+              "tokens_out": null,
+              "tokens_cache_read": 16007
+            },
+            {
+              "i": 4,
+              "tokens_in": 5112,
+              "tokens_out": null,
+              "tokens_cache_read": 42079
+            },
+            {
+              "i": 5,
+              "tokens_in": 164,
+              "tokens_out": null,
+              "tokens_cache_read": 47189
+            },
+            {
+              "i": 6,
+              "tokens_in": 4696,
+              "tokens_out": null,
+              "tokens_cache_read": 47351
+            },
+            {
+              "i": 7,
+              "tokens_in": 289,
+              "tokens_out": null,
+              "tokens_cache_read": 52045
+            },
+            {
+              "i": 8,
+              "tokens_in": 2600,
+              "tokens_out": null,
+              "tokens_cache_read": 52332
+            },
+            {
+              "i": 9,
+              "tokens_in": 136,
+              "tokens_out": null,
+              "tokens_cache_read": 54930
+            },
+            {
+              "i": 10,
+              "tokens_in": 127,
+              "tokens_out": null,
+              "tokens_cache_read": 55064
+            },
+            {
+              "i": 11,
+              "tokens_in": 2731,
+              "tokens_out": null,
+              "tokens_cache_read": 55189
+            },
+            {
+              "i": 12,
+              "tokens_in": 525,
+              "tokens_out": null,
+              "tokens_cache_read": 57918
+            },
+            {
+              "i": 13,
+              "tokens_in": 425,
+              "tokens_out": null,
+              "tokens_cache_read": 58441
+            },
+            {
+              "i": 14,
+              "tokens_in": 329,
+              "tokens_out": null,
+              "tokens_cache_read": 58864
+            },
+            {
+              "i": 15,
+              "tokens_in": 425,
+              "tokens_out": null,
+              "tokens_cache_read": 59191
+            },
+            {
+              "i": 16,
+              "tokens_in": 2600,
+              "tokens_out": null,
+              "tokens_cache_read": 59614
+            },
+            {
+              "i": 17,
+              "tokens_in": 581,
+              "tokens_out": null,
+              "tokens_cache_read": 62212
+            },
+            {
+              "i": 18,
+              "tokens_in": 567,
+              "tokens_out": null,
+              "tokens_cache_read": 62791
+            },
+            {
+              "i": 19,
+              "tokens_in": 2759,
+              "tokens_out": null,
+              "tokens_cache_read": 63356
+            },
+            {
+              "i": 20,
+              "tokens_in": 946,
+              "tokens_out": null,
+              "tokens_cache_read": 66113
+            },
+            {
+              "i": 21,
+              "tokens_in": 766,
+              "tokens_out": null,
+              "tokens_cache_read": 67057
+            },
+            {
+              "i": 22,
+              "tokens_in": 440,
+              "tokens_out": null,
+              "tokens_cache_read": 67821
+            },
+            {
+              "i": 23,
+              "tokens_in": 5511,
+              "tokens_out": null,
+              "tokens_cache_read": 68259
+            },
+            {
+              "i": 24,
+              "tokens_in": 158,
+              "tokens_out": null,
+              "tokens_cache_read": 73768
+            },
+            {
+              "i": 25,
+              "tokens_in": 761,
+              "tokens_out": null,
+              "tokens_cache_read": 73924
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "after_mcp",
+          "seed": 4,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 84027,
+          "tokens_in": 6924,
+          "tokens_out": 677,
+          "tokens_cache_read": 76426,
+          "wall_ms": 44283,
+          "steps": 4,
+          "llm_calls": 4,
+          "ui_actions": {
+            "tap": 0,
+            "type": 0,
+            "swipe": 0,
+            "key": 0,
+            "launch": 1,
+            "total": 1
+          },
+          "skill_calls": 1,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "skill",
+              "tool": "find_skill",
+              "ok": true
+            },
+            {
+              "i": 2,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.deskclock"
+            },
+            {
+              "i": 3,
+              "type": "skill",
+              "tool": "run_skill",
+              "ok": true,
+              "target": "set_alarm"
+            },
+            {
+              "i": 4,
+              "type": "read",
+              "tool": "find_on_screen",
+              "ok": true,
+              "target": "Gym"
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3184,
+              "tokens_out": null,
+              "tokens_cache_read": 15375
+            },
+            {
+              "i": 2,
+              "tokens_in": 1922,
+              "tokens_out": null,
+              "tokens_cache_read": 18557
+            },
+            {
+              "i": 3,
+              "tokens_in": 1542,
+              "tokens_out": null,
+              "tokens_cache_read": 20477
+            },
+            {
+              "i": 4,
+              "tokens_in": 276,
+              "tokens_out": null,
+              "tokens_cache_read": 22017
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "after_replay",
+          "seed": 4,
+          "instance_seed": null,
+          "model": null,
+          "pass": true,
+          "tokens": 0,
+          "tokens_in": 0,
+          "tokens_out": 0,
+          "tokens_cache_read": 0,
+          "wall_ms": 23413,
+          "steps": 6,
+          "llm_calls": 0,
+          "ui_actions": {
+            "total": 6
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "trace": null,
+          "actions": [],
+          "calls": [],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        },
+        {
+          "arm": "before",
+          "seed": 4,
+          "instance_seed": null,
+          "model": "claude-haiku-5-5",
+          "pass": true,
+          "tokens": 1113113,
+          "tokens_in": 91601,
+          "tokens_out": 4087,
+          "tokens_cache_read": 1017425,
+          "wall_ms": 113225,
+          "steps": 41,
+          "llm_calls": 17,
+          "ui_actions": {
+            "tap": 12,
+            "type": 1,
+            "swipe": 0,
+            "key": 0,
+            "launch": 1,
+            "total": 14
+          },
+          "skill_calls": 0,
+          "tool_errors": 0,
+          "valid": true,
+          "actions": [
+            {
+              "i": 1,
+              "type": "launch",
+              "tool": "launch_app",
+              "ok": true,
+              "target": "com.google.android.deskclock"
+            },
+            {
+              "i": 2,
+              "type": "read",
+              "tool": "screenshot",
+              "ok": true
+            },
+            {
+              "i": 3,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 4,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 5,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 6,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 7,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 8,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 9,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 10,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 11,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 12,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 13,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 14,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 15,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 16,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 17,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 18,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 19,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 20,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 21,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 22,
+              "type": "read",
+              "tool": "screenshot_cropped",
+              "ok": true
+            },
+            {
+              "i": 23,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 24,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 25,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 26,
+              "type": "read",
+              "tool": "get_screen_tree",
+              "ok": true
+            },
+            {
+              "i": 27,
+              "type": "tap",
+              "tool": "tap",
+              "ok": true
+            },
+            {
+              "i": 28,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 29,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 30,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 31,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 32,
+              "type": "read",
+              "tool": "get_phone_state",
+              "ok": true
+            },
+            {
+              "i": 33,
+              "type": "type",
+              "tool": "type_text",
+              "ok": true,
+              "target": "Gym"
+            },
+            {
+              "i": 34,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 35,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 36,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 37,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 38,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            },
+            {
+              "i": 39,
+              "type": "tap",
+              "tool": "tap_element",
+              "ok": true
+            },
+            {
+              "i": 40,
+              "type": "wait",
+              "tool": "wait",
+              "ok": true
+            },
+            {
+              "i": 41,
+              "type": "read",
+              "tool": "get_elements",
+              "ok": true
+            }
+          ],
+          "calls": [
+            {
+              "i": 1,
+              "tokens_in": 3065,
+              "tokens_out": null,
+              "tokens_cache_read": 12285
+            },
+            {
+              "i": 2,
+              "tokens_in": 26747,
+              "tokens_out": null,
+              "tokens_cache_read": 15348
+            },
+            {
+              "i": 3,
+              "tokens_in": 272,
+              "tokens_out": null,
+              "tokens_cache_read": 42093
+            },
+            {
+              "i": 4,
+              "tokens_in": 5047,
+              "tokens_out": null,
+              "tokens_cache_read": 42363
+            },
+            {
+              "i": 5,
+              "tokens_in": 1119,
+              "tokens_out": null,
+              "tokens_cache_read": 47408
+            },
+            {
+              "i": 6,
+              "tokens_in": 1185,
+              "tokens_out": null,
+              "tokens_cache_read": 48525
+            },
+            {
+              "i": 7,
+              "tokens_in": 721,
+              "tokens_out": null,
+              "tokens_cache_read": 49708
+            },
+            {
+              "i": 8,
+              "tokens_in": 1046,
+              "tokens_out": null,
+              "tokens_cache_read": 50427
+            },
+            {
+              "i": 9,
+              "tokens_in": 1083,
+              "tokens_out": null,
+              "tokens_cache_read": 51471
+            },
+            {
+              "i": 10,
+              "tokens_in": 25673,
+              "tokens_out": null,
+              "tokens_cache_read": 52552
+            },
+            {
+              "i": 11,
+              "tokens_in": 849,
+              "tokens_out": null,
+              "tokens_cache_read": 78223
+            },
+            {
+              "i": 12,
+              "tokens_in": 1160,
+              "tokens_out": null,
+              "tokens_cache_read": 79070
+            },
+            {
+              "i": 13,
+              "tokens_in": 9409,
+              "tokens_out": null,
+              "tokens_cache_read": 80228
+            },
+            {
+              "i": 14,
+              "tokens_in": 449,
+              "tokens_out": null,
+              "tokens_cache_read": 89635
+            },
+            {
+              "i": 15,
+              "tokens_in": 3433,
+              "tokens_out": null,
+              "tokens_cache_read": 90082
+            },
+            {
+              "i": 16,
+              "tokens_in": 983,
+              "tokens_out": null,
+              "tokens_cache_read": 93513
+            },
+            {
+              "i": 17,
+              "tokens_in": 9360,
+              "tokens_out": null,
+              "tokens_cache_read": 94494
+            }
+          ],
+          "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+          "skill_version": "1.0.1"
+        }
+      ],
+      "stats": {
+        "arms": {
+          "after_mcp": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 84163.0,
+              "q1": 84027.0,
+              "q3": 84954.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 44791.0,
+              "q1": 44283.0,
+              "q3": 61743.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 4.0,
+              "q1": 4.0,
+              "q3": 4.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 1.0,
+              "q1": 1.0,
+              "q3": 1.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+            "skill_version": "1.0.1"
+          },
+          "after_replay": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": null,
+            "tokens": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 22100.0,
+              "q1": 20946.0,
+              "q3": 22327.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 6.0,
+              "q1": 6.0,
+              "q3": 6.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+            "skill_version": "1.0.1"
+          },
+          "before": {
+            "passed": 4,
+            "total": 5,
+            "wilson95": [
+              0.3755,
+              0.9638
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 1113113.0,
+              "q1": 1010774.0,
+              "q3": 1417012.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 115913.0,
+              "q1": 113225.0,
+              "q3": 119589.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 20.0,
+              "q1": 17.0,
+              "q3": 25.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 14.0,
+              "q1": 14.0,
+              "q3": 14.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ],
+            "skill_sha": "b37d4c36335dfcf969967c5053762151415d685b",
+            "skill_version": "1.0.1"
+          }
+        },
+        "paired": {
+          "after_mcp_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 1,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 1029086,
+            "break_even_reuses": null
+          },
+          "after_replay_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 1,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 1113113,
+            "break_even_reuses": null
+          }
+        }
+      },
+      "generated_at": "2026-10-22T22:27:36.734129Z",
+      "run_ids": [
+        "nat2"
+      ]
+    }
+  ],
+  "suite": "ghost-native",
+  "skill": "ghost/clock",
+  "evidence_class": "maintainer",
+  "label": "maintainer-run, not independent",
+  "model": [
+    "claude-haiku-5-5"
+  ],
+  "generated_at": "2026-10-22T22:27:36.734129Z",
+  "run_ids": [
+    "nat2"
+  ]
+}

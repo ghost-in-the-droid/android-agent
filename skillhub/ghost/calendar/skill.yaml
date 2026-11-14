@@ -1,0 +1,97 @@
+# Ghost in the Droid: Fossify Calendar (login-free seed skill)
+# A local, never-synced calendar from F-Droid (org.fossify.calendar, GPL-3.0 app;
+# this skill is MIT). Fills the gap left by Google Calendar, which needs an account.
+# Events are created through the public INSERT intent and verified in the app's list.
+
+name: calendar
+version: 1.0.0
+author: ghost
+description: "Fossify Calendar (local, no account): create an event, list upcoming events, read one event's details."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [calendar, notifications]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: org.fossify.calendar
+  app_version: ">=1.11.0"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/calendar"
+
+os_popup_policy:
+  allow_permissions: [notifications]   # Fossify refuses to save an event with a reminder unless it may notify
+
+popup_detectors:
+  - {detect: "Allow Calendar to send you notifications?", button: "Allow", label: "Notification permission (needed to save events with reminders)"}
+
+actions:
+  - name: create_event
+    description: "Create an event in the local calendar: title, date, start time, duration, optional location and description. Uses the app's default reminder."
+    ref_prompt: "Add a dentist appointment tomorrow at 3pm for an hour"
+    params:
+      - {name: title, type: str, required: true}
+      - {name: date, type: str, required: true, description: "YYYY-MM-DD"}
+      - {name: start_time, type: str, required: true, description: "HH:MM, 24 h, device time zone"}
+      - {name: duration_min, type: int, default: 60}
+      - {name: location, type: str, default: ""}
+      - {name: description, type: str, default: ""}
+    steps:
+      - python_action: "helpers:create_event"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:event_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "schedule team sync on 2026-10-08 at 10:00 for 30 minutes"
+        - "put lunch with Sam in my calendar on Friday at noon"
+        - "create a calendar event called Gym at 18:00 tomorrow"
+      expected_success: true
+
+  - name: list_events
+    description: "List upcoming events (date, title, time) from the simple event list; optionally only the next N days."
+    ref_prompt: "What's on my calendar this week?"
+    params:
+      - {name: days, type: int, default: 0, description: "0 = everything upcoming; 1 = today only; 7 = this week"}
+      - {name: max_items, type: int, default: 50}
+    steps:
+      - python_action: "helpers:open_event_list"
+      - python_action: "helpers:list_events"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.calendar:id/calendar_fab"}
+        - {kind: custom_python, function: "helpers:events_read"}
+    test_case:
+      ref_prompt_variants:
+        - "do I have anything today"
+        - "show my upcoming events"
+        - "agenda for the next 3 days"
+      expected_success: true
+
+  - name: get_event
+    description: "Find an event by exact title and return its fields: dates, times, location, description, reminder, repetition, calendar."
+    ref_prompt: "When is my dentist visit?"
+    params:
+      - {name: title, type: str, required: true}
+    steps:
+      - python_action: "helpers:open_event_list"
+      - python_action: "helpers:get_event"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:event_read"}
+    test_case:
+      ref_prompt_variants:
+        - "details of the Gym event"
+        - "where is the team sync"
+        - "what time does lunch with Sam start"
+      expected_success: true

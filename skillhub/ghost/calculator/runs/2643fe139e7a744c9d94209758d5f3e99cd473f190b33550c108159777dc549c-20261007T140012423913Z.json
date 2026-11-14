@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/calculator",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "org.fossify.math",
+    "app_version": "1.4.0"
+  },
+  "fingerprint_hash": "2643fe139e7a744c9d94209758d5f3e99cd473f190b33550c108159777dc549c",
+  "app_version": "1.4.0",
+  "model": "deterministic",
+  "timestamp": "2026-10-07T14:00:12.423913+00:00",
+  "finished_at": "2026-10-07T14:00:12.423913+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "read_result",
+      "success": true,
+      "duration_ms": 1743.6822419986129,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 1716.1537930369377
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 13.011849019676447
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCNiqJ6l9TMR7K8jcdQjcULc9FafEYdvBoNfxZPDBn/Qk59oWJ\nAIapGYMVPpoh6imLc+wyluXLJo96rie6ebTQk=\n-----END SSH SIGNATURE-----\n"
+  }
+}

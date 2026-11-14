@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/binary-eye",
+ "action": "generate_qr",
+ "prompt": "Generate a QR Code for https://example.org/solar in Binary Eye and leave it visible. Do not use camera, files or clipboard.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 52.24,
+  "tokens": 254235,
+  "tool_calls": 18,
+  "ok": false
+ },
+ "after": {
+  "seconds": 27.49,
+  "tokens": 127442,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "Both sides open the generator directly to keep camera, files and clipboard unused. BEFORE generated a readable QR but independent pixel decoding found one extra trailing LF (U+000A), so strict payload equality failed despite the agent completion claim. AFTER independently decoded to the exact requested URL. Same clean temporary app per side; both camera and clipboard app operations denied. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

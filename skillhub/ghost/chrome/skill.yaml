@@ -1,0 +1,154 @@
+# Ghost in the Droid: Google Chrome (login-free seed skill)
+# Chrome is used without a Google account: the first-run "Use without an account"
+# path is handled by popup_detectors. Bookmarks are deliberately not covered
+# (bookmark_url is a community bounty).
+
+name: chrome
+version: 1.0.2
+author: ghost
+description: "Google Chrome without an account: open a URL, search the web, open an Incognito tab, read the current page, count matches with Find in page."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [network]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.android.chrome
+  app_version: ">=113.0"
+  screen_wxh: 1080x2340
+  density: 450
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/chrome"
+
+popup_detectors:
+  - {detect: "Use without an account", button: "Use without an account", label: "First-run sign-in screen (never add an account)"}
+  - {detect: "Chrome notifications make things easier", button: "No thanks", label: "Notification permission explainer"}
+  - {detect: "Turn on sync?", button: "No thanks", label: "Sync upsell"}
+  - {detect: "Allow Chrome to record audio?", button: "Don’t allow", label: "Mic permission (voice search hit by mistake)"}
+
+subroutines:
+  - name: launch_chrome
+    description: "Bring Chrome to the front (resumes the last tab) and close the find bar if it is open."
+    steps:
+      - python_action: "helpers:resume_chrome"
+      - {action: sleep, duration_s: 1.5}
+      - if_visible:
+          selector: {id: "com.android.chrome:id/close_find_button"}
+          then:
+            - {action: tap_element, id: "com.android.chrome:id/close_find_button"}
+      - {action: wait_for_element, id: "com.android.chrome:id/menu_button", timeout_s: 20}
+
+actions:
+  - name: open_url
+    description: "Open a URL in Chrome; incognito=true uses a new private tab without exposing normal tabs. Confirm host and private-mode evidence."
+    ref_prompt: "Open wikipedia.org in Chrome"
+    params:
+      - {name: url, type: str, required: true, description: "Full URL including https://"}
+      - {name: incognito, type: bool, default: false, description: "Use a new verified private tab; normal default retained for existing callers"}
+    steps:
+      - python_action: "helpers:open_url"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.android.chrome:id/url_bar"}
+        - {kind: custom_python, function: "helpers:url_matches"}
+    test_case:
+      ref_prompt_variants:
+        - "go to example.com"
+        - "open https://f-droid.org in the browser"
+        - "load the BBC news site"
+      expected_success: true
+
+  - name: search_web
+    description: "Type a query into the address bar and run it with the default search engine; rejects Google's cookie wall if shown."
+    ref_prompt: "Search the web for android automation"
+    params:
+      - {name: query, type: str, required: true}
+    steps:
+      - subroutine: launch_chrome
+      - python_action: "helpers:focus_address_bar"
+      - {action: wait_for_element, id: "com.android.chrome:id/url_bar", timeout_s: 10}
+      - {action: type_text, text: "{query}"}
+      - {action: press_key, key: ENTER}
+      - {action: sleep, duration_s: 4}
+      - python_action: "helpers:reject_google_consent"
+      - {action: wait_for_text, text: "{query}", timeout_s: 15}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.android.chrome:id/url_bar"}
+        - {kind: custom_python, function: "helpers:search_done"}
+    test_case:
+      ref_prompt_variants:
+        - "google best hiking trails"
+        - "look up the weather in Berlin"
+        - "search for python tutorials in chrome"
+      expected_success: true
+
+  - name: open_incognito_tab
+    description: "Open a new Incognito tab through the exported private launcher, without resuming a normal tab."
+    ref_prompt: "Open an incognito tab"
+    params: []
+    steps:
+      - python_action: "helpers:open_private_tab"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.android.chrome:id/menu_button"}
+        - {kind: custom_python, function: "helpers:incognito_open"}
+    test_case:
+      ref_prompt_variants:
+        - "start private browsing"
+        - "new incognito window in chrome"
+        - "open a private tab"
+      expected_success: true
+
+  - name: get_page_info
+    description: "Return the current tab's address-bar text (scheme elided by Chrome), page title, and whether it is Incognito."
+    ref_prompt: "What page is open in Chrome?"
+    params: []
+    steps:
+      - subroutine: launch_chrome
+      - {action: wait_for_element, id: "com.android.chrome:id/url_bar", timeout_s: 10}
+      - python_action: "helpers:read_page_info"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.android.chrome:id/url_bar"}
+        - {kind: custom_python, function: "helpers:page_info_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "which website am I on"
+        - "get the current URL in the browser"
+        - "what's the title of this page"
+      expected_success: true
+
+  - name: find_in_page
+    description: "Use Find in page on the current tab and return how many matches the text has; closes the find bar."
+    ref_prompt: "How many times does 'domain' appear on this page?"
+    params:
+      - {name: text, type: str, required: true}
+    steps:
+      - subroutine: launch_chrome
+      - {action: tap_element, id: "com.android.chrome:id/menu_button"}
+      - {action: wait_for_element, id: "com.android.chrome:id/find_in_page_id", timeout_s: 8}
+      - {action: tap_element, id: "com.android.chrome:id/find_in_page_id"}
+      - {action: wait_for_element, id: "com.android.chrome:id/find_query", timeout_s: 8}
+      - {action: type_text, text: "{text}"}
+      - python_action: "helpers:read_find_count"
+      - {action: tap_element, id: "com.android.chrome:id/close_find_button"}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.android.chrome:id/menu_button"}
+        - {kind: custom_python, function: "helpers:find_count_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "find 'price' on this page"
+        - "search this page for android"
+        - "count occurrences of example on the page"
+      expected_success: true

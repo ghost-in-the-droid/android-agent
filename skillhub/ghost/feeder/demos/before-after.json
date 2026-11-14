@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/feeder",
+ "action": "add_feed",
+ "prompt": "In Feeder, add https://feeds.bbci.co.uk/news/science_and_environment/rss.xml and list the first two visible article previews. Briefly compare their topics. Do not open a browser or sign in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 202.12,
+  "tokens": 4417658,
+  "tool_calls": 63,
+  "ok": false
+ },
+ "after": {
+  "seconds": 63.36,
+  "tokens": 50005,
+  "tool_calls": 6,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. BEFORE ended without completing feed setup after 202.12 seconds, 63 tool calls and 4,417,658 proxy tokens; first failed attempt retained. AFTER succeeded in 63.36 seconds, 50,005 tokens and 6 calls. Live RSS contents may refresh between sides. Each final check reads the saved native feed URL and matches headline-opening words from the two visible preview nodes; RSS previews combine headline and excerpt. Future BEFORE takes now have a separate 1.5M token cap; this earlier take preceded that instruction. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

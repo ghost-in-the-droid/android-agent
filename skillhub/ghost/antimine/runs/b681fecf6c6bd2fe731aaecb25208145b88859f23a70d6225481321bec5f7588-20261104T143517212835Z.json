@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/antimine",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "dev.lucanlm.antimine",
+    "app_version": "17.6.3"
+  },
+  "fingerprint_hash": "b681fecf6c6bd2fe731aaecb25208145b88859f23a70d6225481321bec5f7588",
+  "app_version": "17.6.3",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T14:35:17.212835+00:00",
+  "finished_at": "2026-11-04T14:35:17.212835+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_settings",
+      "success": true,
+      "duration_ms": 9654.465376999724,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3960.664242000348
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1205.3593269993144
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 362.02609700012545
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 4098.766930999773
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:5c84e5a85fd45d7101e0857aeab3482779eed9a02fdeb4cbdf244480591a1e11",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQOfeEpX5EoWvJWk+NlQFYEtajrlVlO9qinqRwsGPzykPm+SJws\nStoeJAZfMpKSTKZTUyc+6yyT+hZSdlAb3OeAQ=\n-----END SSH SIGNATURE-----\n"
+  }
+}

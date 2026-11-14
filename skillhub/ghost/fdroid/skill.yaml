@@ -1,0 +1,153 @@
+# Ghost in the Droid: F-Droid client (FOSS app store, login-free seed skill)
+# F-Droid 2.x is Jetpack Compose with no resource ids; locators are visible text,
+# content-desc, and a few coordinate taps on fixed chrome (commented).
+
+name: fdroid
+version: 1.0.2
+author: ghost
+description: "F-Droid: search the FOSS catalogue, read an app's page, browse a category, list installed apps. Read-only; never installs."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [network]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: org.fdroid.fdroid
+  app_version: ">=2.0.0"
+  screen_wxh: 1080x2340
+  density: 450
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/fdroid"
+
+popup_detectors:
+  - {detect: "Use filters to only show apps", button: "Got it", label: "Filter coach mark (first category or search visit)"}
+  - {detect: "What are Anti-Features?", button: "Got it", label: "Anti-Features coach mark (first app page)"}
+  - {detect: "Allow F-Droid to send you notifications", button: "Don’t allow", label: "Notification permission (first launch)"}
+
+subroutines:
+  - name: home
+    description: "Bring F-Droid to a top-level tab (back out of app pages and category lists)."
+    steps:
+      - {action: launch_app, package: org.fdroid.fdroid}
+      - {action: sleep, duration_s: 2}
+      - {action: dismiss_popups}
+      - if_visible:
+          selector: {desc: "Back"}
+          then:
+            - {action: press_key, key: BACK}
+            - {action: sleep, duration_s: 1}
+      - if_visible:
+          selector: {desc: "Back"}
+          then:
+            - {action: press_key, key: BACK}
+            - {action: sleep, duration_s: 1}
+      - {action: wait_for_text, text: "My apps", timeout_s: 15}
+
+  - name: empty_search_tab
+    description: "Open the Search tab with an empty query (category chips visible)."
+    steps:
+      - subroutine: home
+      - python_action: "helpers:wait_for_catalogue"
+      - python_action: "helpers:open_search_tab"
+      - {action: sleep, duration_s: 1.5}
+      - {action: dismiss_popups}
+      - if_visible:
+          selector: {desc: "Clear search"}
+          then:
+            - {action: tap_element, desc: "Clear search"}
+            - {action: sleep, duration_s: 1}
+
+actions:
+  - name: search_apps
+    description: "Search the F-Droid catalogue and return the top results (name and one-line summary)."
+    ref_prompt: "Find a markdown editor on F-Droid"
+    params:
+      - {name: query, type: str, required: true}
+      - {name: limit, type: int, default: 10, description: "Max results to return"}
+    steps:
+      - subroutine: empty_search_tab
+      - python_action: "helpers:enter_query"
+      - python_action: "helpers:wait_for_results"
+      - python_action: "helpers:search_results"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Clear search"}
+        - {kind: custom_python, function: "helpers:has_results"}
+    test_case:
+      ref_prompt_variants:
+        - "search f-droid for a podcast app"
+        - "is there an open source password manager on fdroid"
+        - "look up weather apps in F-Droid"
+      expected_success: true
+
+  - name: open_app_page
+    description: "Open an app's F-Droid page by package name and return name, author, last update, size, summary, installed."
+    ref_prompt: "Show me the F-Droid page for Markor"
+    params:
+      - {name: package, type: str, required: true, description: "Android package, e.g. net.gsantner.markor"}
+    steps:
+      - action: launch_intent
+        intent_action: android.intent.action.VIEW
+        data: "https://f-droid.org/packages/{package}/"
+        package: org.fdroid.fdroid
+      - {action: wait_for_text, text: "Last updated", timeout_s: 15}
+      - python_action: "helpers:app_page"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Last updated"}
+        - {kind: custom_python, function: "helpers:page_matches"}
+    test_case:
+      ref_prompt_variants:
+        - "open org.wikipedia in f-droid"
+        - "what's the latest version info for Tasks.org on F-Droid"
+      expected_success: true
+
+  - name: list_installed_apps
+    description: "Open My apps and return installed apps known to F-Droid with versions, plus whether all are up to date."
+    ref_prompt: "Which of my apps came from F-Droid?"
+    params: []
+    steps:
+      - subroutine: home
+      - {action: tap_element, text: "My apps"}
+      - {action: wait_for_text, text: "Installed apps", timeout_s: 15}
+      - python_action: "helpers:installed_apps"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "My apps"}
+        - {kind: custom_python, function: "helpers:installed_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "list my f-droid apps"
+        - "are my fdroid apps up to date"
+      expected_success: true
+
+  - name: browse_category
+    description: "Open a category from the Search tab (e.g. Calculator, Browser, Text Editor) and return its first apps."
+    ref_prompt: "Show me F-Droid's browser apps"
+    params:
+      - {name: category, type: str, required: true, description: "Category label as shown, e.g. Browser"}
+      - {name: limit, type: int, default: 10}
+    steps:
+      - subroutine: empty_search_tab
+      - python_action: "helpers:open_category"
+      - {action: dismiss_popups}
+      - {action: wait_for_element, desc: "Filter", timeout_s: 10}
+      - python_action: "helpers:category_apps"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Filter"}
+        - {kind: custom_python, function: "helpers:category_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "browse calculator apps on f-droid"
+        - "what keyboards does F-Droid have"
+      expected_success: true
