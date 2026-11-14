@@ -1,0 +1,187 @@
+# Ghost Skill Hub: trusted vendors and allowed APK sources (v1)
+#
+# Manually curated allowlist, maintainer-approved security model (docs/skillhub/security.md).
+# Read by tools/ci/trusted_vendor.py (hub-ci). Change it only by PR; a maintainer
+# approves every change. Package ids were checked against their live Google
+# Play listing (HTTP 200 + listing title) on 2026-10-08.
+#
+# Matching rule for `prefix`: a skill's fingerprint.app_package matches when it is
+# exactly the prefix or starts with the prefix followed by "." (com.whatsapp matches
+# com.whatsapp and com.whatsapp.w4b, never com.whatsappx).
+#
+# Being listed here is ONE of three signals that make an app Tier 1 eligible; the
+# others are "listed on F-Droid" and "vendor GitHub repo with >= 1000 stars and
+# releases". It does not by itself make a skill auto-run: the skill must also be
+# YAML-only (see docs/skillhub/security.md).
+
+version: 1
+
+prefixes:
+  # ── social ──────────────────────────────────────────────────────
+  # Play: https://play.google.com/store/apps/details?id=com.facebook.katana ("Facebook")
+  - {prefix: com.facebook.katana, vendor: "Meta", category: social}
+  # Play: https://play.google.com/store/apps/details?id=com.instagram.android ("Instagram")
+  - {prefix: com.instagram.android, vendor: "Meta", category: social}
+  # Play: https://play.google.com/store/apps/details?id=com.zhiliaoapp.musically ("TikTok - Videos, Shop & LIVE")
+  - {prefix: com.zhiliaoapp.musically, vendor: "TikTok", category: social}
+  # Play: https://play.google.com/store/apps/details?id=com.twitter.android ("X")
+  - {prefix: com.twitter.android, vendor: "X Corp.", category: social}
+  # Play: https://play.google.com/store/apps/details?id=com.snapchat.android ("Snapchat")
+  - {prefix: com.snapchat.android, vendor: "Snap", category: social}
+  # Play: https://play.google.com/store/apps/details?id=com.reddit.frontpage ("Reddit")
+  - {prefix: com.reddit.frontpage, vendor: "Reddit", category: social}
+  # ── messaging ───────────────────────────────────────────────────
+  # Play: https://play.google.com/store/apps/details?id=com.whatsapp ("WhatsApp Messenger")
+  - {prefix: com.whatsapp, vendor: "WhatsApp", category: messaging}
+  # Play: https://play.google.com/store/apps/details?id=com.facebook.orca ("Messenger")
+  - {prefix: com.facebook.orca, vendor: "Meta", category: messaging}
+  # Play: https://play.google.com/store/apps/details?id=org.telegram.messenger ("Telegram")
+  - {prefix: org.telegram.messenger, vendor: "Telegram", category: messaging}
+  # Play: https://play.google.com/store/apps/details?id=org.thoughtcrime.securesms ("Signal Private Messenger")
+  - {prefix: org.thoughtcrime.securesms, vendor: "Signal", category: messaging}
+  # Play: https://play.google.com/store/apps/details?id=com.discord ("Discord - Talk, Play, Hang Out")
+  - {prefix: com.discord, vendor: "Discord", category: messaging}
+  # Play: https://play.google.com/store/apps/details?id=com.viber.voip ("Rakuten Viber Messenger")
+  - {prefix: com.viber.voip, vendor: "Viber", category: messaging}
+  # ── media ───────────────────────────────────────────────────────
+  # Play: https://play.google.com/store/apps/details?id=com.google.android.youtube ("YouTube")
+  - {prefix: com.google.android.youtube, vendor: "Google", category: media}
+  # Play: https://play.google.com/store/apps/details?id=com.spotify.music ("Spotify: Music and Podcasts")
+  - {prefix: com.spotify.music, vendor: "Spotify", category: media}
+  # Play: https://play.google.com/store/apps/details?id=com.netflix.mediaclient ("Netflix")
+  - {prefix: com.netflix.mediaclient, vendor: "Netflix", category: media}
+  # Play: https://play.google.com/store/apps/details?id=com.amazon.avod.thirdpartyclient ("Prime Video")
+  - {prefix: com.amazon.avod.thirdpartyclient, vendor: "Amazon", category: media}
+  # Play: https://play.google.com/store/apps/details?id=com.disney.disneyplus ("Disney+")
+  - {prefix: com.disney.disneyplus, vendor: "Disney", category: media}
+  # Play: https://play.google.com/store/apps/details?id=tv.twitch.android.app ("Twitch: Live Streaming")
+  - {prefix: tv.twitch.android.app, vendor: "Twitch", category: media}
+  # ── productivity ────────────────────────────────────────────────
+  # Play: https://play.google.com/store/apps/details?id=com.google.android.gm ("Gmail")
+  - {prefix: com.google.android.gm, vendor: "Google", category: productivity}
+  # Play: https://play.google.com/store/apps/details?id=com.google.android.calendar ("Google Calendar")
+  - {prefix: com.google.android.calendar, vendor: "Google", category: productivity}
+  # Play: https://play.google.com/store/apps/details?id=com.google.android.apps.docs ("Google Drive")
+  - {prefix: com.google.android.apps.docs, vendor: "Google", category: productivity}
+  # Play: https://play.google.com/store/apps/details?id=com.microsoft.office.outlook ("Microsoft Outlook")
+  - {prefix: com.microsoft.office.outlook, vendor: "Microsoft", category: productivity}
+  # Play: https://play.google.com/store/apps/details?id=us.zoom.videomeetings ("Zoom Workplace")
+  - {prefix: us.zoom.videomeetings, vendor: "Zoom", category: productivity}
+  # Play: https://play.google.com/store/apps/details?id=com.Slack ("Slack")
+  - {prefix: com.Slack, vendor: "Slack", category: productivity}
+  # Play: https://play.google.com/store/apps/details?id=com.android.chrome ("Google Chrome")
+  - {prefix: com.android.chrome, vendor: "Google", category: productivity}
+  # Play: https://play.google.com/store/apps/details?id=org.mozilla.firefox ("Firefox Fast & Private Browser")
+  - {prefix: org.mozilla.firefox, vendor: "Mozilla", category: productivity}
+  # ── finance ─────────────────────────────────────────────────────
+  # Play: https://play.google.com/store/apps/details?id=com.paypal.android.p2pmobile ("PayPal - Pay, Send, Save")
+  - {prefix: com.paypal.android.p2pmobile, vendor: "PayPal", category: finance}
+  # Play: https://play.google.com/store/apps/details?id=com.revolut.revolut ("Revolut: Spend, Save, Trade")
+  - {prefix: com.revolut.revolut, vendor: "Revolut", category: finance}
+  # Play: https://play.google.com/store/apps/details?id=com.squareup.cash ("Cash App")
+  - {prefix: com.squareup.cash, vendor: "Block", category: finance}
+  # Play: https://play.google.com/store/apps/details?id=com.venmo ("Venmo")
+  - {prefix: com.venmo, vendor: "PayPal", category: finance}
+  # Play: https://play.google.com/store/apps/details?id=com.transferwise.android ("Wise: International Transfers")
+  - {prefix: com.transferwise.android, vendor: "Wise", category: finance}
+  # Play: https://play.google.com/store/apps/details?id=com.coinbase.android ("Coinbase: Buy Crypto & Stocks")
+  - {prefix: com.coinbase.android, vendor: "Coinbase", category: finance}
+  # ── dev_tools ───────────────────────────────────────────────────
+  # Play: https://play.google.com/store/apps/details?id=com.github.android ("GitHub")
+  - {prefix: com.github.android, vendor: "GitHub", category: dev_tools}
+  # Play: https://play.google.com/store/apps/details?id=com.termux ("Termux")
+  - {prefix: com.termux, vendor: "Termux project", category: dev_tools}
+  # Play: https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2 ("Google Authenticator")
+  - {prefix: com.google.android.apps.authenticator2, vendor: "Google", category: dev_tools}
+  # ── games ───────────────────────────────────────────────────────
+  # Play: https://play.google.com/store/apps/details?id=com.supercell.clashofclans ("Clash of Clans")
+  - {prefix: com.supercell.clashofclans, vendor: "Supercell", category: games}
+  # Play: https://play.google.com/store/apps/details?id=com.supercell.clashroyale ("Clash Royale")
+  - {prefix: com.supercell.clashroyale, vendor: "Supercell", category: games}
+  # Play: https://play.google.com/store/apps/details?id=com.king.candycrushsaga ("Candy Crush Saga")
+  - {prefix: com.king.candycrushsaga, vendor: "King", category: games}
+  # Play: https://play.google.com/store/apps/details?id=com.mojang.minecraftpe ("Minecraft: Dream it, Build it!")
+  - {prefix: com.mojang.minecraftpe, vendor: "Mojang", category: games}
+  # Play: https://play.google.com/store/apps/details?id=com.kiloo.subwaysurf ("Subway Surfers")
+  - {prefix: com.kiloo.subwaysurf, vendor: "SYBO", category: games}
+  # Play: https://play.google.com/store/apps/details?id=com.roblox.client ("Roblox")
+  - {prefix: com.roblox.client, vendor: "Roblox", category: games}
+  # ── fitness ─────────────────────────────────────────────────────
+  # Play: https://play.google.com/store/apps/details?id=com.strava ("Strava: Run, Bike, Walk")
+  - {prefix: com.strava, vendor: "Strava", category: fitness}
+  # Play: https://play.google.com/store/apps/details?id=com.fitbit.FitbitMobile ("Google Health (Fitbit)")
+  - {prefix: com.fitbit.FitbitMobile, vendor: "Google", category: fitness}
+  # Play: https://play.google.com/store/apps/details?id=com.google.android.apps.fitness ("Google Fit: Activity Tracking")
+  - {prefix: com.google.android.apps.fitness, vendor: "Google", category: fitness}
+  # Play: https://play.google.com/store/apps/details?id=com.myfitnesspal.android ("MyFitnessPal: Calorie Counter")
+  - {prefix: com.myfitnesspal.android, vendor: "MyFitnessPal", category: fitness}
+  # Play: https://play.google.com/store/apps/details?id=com.nike.plusgps ("Nike Run Club - Running Coach")
+  - {prefix: com.nike.plusgps, vendor: "Nike", category: fitness}
+  # Play: https://play.google.com/store/apps/details?id=com.sec.android.app.shealth ("Samsung Health")
+  - {prefix: com.sec.android.app.shealth, vendor: "Samsung", category: fitness}
+  # ── travel ──────────────────────────────────────────────────────
+  # Play: https://play.google.com/store/apps/details?id=com.ubercab ("Uber: Rides, eats, hotels")
+  - {prefix: com.ubercab, vendor: "Uber", category: travel}
+  # Play: https://play.google.com/store/apps/details?id=com.airbnb.android ("Airbnb")
+  - {prefix: com.airbnb.android, vendor: "Airbnb", category: travel}
+  # Play: https://play.google.com/store/apps/details?id=com.booking ("Booking.com: Hotels & Travel")
+  - {prefix: com.booking, vendor: "Booking.com", category: travel}
+  # Play: https://play.google.com/store/apps/details?id=com.google.android.apps.maps ("Google Maps")
+  - {prefix: com.google.android.apps.maps, vendor: "Google", category: travel}
+  # Play: https://play.google.com/store/apps/details?id=com.tripadvisor.tripadvisor ("Tripadvisor: Plan & Book Trips")
+  - {prefix: com.tripadvisor.tripadvisor, vendor: "Tripadvisor", category: travel}
+  # Play: https://play.google.com/store/apps/details?id=me.lyft.android ("Lyft")
+  - {prefix: me.lyft.android, vendor: "Lyft", category: travel}
+  # ── shopping ────────────────────────────────────────────────────
+  # Play: https://play.google.com/store/apps/details?id=com.amazon.mShop.android.shopping ("Amazon Shopping")
+  - {prefix: com.amazon.mShop.android.shopping, vendor: "Amazon", category: shopping}
+  # Play: https://play.google.com/store/apps/details?id=com.ebay.mobile ("eBay online shopping & selling")
+  - {prefix: com.ebay.mobile, vendor: "eBay", category: shopping}
+  # Play: https://play.google.com/store/apps/details?id=com.einnovation.temu ("Temu: Shop Like a Billionaire")
+  - {prefix: com.einnovation.temu, vendor: "Temu", category: shopping}
+  # Play: https://play.google.com/store/apps/details?id=com.alibaba.aliexpresshd ("AliExpress - Shopping App")
+  - {prefix: com.alibaba.aliexpresshd, vendor: "AliExpress", category: shopping}
+  # Play: https://play.google.com/store/apps/details?id=com.zzkko ("SHEIN-Shopping Online")
+  - {prefix: com.zzkko, vendor: "Shein", category: shopping}
+  # Play: https://play.google.com/store/apps/details?id=com.etsy.android ("Etsy: Shop from Real People")
+  - {prefix: com.etsy.android, vendor: "Etsy", category: shopping}
+
+# Where an APK used by CI, the emulator pool or a verifier may come from. Anything
+# not matching one of these entries is refused. PLANNED: nothing installs APKs yet;
+# CI only targets apps on the stock emulator image (docs/skillhub/security.md s5).
+# Package-prefix trust is only meaningful together with these pinned sources.
+apk_sources:
+  fdroid:
+    # Official F-Droid main repo. CI resolves the APK and its sha256 from the signed
+    # index (index-v2.json) and refuses a download whose sha256 differs.
+    index: https://f-droid.org/repo/index-v2.json
+    url_pattern: "https://f-droid.org/repo/<package>_<versionCode>.apk"
+    verify: sha256 from index-v2.json
+
+  vendor_direct:
+    # Vendor-operated download pages only. Each needs a pinned sha256 in the skill PR
+    # (and the vendor's published signing-cert fingerprint where one exists).
+    - vendor: Signal
+      package: org.thoughtcrime.securesms
+      url: https://signal.org/android/apk/
+      notes: "Page publishes the SHA-256 fingerprint of the signing certificate; check it before install."
+    - vendor: Telegram
+      package: org.telegram.messenger
+      url: https://telegram.org/dl/android/apk
+      notes: "Redirects to Telegram's own CDN. The direct build can carry a different package id than the Play build; the installed id must match the skill fingerprint."
+    - vendor: Mozilla (Firefox for Android)
+      package: org.mozilla.firefox
+      url: https://archive.mozilla.org/pub/fenix/releases/
+      notes: "Current builds. GitHub releases at github.com/mozilla-mobile/firefox-android stop at fenix-v125.3.0 (2024-04-29) and are allowed only to pin that old version."
+    - vendor: Termux
+      package: com.termux
+      url: https://github.com/termux/termux-app/releases
+      notes: "GitHub builds are signed with a different key than F-Droid builds and cannot update each other; prefer the F-Droid source."
+
+  forbidden:
+    # Never allowed, whatever the PR says.
+    - APKMirror (apkmirror.com)
+    - APKPure (apkpure.com, apkpure.net)
+    - Any other third-party APK mirror or aggregator
+    - Arbitrary URLs supplied in a skill, a PR body or a comment
+    - APKs committed to the repository

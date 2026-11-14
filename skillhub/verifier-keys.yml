@@ -1,0 +1,24 @@
+# Platform and official run-signing principals (maintainer-owned; CODEOWNERS + platform review).
+# The registry builds its allowed_signers from skillhub/SIGNERS plus every key listed here.
+# tier: maintainer = official-namespace self-runs and maintainer verifications;
+#       platform   = non-human verifiers (CI emulator, AndroidWorld replay on the lab emulator);
+#       their verifications count as independent runs on their fingerprint's device class.
+version: 1
+principals:
+  ghost:
+    tier: maintainer
+    operator: Ghost in the Droid maintainers
+    keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU"
+  # The two platform verifiers do not exist yet: empty key lists are the truth. Artifacts labelled
+  # ghost-ci-emulator / ghost-aw-replay today were signed with the maintainer key above and therefore
+  # count as MAINTAINER evidence (the registry classifies by the signing key, never by the label).
+  # A key may appear under exactly one principal; the registry build refuses duplicates.
+  ghost-ci-emulator:
+    tier: platform
+    operator: hosted CI emulator (no key yet; sponsored CI key goes here)
+    keys: []
+  ghost-aw-replay:
+    tier: platform
+    operator: AndroidWorld deterministic replay on the lab emulator
+    keys: []

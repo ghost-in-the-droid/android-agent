@@ -1,0 +1,3 @@
+# Skills whose code a maintainer has read end to end (trust: verified). One line per skill:
+#   <author>/<slug> <reviewer-github-login> <commit-sha-reviewed>
+# Empty on purpose: nothing has been reviewed yet, so every community skill shows as unverified.

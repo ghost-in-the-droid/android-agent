@@ -1,0 +1,7 @@
+# Skill Hub run-signing keys (OpenSSH allowed_signers format, namespace ghost-skill-run).
+# One line per key: <principal> namespaces="ghost-skill-run" <keytype> <base64>.
+# The principal is the hub author name for self-runs (runs/) and the verifier's GitHub login for
+# independent runs (verifications/). The registry counts only artifacts that verify against this file
+# or skillhub/verifier-keys.yml; add your line in the same PR as your first artifact. CI accepts a new
+# line only when the principal equals the PR author and the key is on that GitHub account
+# (https://github.com/<login>.keys). Official (ghost) and platform keys live in verifier-keys.yml.
