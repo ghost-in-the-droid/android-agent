@@ -3,7 +3,7 @@ title: "MCP Clients"
 description: Every tested MCP client that can drive Ghost — Claude Code, Cursor, Windsurf, Zed, Continue, Cline, Codex, Claude Desktop, Cherry Studio, and ChatGPT — with the exact config for each.
 ---
 
-The [MCP Server](../mcp-server/) page covers *what* Ghost exposes (41 tools). This page covers *who can call it* — every MCP client we've wired up, and the exact config for each.
+The [MCP Server](../mcp-server/) page covers *what* Ghost exposes (66 tools). This page covers *who can call it* — every MCP client we've wired up, and the exact config for each.
 
 ## Ghost's two transports
 
@@ -205,7 +205,7 @@ Ghost is a standard [Model Context Protocol](https://modelcontextprotocol.io/) s
 - **stdio** — spawn `android-agent-mcp`
 - **HTTP** — connect to `http://localhost:8002/mcp`
 
-Then call `tools/list` to discover all 41 tools. See the [testing snippet](../mcp-server/#testing) on the MCP Server page for a raw JSON-RPC handshake you can adapt.
+Then call `tools/list` to discover all 66 tools. See the [testing snippet](../mcp-server/#testing) on the MCP Server page for a raw JSON-RPC handshake you can adapt.
 
 ## Copy-paste traps (read before you file a bug)
 
@@ -218,6 +218,6 @@ Then call `tools/list` to discover all 41 tools. See the [testing snippet](../mc
 
 ## Related
 
-- [MCP Server](../mcp-server/) — the 41 tools every client above can call
+- [MCP Server](../mcp-server/) — the 66 tools every client above can call
 - [How Ghost Compares](../how-ghost-compares/) — where Ghost sits versus cloud alternatives
 - [LLM Providers](../llm-providers/) — the models that reason over these tools

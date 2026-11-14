@@ -7,11 +7,79 @@ LLM agents can use. Supports MCP (Model Context Protocol) for Claude Code,
 Cursor, Codex CLI, and OpenClaw, plus OpenAPI-compatible REST endpoints for
 ChatGPT/GPT Actions.
 
+### Limit device discovery for one agent
+
+Start a dedicated MCP process with the selected connected device ref:
+
+```bash
+GHOST_DEVICE=emulator-5554 android-agent-mcp
+```
+
+Or put `"env": {"GHOST_DEVICE": "emulator-5554"}` in that server's MCP configuration.
+`ANDROID_SERIAL` is also accepted; `GHOST_DEVICE` takes precedence when both are set.
+Use `ios:<udid>` to select an iOS device. `list_devices` returns only the selected
+connected ref, and other devices receive no model/status probes. If the selected
+device is absent, the list is empty. Leaving both variables unset preserves full
+discovery. The selection is also a strict scope: MCP tools, agent tools and `run_action`
+refuse any other device ref, even one passed exactly, with an error naming the selected id.
+With neither variable set, explicitly supplied device refs are accepted as before.
+
+`list_devices` prints a header line, then one device per line: the id first, then
+`key=value` details (`emulator-5554  model=Pixel 8`). Pass only the id as `device`.
+A pasted display line, quotes or backticks are normalized back to the id only when that
+id is the selected device (or, with no selection, a connected one); otherwise the call
+is refused and the error names the valid id(s).
+
+### Deny app packages for an agent session
+
+Set a comma-separated list in the dedicated MCP process environment, alongside
+`GHOST_DEVICE` (the same variables can go in the MCP configuration's `env`):
+
+```bash
+GHOST_DEVICE=emulator-5554 GHOST_DENY_PACKAGES=com.android.vending,com.example.private android-agent-mcp
+```
+
+Package names match exactly after trimming whitespace; unset or empty means no
+restrictions. Explicit app/component launches and skills whose fingerprint names
+any denied package are refused before execution. Android intents are resolved
+before launch and refused if their target is denied or cannot be resolved.
+Foreground ownership is checked before and after device tools, chain sub-actions,
+skill steps, and Android input/launch commands. If a denied app is foreground,
+Ghost sends HOME once and returns a clear error; the remaining chain or skill
+stops even if an inner helper catches that error. An unreadable foreground fails
+closed while this policy is enabled. The same checks accept iOS bundle IDs for
+MCP tools and skills.
+
+### Serve a smaller tool surface (profiles)
+
+`GHOST_MCP_PROFILE` drops every tool outside a named keep-set before the server
+starts; `GHOST_MCP_HIDE_TOOLS` is a comma-separated list of extra tools to hide.
+
+| Profile | Keeps |
+|---|---|
+| `skills-first` | `find_skill`, `list_skills`, `run_skill`, `run_skill_resume`, `get_skill_notes`, `create_skill`, `explore_app` plus the hand-drive basics (`list_devices`, `screenshot`, `get_elements`, `tap`, `type_text`, `swipe`, `press_back`, `press_home`, `launch_app`, `wait`) |
+| `soft-only` | `skills-first` minus `run_skill` and `run_skill_resume`: the agent follows SOFT.md notes by hand |
+| `hand-only` | the hand-drive basics only, no skill tools |
+
+```bash
+GHOST_MCP_PROFILE=skills-first android-agent-mcp
+```
+
+An empty or unknown profile serves the full surface.
+
+
+This is a process-local accident guard, not an Android permission boundary or a
+sandbox for arbitrary shell/Python code. Checks observe foreground snapshots;
+brief or delayed app switches between checks can escape observation. Deny app
+stores and other sensitive apps explicitly for filmed sessions. For isolation
+from an owner's accounts, use a dedicated device/profile without those accounts.
+The variable must also be present in any separately started agent/skill process.
+
 ## Current State
 
 **Working:**
-- 61 MCP tools across raw device control, observation, browser automation,
-  skills, app lifecycle, streaming/recording, marketing data, and discovery
+- 66 MCP tools across raw device control, observation, browser automation,
+  skills, app lifecycle, streaming/recording, and discovery
 - stdio transport (Claude Code, Cursor, Codex CLI)
 - HTTP transport on port 8002 (Claude Desktop, OpenClaw, web agents)
 - REST API on port 5055 (ChatGPT/GPT Actions via FastAPI)
@@ -37,7 +105,7 @@ ChatGPT/GPT Actions.
 ┌─────────────────────┐  ┌──────────────────────┐
 │ mcp_server.py       │  │ run.py / FastAPI      │
 │ port 8002           │  │ port 5055             │
-│ 61 tools            │  │ /api/phone/* endpoints│
+│ 66 tools            │  │ /api/phone/* endpoints│
 └────────┬────────────┘  └────────┬──────────────┘
          │ Python (Device + Skills)              │
          └────────────┬──────────────────────────┘

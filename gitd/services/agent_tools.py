@@ -566,6 +566,27 @@ TOOLS = [
         },
     },
     {
+        "name": "find_skill",
+        "description": "Find the installed skill action for an intent (ranked over names, descriptions and reference prompts). Call before driving an app by hand; on a hit use run_action.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "intent": {"type": "string", "description": "What the user wants done, in plain words."},
+                "top": {"type": "integer", "default": 5},
+            },
+            "required": ["intent"],
+        },
+    },
+    {
+        "name": "get_skill_notes",
+        "description": "Return a skill's SOFT.md reference notes (app layout, ids, dialogs) for driving the app by hand when the replay is unavailable or fails.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"name": {"type": "string", "description": "The skill value from find_skill."}},
+            "required": ["name"],
+        },
+    },
+    {
         "name": "run_skill",
         "description": "Run a skill workflow. Call list_skills first to see available workflows.",
         "input_schema": {
@@ -671,34 +692,6 @@ TOOLS = [
             },
             "required": ["name", "app_package", "steps"],
         },
-    },
-    {
-        "name": "lookup_lead",
-        "description": "Get the marketing fact sheet for one influencer lead by handle.",
-        "input_schema": {
-            "type": "object",
-            "properties": {"handle": {"type": "string", "description": "TikTok handle with or without @."}},
-            "required": ["handle"],
-        },
-    },
-    {
-        "name": "crm_lookup_contact",
-        "description": "Get the stored fact sheet for one local CRM contact by handle. Read-only.",
-        "input_schema": {
-            "type": "object",
-            "properties": {"handle": {"type": "string", "description": "Contact handle with or without @."}},
-            "required": ["handle"],
-        },
-    },
-    {
-        "name": "list_unread_leads",
-        "description": "List influencer leads with unread replies, sorted by recency.",
-        "input_schema": {"type": "object", "properties": {}},
-    },
-    {
-        "name": "crm_list_unread_messages",
-        "description": "List local CRM contacts with unread messages, sorted by recency. Read-only.",
-        "input_schema": {"type": "object", "properties": {}},
     },
     # Frame capture + vision sub-agent (for image-heavy subtasks like reading a
     # playing video). screenshot_sequence captures a burst; sub_agent reads it.
@@ -848,6 +841,8 @@ SAFE_DEVICE_TOOLS = frozenset(
         "list_skills",
         # Chat → skill: draft is read-only (distils the trace, no write/exec)
         "draft_skill",
+        "find_skill",
+        "get_skill_notes",
         # Browser (read/navigate)
         "web_search",
         "open_url",
@@ -857,12 +852,6 @@ SAFE_DEVICE_TOOLS = frozenset(
         "extract_visible_text",
         "extract_articles",
         "read_news",
-        # Local CRM (read-only DB queries, no exec)
-        "crm_lookup_contact",
-        "crm_list_unread_messages",
-        # Marketing lead lookups (read-only DB queries, no exec)
-        "lookup_lead",
-        "list_unread_leads",
     }
 )
 
@@ -952,7 +941,18 @@ def tool_prompt_list(tools: list[dict]) -> str:
 def execute_tool(name: str, args: dict) -> str:
     """Execute a tool call and return result as string.
     UI actions auto-append the screen tree so the agent sees the result immediately."""
-    result = _execute_tool_inner(name, args)
+    from gitd.bots.common.device import DeviceRefError, resolve_device_ref
+    from gitd.bots.common.package_policy import PackagePolicyError
+
+    if isinstance(args, dict) and "device" in args:
+        try:
+            args = {**args, "device": resolve_device_ref(args["device"])}
+        except DeviceRefError as exc:
+            return f"Error: {exc}"
+    try:
+        result = _execute_tool_inner(name, args)
+    except PackagePolicyError as exc:
+        return f"Error: {exc}"
     # Auto-append screen tree after UI actions
     if name in _UI_ACTION_TOOLS and args.get("device"):
         try:
@@ -1002,6 +1002,14 @@ def _a11y_diff_suffix(device: str) -> str:
 
 
 def _execute_tool_inner(name: str, args: dict) -> str:
+    from gitd.bots.common.package_policy import check_tool_target, package_session, tool_device
+
+    with package_session(tool_device(name, args), settle=True):
+        check_tool_target(name, args)
+        return _execute_tool_impl(name, args)
+
+
+def _execute_tool_impl(name: str, args: dict) -> str:
     import subprocess
     import time
 
@@ -1632,6 +1640,22 @@ def _execute_tool_inner(name: str, args: dict) -> str:
             return "Notification Center opened" if is_ios_ref(device) else "Notification shade opened"
         elif name == "clear_notifications":
             return "Notifications cleared" if ctx.clear_notifications(device) else "Failed"
+        elif name == "find_skill":
+            from gitd.skills.engine.find import find_installed
+
+            hits = find_installed(str(args.get("intent", "")), int(args.get("top", 5) or 5))
+            for hit in hits:
+                hit["run_with"] = "run_skill"
+                hit["notes_with"] = "get_skill_notes"
+            return json.dumps(
+                hits
+                if hits
+                else {"hits": [], "hint": "No installed skill matches; use list_skills or drive the app directly."}
+            )
+        elif name == "get_skill_notes":
+            from gitd.skills.engine.find import skill_notes
+
+            return skill_notes(str(args["name"]))
         elif name == "list_skills":
             from gitd.routers.skills import _load_all_skills, _load_skill
 
@@ -1727,22 +1751,6 @@ def _execute_tool_inner(name: str, args: dict) -> str:
                 },
                 indent=2,
             )
-        elif name == "lookup_lead":
-            from gitd.services.marketing_lookup import lookup_lead
-
-            return lookup_lead(args["handle"])
-        elif name == "list_unread_leads":
-            from gitd.services.marketing_lookup import list_unread_leads
-
-            return list_unread_leads()
-        elif name == "crm_lookup_contact":
-            from gitd.services.crm_lookup import crm_lookup_contact
-
-            return crm_lookup_contact(args["handle"])
-        elif name == "crm_list_unread_messages":
-            from gitd.services.crm_lookup import crm_list_unread_messages
-
-            return crm_list_unread_messages()
         elif name == "screenshot_sequence":
             return _capture_sequence(device, args)
         elif name == "sub_agent":

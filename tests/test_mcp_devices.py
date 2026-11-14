@@ -34,9 +34,11 @@ def test_mcp_list_devices_includes_ios_probe_status(monkeypatch):
 
     result = mcp_server.list_devices()
 
-    assert "emulator-5554 (Pixel 8)" in result
+    assert result.splitlines()[0] == mcp_server.DEVICE_LIST_HEADER
+    assert "emulator-5554  model=Pixel 8" in result.splitlines()
     assert "ios:abc123" in result
-    assert "Casey's iPhone" in result
+    assert "model=Casey's iPhone" in result
+    assert all(line.split()[0] in {"emulator-5554", "ios:abc123"} for line in result.splitlines()[1:])
     assert "status=appium_down" in result
     assert "host=host/connected" in result
     assert "appium=http://127.0.0.1:4723" in result
@@ -51,4 +53,4 @@ def test_mcp_list_devices_falls_back_when_ios_details_fail(monkeypatch):
         lambda deep_probe=False: (_ for _ in ()).throw(RuntimeError("xctrace failed")),
     )
 
-    assert mcp_server.list_devices() == "ios:abc123 (iOS via Appium/WDA)"
+    assert mcp_server.list_devices().splitlines()[1:] == ["ios:abc123  model=iOS device  platform=iOS  via=Appium/WDA"]

@@ -588,3 +588,18 @@ def _chat_claude_code_remote(session, prompt: str, remote_host: str):
                 pass  # noqa: E701
 
     yield {"type": "done"}
+
+
+def answer_claude_code(prompt: str, *, timeout_s: int = 0, max_turns: int = 3):
+    """Bounded answer-only provider entry point for deterministic ask steps."""
+    result = subprocess.run(
+        ["claude", "--print", "--max-turns", str(min(max_turns, 3)), "--tools", "", "--output-format", "json"],
+        input=prompt,
+        text=True,
+        capture_output=True,
+        timeout=timeout_s or None,
+    )
+    if result.returncode:
+        raise RuntimeError("Claude Code answer provider failed")
+    response = json.loads(result.stdout)
+    return json.loads(response["result"])
