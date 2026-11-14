@@ -2,7 +2,7 @@
 
 How we capture agent-driven iOS demos (phone video + terminal cast) for the
 marketing pipeline, plus the hard-won gotchas. Companion to
-[REMOTE_DRIVE.md](REMOTE_DRIVE.md) and the `scripts/ios/` tooling.
+[FLEET.md](FLEET.md) and the `scripts/ios/` tooling.
 
 ## TL;DR pipeline
 
@@ -55,7 +55,7 @@ The MCP tools (`launch_app`, `tap`, `screenshot`…) drive `IOSDevice`. Two tran
   wedge. Base URL resolves FRESH per session from the registry
   (`IOS_REMOTEXPC_REGISTRY`, default `http://127.0.0.1:42314`). This is the durable
   fix; it's the exact HTTP recipe used to make every baseline clip. See
-  [REMOTE_DRIVE.md] for the endpoint map.
+  [WIRELESS.md](WIRELESS.md) for connection setup.
 
 For the **Claude Code TUI hero** style: `scripts/showcase/claude_tui_driver.py`
 spawns a real Claude Code TUI via pexpect (24×100 PTY), mirrors it to stdout so

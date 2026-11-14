@@ -17,11 +17,18 @@ from gitd.skills.platforms import (
 )
 
 
+def _skill_dir(skill: str) -> Path:
+    """Skill dir by name: user-created gitd/skills/<name> or official skillhub/ghost/<name>."""
+    from gitd.skills.locations import find_legacy_skill_dir
+
+    return find_legacy_skill_dir(skill) or Path(__file__).parent / skill
+
+
 def _load_skill_metadata(skill: str) -> dict:
     try:
         import yaml
 
-        meta_path = Path(__file__).parent / skill / "skill.yaml"
+        meta_path = _skill_dir(skill) / "skill.yaml"
         if meta_path.exists():
             return yaml.safe_load(meta_path.read_text()) or {}
     except Exception:
@@ -52,7 +59,7 @@ def _record_start(
         try:
             import yaml
 
-            meta_path = Path(__file__).parent / skill / "skill.yaml"
+            meta_path = _skill_dir(skill) / "skill.yaml"
             if meta_path.exists():
                 meta = yaml.safe_load(meta_path.read_text()) or {}
                 pkg = skill_target_for_device(meta, device)
@@ -167,8 +174,7 @@ def _soft_smoke_check(skill: str, meta: dict, device: str, skills_dir: Path | No
     Soft skills have no runnable steps, so 'verify' is a smoke check that keeps
     the compatibility matrix meaningful (tested/untested) for them too.
     """
-    base = skills_dir if skills_dir is not None else Path(__file__).parent
-    guidance = Path(base) / skill / "guidance.md"
+    guidance = (Path(skills_dir) / skill if skills_dir is not None else _skill_dir(skill)) / "guidance.md"
     if not guidance.exists() or not guidance.read_text().strip():
         return False, "guidance.md missing or empty"
     pkg = skill_target_for_device(meta, device)
@@ -179,6 +185,43 @@ def _soft_smoke_check(skill: str, meta: dict, device: str, skills_dir: Path | No
         except Exception as e:
             return False, f"app check failed: {e}"
     return True, None
+
+
+def _v2_declares(skill_dir: Path, name: str) -> bool:
+    """True when skill.yaml is Schema v2 and declares action `name`."""
+    try:
+        import yaml
+
+        raw = yaml.safe_load((skill_dir / "skill.yaml").read_text()) or {}
+    except Exception:
+        return False
+    acts = raw.get("actions") if isinstance(raw, dict) else None
+    return isinstance(acts, list) and any(isinstance(a, dict) and a.get("name") == name for a in acts)
+
+
+def _run_v2(skill_dir: Path, action: str, params: dict, device: str, run_id: int | None) -> tuple[bool, str | None]:
+    """Run a v2 action with the v2 engine, wired to SkillRun `run_id`.
+
+    run_id selects engine/hitl.py SkillRunChannel, so a `checkpoint:` step marks this
+    row awaiting_human and resumes on POST /api/skills/runs/{run_id}/resume.
+    """
+    from gitd.skills.engine import load_skill, runner
+
+    try:
+        skill = load_skill(skill_dir)
+    except Exception as e:
+        print(f'Cannot load v2 skill at "{skill_dir}": {e}', file=sys.stderr)
+        return False, str(e)
+    print(f"Running v2 action: {skill.name}/{action} (run {run_id})")
+    result = runner.run_action(skill, action, params=params, device_serial=device, run_id=run_id)
+    print(f"Result: success={result.success} duration={result.duration_ms:.0f}ms")
+    if result.data:
+        print(f"Data: {json.dumps(result.data, default=str)}")
+    err = None
+    if not result.success and result.error:
+        err = f"{result.error.get('kind')}: {result.error.get('message')}"
+        print(f"Error: {err}")
+    return result.success, err
 
 
 def main():
@@ -242,7 +285,7 @@ def main():
     t0 = _time.time()
 
     # Check for recorded skill (has workflows/recorded.json instead of Python classes)
-    skill_dir = Path(__file__).parent / args.skill
+    skill_dir = _skill_dir(args.skill)
     recorded_path = skill_dir / "workflows" / "recorded.json"
     if args.workflow == "recorded" and recorded_path.exists():
         import yaml
@@ -275,6 +318,12 @@ def main():
         mod = importlib.import_module(f"gitd.skills.{args.skill}")
         s = mod.load()
     except (ImportError, AttributeError) as e:
+        # No v1 load(): a Schema v2 skill (e.g. tiktok, the FLOW.md soft skills) runs
+        # through the v2 engine, bound to this SkillRun row for checkpoint resume.
+        if _v2_declares(skill_dir, target_name):
+            ok, err = _run_v2(skill_dir, target_name, params, args.device, run_id)
+            _record_finish(run_id, ok, (_time.time() - t0) * 1000, err)
+            sys.exit(0 if ok else 1)
         dur = (_time.time() - t0) * 1000
         _record_finish(run_id, False, dur, str(e))
         print(f'Cannot load skill "{args.skill}": {e}', file=sys.stderr)

@@ -160,11 +160,11 @@ error before starting device automation.
 | File | Purpose |
 |------|---------|
 | `gitd/skills/base.py` | Base classes: Skill, Action, Workflow, Element, ActionResult (262 lines) |
-| `gitd/skills/tiktok/` | TikTok skill (5 actions, 2 workflows, 41 elements) |
-| `gitd/skills/tiktok/skill.yaml` | Metadata: name, version, app_package, exports |
-| `gitd/skills/tiktok/elements.yaml` | 41 UI elements with fallback locator chains |
-| `gitd/skills/tiktok/actions/core.py` | 5 core actions (open, navigate, search, dismiss) |
-| `gitd/skills/tiktok/workflows/` | 2 workflow files (upload_video, publish_draft) |
+| `skillhub/ghost/tiktok/` | TikTok skill (5 actions, 2 workflows, 41 elements) |
+| `skillhub/ghost/tiktok/skill.yaml` | Metadata: name, version, app_package, exports |
+| `skillhub/ghost/tiktok/elements.yaml` | 41 UI elements with fallback locator chains |
+| `skillhub/ghost/tiktok/actions/core.py` | 5 core actions (open, navigate, search, dismiss) |
+| `skillhub/ghost/tiktok/workflows/` | 2 workflow files (upload_video, publish_draft) |
 | `gitd/skills/_base/` | Base skill (9 shared actions for any app) |
 | `gitd/skills/_base/skill.yaml` | Base skill metadata |
 | `gitd/skills/instagram/` | Instagram skeleton (skill.yaml only) |

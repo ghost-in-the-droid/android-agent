@@ -123,6 +123,10 @@ def extract_interactive_elements(xml_str: str) -> list[dict]:
                 "clickable": clickable,
                 "scrollable": scrollable,
                 "editable": editable,
+                **{
+                    key: node.get(key, "true" if key == "enabled" else "false") == "true"
+                    for key in ("enabled", "checkable", "checked", "focusable", "focused", "selected")
+                },
             }
         )
 

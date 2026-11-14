@@ -69,6 +69,27 @@ def test_normalize_wda_xml_scales_bounds_and_marks_interactive():
     assert 'scrollable="true"' in xml
 
 
+def test_ios_find_bounds_matches_label_with_html_entities():
+    raw = (
+        '<?xml version="1.0" encoding="UTF-8"?><AppiumAUT>'
+        '<XCUIElementTypeApplication type="XCUIElementTypeApplication" name="Settings" '
+        'enabled="true" visible="true" x="0" y="0" width="390" height="844">'
+        '<XCUIElementTypeCell type="XCUIElementTypeCell" name="Battery &amp; Health" '
+        'label="Battery &amp; Health" enabled="true" visible="true" x="0" y="100" width="390" height="44"/>'
+        '<XCUIElementTypeButton type="XCUIElementTypeButton" name="Don\'t Allow" '
+        'label="Don\'t Allow" enabled="true" visible="true" x="10" y="200" width="100" height="30"/>'
+        "</XCUIElementTypeApplication></AppiumAUT>"
+    )
+    xml = normalize_wda_xml(raw, scale_x=1.0, scale_y=1.0)
+    assert "&amp;" in xml  # ElementTree escapes the label in the normalized tree
+    dev = IOSDevice("ios:abc123")
+
+    assert dev.find_bounds(xml, text="Battery & Health") == "[0,100][390,144]"
+    assert dev.find_bounds(xml, content_desc="Don't Allow") == "[10,200][110,230]"
+    assert dev.find_bounds(xml, text="Battery &amp; Health") is None  # needle is plain text
+    assert dev.find_bounds(xml, text="Battery") is None  # still an exact match
+
+
 def test_ios_xml_to_elements_matches_android_element_shape():
     xml = normalize_wda_xml(RAW_WDA_XML, scale_x=2.0, scale_y=2.0)
     elements = ios_xml_to_elements(xml)
@@ -174,7 +195,7 @@ def test_parse_xctrace_devices_discovers_connected_ios_and_booted_simulators():
 == Devices ==
 Blah's MacBook Pro (15.5) (00006000-0000000000000000)
 Blah's iPhone (18.5) (00008110-0012345678901234)
-QA Phone (26.5) (00008110-0016443101D0401E)
+QA Phone (26.5) (00008110-00000000000000A1)
 iPad QA (17.5) (00008101-0098765432109876)
 == Simulators ==
 iPhone 16 Pro (18.5) (11111111-2222-3333-4444-555555555555) (Booted)
@@ -191,7 +212,7 @@ iPad mini (18.5) (99999999-8888-7777-6666-555555555555) (Booted)
             "state": "connected",
         },
         {
-            "udid": "00008110-0016443101D0401E",
+            "udid": "00008110-00000000000000A1",
             "name": "QA Phone",
             "platform_version": "26.5",
             "source": "host",
@@ -222,7 +243,7 @@ iPad mini (18.5) (99999999-8888-7777-6666-555555555555) (Booted)
 
     assert [item["udid"] for item in _parse_xctrace_devices(output, include_simulators=False)] == [
         "00008110-0012345678901234",
-        "00008110-0016443101D0401E",
+        "00008110-00000000000000A1",
         "00008101-0098765432109876",
     ]
 
@@ -230,7 +251,7 @@ iPad mini (18.5) (99999999-8888-7777-6666-555555555555) (Booted)
 def test_discover_host_ios_devices_adds_booted_simctl_simulators(monkeypatch):
     xctrace_output = """
 == Devices ==
-QA Phone (26.5) (00008110-0016443101D0401E)
+QA Phone (26.5) (00008110-00000000000000A1)
 == Simulators ==
 iPhone 15 Pro Simulator (17.5) (32918B6B-71E5-4A14-94C6-97F0B8B2DC44)
 """
@@ -260,7 +281,7 @@ iPhone 15 Pro Simulator (17.5) (32918B6B-71E5-4A14-94C6-97F0B8B2DC44)
 
     assert discover_host_ios_devices() == [
         {
-            "udid": "00008110-0016443101D0401E",
+            "udid": "00008110-00000000000000A1",
             "name": "QA Phone",
             "platform_version": "26.5",
             "source": "host",
@@ -277,7 +298,7 @@ iPhone 15 Pro Simulator (17.5) (32918B6B-71E5-4A14-94C6-97F0B8B2DC44)
 
     assert discover_host_ios_devices(include_simulators=False) == [
         {
-            "udid": "00008110-0016443101D0401E",
+            "udid": "00008110-00000000000000A1",
             "name": "QA Phone",
             "platform_version": "26.5",
             "source": "host",
@@ -290,11 +311,11 @@ def test_parse_xctrace_devices_ignores_offline_devices():
     output = """
 == Devices ==
 Blah's MacBook Pro (15.5) (00006000-0000000000000000)
-test_owner (26.5) (00008110-0016443101D0401E)
+test_owner (26.5) (00008110-00000000000000A1)
 
 == Devices Offline ==
-iPhone von Tobias (18.5) (00008030-000134EA11C3402E)
-mad_pad (18.6.2) (00008112-000429D2362A201E)
+Demo iPhone (18.5) (00008030-00000000000000B2)
+demo_pad (18.6.2) (00008112-00000000000000C3)
 
 == Simulators ==
 iPhone 16 Pro (18.5) (11111111-2222-3333-4444-555555555555) (Booted)
@@ -302,7 +323,7 @@ iPhone 16 Pro (18.5) (11111111-2222-3333-4444-555555555555) (Booted)
 
     assert _parse_xctrace_devices(output) == [
         {
-            "udid": "00008110-0016443101D0401E",
+            "udid": "00008110-00000000000000A1",
             "name": "test_owner",
             "platform_version": "26.5",
             "source": "host",
@@ -321,7 +342,7 @@ iPhone 16 Pro (18.5) (11111111-2222-3333-4444-555555555555) (Booted)
 def test_parse_devicectl_details_extracts_remote_xpc_tunnel_fields():
     output = """
 Current device information:
-• identifier: 12E9E87A-11C8-5607-B09B-B58265CE5D4E
+• identifier: 00000000-0000-4000-8000-0000000000D4
 ▿ deviceProperties:
     • bootState: booted
     • developerModeStatus: enabled
@@ -336,7 +357,7 @@ Current device information:
 """
 
     assert _parse_devicectl_details(output) == {
-        "identifier": "12E9E87A-11C8-5607-B09B-B58265CE5D4E",
+        "identifier": "00000000-0000-4000-8000-0000000000D4",
         "boot_state": "booted",
         "developer_mode": "enabled",
         "name": "test_owner",
@@ -355,11 +376,11 @@ def test_remote_xpc_tunnel_status_tolerates_independent_tunnel_addresses(monkeyp
 
     def fake_request(method, url, timeout=None, **kwargs):
         assert method == "GET"
-        assert "42314/remotexpc/tunnels/00008110-0016443101D0401E" in url
+        assert "42314/remotexpc/tunnels/00008110-00000000000000A1" in url
         return FakeResponse(
             {
                 "status": "OK",
-                "udid": "00008110-0016443101D0401E",
+                "udid": "00008110-00000000000000A1",
                 "address": "fd5d:d8f1:7a61::1",
                 "rsdPort": 63925,
             }
@@ -372,7 +393,7 @@ def test_remote_xpc_tunnel_status_tolerates_independent_tunnel_addresses(monkeyp
     )
 
     status = remote_xpc_tunnel_status(
-        "00008110-0016443101D0401E",
+        "00008110-00000000000000A1",
         platform_version="26.5",
         host={"source": "host", "platform_version": "26.5"},
     )
@@ -399,7 +420,7 @@ def test_remote_xpc_tunnel_status_reports_missing_registry_entry(monkeypatch):
     monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
 
     status = remote_xpc_tunnel_status(
-        "00008110-0016443101D0401E",
+        "00008110-00000000000000A1",
         platform_version="26.5",
         host={"source": "host", "platform_version": "26.5"},
     )
@@ -421,7 +442,7 @@ def test_remote_xpc_tunnel_status_uses_configured_registry_ports(monkeypatch):
         return FakeResponse(
             {
                 "status": "OK",
-                "udid": "00008110-0016443101D0401E",
+                "udid": "00008110-00000000000000A1",
                 "address": "fdc0:1f0c:103c::1",
             }
         )
@@ -433,7 +454,7 @@ def test_remote_xpc_tunnel_status_uses_configured_registry_ports(monkeypatch):
     )
 
     status = remote_xpc_tunnel_status(
-        "00008110-0016443101D0401E",
+        "00008110-00000000000000A1",
         platform_version="26.5",
         host={"source": "host", "platform_version": "26.5"},
     )
@@ -453,7 +474,7 @@ def test_remote_xpc_tunnel_status_rejects_disconnected_devicectl_tunnel(monkeypa
         return FakeResponse(
             {
                 "status": "OK",
-                "udid": "00008110-0016443101D0401E",
+                "udid": "00008110-00000000000000A1",
                 "address": "fdc0:1f0c:103c::1",
             }
         )
@@ -465,7 +486,7 @@ def test_remote_xpc_tunnel_status_rejects_disconnected_devicectl_tunnel(monkeypa
     )
 
     status = remote_xpc_tunnel_status(
-        "00008110-0016443101D0401E",
+        "00008110-00000000000000A1",
         platform_version="26.5",
         host={"source": "host", "platform_version": "26.5"},
     )
@@ -488,7 +509,7 @@ def test_remote_xpc_tunnel_status_requires_devicectl_tunnel_address(monkeypatch)
         return FakeResponse(
             {
                 "status": "OK",
-                "udid": "00008110-0016443101D0401E",
+                "udid": "00008110-00000000000000A1",
                 "address": "fdc0:1f0c:103c::1",
             }
         )
@@ -500,7 +521,7 @@ def test_remote_xpc_tunnel_status_requires_devicectl_tunnel_address(monkeypatch)
     )
 
     status = remote_xpc_tunnel_status(
-        "00008110-0016443101D0401E",
+        "00008110-00000000000000A1",
         platform_version="26.5",
         host={"source": "host", "platform_version": "26.5"},
     )
@@ -658,7 +679,7 @@ def test_ios_config_infers_host_name_and_platform_version(monkeypatch):
         "gitd.bots.common.ios.discover_host_ios_devices",
         lambda include_simulators=True: [
             {
-                "udid": "00008110-0016443101D0401E",
+                "udid": "00008110-00000000000000A1",
                 "name": "test_owner",
                 "platform_version": "26.5",
                 "source": "host",
@@ -667,7 +688,7 @@ def test_ios_config_infers_host_name_and_platform_version(monkeypatch):
         ],
     )
 
-    cfg = ios_config_for_udid("ios:00008110-0016443101D0401E")
+    cfg = ios_config_for_udid("ios:00008110-00000000000000A1")
 
     assert cfg.device_name == "test_owner"
     assert cfg.platform_version == "26.5"
@@ -982,7 +1003,7 @@ def test_session_creation_uses_host_discovered_platform_version(monkeypatch):
         "gitd.bots.common.ios.discover_host_ios_devices",
         lambda include_simulators=True: [
             {
-                "udid": "00008110-0016443101D0401E",
+                "udid": "00008110-00000000000000A1",
                 "name": "test_owner",
                 "platform_version": "26.5",
                 "source": "host",
@@ -995,7 +1016,7 @@ def test_session_creation_uses_host_discovered_platform_version(monkeypatch):
     monkeypatch.delenv("IOS_DEVICES_JSON", raising=False)
     monkeypatch.delenv("IOS_CONFIG_FILE", raising=False)
     dev = IOSDevice(
-        "ios:00008110-0016443101D0401E",
+        "ios:00008110-00000000000000A1",
         appium_url="http://appium.local",
         bundle_id="com.google.chrome.ios",
         timeout=1,
@@ -1031,7 +1052,7 @@ def test_probe_reports_configured_unreachable_when_local_udid_not_visible(monkey
     monkeypatch.setattr("gitd.bots.common.ios.requests.request", fake_request)
     monkeypatch.setattr("gitd.bots.common.ios.discover_host_ios_devices", lambda include_simulators=True: [])
 
-    status = IOSDevice("ios:00008110-0016443101D0401E", timeout=1).probe(deep=False)
+    status = IOSDevice("ios:00008110-00000000000000A1", timeout=1).probe(deep=False)
 
     assert status.state == "configured_unreachable"
     assert "not visible" in status.message
@@ -1058,7 +1079,7 @@ def test_probe_allows_remote_appium_when_udid_not_visible_locally(monkeypatch):
     )
 
     status = IOSDevice(
-        "ios:00008110-0016443101D0401E",
+        "ios:00008110-00000000000000A1",
         appium_url="http://appium.example.test:4723",
         timeout=1,
     ).probe(deep=False)
@@ -1077,11 +1098,11 @@ def test_probe_fails_fast_when_required_remote_xpc_tunnel_is_stale(monkeypatch):
         calls.append(url)
         if url.endswith("/status"):
             return FakeResponse({"value": {"ready": True}})
-        if "42314/remotexpc/tunnels/00008110-0016443101D0401E" in url:
+        if "42314/remotexpc/tunnels/00008110-00000000000000A1" in url:
             return FakeResponse(
                 {
                     "status": "OK",
-                    "udid": "00008110-0016443101D0401E",
+                    "udid": "00008110-00000000000000A1",
                     "address": "fd5d:d8f1:7a61::1",
                 }
             )
@@ -1092,7 +1113,7 @@ def test_probe_fails_fast_when_required_remote_xpc_tunnel_is_stale(monkeypatch):
         "gitd.bots.common.ios.discover_host_ios_devices",
         lambda include_simulators=True: [
             {
-                "udid": "00008110-0016443101D0401E",
+                "udid": "00008110-00000000000000A1",
                 "name": "test_owner",
                 "platform_version": "26.5",
                 "source": "host",
@@ -1108,7 +1129,7 @@ def test_probe_fails_fast_when_required_remote_xpc_tunnel_is_stale(monkeypatch):
     )
     monkeypatch.delenv("IOS_DEVICE_NAME", raising=False)
     monkeypatch.delenv("IOS_PLATFORM_VERSION", raising=False)
-    dev = IOSDevice("ios:00008110-0016443101D0401E", appium_url="http://appium.local", timeout=1)
+    dev = IOSDevice("ios:00008110-00000000000000A1", appium_url="http://appium.local", timeout=1)
 
     status = dev.probe(deep=True)
 

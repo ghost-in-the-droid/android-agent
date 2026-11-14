@@ -26,7 +26,14 @@ import pytest
 # (tests/test_ios_feature_gate.py) that monkeypatch the gate closed.
 os.environ.setdefault("GITD_ENABLE_IOS", "1")
 
-if "DB_PATH" not in os.environ:
+# Under pytest-xdist the controller imports this conftest first and its
+# os.environ (DB_PATH included) is inherited by every worker, so an
+# "only if unset" guard leaves N workers unlinking and create_all()-ing one
+# file ("table crawl_runs already exists" / locked DB). A worker re-keys the
+# path only when the controller auto-assigned it (never a user-set DB_PATH).
+_xdist_worker = os.environ.get("PYTEST_XDIST_WORKER", "")
+_auto_db = os.environ.get("GITD_PYTEST_DB_AUTO") == "1"
+if "DB_PATH" not in os.environ or (_auto_db and _xdist_worker):
     # Per-worktree DB path. A fixed /tmp/gitd_pytest.db is shared by every
     # checkout, so pytest running concurrently in two per-agent worktrees would
     # race on the same file (one session's clean-slate unlink + create clobbers
@@ -34,11 +41,12 @@ if "DB_PATH" not in os.environ:
     # to this worktree's root makes each checkout use its own DB; re-runs in the
     # same worktree still reuse one stable, debuggable path.
     _wt_key = hashlib.md5(str(Path(__file__).resolve().parent.parent).encode()).hexdigest()[:8]
-    _TEST_DB = Path(tempfile.gettempdir()) / f"gitd_pytest_{_wt_key}.db"
+    _TEST_DB = Path(tempfile.gettempdir()) / f"gitd_pytest_{_wt_key}{'_' + _xdist_worker if _xdist_worker else ''}.db"
     # Start each test session from a clean slate (drop WAL/SHM sidecars too).
     for _suffix in ("", "-wal", "-shm"):
         Path(str(_TEST_DB) + _suffix).unlink(missing_ok=True)
     os.environ["DB_PATH"] = str(_TEST_DB)
+    os.environ["GITD_PYTEST_DB_AUTO"] = "1"
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -90,3 +98,13 @@ def client():
 
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture(scope="session")
+def ssh_keygen():
+    """Real signing integration tests require the optional OpenSSH executable."""
+    import shutil
+    executable = shutil.which("ssh-keygen")
+    if executable is None:
+        pytest.skip("ssh-keygen is unavailable; real SSH signing integration requires OpenSSH")
+    return executable

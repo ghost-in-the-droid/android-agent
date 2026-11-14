@@ -79,12 +79,22 @@ def ios_refs_from_host() -> list[str]:
     return refs
 
 
+def session_device_ref() -> str:
+    """Optional process-local device scope (discovery filter and strict ref check); GHOST_DEVICE wins."""
+    return os.environ.get("GHOST_DEVICE", "").strip() or os.environ.get("ANDROID_SERIAL", "").strip()
+
+
 def list_configured_ios_devices(*, deep_probe: bool = False) -> list[dict]:
+    selected = session_device_ref()
+    if selected and not is_ios_ref(selected):
+        return []
     if not ios_enabled():
         return []
     devices: list[dict] = []
     discovered = {item["udid"]: item for item in discover_host_ios_devices(include_simulators=True)}
     for ref in ios_refs_from_host():
+        if selected and ref != selected:
+            continue
         udid = ref.removeprefix(IOS_PREFIX)
         cfg = ios_config_for_udid(ref)
         host = discovered.get(udid, {})
@@ -123,10 +133,78 @@ def list_configured_ios_devices(*, deep_probe: bool = False) -> list[dict]:
 
 
 def list_connected_device_refs() -> list[str]:
+    selected = session_device_ref()
     devices: list[str] = []
-    try:
-        devices.extend(list_connected())
-    except Exception:
-        pass
-    devices.extend(ios_refs_from_host())
-    return devices
+    if not selected or not is_ios_ref(selected):
+        try:
+            devices.extend(list_connected())
+        except Exception:
+            pass
+    if not selected or is_ios_ref(selected):
+        devices.extend(ios_refs_from_host())
+    return [ref for ref in devices if ref == selected] if selected else devices
+
+
+class DeviceRefError(ValueError):
+    """A device argument that is not a usable ref in this session's scope."""
+
+
+_WRAPPERS = " \t\r\n\"'`"
+
+
+def _clean_device_ref(raw: str) -> str:
+    """Strip quotes/backticks/whitespace and any display suffix (" (model)", "  model=...")."""
+    text = raw.strip(_WRAPPERS)
+    parts = text.split(None, 1)
+    return parts[0].strip(_WRAPPERS) if parts else ""
+
+
+def _refused(raw: str, valid: list[str], why: str) -> DeviceRefError:
+    ids = ", ".join(valid) if valid else "none (no devices connected)"
+    hint = f' Pass only the id, e.g. device="{valid[0]}".' if valid else ""
+    return DeviceRefError(f"device {raw!r} {why}. Valid device id(s): {ids}.{hint}")
+
+
+def resolve_device_ref(raw):
+    """Single normalizer for every device-taking entry point (MCP tools, agent tools, run_skill).
+
+    With a session scope (GHOST_DEVICE/ANDROID_SERIAL) every non-empty ref, verbatim or
+    recovered from a pasted display line, quotes or backticks, must be that scope or it is
+    refused naming the valid id. Unscoped, a verbatim id passes untouched and a rewritten
+    value must be a connected ref. "" means the caller's own default.
+    """
+    if not isinstance(raw, str):
+        return raw
+    candidate = _clean_device_ref(raw)
+    if not candidate:
+        return candidate
+    scope = session_device_ref()
+    if not scope and candidate == raw:
+        return candidate
+    valid = [scope] if scope else list_connected_device_refs()
+    if candidate in valid:
+        return candidate
+    why = "is outside this session's device scope (GHOST_DEVICE)" if scope else "is not a connected device id"
+    raise _refused(raw, valid, why)
+
+
+def normalize_device_param(fn, *, param: str = "device", on_error=lambda exc, arguments: f"Error: {exc}"):
+    """Decorator: resolve ``param`` through resolve_device_ref; keeps fn's signature for schemas."""
+    import inspect
+    from functools import wraps
+
+    signature = inspect.signature(fn)
+    if param not in signature.parameters:
+        return fn
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        bound = signature.bind_partial(*args, **kwargs)
+        if param in bound.arguments:
+            try:
+                bound.arguments[param] = resolve_device_ref(bound.arguments[param])
+            except DeviceRefError as exc:
+                return on_error(exc, bound.arguments)
+        return fn(*bound.args, **bound.kwargs)
+
+    return wrapper
