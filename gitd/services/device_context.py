@@ -70,21 +70,30 @@ _APP_STATE_NAMES = {
 }
 
 
+_PKG_ACTIVITY = r"([A-Za-z][\w.]*)/[\w.$]+"
+# Focus markers by source; newer Android (14+) drops mResumedActivity and may omit mCurrentFocus from `window windows`.
+_FOCUS_SOURCES = (
+    (("shell", "dumpsys", "window", "windows"), ("mCurrentFocus", "mFocusedApp")),
+    (("shell", "dumpsys", "window"), ("mCurrentFocus", "mFocusedApp")),
+    (
+        ("shell", "dumpsys", "activity", "activities"),
+        ("topResumedActivity", "mResumedActivity", "ResumedActivity", "mFocusedApp"),
+    ),
+)
+
+
 def _android_current_package(dev: Device) -> str:
-    try:
-        out = dev.adb("shell", "dumpsys", "window", "windows", timeout=5)
-        m = re.search(r"mCurrentFocus.*?(\S+)/\S+", out)
-        if m:
-            return m.group(1)
-    except Exception:
-        pass
-    try:
-        out = dev.adb("shell", "dumpsys", "activity", "activities", timeout=5)
-        m = re.search(r"mResumedActivity.*?\s([A-Za-z0-9_.]+)/\S+", out)
-        if m:
-            return m.group(1)
-    except Exception:
-        pass
+    for args, markers in _FOCUS_SOURCES:
+        try:
+            out = dev.adb(*args, timeout=5) or ""
+        except Exception:
+            continue
+        for marker in markers:
+            for line in out.splitlines():
+                if marker in line and "null" not in line.split(marker, 1)[1][:8]:
+                    m = re.search(_PKG_ACTIVITY, line.split(marker, 1)[1])
+                    if m:
+                        return m.group(1)
     return ""
 
 
@@ -261,7 +270,9 @@ def screenshot(device: str, half_res: bool = True, quality: int = 50) -> dict:
     raw = _raw_screenshot_bytes(device)
     img = Image.open(io.BytesIO(raw)).convert("RGB")
     if half_res:
-        img = img.resize((img.width // 2, img.height // 2), Image.NEAREST)
+        # LANCZOS, not NEAREST: same JPEG payload size, but NEAREST aliases small
+        # UI text below OCR/vision legibility (measured: 18/20 vs 20/20 words).
+        img = img.resize((img.width // 2, img.height // 2), Image.LANCZOS)
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=quality)
     return _device_payload(
@@ -393,6 +404,7 @@ def get_interactive_elements(device: str, interactive_only: bool = True) -> list
         cls = cls_m.group(1).split(".")[-1] if cls_m else ""
         clickable = 'clickable="true"' in node
         scrollable = 'scrollable="true"' in node
+        state = dict(re.findall(r'\b(enabled|checkable|checked|focusable|focused|selected)="(true|false)"', node))
 
         if interactive_only and not clickable and not scrollable and not text and not desc:
             continue
@@ -414,6 +426,10 @@ def get_interactive_elements(device: str, interactive_only: bool = True) -> list
                 "center": {"x": cx, "y": cy},
                 "clickable": clickable,
                 "scrollable": scrollable,
+                **{
+                    key: state.get(key, "true" if key == "enabled" else "false") == "true"
+                    for key in ("enabled", "checkable", "checked", "focusable", "focused", "selected")
+                },
             }
         )
     return elements
@@ -459,7 +475,10 @@ def get_screen_tree(device: str, max_nodes: int = 80) -> str:
         # - Has visible text/description, OR
         # - Is interactive (clickable/scrollable)
         # Skip pure layout containers (FrameLayout, LinearLayout, View with no label)
-        is_useful = bool(label) or clickable or scrollable
+        has_state = node.get("enabled") == "false" or any(
+            node.get(key) == "true" for key in ("checked", "focused", "selected")
+        )
+        is_useful = bool(label) or clickable or scrollable or has_state
         if not is_useful:
             # Still walk children — useful nodes may be nested inside containers
             for child in node:
@@ -474,6 +493,9 @@ def get_screen_tree(device: str, max_nodes: int = 80) -> str:
             flags.append("clickable")
         if scrollable:
             flags.append("scrollable")
+        if node.get("enabled") == "false":
+            flags.append("disabled")
+        flags.extend(key for key in ("checked", "focused", "selected") if node.get(key) == "true")
         flag_str = f" [{','.join(flags)}]" if flags else ""
         label_str = f' "{label}"' if label else ""
         # Show resource-id only for unlabelled interactive elements (helps identify buttons)

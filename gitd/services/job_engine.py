@@ -354,9 +354,14 @@ def _skill_platform_preflight(phone: str | None, job_type: str, config: dict) ->
         from gitd.skills.platforms import skill_platform_error, skill_supports_device
 
         skill_name = config.get("skill", "tiktok")
+        from gitd.skills.locations import find_legacy_skill_dir, legacy_meta
+
         meta_path = _SCRIPT_DIR / "skills" / skill_name / "skill.yaml"
+        if not meta_path.exists():
+            hub_dir = find_legacy_skill_dir(skill_name)
+            meta_path = hub_dir / "skill.yaml" if hub_dir else meta_path
         meta = yaml.safe_load(meta_path.read_text()) if meta_path.exists() else {}
-        meta = meta or {}
+        meta = legacy_meta(meta or {})
         device = phone or _BOT_DEVICE
         if not skill_supports_device(meta, device):
             return skill_platform_error(skill_name, meta, device)["message"]

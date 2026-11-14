@@ -145,3 +145,61 @@ def test_tools_hub_exposes_app_state_and_paste_text():
     assert app_tools["app_state"]["platform_support"]["ios"] is True
     assert clipboard_tools["paste_text"]["platform_support"]["support"] == "cross_platform"
     assert clipboard_tools["paste_text"]["platform_support"]["ios"] is True
+
+
+def _fake_android(outputs, pid=""):
+    class FakeAndroidDevice:
+        def __init__(self, serial):
+            self.serial = serial
+
+        def adb(self, *args, timeout=30):
+            for prefix, out in outputs.items():
+                if args[: len(prefix)] == prefix and len(args) == len(prefix):
+                    return out
+            if args[:3] == ("shell", "pm", "path"):
+                return "package:/data/app/com.example.app/base.apk"
+            if args[:2] == ("shell", "pidof"):
+                return pid
+            return ""
+
+    return FakeAndroidDevice
+
+
+def test_android_app_state_falls_back_when_window_windows_lacks_focus(monkeypatch):
+    # Issue #40: focus only visible in `dumpsys activity activities` / `dumpsys window` on newer Android.
+    from gitd.services.device_context import app_state
+
+    outputs = {
+        ("shell", "dumpsys", "window", "windows"): "Window #0 Window{1 u0 NavigationBar0}",
+        ("shell", "dumpsys", "window"): "",
+        ("shell", "dumpsys", "activity", "activities"): "  topResumedActivity=ActivityRecord{9 u0 com.example.app/.MainActivity t12}",
+    }
+    monkeypatch.setattr("gitd.services.device_context.Device", _fake_android(outputs, pid="4242"))
+    result = app_state("emulator-5554", "com.example.app")
+    assert result["foreground"] is True
+    assert result["current_package"] == "com.example.app"
+    assert result["state"] == "running_foreground"
+
+
+def test_android_app_state_reads_focused_app_from_plain_dumpsys_window(monkeypatch):
+    from gitd.services.device_context import app_state
+
+    outputs = {
+        ("shell", "dumpsys", "window", "windows"): "",
+        ("shell", "dumpsys", "window"): "  mCurrentFocus=null\n  mFocusedApp=ActivityRecord{5 u0 com.example.app/com.example.app.MainActivity t3}",
+    }
+    monkeypatch.setattr("gitd.services.device_context.Device", _fake_android(outputs))
+    result = app_state("emulator-5554", "com.example.app")
+    assert result["foreground"] is True
+    assert result["current_package"] == "com.example.app"
+
+
+def test_android_app_state_background_when_other_app_focused(monkeypatch):
+    from gitd.services.device_context import app_state
+
+    outputs = {("shell", "dumpsys", "window", "windows"): "  mCurrentFocus=Window{a u0 com.other.app/.Main}"}
+    monkeypatch.setattr("gitd.services.device_context.Device", _fake_android(outputs, pid="77"))
+    result = app_state("emulator-5554", "com.example.app")
+    assert result["foreground"] is False
+    assert result["current_package"] == "com.other.app"
+    assert result["state"] == "running_background"

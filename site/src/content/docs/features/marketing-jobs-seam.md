@@ -103,7 +103,7 @@ Under the hood the endpoint wraps `_enqueue_job(...)` with `job_type="post"`, `p
 curl -X POST http://localhost:5055/api/marketing-jobs/enqueue \
   -H "Content-Type: application/json" \
   -d '{
-    "video_path": "/home/me/renders/clip_042.mp4",
+    "video_path": "~/renders/clip_042.mp4",
     "phone_serial": "YOUR_DEVICE_SERIAL",
     "caption": "Ghosts in the machine 👻",
     "hashtags": "#android #automation",

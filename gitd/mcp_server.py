@@ -6,8 +6,10 @@ Usage:
   HTTP:   python3 -m gitd.mcp_server  (port 8002)
 """
 
+import asyncio
 import importlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -23,6 +25,7 @@ from gitd.bots.common.device import (
     is_ios_ref,
     list_configured_ios_devices,
     list_connected_device_refs,
+    normalize_device_param,
 )
 from gitd.services.agent_tools import SAFE_DEVICE_TOOLS
 from gitd.services.tool_platforms import platform_error_text, supports_platform
@@ -32,7 +35,18 @@ from gitd.skills.platforms import (
     skill_supports_device,
 )
 
-mcp = FastMCP(
+
+class SessionMCP(FastMCP):
+    """Normalize the device argument, then apply the session package policy, on every MCP handler."""
+
+    def tool(self, *args, **kwargs):
+        from gitd.bots.common.package_policy import guard_mcp_function
+
+        register = super().tool(*args, **kwargs)
+        return lambda fn: register(normalize_device_param(guard_mcp_function(fn)))
+
+
+mcp = SessionMCP(
     "android-agent",
     stateless_http=True,
     json_response=True,
@@ -57,10 +71,15 @@ def _platform_unsupported(tool_name: str, device: str) -> str:
 def _load_skill_metadata(skill: str) -> dict:
     import yaml
 
+    from gitd.skills.locations import find_legacy_skill_dir, legacy_meta
+
     meta_path = Path(__file__).parent / "skills" / skill / "skill.yaml"
     if not meta_path.exists():
-        return {}
-    return yaml.safe_load(meta_path.read_text()) or {}
+        hub_dir = find_legacy_skill_dir(skill, Path(__file__).parent / "skills")
+        if hub_dir is None:
+            return {}
+        meta_path = hub_dir / "skill.yaml"
+    return legacy_meta(yaml.safe_load(meta_path.read_text()) or {})
 
 
 def _ios_device_details_by_serial() -> dict[str, dict]:
@@ -70,12 +89,15 @@ def _ios_device_details_by_serial() -> dict[str, dict]:
         return {}
 
 
+DEVICE_LIST_HEADER = "Pass only the id (first column) as the `device` argument."
+
+
 def _format_ios_device(serial: str, details: dict | None) -> str:
     if not details:
-        return f"{serial} (iOS via Appium/WDA)"
+        return f"{serial}  model=iOS device  platform=iOS  via=Appium/WDA"
 
     label = details.get("model") or details.get("device_name") or "iOS device"
-    parts = [label, "iOS"]
+    parts = [f"model={label}", "platform=iOS"]
 
     status = details.get("status")
     if status:
@@ -96,7 +118,7 @@ def _format_ios_device(serial: str, details: dict | None) -> str:
     if message:
         parts.append(f"hint={message}")
 
-    return f"{serial} ({'; '.join(parts)})"
+    return f"{serial}  {'  '.join(parts)}"
 
 
 # ── Tier 1: Device Control ────────────────────────────────────────────────
@@ -105,7 +127,8 @@ def _format_ios_device(serial: str, details: dict | None) -> str:
 @mcp.tool()
 def list_devices() -> str:
     """List connected Android ADB devices and configured iOS Appium devices.
-    Call this first to get the device serial you need for other tools."""
+    Call this first. Each line starts with the device id; pass ONLY that id as `device`.
+    GHOST_DEVICE (or ANDROID_SERIAL) limits discovery to that connected ref."""
     devices = list_connected_device_refs()
     if not devices:
         return (
@@ -113,7 +136,7 @@ def list_devices() -> str:
             "or set IOS_DEVICE_UDID for iOS."
         )
     ios_details = _ios_device_details_by_serial()
-    result = []
+    result = [DEVICE_LIST_HEADER]
     for serial in devices:
         if is_ios_ref(serial):
             result.append(_format_ios_device(serial, ios_details.get(serial)))
@@ -123,7 +146,7 @@ def list_devices() -> str:
                 model = Device(serial).adb("shell", "getprop", "ro.product.model", timeout=3).strip()
             except Exception:
                 model = "unknown"
-        result.append(f"{serial} ({model})")
+        result.append(f"{serial}  model={model}")
     return "\n".join(result)
 
 
@@ -729,12 +752,13 @@ def list_skills(device: str = "", supported_only: bool = False) -> str:
     Prefer using run_workflow() over raw tap/swipe when a skill exists for the task."""
     import yaml
 
-    skills_dir = Path(__file__).parent / "skills"
+    from gitd.skills.locations import iter_legacy_skill_dirs, legacy_meta
+
     result = []
-    for d in sorted(skills_dir.iterdir()):
+    for d in iter_legacy_skill_dirs(Path(__file__).parent / "skills"):
         meta_path = d / "skill.yaml"
         if d.is_dir() and meta_path.exists() and not d.name.startswith("__"):
-            meta = yaml.safe_load(meta_path.read_text()) or {}
+            meta = legacy_meta(yaml.safe_load(meta_path.read_text()) or {})
             platform_summary = skill_platform_summary(meta)
             supported = skill_supports_device(meta, device) if device else None
             if supported_only and supported is False:
@@ -775,6 +799,30 @@ def list_skills(device: str = "", supported_only: bool = False) -> str:
                     info["workflows"] = meta.get("exports", {}).get("workflows", [])
             result.append(info)
     return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def find_skill(intent: str, top: int = 5) -> str:
+    """Find the installed skill action that matches a natural-language intent.
+
+    Ranks every action of every installed skill (BM25 over name, description, reference prompts and
+    app package) and returns JSON: skill, action, score, prompt, params. Call this before tapping
+    through an app by hand; on a hit, call run_skill(name=skill, action=action, params=..., device=...)."""
+    from gitd.skills.engine.find import find_installed
+
+    hits = find_installed(intent, top)
+    served = {t.name for t in mcp._tool_manager.list_tools()}
+    for hit in hits:
+        if "run_skill" in served:
+            hit["run_with"] = "run_skill"
+        if "get_skill_notes" in served:
+            hit["notes_with"] = "get_skill_notes"
+    return json.dumps(
+        hits
+        if hits
+        else {"hits": [], "hint": "No installed skill matches; use list_skills() or drive the app directly."},
+        indent=2,
+    )
 
 
 @mcp.tool()
@@ -833,7 +881,11 @@ def run_action(device: str, skill: str, action: str, params: str = "{}") -> str:
 
     Examples:
       run_action("SERIAL", "tiktok", "open_app", '{}')
-      run_action("SERIAL", "tiktok", "type_and_search", '{"query": "cats"}')"""
+      run_action("SERIAL", "tiktok", "type_and_search", '{"query": "cats"}')
+
+    Hub skills (``author/slug``, as find_skill returns them) run through run_skill."""
+    if "/" in skill:
+        return run_skill(skill, action, params, device)
     meta = _load_skill_metadata(skill)
     if not skill_supports_device(meta, device):
         return skill_platform_error_text(skill, meta, device)
@@ -1265,71 +1317,168 @@ def save_skill(
         return f"ERROR: {e}"
 
 
-# ── Lead / influencer lookups (for marketing agents) ────────────────────────
+def hide_tools(names: str) -> list[str]:
+    """Drop the comma-listed tools before serving; returns what was removed. Benchmarks use it to compare
+    an agent with and without the skill tools while the rest of the surface stays identical."""
+    removed = []
+    for name in filter(None, (n.strip() for n in names.split(","))):
+        try:
+            mcp.remove_tool(name)
+            removed.append(name)
+        except Exception:  # noqa: BLE001 (unknown names are not an error for a hide list)
+            pass
+    return removed
 
 
-@mcp.tool()
-def lookup_lead(handle: str) -> str:
-    """Get the full fact sheet for one influencer lead by handle.
-
-    Use this when you need to know everything about an influencer to draft
-    a personalised reply or decide next-step outreach: their follower count,
-    engagement, bio, niche, what hashtag we found them on, when we DMed them,
-    which account sent the DM, their latest reply, and unread state.
-
-    Args:
-        handle: TikTok username, with or without @ (e.g. 'creatorhandle' or '@creatorhandle')
-    """
-    from gitd.services.marketing_lookup import lookup_lead as _lookup_lead
-
-    return _lookup_lead(handle)
-
-
-@mcp.tool()
-def list_unread_leads() -> str:
-    """List every influencer with an unread reply in the inbox, sorted by recency.
-
-    Returns one row per unread conversation with the handle, unread count,
-    last message preview, and timestamp. Useful for daily prioritisation:
-    'which leads should I respond to right now?'
-    """
-    from gitd.services.marketing_lookup import list_unread_leads as _list_unread_leads
-
-    return _list_unread_leads()
-
-
-# ── Local CRM lookups ────────────────────────────────────────────────────────
-
-
-@mcp.tool()
-def crm_lookup_contact(handle: str) -> str:
-    """Get the stored fact sheet for one local CRM contact by handle. Read-only.
-
-    Returns the contact's profile fields, contact status/history, and the
-    latest conversation state (last message, unread count, timestamps).
-
-    Args:
-        handle: Contact handle, with or without @.
-    """
-    from gitd.services.crm_lookup import crm_lookup_contact as _lookup
-
-    return _lookup(handle)
+# Named presets over hide_tools: GHOST_MCP_PROFILE=skills-first serves the skill tools plus a minimal hand-drive fallback.
+PROFILE_KEEP = {
+    "skills-first": {
+        "find_skill",
+        "list_skills",
+        "run_skill",
+        "run_skill_resume",
+        "create_skill",
+        "explore_app",
+        "list_devices",
+        "screenshot",
+        "get_elements",
+        "tap",
+        "type_text",
+        "swipe",
+        "press_back",
+        "press_home",
+        "launch_app",
+        "wait",
+        "get_skill_notes",
+    },
+}
+# soft-only: the hard replay is withheld so the agent drives by hand from the SOFT.md notes.
+PROFILE_KEEP["hand-only"] = {
+    "list_devices",
+    "screenshot",
+    "get_elements",
+    "tap",
+    "type_text",
+    "swipe",
+    "press_back",
+    "press_home",
+    "launch_app",
+    "wait",
+}
+PROFILE_KEEP["soft-only"] = PROFILE_KEEP["skills-first"] - {"run_skill", "run_skill_resume"}
 
 
-@mcp.tool()
-def crm_list_unread_messages() -> str:
-    """List local CRM contacts with unread messages, sorted by recency. Read-only.
+def profile_hidden(profile: str) -> str:
+    """Comma-list of every registered tool outside the profile's keep set; '' for an empty or unknown profile."""
+    keep = PROFILE_KEEP.get(profile.strip())
+    if not keep:
+        return ""
+    return ",".join(t.name for t in asyncio.run(mcp.list_tools()) if t.name not in keep)
 
-    Returns one row per unread conversation with the handle, unread count,
-    last message preview, and timestamp.
-    """
-    from gitd.services.crm_lookup import crm_list_unread_messages as _list_unread
 
-    return _list_unread()
+SKILL_FIRST_INSTRUCTIONS = (
+    "Before driving an app by hand, call find_skill with the task in plain words. "
+    "On a hit, run it with run_skill(name=skill, action=action, params=..., device=...), "
+    "then check the screen; drive the app directly only if no skill matches or the skill fails "
+    "(get_skill_notes(skill) returns its SOFT.md layout notes for that)."
+)
+
+
+NOTES_FIRST_INSTRUCTIONS = (
+    "Before driving an app by hand, call find_skill with the task in plain words. "
+    "On a hit, call get_skill_notes(skill) and follow its layout notes while you tap and type."
+)
 
 
 def main():
+    hidden = ",".join(
+        filter(
+            None, [os.environ.get("GHOST_MCP_HIDE_TOOLS", ""), profile_hidden(os.environ.get("GHOST_MCP_PROFILE", ""))]
+        )
+    )
+    removed = hide_tools(hidden)
+    # The skill-first hint only makes sense while the skill tools are served.
+    if "find_skill" not in removed:
+        mcp._mcp_server.instructions = (
+            SKILL_FIRST_INSTRUCTIONS if "run_skill" not in removed else NOTES_FIRST_INSTRUCTIONS
+        )
     mcp.run()
+
+
+def _json_object(value, field: str) -> dict:
+    """Accept a JSON object or its JSON text (agents send either); empty means {}."""
+    if isinstance(value, dict):
+        return value
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return {}
+    parsed = json.loads(value) if isinstance(value, str) else value
+    if not isinstance(parsed, dict):
+        raise ValueError(f"{field} must be a JSON object, got {type(parsed).__name__}")
+    return parsed
+
+
+@mcp.tool()
+def run_skill(
+    name: str, action: str, params: str | dict = "{}", device: str = "", state_params: str | dict = "{}"
+) -> str:
+    """Run a v2 skill; needs_input returns a token for run_skill_resume.
+
+    Auto-login runner: beta. state_params maps provider action names to runtime
+    params. needs_state identifies a missing state without guessing credentials.
+
+    The result carries a `fingerprint` report (distance 0..5 between the device and the
+    fingerprint the skill was authored for). Distance 3+ refuses to run and returns the
+    report instead; set GHOST_STRICT_FINGERPRINT=1 to refuse at any distance."""
+    import os
+
+    from gitd.skills.engine import load_skill
+    from gitd.skills.engine import run_action as engine_run
+    from gitd.skills.engine.fingerprint import check as check_fingerprint
+    from gitd.skills.locations import find_legacy_skill_dir
+
+    # find_skill also returns flat skills by bare name (source "flat"); resolve those to their dir.
+    flat = find_legacy_skill_dir(name) if not Path(name).exists() else None
+    skill = load_skill(flat or name)
+    report = None
+    if device:
+        try:
+            report = check_fingerprint(skill, device, strict=os.environ.get("GHOST_STRICT_FINGERPRINT") == "1")
+        except ValueError as exc:
+            return json.dumps(
+                {
+                    "success": False,
+                    "status": "refused",
+                    "skill": skill.name,
+                    "action": action,
+                    "error": {"kind": "fingerprint_mismatch", "message": str(exc)},
+                }
+            )
+    providers = _json_object(state_params, "state_params")
+    result = engine_run(
+        skill, action, _json_object(params, "params"), device, **({"state_params": providers} if providers else {})
+    )
+    if report is not None:
+        result.fingerprint = report.as_dict()
+    return json.dumps(result.as_dict())
+
+
+@mcp.tool()
+def get_skill_notes(name: str) -> str:
+    """Return the SOFT.md reference notes of a skill (app layout, ids, first-launch dialogs, failure modes).
+
+    Use them to drive the app by hand when the hard replay (run_skill) is unavailable, fails, or the task is
+    off-script. name is the `skill` value from find_skill (author/slug or flat dir name)."""
+    from gitd.skills.engine.find import skill_notes
+
+    return skill_notes(name)
+
+
+@mcp.tool()
+def run_skill_resume(token: str, answer: str, secrets: str = "{}") -> str:
+    """Continue a paused skill using a schema-typed JSON answer."""
+    from gitd.skills.engine.ask_resume import resume_action
+
+    return json.dumps(resume_action(token, json.loads(answer), secrets=json.loads(secrets)).as_dict())
 
 
 if __name__ == "__main__":
