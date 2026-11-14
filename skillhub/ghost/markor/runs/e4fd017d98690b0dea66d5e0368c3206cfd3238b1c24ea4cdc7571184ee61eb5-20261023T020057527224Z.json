@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/markor",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "net.gsantner.markor",
+    "app_version": "2.16.1"
+  },
+  "fingerprint_hash": "e4fd017d98690b0dea66d5e0368c3206cfd3238b1c24ea4cdc7571184ee61eb5",
+  "app_version": "2.16.1",
+  "model": "deterministic",
+  "timestamp": "2026-10-23T02:00:57.527224+00:00",
+  "finished_at": "2026-10-23T02:00:57.527224+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "add_todo",
+      "success": true,
+      "duration_ms": 41567.03486293554,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 20858.10003709048
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 4645.3688950277865
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 4213.663622038439
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 3124.700821004808
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 1004.611840005964
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 4697.225498966873
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 1004.073015996255
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:226290529f84c25a6b21d261bfc1c3cb13ec8a40ccd3f69abf1388a5cb8a2bde",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQC+n/9lrealbyvO70TwkZQmbn11a+Ivt8ZOTNPSRvBr94mRn6j\nF7YfFUxrh5KguKyNs7JfrQW4icirqiWpgmfAY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

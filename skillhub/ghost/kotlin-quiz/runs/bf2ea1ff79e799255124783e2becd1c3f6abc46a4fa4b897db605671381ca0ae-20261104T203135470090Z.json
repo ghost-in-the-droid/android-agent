@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/kotlin-quiz",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.example.kotlinquiz",
+    "app_version": "1.2.0"
+  },
+  "fingerprint_hash": "bf2ea1ff79e799255124783e2becd1c3f6abc46a4fa4b897db605671381ca0ae",
+  "app_version": "1.2.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T20:31:35.470090+00:00",
+  "finished_at": "2026-11-04T20:31:35.470090+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "answer_many",
+      "success": true,
+      "duration_ms": 21633.802076001302,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4627.294572997926
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 389.08636000269325
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 16544.758038999134
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:94ce29da8186c4c8beba73d66cfd53c7ae6d7992382bbc2a08aaa59e24a94180",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQH6g+5kmYSWWX4zgs/wGHXYmlLkLJldMHfnRd17C88eHFxKpJP\n9qxE/RbmFM3bLyvIBAhkkn2e+bp60r0IE+WgM=\n-----END SSH SIGNATURE-----\n"
+  }
+}

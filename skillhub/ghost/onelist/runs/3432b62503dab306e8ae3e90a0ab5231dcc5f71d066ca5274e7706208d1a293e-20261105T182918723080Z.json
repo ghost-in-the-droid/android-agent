@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/onelist",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.lolo.io.onelist",
+    "app_version": "1.5.3"
+  },
+  "fingerprint_hash": "3432b62503dab306e8ae3e90a0ab5231dcc5f71d066ca5274e7706208d1a293e",
+  "app_version": "1.5.3",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T18:29:18.723080+00:00",
+  "finished_at": "2026-11-05T18:29:18.723080+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_items",
+      "success": true,
+      "duration_ms": 5271.739625000919,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4612.635976001911
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 490.3205180016812
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:3850093fbeb33c31afeb269e7d63200e0d94fa2a3dae32e94ab94f8efb97c354",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQPD6IAADtTEDg31NOsd97MnbBz66V/ISHn3EpKULiJxU4YuxIV\ny9Q0k9mQbOEA3o2p8K7ru8rMFkvyWD7rv5bgc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

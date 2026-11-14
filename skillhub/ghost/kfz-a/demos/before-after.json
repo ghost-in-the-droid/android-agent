@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/kfz-a",
+ "action": null,
+ "prompt": "Which Austrian city and federal state does the licence plate code W stand for? Then look up GU. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 45.29,
+  "tokens": 256480,
+  "tool_calls": 19,
+  "ok": true
+ },
+ "after": {
+  "seconds": 27.24,
+  "tokens": 20834,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

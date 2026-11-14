@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/librebible",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "xyz.yeikoff.librebible",
+    "app_version": "1.1"
+  },
+  "fingerprint_hash": "18cf0cbd8c185e4438fe73dcbf98528222b314d3d376a276e287795c6c2a4a84",
+  "app_version": "1.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T16:30:38.961427+00:00",
+  "finished_at": "2026-11-05T16:30:38.961427+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "list_books",
+      "success": true,
+      "duration_ms": 46295.27226400023,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 5657.713750999392
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 40361.35809499683
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:befdda83fe012bf003a951bdbe1f5842757ab3b27fa7fd9c11d87588b4446e1e",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCu14GrcfSUO9tVr9jNjmyoVWHLH97wGneqEfFtydE4sA049qu\n1AGnTXQdnSOBbY02vEfaFVOBbp+OJGkj4BHgw=\n-----END SSH SIGNATURE-----\n"
+  }
+}

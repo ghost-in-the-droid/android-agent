@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/newpipe",
+  "version": "1.1.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.schabi.newpipe",
+    "app_version": "0.29.1"
+  },
+  "fingerprint_hash": "3d25c6409dacab43a519810da88ad88a9a6a2393d5e9c24f785bdf0a3da17a96",
+  "app_version": "0.29.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T13:37:49.675106+00:00",
+  "finished_at": "2026-11-05T13:37:49.675106+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "search_videos",
+      "success": true,
+      "duration_ms": 13513.297662000696,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 13469.62907499983
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:13eb99acb8dd5447fdda675368fd81d79472d3577f16bf23f1739816eb91d0b4",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHXh03sWSBuOX3X80Edt8sbbyhld3ry6h1ld5wINBTDjNwRbz+\nlDbJUp/YVwdoB+xXZ9FwFI1d8ipZHRr9Nb1gE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

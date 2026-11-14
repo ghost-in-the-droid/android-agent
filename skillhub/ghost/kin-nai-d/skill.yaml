@@ -1,0 +1,124 @@
+# Ghost in the Droid: Kin Nai D (login-free FOSS seed skill, installed from F-Droid)
+# Kin Nai D (F-Droid): can't decide what to eat? Keep a list of foods and let the app pick one at random with a confetti reveal. Offline, no account.
+
+name: kin-nai-d
+version: 1.0.0
+author: ghost
+description: "Kin Nai D (F-Droid): can't decide what to eat? Keep a list of foods and let the app pick one at random with a confetti reveal. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.icesu.kinnaid
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/kin-nai-d"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.icesu.kinnaid}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_picker
+    description: "Restart the app and read the food list."
+    ref_prompt: "Open the Kin Nai D what to eat app"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_picker"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:picker_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the food picker"
+      expected_success: true
+
+  - name: add_food
+    description: "Add a food to the list."
+    ref_prompt: "Add Pizza to my list of foods"
+    demo_params: {name: "Ramen"}
+    params:
+      - {name: name, type: str, required: true, description: "food name, up to 30 characters"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:add_food"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:food_added"}
+    test_case:
+      ref_prompt_variants:
+        - "add sushi to the what to eat list"
+      expected_success: true
+
+  - name: list_foods
+    description: "Read the foods currently in the list."
+    ref_prompt: "What foods are in my what-to-eat list?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_foods"
+      - python_action: "helpers:list_foods"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:foods_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "show my food list"
+      expected_success: true
+
+  - name: remove_food
+    description: "Remove a food from the list by name."
+    ref_prompt: "Remove Pizza from my list of foods"
+    demo_params: {name: "Pizza"}
+    params:
+      - {name: name, type: str, required: true, description: "food name as listed"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_foods"
+      - python_action: "helpers:seed_pizza"
+      - python_action: "helpers:remove_food"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:food_removed"}
+    test_case:
+      ref_prompt_variants:
+        - "delete sushi from the food list"
+      expected_success: true
+
+  - name: spin
+    description: "Press START RANDOM and return the food the app picked (at least two foods are needed)."
+    ref_prompt: "Pick a random food for me to eat"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_foods"
+      - python_action: "helpers:spin"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:spun"}
+    test_case:
+      ref_prompt_variants:
+        - "what should I eat today"
+        - "decide my dinner"
+      expected_success: true

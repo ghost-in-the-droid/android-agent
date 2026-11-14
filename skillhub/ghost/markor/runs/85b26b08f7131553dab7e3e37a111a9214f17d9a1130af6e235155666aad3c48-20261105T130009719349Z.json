@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/markor",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "net.gsantner.markor",
+    "app_version": "2.16.1"
+  },
+  "fingerprint_hash": "85b26b08f7131553dab7e3e37a111a9214f17d9a1130af6e235155666aad3c48",
+  "app_version": "2.16.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T13:00:09.719349+00:00",
+  "finished_at": "2026-11-05T13:00:09.719349+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "add_todo",
+      "success": true,
+      "duration_ms": 15676.929375000327,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 5763.6544660017535
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1266.2068810022902
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 451.2031129997922
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 3390.967452000041
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 1569.8555650014896
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 1824.2327970001497
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 1258.6689380004827
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:eb6ceda47fed967b8169ad9e870687720e5dddee020aad40c7e6245431a5e134",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQMm4aGL7zW1LDKgz6UhsuZsR/QJMzL5HDweSYb3yYpq1cBs1JZ\nORGKIdE9lWL2m/IAtXU8zfZaSPh4c/3gum5gA=\n-----END SSH SIGNATURE-----\n"
+  }
+}

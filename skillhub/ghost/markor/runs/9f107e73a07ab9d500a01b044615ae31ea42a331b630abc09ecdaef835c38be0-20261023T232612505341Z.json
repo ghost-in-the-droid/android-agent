@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/markor",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "net.gsantner.markor",
+    "app_version": "2.16.1",
+    "screen_wxh": "720x1600",
+    "density": 300,
+    "locale": "en-GB"
+  },
+  "fingerprint_hash": "9f107e73a07ab9d500a01b044615ae31ea42a331b630abc09ecdaef835c38be0",
+  "app_version": "2.16.1",
+  "model": "deterministic",
+  "timestamp": "2026-10-23T23:26:12.505341+00:00",
+  "finished_at": "2026-10-23T23:26:12.505341+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "list_notes",
+      "success": true,
+      "duration_ms": 10447.967906948179,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3598.385005025193
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1308.7060729740188
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 247.7417909540236
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 4851.852952037007
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:3b55d52969a9f32ad5b46faee7655b9bfb1bca77b854fb779064216f6809967e",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQEX1kGQHWz52QmVyu+s7YJ30kTiNsub1mDzcoS1jZt1dHtKptB\nK18aLFG10KunwJAFn5nqL0nDV2ZDqQ32sW7wo=\n-----END SSH SIGNATURE-----\n"
+  }
+}

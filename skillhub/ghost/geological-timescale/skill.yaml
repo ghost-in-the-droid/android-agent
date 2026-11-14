@@ -1,0 +1,121 @@
+# Ghost in the Droid: Geological Time Scale (login-free FOSS seed skill, installed from F-Droid)
+# Geological Time Scale (F-Droid): the Earth's geological time scale as a coloured table (eon, era, period, epoch, age) with the start of each unit in million years ago. Offline, no account.
+
+name: geological-timescale
+version: 1.0.0
+author: ghost
+description: "Geological Time Scale (F-Droid): the Earth's geological time scale as a coloured table (eon, era, period, epoch, age) with the start of each unit in million years ago. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.tengel.timescale
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/geological-timescale"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: org.tengel.timescale}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_timescale
+    description: "Restart the app and read the time scale table at its default zoom."
+    ref_prompt: "Open the geological time scale"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_timescale"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:table_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the Earth history time scale"
+      expected_success: true
+
+  - name: get_scale
+    description: "Read the table now shown: every row with its parent units, the unit name and its start in million years ago."
+    ref_prompt: "What does the geological time scale show now?"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:get_scale"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:scale_read"}
+    test_case:
+      ref_prompt_variants:
+        - "list the geological eras"
+      expected_success: true
+
+  - name: zoom_in
+    description: "Zoom one level deeper (eras, periods, epochs, ages) and return the table."
+    ref_prompt: "Zoom the geological time scale in to periods"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:zoom_in"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:zoomed"}
+    test_case:
+      ref_prompt_variants:
+        - "show the geological periods"
+      expected_success: true
+
+  - name: zoom_out
+    description: "Zoom one level out and return the table."
+    ref_prompt: "Zoom the geological time scale out"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_zoomed"
+      - python_action: "helpers:zoom_out"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:zoomed"}
+    test_case:
+      ref_prompt_variants:
+        - "go back to the eras"
+      expected_success: true
+
+  - name: lookup_unit
+    description: "Find a unit by name (Jurassic, Cambrian, Holocene ...), zooming in until it shows, and return its hierarchy and when it started in million years ago."
+    ref_prompt: "When did the Jurassic period start?"
+    demo_params: {name: "Jurassic"}
+    params:
+      - {name: name, type: str, required: true, description: "geological unit, for example Jurassic or Devonian"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:lookup_unit"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:unit_found"}
+    test_case:
+      ref_prompt_variants:
+        - "how old is the Cambrian"
+        - "when did the dinosaurs era Mesozoic begin"
+      expected_success: true

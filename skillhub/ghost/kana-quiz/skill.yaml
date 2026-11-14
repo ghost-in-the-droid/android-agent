@@ -1,0 +1,92 @@
+# Ghost in the Droid: The Kana Quiz (login-free FOSS seed skill, installed from F-Droid)
+# Multiple-choice Japanese kana quiz; the agent reads the character and picks the romaji.
+
+name: kana-quiz
+version: 1.0.0
+author: ghost
+description: "The Kana Quiz (F-Droid): read the kana question and its answer choices, answer, read the score. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.noprestige.kanaquiz
+  app_version: ">=0.15"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/kana-quiz"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_game
+    description: "Launch the app and back out of menus to the quiz screen."
+    steps:
+      - {action: launch_app, package: com.noprestige.kanaquiz}
+      - {action: sleep, duration_s: 2.0}
+      - python_action: "helpers:open_quiz"
+
+actions:
+  - name: get_question
+    description: "Open the quiz and read the current question character, the answer choices and the score."
+    ref_prompt: "Show me the current kana quiz question"
+    params: []
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:get_question"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.noprestige.kanaquiz:id/lblQuestion"}
+        - {kind: custom_python, function: "helpers:quiz_open"}
+    test_case:
+      ref_prompt_variants:
+        - "what kana is the quiz asking"
+        - "start a Japanese kana quiz"
+      expected_success: true
+
+  - name: answer
+    description: "Tap the answer button with this text (e.g. a, ka, shi); returns whether it was correct, the score and the next question."
+    ref_prompt: "Answer a in the kana quiz"
+    demo_params: {choice: a}
+    params:
+      - {name: choice, type: str, required: true, description: "Answer button text exactly as shown, e.g. a"}
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:answer"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.noprestige.kanaquiz:id/lblQuestion"}
+        - {kind: custom_python, function: "helpers:answered"}
+    test_case:
+      ref_prompt_variants:
+        - "pick i"
+        - "answer ka"
+      expected_success: true
+
+  - name: get_score
+    description: "Read the running score (correct, total, percent)."
+    ref_prompt: "What is my kana quiz score?"
+    params: []
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:get_score"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.noprestige.kanaquiz:id/lblQuestion"}
+        - {kind: custom_python, function: "helpers:score_read"}
+    test_case:
+      ref_prompt_variants:
+        - "kana quiz score"
+        - "how many did I get right"
+      expected_success: true

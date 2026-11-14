@@ -1,0 +1,132 @@
+# Ghost in the Droid: Fossify Notes (login-free FOSS seed skill, installed from F-Droid)
+# Notes live only on the device. The app saves when its activity pauses, so writers
+# leave with BACK and the validator re-opens the app to read the saved state.
+
+name: notes
+version: 1.0.0
+author: ghost
+description: "Fossify Notes (F-Droid): create a text note, append to it, list notes, read a note. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]     # writes local notes only
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: org.fossify.notes
+  app_version: ">=1.7.0"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/notes"
+
+# No popups observed on first launch of Fossify Notes 1.7.0.
+popup_detectors: []
+
+subroutines:
+  - name: open_notes
+    description: "Fresh launch to the note editor."
+    steps:
+      - python_action: "helpers:close_notes"
+      - {action: launch_app, package: org.fossify.notes}
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "org.fossify.notes:id/new_note", timeout_s: 20}
+
+  - name: save_and_reopen
+    description: "Leave the app with BACK (hide keyboard, then exit) so the note is saved, then reopen it."
+    steps:
+      - {action: press_key, key: BACK}
+      - {action: sleep, duration_s: 1}
+      - {action: press_key, key: BACK}
+      - {action: sleep, duration_s: 1.5}
+      - {action: launch_app, package: org.fossify.notes}
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "org.fossify.notes:id/new_note", timeout_s: 20}
+
+actions:
+  - name: create_note
+    description: "Create a new text note with a title and body text (single line)."
+    ref_prompt: "Make a note called Groceries with milk eggs bread"
+    params:
+      - {name: title, type: str, required: true, description: "Note title; must not already exist"}
+      - {name: text, type: str, required: true, description: "Body text, one line"}
+    steps:
+      - subroutine: open_notes
+      - python_action: "helpers:create_note"
+      - subroutine: save_and_reopen
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.notes:id/open_note"}
+        - {kind: custom_python, function: "helpers:note_saved"}
+    test_case:
+      ref_prompt_variants:
+        - "write down a note titled Ideas: app for plants"
+        - "new note Packing list with passport charger socks"
+        - "jot a note called Call back saying ring the plumber"
+      expected_success: true
+
+  - name: append_to_note
+    description: "Append a line of text to the end of an existing note."
+    ref_prompt: "Add butter to my Groceries note"
+    params:
+      - {name: title, type: str, required: true, description: "Existing note title"}
+      - {name: text, type: str, required: true, description: "Text appended after a space"}
+    steps:
+      - subroutine: open_notes
+      - python_action: "helpers:append_text"
+      - subroutine: save_and_reopen
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.notes:id/text_note_view"}
+        - {kind: custom_python, function: "helpers:appended"}
+    test_case:
+      ref_prompt_variants:
+        - "put cheese on the groceries note"
+        - "append 'call mum' to my Todo note"
+        - "add another idea to Ideas"
+      expected_success: true
+
+  - name: list_notes
+    description: "Return every note title with its preview text."
+    ref_prompt: "What notes do I have?"
+    params: []
+    steps:
+      - subroutine: open_notes
+      - python_action: "helpers:list_notes"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.notes:id/new_note"}
+        - {kind: custom_python, function: "helpers:notes_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "list my notes"
+        - "show all note titles"
+        - "which notes are saved in Fossify Notes"
+      expected_success: true
+
+  - name: read_note
+    description: "Open a note by title and return its full text."
+    ref_prompt: "Read my Groceries note"
+    params:
+      - {name: title, type: str, required: true, description: "Note title"}
+    steps:
+      - subroutine: open_notes
+      - python_action: "helpers:read_note"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.notes:id/text_note_view"}
+        - {kind: custom_python, function: "helpers:note_read_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "what's on my shopping note"
+        - "open the note called Ideas"
+        - "show me the Packing list note"
+      expected_success: true

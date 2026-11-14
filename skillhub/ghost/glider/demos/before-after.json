@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/glider",
+ "action": "read_stories",
+ "prompt": "In Glider, list the first three visible Hacker News frontpage stories with points and comment counts, and briefly compare their topics. Do not open external links or sign in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 9.73,
+  "tokens": 12504,
+  "tool_calls": 3,
+  "ok": false
+ },
+ "after": {
+  "seconds": 18.39,
+  "tokens": 21000,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. BEFORE finished but omitted the third native story and reported the fourth instead: the recorded hand-tool tree omitted DiscImageStudio while the separate native hierarchy exposed it. AFTER used complete native package-owned hierarchy reads, returned the correct three, cost 21,000 vs 12,504 tokens and took 18.39 vs 9.73 seconds. This is an accuracy improvement with higher token and latency cost, not a speedup. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/messages",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.apps.messaging",
+    "app_version": "messages.android_20221208_01_RC02_alldpi.x86_64.phone"
+  },
+  "fingerprint_hash": "c1f8315c3366a614236b3c0d6b5f0d4a8585bc7f3e7062a5aa5e1d13e505f6aa",
+  "app_version": "messages.android_20221208_01_RC02_alldpi.x86_64.phone",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T23:01:34.505953+00:00",
+  "finished_at": "2026-10-22T23:01:34.505953+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "draft_message",
+      "success": true,
+      "duration_ms": 32471.018802025355,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 9657.747182995081
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 215.60093795415014
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 5527.57377596572
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 1005.555358948186
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 2256.278418004513
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 1278.0499929795042
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 4710.8623230597
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:09891e3af703fe2dd8f330e1b2bd918598a6def6a95ab62b0199218b087c6afb",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQI0juNf01sTjIVODz9Vt3cTc5F9Gsa9wfuSJ3cMsx+2YcQqLlP\n7fRYv4yq5QJ/jNjg2HTRwbh9ynn23HncKfnQE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

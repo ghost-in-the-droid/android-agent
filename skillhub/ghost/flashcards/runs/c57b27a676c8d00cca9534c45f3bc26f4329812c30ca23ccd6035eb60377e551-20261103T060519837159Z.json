@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/flashcards",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "m.co.rh.id.a_flash_deck",
+    "app_version": "2.4.0"
+  },
+  "fingerprint_hash": "c57b27a676c8d00cca9534c45f3bc26f4329812c30ca23ccd6035eb60377e551",
+  "app_version": "2.4.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T06:05:19.837159+00:00",
+  "finished_at": "2026-11-03T06:05:19.837159+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "grade",
+      "success": true,
+      "duration_ms": 4663.069855996582,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2766.0520919962437
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1811.430879002728
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:ae08756af2c02303420aefa7793868926acd0677b006bb9ea06b02cec928c285",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQAsw9QtiuuMG2nizDo0jxDimyvB9TsSIP9Ub2LnjJYybq4hkqL\nQabFIafpEw7dFt5jOZC5VDts+E10in1+h3egY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

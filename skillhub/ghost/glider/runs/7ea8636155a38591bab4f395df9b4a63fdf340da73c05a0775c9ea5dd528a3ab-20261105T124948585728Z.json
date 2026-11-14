@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/glider",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "nl.viter.glider",
+    "app_version": "2.8.0"
+  },
+  "fingerprint_hash": "7ea8636155a38591bab4f395df9b4a63fdf340da73c05a0775c9ea5dd528a3ab",
+  "app_version": "2.8.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T12:49:48.585728+00:00",
+  "finished_at": "2026-11-05T12:49:48.585728+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "back_to_stories",
+      "success": true,
+      "duration_ms": 12144.644245001473,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 9486.644729000545
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:94b5311e90188cd200f224dd4b483af0646e6aff167191867d904ff868dc9b9d",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQEsy1R6jiG6Qz2MQo1uYlgOyVv848r1DUz5wnF895Dyt0I9vy8\nJjusXNhdhC4GQ1RqxHftM7h3Dq1/apfh6JpAE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

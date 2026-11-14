@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/open-food-facts",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "openfoodfacts.github.scrachx.openfood",
+    "app_version": "4.23.0"
+  },
+  "fingerprint_hash": "ad1d3d33a779cf50b6a6bd6e59dcb363a3021c8fc5cc786952cec98c84b4a2b6",
+  "app_version": "4.23.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T18:18:16.162778+00:00",
+  "finished_at": "2026-11-04T18:18:16.162778+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "read_nutrients",
+      "success": true,
+      "duration_ms": 1843.2198130030883,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 1623.4834369970486
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:49c895e14bcaf7390b71e41b466f52197c015eb609d50b7d83fe2e2a2a9db2eb",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHpKtqBC7D9illBi7hwM6tDLlayKOO3tw/FYoTt+T4OUvZM0lY\najTCP0nS0M5PRdIbNopSU38fWyVKIpXvX2ewA=\n-----END SSH SIGNATURE-----\n"
+  }
+}

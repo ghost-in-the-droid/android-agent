@@ -1,0 +1,131 @@
+# Ghost in the Droid: Fossify Gallery (login-free FOSS seed skill, installed from F-Droid)
+# Read-only: list albums and photos, open a photo, read its properties. Never edits,
+# shares or deletes media.
+
+name: gallery
+version: 1.0.0
+author: ghost
+description: "Fossify Gallery (F-Droid): list albums, list photos in an album, open a photo, read its properties. Offline, read-only."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [photos, storage]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: org.fossify.gallery
+  app_version: ">=1.13.1"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/gallery"
+
+os_popup_policy:
+  allow_permissions: [photos]
+
+popup_detectors:
+  # Android 14 photo picker permission: the gallery needs all photos to list albums.
+  - {detect: "Allow Gallery to access photos and videos", button: "Allow all", label: "Photos and videos permission"}
+  # Asked on every launch; BACK declines without opening Settings.
+  - {detect: "Please grant our app access to all your files", method: back, label: "All-files access request"}
+
+subroutines:
+  - name: open_albums
+    description: "Fresh launch to the album grid; permission and all-files prompts handled by detectors."
+    steps:
+      - python_action: "helpers:close_gallery"
+      - {action: launch_app, package: org.fossify.gallery}
+      - {action: sleep, duration_s: 2}
+      - {action: dismiss_popups}
+      - {action: sleep, duration_s: 1}
+      - {action: dismiss_popups}
+      - {action: wait_for_element, id: "org.fossify.gallery:id/top_toolbar_search", timeout_s: 30}
+
+actions:
+  - name: list_albums
+    description: "Return every album (folder) with its item count."
+    ref_prompt: "What photo albums do I have?"
+    params: []
+    steps:
+      - subroutine: open_albums
+      - python_action: "helpers:list_albums"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Search folders"}
+        - {kind: custom_python, function: "helpers:albums_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "list my gallery folders"
+        - "how many pictures are in each album"
+        - "show the albums on the phone"
+      expected_success: true
+
+  - name: list_photos
+    description: "Open an album and return the file names of its photos and videos."
+    ref_prompt: "Which photos are in the Camera album?"
+    params:
+      - {name: album, type: str, required: true, description: "Album (folder) name as shown in the gallery"}
+    steps:
+      - subroutine: open_albums
+      - python_action: "helpers:open_album_and_list"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.gallery:id/toggle_filename"}
+        - {kind: custom_python, function: "helpers:photos_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "list files in the Screenshots album"
+        - "what's inside my Downloads folder in the gallery"
+        - "name the pictures in GhostTest"
+      expected_success: true
+
+  - name: open_photo
+    description: "Open a photo or video by file name in the full-screen viewer."
+    ref_prompt: "Show me the photo ghost_green.png"
+    params:
+      - {name: name, type: str, required: true, description: "File name, e.g. IMG_0042.jpg"}
+    steps:
+      - subroutine: open_albums
+      - python_action: "helpers:open_photo"
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "org.fossify.gallery:id/bottom_share", timeout_s: 20}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.gallery:id/bottom_favorite"}
+        - {kind: custom_python, function: "helpers:photo_shown"}
+    test_case:
+      ref_prompt_variants:
+        - "open IMG_0042.jpg"
+        - "display the picture called beach.png"
+        - "view the video clip.mp4"
+      expected_success: true
+
+  - name: get_photo_properties
+    description: "Open a photo by file name and return its properties: name, path, size, resolution, last modified."
+    ref_prompt: "What resolution is ghost_red.png?"
+    params:
+      - {name: name, type: str, required: true, description: "File name"}
+    steps:
+      - subroutine: open_albums
+      - python_action: "helpers:open_photo"
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "org.fossify.gallery:id/menu_properties", timeout_s: 20}
+      - python_action: "helpers:read_properties"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.fossify.gallery:id/bottom_share"}
+        - {kind: custom_python, function: "helpers:properties_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "how big is IMG_0042.jpg"
+        - "when was beach.png taken"
+        - "where is the file ghost_blue.png stored"
+      expected_success: true

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/open-food-facts",
+ "action": "read_nutrients",
+ "prompt": "In Open Food Facts, search nutella and open the first complete product result. Report the product name and its four displayed nutrient levels, including percentages for fat, saturated fat, sugars and salt. Briefly summarize the displayed labels. Do not use the camera, sign in, edit anything or give dietary advice.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 110.1,
+  "tokens": 454078,
+  "tool_calls": 34,
+  "ok": true
+ },
+ "after": {
+  "seconds": 53.48,
+  "tokens": 386503,
+  "tool_calls": 14,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Both sides completed the public nutrient read. AFTER first attempted open_product before submitting search, failed safely, and used hand fallback for search before successful read_results/open_product/read_nutrients replays; this extra work is retained in timing and tokens. The graphical nutrition table is unsupported; both sides used native Nutrient levels. No camera/account permissions granted. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

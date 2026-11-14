@@ -1,0 +1,136 @@
+# Ghost in the Droid: Memo Game Privacy Friendly (login-free FOSS seed skill, installed from F-Droid)
+# Classic card-pair memory game; the counters are readable, the card faces are pictures.
+
+name: memory-game
+version: 1.0.1
+author: ghost
+description: "Memo Game (Privacy Friendly, F-Droid): start a single-player game (difficulty 1-3), flip cards by row and column, try a pair, read pairs found, tries and time. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: org.secuso.privacyfriendlymemory
+  app_version: ">=1.1.3"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/memory-game"
+
+popup_detectors: []
+
+subroutines:
+  - name: start_screen
+    description: "Launch the app to the start screen: dismiss the first-run welcome dialog, leave a running game with BACK."
+    steps:
+      - {action: launch_app, package: org.secuso.privacyfriendlymemory}
+      - {action: sleep, duration_s: 2}
+      - if_visible:
+          selector: {id: "org.secuso.privacyfriendlymemory:id/btn_skip"}
+          then:
+            - {action: tap_element, id: "org.secuso.privacyfriendlymemory:id/btn_skip"}
+            - {action: sleep, duration_s: 1}
+      - if_visible:
+          selector: {id: "android:id/button1"}
+          then:
+            - {action: tap_element, id: "android:id/button1"}
+            - {action: sleep, duration_s: 1}
+      - python_action: "helpers:leave_game"
+      - {action: wait_for_element, id: "org.secuso.privacyfriendlymemory:id/playButton", timeout_s: 8}
+  - name: running_game
+    description: "Back to the game in progress; cancel a pending quit confirmation."
+    steps:
+      - {action: launch_app, package: org.secuso.privacyfriendlymemory}
+      - {action: sleep, duration_s: 2}
+      - python_action: "helpers:resume_game"
+      - {action: wait_for_element, id: "org.secuso.privacyfriendlymemory:id/timerView", timeout_s: 8}
+
+actions:
+  - name: new_game
+    description: "Start a single-player game at difficulty 1 (easy, 4x4 = 8 pairs), 2 or 3; returns the status."
+    ref_prompt: "Start a memory card game"
+    demo_params: {difficulty: "1"}
+    params:
+      - {name: difficulty, type: str, default: "1", description: "1 (easy) to 3"}
+    steps:
+      - subroutine: start_screen
+      - python_action: "helpers:setup_and_start"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.secuso.privacyfriendlymemory:id/timerView"}
+        - {kind: element_present, id: "org.secuso.privacyfriendlymemory:id/player_one_tries_value"}
+        - {kind: custom_python, function: "helpers:started"}
+    test_case:
+      ref_prompt_variants:
+        - "play the memo game"
+        - "new hard memory game"
+      expected_success: true
+
+  - name: flip_card
+    description: "Flip one card by row and column (1-based, row by row from the top left)."
+    ref_prompt: "Flip the card in row 1, column 2"
+    demo_params: {row: "1", col: "2"}
+    params:
+      - {name: row, type: str, required: true, description: "Row from the top"}
+      - {name: col, type: str, required: true, description: "Column from the left"}
+    steps:
+      - subroutine: running_game
+      - python_action: "helpers:flip"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.secuso.privacyfriendlymemory:id/timerView"}
+        - {kind: element_present, id: "org.secuso.privacyfriendlymemory:id/player_one_found_value"}
+        - {kind: custom_python, function: "helpers:flipped"}
+    test_case:
+      ref_prompt_variants:
+        - "turn over the top left card"
+      expected_success: true
+
+  - name: flip_pair
+    description: "Try one pair: flip two cards (first and second as 'row,col') and wait for the result; tries goes up by one and pairs found by one on a match."
+    ref_prompt: "Flip the cards at row 1 column 1 and row 1 column 2"
+    demo_params: {first: "1,1", second: "1,2"}
+    params:
+      - {name: first, type: str, required: true, description: "First card as row,col"}
+      - {name: second, type: str, required: true, description: "Second card as row,col"}
+    steps:
+      - subroutine: running_game
+      - python_action: "helpers:flip_two"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.secuso.privacyfriendlymemory:id/timerView"}
+        - {kind: element_present, id: "org.secuso.privacyfriendlymemory:id/player_one_tries_value"}
+        - {kind: custom_python, function: "helpers:pair_tried"}
+    test_case:
+      ref_prompt_variants:
+        - "try the first two cards"
+        - "match the top left with the card next to it"
+      expected_success: true
+
+  - name: get_status
+    description: "Read mode, difficulty, timer, pairs found/total, tries and the grid size."
+    ref_prompt: "How is my memory game going?"
+    params: []
+    steps:
+      - subroutine: running_game
+      - python_action: "helpers:status"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.secuso.privacyfriendlymemory:id/timerView"}
+        - {kind: element_present, id: "org.secuso.privacyfriendlymemory:id/player_one_found_value"}
+        - {kind: custom_python, function: "helpers:status_read"}
+    test_case:
+      ref_prompt_variants:
+        - "how many pairs have I found"
+        - "how many tries so far"
+      expected_success: true

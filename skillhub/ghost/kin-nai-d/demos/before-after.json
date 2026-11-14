@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/kin-nai-d",
+ "action": null,
+ "prompt": "Add Pizza, Sushi and Ramen to my what-to-eat list, then let the app pick what I should eat. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 61.86,
+  "tokens": 322274,
+  "tool_calls": 18,
+  "ok": true
+ },
+ "after": {
+  "seconds": 67.22,
+  "tokens": 50081,
+  "tool_calls": 6,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

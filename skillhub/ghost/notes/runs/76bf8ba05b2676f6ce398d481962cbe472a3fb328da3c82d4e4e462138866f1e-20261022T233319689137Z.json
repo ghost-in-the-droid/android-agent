@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/notes",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "org.fossify.notes",
+    "app_version": "1.7.0"
+  },
+  "fingerprint_hash": "76bf8ba05b2676f6ce398d481962cbe472a3fb328da3c82d4e4e462138866f1e",
+  "app_version": "1.7.0",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T23:33:19.689137+00:00",
+  "finished_at": "2026-10-22T23:33:19.689137+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "read_note",
+      "success": true,
+      "duration_ms": 21228.724722983316,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 7473.228893009946
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 11463.690879987553
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:39dddcc2311e425dd807e5e71950fe9a1e34238e8090fb398a692af5bf9a7bcf",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQN+kIarIYH8wMS472tS0vDrVx0SBRZw/SwtNOjp4hj4Wcoe9+M\nz9Ee2eQ0EU73+8TYDim8SHR/6fYFJ11K4xvAA=\n-----END SSH SIGNATURE-----\n"
+  }
+}

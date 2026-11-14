@@ -1,0 +1,111 @@
+name: nztides
+version: 1.1.0
+author: ghost
+description: Read named New Zealand port tide events and their explicit displayed
+  time zones in NZ Tides
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access: []
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: com.palliser.nztides
+  app_version: '>=25'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/nztides
+actions:
+- name: open
+  description: Open NZ Tides and read its public Auckland table
+  ref_prompt: Open NZ Tides and read its public Auckland table
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:tides_ok
+  test_case:
+    ref_prompt_variants:
+    - Open NZ Tides and read its public Auckland table in nztides
+    expected_success: true
+- name: read_tides
+  description: Read tide events with NO parameters; safely opens default Auckland
+    from Samsung HOME, otherwise requires NZ Tides foreground
+  ref_prompt: Read tide events with NO parameters; safely opens default Auckland from
+    Samsung HOME, otherwise requires NZ Tides foreground
+  params: []
+  steps:
+  - python_action: helpers:read_tides
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:tides_ok
+  test_case:
+    ref_prompt_variants:
+    - Read tide events with NO parameters; safely opens default Auckland from Samsung
+      HOME, otherwise requires NZ Tides foreground
+    expected_success: true
+- name: open_ports
+  description: Open the bundled public port picker and list exposed names
+  ref_prompt: Open the bundled public port picker and list exposed names
+  params: []
+  steps:
+  - python_action: helpers:open_ports
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:ports_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the bundled public port picker and list exposed names in nztides
+    expected_success: true
+- name: scroll_ports
+  description: Scroll the open public port picker down or up
+  ref_prompt: Scroll the open public port picker down or up
+  params:
+  - name: direction
+    type: string
+    required: true
+    enum:
+    - down
+    - up
+    description: Direction through the bundled port list
+  steps:
+  - python_action: helpers:scroll_ports
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:ports_ok
+  test_case:
+    ref_prompt_variants:
+    - Scroll the open public port picker down or up in nztides
+    expected_success: true
+- name: select_port
+  description: Select an exact currently exposed public port name
+  ref_prompt: Select an exact currently exposed public port name
+  params:
+  - name: port
+    type: string
+    required: true
+    description: Exact bundled port name currently exposed by open_ports/scroll_ports
+  steps:
+  - python_action: helpers:select_port
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:tides_ok
+  test_case:
+    ref_prompt_variants:
+    - Select an exact currently exposed public port name in nztides
+    expected_success: true

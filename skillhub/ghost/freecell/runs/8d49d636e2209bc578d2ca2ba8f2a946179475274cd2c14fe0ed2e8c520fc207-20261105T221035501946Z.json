@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/freecell",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "io.github.d_rk.openpatience",
+    "app_version": "1.1.2"
+  },
+  "fingerprint_hash": "8d49d636e2209bc578d2ca2ba8f2a946179475274cd2c14fe0ed2e8c520fc207",
+  "app_version": "1.1.2",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T22:10:35.501946+00:00",
+  "finished_at": "2026-11-05T22:10:35.501946+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "new_game",
+      "success": true,
+      "duration_ms": 26804.212612005358,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 18712.537414998224
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3921.74057700322
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 1844.7277439991012
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 799.8695440037409
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:827c0cb2ced3594610849757efdc6a9a43eded7d65032047a9e20a759522c030",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQN75a1UkUx7ko6VNa/LT8Pbe2dwL6699u/G7+C8KkAlVuMkDFA\nI9ySOK2JbHv8j4lo49ZPKklRhkArR89SfryQc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

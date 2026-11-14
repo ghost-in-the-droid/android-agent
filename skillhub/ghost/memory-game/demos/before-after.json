@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/memory-game",
+ "action": null,
+ "prompt": "Start a memory game and try the pairs (row 1 col 1 with row 1 col 2) and (row 2 col 1 with row 2 col 2).",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 72.45,
+  "tokens": 1550208,
+  "tool_calls": 34,
+  "ok": false
+ },
+ "after": {
+  "seconds": 33.48,
+  "tokens": 40020,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

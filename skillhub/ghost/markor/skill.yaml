@@ -1,0 +1,186 @@
+# Ghost in the Droid: Markor (FOSS Markdown and todo.txt editor from F-Droid, login-free seed skill)
+
+name: markor
+version: 1.0.1
+author: ghost
+description: "Markor: create and read Markdown notes, list the notebook, add a todo.txt task, append to QuickNote. Plain files on the device, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]      # writes only new notes or appended lines in the user's own notebook
+destructive: false
+tos_risk: low
+locale: [en-US, en-GB]
+data_access: [files, storage]
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: net.gsantner.markor
+  app_version: ">=2.16.0"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/markor"
+
+# First launch: a 5-page intro (NEXT x4, DONE), then Markor's own storage explainer.
+popup_detectors:
+  - {detect: "Hey there! You seem to like this app", button: "NO THANKS", label: "Optional rating prompt"}
+  - {detect: "net.gsantner.markor:id/next", button: "NEXT", label: "Intro page"}
+  - {detect: "net.gsantner.markor:id/done", button: "DONE", label: "Intro last page"}
+  - {detect: "Official project sources", button: "OK", label: "What's new / about dialog (first launch and after updates)"}
+
+subroutines:
+  - name: open_markor
+    description: "Cold-start Markor, finish the intro, grant All files access once (Markor stores notes as files)."
+    steps:
+      - python_action: "helpers:restart"
+      - {action: dismiss_popups}
+      - {action: dismiss_popups}
+      - {action: dismiss_popups}
+      - {action: dismiss_popups}
+      - {action: dismiss_popups}
+      - {action: dismiss_popups}
+      - if_visible:
+          selector: {text: "Storage permission required to read and write files"}
+          then:
+            - {action: tap_element, text: "OK"}
+            - {action: wait_for_text, text: "Allow access to manage all files", timeout_s: 10}
+            - {action: tap_element, text: "Allow access to manage all files"}
+            - {action: sleep, duration_s: 1}
+            - {action: press_key, key: BACK}
+            - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "net.gsantner.markor:id/nav_notebook", timeout_s: 15}
+
+actions:
+  - name: create_note
+    description: "Create a new Markdown note in the notebook with the given title and content (multi-line allowed) and save it."
+    ref_prompt: "Make a note called Shopping with milk and eggs"
+    params:
+      - {name: title, type: str, required: true, description: "File name without .md; letters, digits, spaces, . , ( ) + -"}
+      - {name: content, type: str, required: true, description: "Note body; \\n starts a new line"}
+    pre_hooks:
+      - python_action: "helpers:check_title"
+    steps:
+      - subroutine: open_markor
+      - python_action: "helpers:ensure_new"
+      - {action: tap_element, id: "net.gsantner.markor:id/nav_notebook"}
+      - {action: wait_for_element, desc: "Create a new file or folder", timeout_s: 10}
+      - {action: tap_element, desc: "Create a new file or folder"}
+      - {action: wait_for_element, id: "net.gsantner.markor:id/new_file_dialog__name", timeout_s: 10}
+      - python_action: "helpers:type_title"
+      - {action: tap_element, text: "OK"}
+      - {action: wait_for_element, id: "net.gsantner.markor:id/document__fragment__edit__highlighting_editor", timeout_s: 10}
+      - python_action: "helpers:type_content"
+      - {action: sleep, duration_s: 1}   # let the editor take the typed text before saving
+      - {action: tap_element, desc: "Save"}
+      - {action: sleep, duration_s: 1}
+      - {action: press_key, key: BACK}    # leaving the editor also saves (Markor saves on pause)
+      - {action: sleep, duration_s: 1}
+      - if_visible:                       # the first BACK only drops editor focus when the soft keyboard is up
+          selector: {desc: "Undo"}
+          then:
+            - {action: press_key, key: BACK}
+      - {action: wait_for_element, desc: "Create a new file or folder", timeout_s: 10}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Create a new file or folder"}
+        - {kind: custom_python, function: "helpers:note_saved"}
+    test_case:
+      ref_prompt_variants:
+        - "write a markdown note titled Ideas"
+        - "create a new note in Markor called Meeting with the agenda"
+        - "jot down a note named Packing list"
+      expected_success: true
+
+  - name: read_note
+    description: "Open a note from the notebook by title and return its full text."
+    ref_prompt: "Read my Shopping note in Markor"
+    params:
+      - {name: title, type: str, required: true, description: "File name without .md"}
+    pre_hooks:
+      - python_action: "helpers:check_title"
+    steps:
+      - subroutine: open_markor
+      - {action: tap_element, id: "net.gsantner.markor:id/nav_notebook"}
+      - {action: wait_for_text, text: "{title}.md", timeout_s: 10}
+      - python_action: "helpers:open_note"
+      - {action: wait_for_element, id: "net.gsantner.markor:id/document__fragment__edit__highlighting_editor", timeout_s: 10}
+      - python_action: "helpers:read_editor"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "net.gsantner.markor:id/document__fragment__edit__highlighting_editor"}
+        - {kind: custom_python, function: "helpers:note_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what's in my Ideas note"
+        - "open the Packing list note"
+      expected_success: true
+
+  - name: list_notes
+    description: "List the files and folders in the Markor notebook folder."
+    ref_prompt: "What notes do I have in Markor?"
+    params: []
+    steps:
+      - subroutine: open_markor
+      - {action: tap_element, id: "net.gsantner.markor:id/nav_notebook"}
+      - {action: wait_for_element, desc: "Create a new file or folder", timeout_s: 10}
+      - python_action: "helpers:list_notebook"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Create a new file or folder"}
+        - {kind: custom_python, function: "helpers:notebook_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "list my markor files"
+        - "show my notebook"
+      expected_success: true
+
+  - name: add_todo
+    description: "Append a task to Markor's todo.txt (Markor prefixes today's date)."
+    ref_prompt: "Add 'call mom' to my to-do list in Markor"
+    params:
+      - {name: text, type: str, required: true, description: "Task text; todo.txt priority like (A) at the start is allowed"}
+    steps:
+      - subroutine: open_markor
+      - {action: tap_element, id: "net.gsantner.markor:id/nav_todo"}
+      - {action: wait_for_element, id: "net.gsantner.markor:id/document__fragment__edit__highlighting_editor", timeout_s: 10}
+      - python_action: "helpers:append_line"
+      - {action: sleep, duration_s: 1}   # let the editor take the typed text before saving
+      - {action: tap_element, desc: "Save"}
+      - {action: sleep, duration_s: 1}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Toggle done"}
+        - {kind: custom_python, function: "helpers:todo_saved"}
+    test_case:
+      ref_prompt_variants:
+        - "remind me to water the plants in markor todo"
+        - "add buy batteries to my todo.txt"
+      expected_success: true
+
+  - name: append_quicknote
+    description: "Append a line to Markor's QuickNote (QuickNote.md), the scratchpad note."
+    ref_prompt: "Quick note: parking spot is B12"
+    params:
+      - {name: text, type: str, required: true}
+    steps:
+      - subroutine: open_markor
+      - {action: tap_element, id: "net.gsantner.markor:id/nav_quicknote"}
+      - {action: wait_for_element, id: "net.gsantner.markor:id/document__fragment__edit__highlighting_editor", timeout_s: 10}
+      - python_action: "helpers:append_line"
+      - {action: sleep, duration_s: 1}   # let the editor take the typed text before saving
+      - {action: tap_element, desc: "Save"}
+      - {action: sleep, duration_s: 1}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Save"}
+        - {kind: custom_python, function: "helpers:quicknote_saved"}
+    test_case:
+      ref_prompt_variants:
+        - "add to my quicknote that the wifi password is on the fridge"
+        - "scribble down 'pick up dry cleaning' in markor"
+      expected_success: true

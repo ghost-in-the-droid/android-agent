@@ -1,0 +1,147 @@
+name: giggity
+version: 1.0.0
+author: ghost
+description: Read public conference dates, programs and session metadata in Giggity
+  without reminders or private calendars
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: net.gaast.giggity
+  app_version: '>=3.0.3'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/giggity
+actions:
+- name: open
+  description: Open Giggitys public preconfigured conference catalog with notifications
+    denied
+  ref_prompt: Open Giggitys public preconfigured conference catalog with notifications
+    denied
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:catalog_ok
+  test_case:
+    ref_prompt_variants:
+    - Open Giggitys public preconfigured conference catalog with notifications denied
+      in giggity
+    expected_success: true
+- name: read_catalog
+  description: Read the first three complete public conference names/date ranges;
+    no parameters
+  ref_prompt: Read the first three complete public conference names/date ranges; no
+    parameters
+  params: []
+  steps:
+  - python_action: helpers:read_catalog
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:catalog_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the first three complete public conference names/date ranges; no parameters
+      in giggity
+    expected_success: true
+- name: open_conference
+  description: Load a currently exposed public preconfigured conference program
+  ref_prompt: Load a currently exposed public preconfigured conference program
+  params:
+  - name: name
+    type: string
+    required: true
+    description: Exact currently exposed preconfigured conference name
+  steps:
+  - python_action: helpers:open_conference
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:program_ok
+  test_case:
+    ref_prompt_variants:
+    - Load a currently exposed public preconfigured conference program in giggity
+    expected_success: true
+- name: read_program
+  description: Read the displayed program date/header and exposed native session labels
+  ref_prompt: Read the displayed program date/header and exposed native session labels
+  params: []
+  steps:
+  - python_action: helpers:read_program
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:program_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the displayed program date/header and exposed native session labels in
+      giggity
+    expected_success: true
+- name: open_session
+  description: Open a unique currently exposed public session without touching reminder
+    controls
+  ref_prompt: Open a unique currently exposed public session without touching reminder
+    controls
+  params:
+  - name: title
+    type: string
+    required: true
+    description: Exact unique title returned by read_program
+  steps:
+  - python_action: helpers:open_session
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:session_ok
+  test_case:
+    ref_prompt_variants:
+    - Open a unique currently exposed public session without touching reminder controls
+      in giggity
+    expected_success: true
+- name: read_session
+  description: Read public session title/room/displayed time and native description
+    preview
+  ref_prompt: Read public session title/room/displayed time and native description
+    preview
+  params: []
+  steps:
+  - python_action: helpers:read_session
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:session_ok
+  test_case:
+    ref_prompt_variants:
+    - Read public session title/room/displayed time and native description preview
+      in giggity
+    expected_success: true
+- name: close_session
+  description: Close a proven read-only session detail and return to its program
+  ref_prompt: Close a proven read-only session detail and return to its program
+  params: []
+  steps:
+  - python_action: helpers:close_session
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:program_ok
+  test_case:
+    ref_prompt_variants:
+    - Close a proven read-only session detail and return to its program in giggity
+    expected_success: true

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/gallery",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "org.fossify.gallery",
+    "app_version": "1.13.1"
+  },
+  "fingerprint_hash": "b1618bbdd1c7de56df4188d9743e78efedcc0a6157eadccc56065396645b4e86",
+  "app_version": "1.13.1",
+  "model": "deterministic",
+  "timestamp": "2026-10-06T01:24:53.728517+00:00",
+  "finished_at": "2026-10-06T01:24:53.728517+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "open_photo",
+      "success": true,
+      "duration_ms": 7380.810581991682,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4342.6612300099805
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 952.7318539912812
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 2010.0312939903233
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 50.41035599424504
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQKe51H6b+gK2/cDLYlfoPkQiCVls0t9YqrNaeWrQLAeWIpXBv+\ngnjsNgm3BUj855K7bAig7sct4HN2CC7ZfTHQc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

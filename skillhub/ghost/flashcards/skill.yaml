@@ -1,0 +1,158 @@
+# Ghost in the Droid: Flash Deck (login-free FOSS seed skill, installed from F-Droid)
+# Offline flashcards with spaced repetition; every control has a resource id.
+
+name: flashcards
+version: 1.0.0
+author: ghost
+description: "Flash Deck (F-Droid): create decks and cards, list decks, review due cards and grade them (again, hard, good, easy). Offline, no account; the Gemini generators are never used."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: m.co.rh.id.a_flash_deck
+  app_version: ">=1.0"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/flashcards"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app (the first-run notifications prompt is dismissed by the helpers)."
+    steps:
+      - {action: launch_app, package: m.co.rh.id.a_flash_deck}
+      - {action: sleep, duration_s: 2.0}
+
+actions:
+  - name: add_deck
+    description: "Create a deck with this name."
+    ref_prompt: "Create a flashcard deck called Spanish"
+    demo_params: {name: Spanish}
+    params:
+      - {name: name, type: str, required: true, description: "Deck name (letters, digits, spaces)"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:add_deck"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:deck_added"}
+    test_case:
+      ref_prompt_variants:
+        - "make a deck named French"
+        - "new flashcard deck"
+      expected_success: true
+
+  - name: add_card
+    description: "Add a card (question and answer) to an existing deck."
+    ref_prompt: "Add the card hola / hello to Spanish"
+    demo_params: {deck: Spanish, question: hola, answer: hello}
+    params:
+      - {name: deck, type: str, required: true, description: "Existing deck name"}
+      - {name: question, type: str, required: true, description: "Front of the card"}
+      - {name: answer, type: str, required: true, description: "Back of the card"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:add_card"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:card_added"}
+    test_case:
+      ref_prompt_variants:
+        - "add a flashcard to Spanish"
+        - "new card in my deck"
+      expected_success: true
+
+  - name: list_decks
+    description: "List the decks with their card counts."
+    ref_prompt: "Which flashcard decks do I have?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:list_decks"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:decks_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "show my decks"
+        - "how many cards in each deck"
+      expected_success: true
+
+  - name: start_review
+    description: "Open the due-cards review and read the first card (question only)."
+    ref_prompt: "Start studying my flashcards"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:start_review"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:review_open"}
+    test_case:
+      ref_prompt_variants:
+        - "study my due cards"
+        - "quiz me with my flashcards"
+      expected_success: true
+
+  - name: reveal_answer
+    description: "Show the answer of the current card."
+    ref_prompt: "Show the answer"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:reveal_answer"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:card_revealed"}
+    test_case:
+      ref_prompt_variants:
+        - "flip the card"
+        - "what is the answer"
+      expected_success: true
+
+  - name: grade
+    description: "Grade the current card (again, hard, good or easy); returns the next card or the end of the session."
+    ref_prompt: "Grade this card good"
+    demo_params: {rating: good}
+    params:
+      - {name: rating, type: str, required: true, description: "again, hard, good or easy"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:grade"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:graded"}
+    test_case:
+      ref_prompt_variants:
+        - "mark it easy"
+        - "I got it wrong, grade again"
+      expected_success: true
+
+  - name: get_card
+    description: "Read the card on screen (question, answer if revealed, progress)."
+    ref_prompt: "What card am I on?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_card"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:card_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the current flashcard"
+      expected_success: true
+

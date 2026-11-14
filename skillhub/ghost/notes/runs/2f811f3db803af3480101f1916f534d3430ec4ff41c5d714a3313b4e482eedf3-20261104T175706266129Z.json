@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/notes",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.fossify.notes",
+    "app_version": "1.7.0"
+  },
+  "fingerprint_hash": "2f811f3db803af3480101f1916f534d3430ec4ff41c5d714a3313b4e482eedf3",
+  "app_version": "1.7.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T17:57:06.266129+00:00",
+  "finished_at": "2026-11-04T17:57:06.266129+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "read_note",
+      "success": true,
+      "duration_ms": 9408.103451001807,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3998.8367019977886
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 5391.182807001314
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:b9c031bea774ecfb3e0985e3919c3323939938d5fb609a16b7a37f33437a223c",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHbJUmoQ7m9pMjr6hO/C41f99adYVlo6S/xQwPdSQfJawXdTmh\nA9C3oKhsYXwAk7LEw5R7/mjt67uaz4CU88VwY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

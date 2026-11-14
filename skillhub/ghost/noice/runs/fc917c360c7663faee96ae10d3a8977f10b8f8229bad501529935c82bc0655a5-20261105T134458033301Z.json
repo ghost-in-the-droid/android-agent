@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/noice",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "com.github.ashutoshgngwr.noice",
+    "app_version": "2.5.7"
+  },
+  "fingerprint_hash": "fc917c360c7663faee96ae10d3a8977f10b8f8229bad501529935c82bc0655a5",
+  "app_version": "2.5.7",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T13:44:58.033301+00:00",
+  "finished_at": "2026-11-05T13:44:58.033301+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "list_presets",
+      "success": true,
+      "duration_ms": 13379.721367997263,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 6730.9033180026745
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 6628.815110998403
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:9eb18c31685fe96aa9927d01ee4a6ed10a4dff16ae10e008f808d9f23e9f9ce1",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQLKSQ/6+bNDy0cC8nLeRDZY7cEkQfUvnPTfCWiRPDHkQPB/mXB\n2fKt7b9qKhrMSkh7N685Hx0KQ/ol4K3V5zsAg=\n-----END SSH SIGNATURE-----\n"
+  }
+}

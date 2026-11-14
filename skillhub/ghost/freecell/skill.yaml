@@ -1,0 +1,153 @@
+# Ghost in the Droid: Open Patience FreeCell (login-free FOSS seed skill, installed from F-Droid)
+# FreeCell solitaire with accessible cards: the whole board can be read and played by tapping cards.
+
+name: freecell
+version: 1.0.0
+author: ghost
+description: "Open Patience (F-Droid) FreeCell: deal a game (classic, 2 or 6 cells), tap cards to move them, undo/redo and read the full board (cells, foundations, columns, moves, time). Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: io.github.d_rk.openpatience
+  app_version: ">=1.1.2"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/freecell"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_game
+    description: "Launch the app and come back to the running FreeCell board (the app resumes a game in progress)."
+    steps:
+      - {action: launch_app, package: io.github.d_rk.openpatience}
+      - {action: sleep, duration_s: 2}
+  - name: to_variants
+    description: "Menu > FreeCell variants screen, from wherever the app is."
+    steps:
+      - {action: launch_app, package: io.github.d_rk.openpatience}
+      - {action: sleep, duration_s: 2}
+      - {action: press_key, key: BACK}
+      - {action: sleep, duration_s: 1}
+      - if_visible:
+          selector: {text: "Back"}
+          then:
+            - {action: press_key, key: BACK}
+      - {action: launch_app, package: io.github.d_rk.openpatience}
+      - {action: sleep, duration_s: 1.5}
+      - if_visible:
+          selector: {desc: "FreeCell"}
+          then:
+            - {action: tap_element, desc: "FreeCell"}
+            - {action: sleep, duration_s: 1.5}
+
+actions:
+  - name: new_game
+    description: "Deal a new FreeCell game: variant Classic (4 cells), '2 cells' (hard) or '6 cells' (relaxed). The deal is random."
+    ref_prompt: "Deal a new FreeCell game"
+    demo_params: {variant: Classic}
+    params:
+      - {name: variant, type: str, default: Classic, description: "Classic, 2 cells or 6 cells"}
+    steps:
+      - subroutine: to_variants
+      - python_action: "helpers:start_variant"
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:get_board"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Undo"}
+        - {kind: element_present, desc: "Menu"}
+        - {kind: custom_python, function: "helpers:dealt"}
+    test_case:
+      ref_prompt_variants:
+        - "play FreeCell"
+        - "new solitaire game"
+        - "deal a hard freecell with 2 cells"
+      expected_success: true
+
+  - name: tap_card
+    description: "Tap a card by name (e.g. 'seven of hearts'): the app moves it to its best legal place (foundation, free cell or column). Returns the board before and after."
+    ref_prompt: "Move the seven of hearts in FreeCell"
+    params:
+      - {name: card, type: str, required: true, description: "Card name as read from get_board, lower case, e.g. 'ace of spades'"}
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:tap_card"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Undo"}
+        - {kind: element_present, desc: "Menu"}
+        - {kind: custom_python, function: "helpers:moved"}
+    test_case:
+      ref_prompt_variants:
+        - "play the king of hearts"
+        - "tap the ace of clubs"
+      expected_success: true
+
+  - name: tap_column
+    description: "Tap the bottom card of column 1-8 (a quick way to play without knowing card names)."
+    ref_prompt: "Play the bottom card of the third FreeCell column"
+    demo_params: {column: "3"}
+    params:
+      - {name: column, type: str, required: true, description: "Column 1 (left) to 8 (right)"}
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:tap_column"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Undo"}
+        - {kind: element_present, desc: "Menu"}
+        - {kind: custom_python, function: "helpers:moved"}
+    test_case:
+      ref_prompt_variants:
+        - "move the last card in column 5"
+      expected_success: true
+
+  - name: undo_move
+    description: "Undo the last move (or redo with redo=true); returns the board."
+    ref_prompt: "Undo my last FreeCell move"
+    params:
+      - {name: redo, type: str, default: "false", description: "true to press Redo instead"}
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:tap_undo_redo"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Undo"}
+        - {kind: element_present, desc: "Redo"}
+        - {kind: custom_python, function: "helpers:undone"}
+    test_case:
+      ref_prompt_variants:
+        - "take back that move"
+      expected_success: true
+
+  - name: get_board
+    description: "Read the whole board: free cells, foundations, the 8 columns (top to bottom), moves and elapsed time."
+    ref_prompt: "What does my FreeCell board look like?"
+    params: []
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:get_board"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Undo"}
+        - {kind: element_present, desc: "Menu"}
+        - {kind: custom_python, function: "helpers:board_read"}
+    test_case:
+      ref_prompt_variants:
+        - "which cards are in the free cells"
+        - "show the foundations"
+      expected_success: true

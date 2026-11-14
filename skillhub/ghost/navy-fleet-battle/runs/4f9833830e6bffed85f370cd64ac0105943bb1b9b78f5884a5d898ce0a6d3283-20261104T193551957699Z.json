@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/navy-fleet-battle",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "net.tigr.navyfleetbattle",
+    "app_version": "1.3.4"
+  },
+  "fingerprint_hash": "4f9833830e6bffed85f370cd64ac0105943bb1b9b78f5884a5d898ce0a6d3283",
+  "app_version": "1.3.4",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T19:35:51.957699+00:00",
+  "finished_at": "2026-11-04T19:35:51.957699+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_state",
+      "success": true,
+      "duration_ms": 5627.241777001473,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4609.921851002582
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 435.98138299785205
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 461.57464399948367
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:ba44e3d0ae0c65bfa44dec076cec7c66922ef6a4d6a6191d542c1d5d8542023b",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQH5Ggzoi262oWJ/287BBobHK80evz3wm0s5TM+zoPkM6JH7piw\nNFF6W3ZNwpwK9KUQgm3MtxiJadwmbxNYYfxgQ=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/futoshiki",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.hexcorp.futoshiki",
+    "app_version": "1.4"
+  },
+  "fingerprint_hash": "36cfe52a8b63b2c0c7ace066301b20bb238744eab2984e3e6adce96a92538d8e",
+  "app_version": "1.4",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T19:51:45.307475+00:00",
+  "finished_at": "2026-11-04T19:51:45.307475+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_grid",
+      "success": true,
+      "duration_ms": 4112.024491001648,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 1495.5299049979658
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1830.1309130001755
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 568.4778739996545
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:55fef0a19fb7d4d787deb2772d8ba870363401f38fe2aa0a8fc57ef6fe489684",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQIBL6mkxVLLsdAwrdlxPRKawI9NBfjZsLilcTgfTp+/z/wXKbl\ngHpKC/tt0Vit4ohqYZ0qDbluvpPk0A9DS4EQ0=\n-----END SSH SIGNATURE-----\n"
+  }
+}

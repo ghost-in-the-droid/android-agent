@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/markor",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "net.gsantner.markor",
+    "app_version": "2.16.1"
+  },
+  "fingerprint_hash": "e4fd017d98690b0dea66d5e0368c3206cfd3238b1c24ea4cdc7571184ee61eb5",
+  "app_version": "2.16.1",
+  "model": "deterministic",
+  "timestamp": "2026-10-23T00:03:27.195105+00:00",
+  "finished_at": "2026-10-23T00:03:27.195105+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "read_note",
+      "success": true,
+      "duration_ms": 46161.23116097879,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": -1,
+          "success": true,
+          "duration_ms": 0.39854703936725855
+        },
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 23327.6379610179
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 5558.855914976448
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 4647.924958029762
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 3117.053558002226
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 4840.986507944763
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 2247.4859319627285
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:226290529f84c25a6b21d261bfc1c3cb13ec8a40ccd3f69abf1388a5cb8a2bde",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQDTp3A5r5FyTauD+MVQzh7eRQqdRUumVNQ6YBP0qPqrxx7fbl1\nxBWkLN80GLxeoSaIkVpOpCXmplFGC0aVErbg4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

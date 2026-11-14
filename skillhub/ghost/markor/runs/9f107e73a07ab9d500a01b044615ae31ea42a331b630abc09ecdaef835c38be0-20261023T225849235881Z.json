@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/markor",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "net.gsantner.markor",
+    "app_version": "2.16.1",
+    "screen_wxh": "720x1600",
+    "density": 300,
+    "locale": "en-GB"
+  },
+  "fingerprint_hash": "9f107e73a07ab9d500a01b044615ae31ea42a331b630abc09ecdaef835c38be0",
+  "app_version": "2.16.1",
+  "model": "deterministic",
+  "timestamp": "2026-10-23T22:58:49.235881+00:00",
+  "finished_at": "2026-10-23T22:58:49.235881+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "append_quicknote",
+      "success": true,
+      "duration_ms": 11525.65365191549,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3726.1118419701234
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1147.7474679704756
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 586.9245530338958
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 2171.5778979705647
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 1004.4634229270741
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 1625.6032020319253
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 1004.3044909834862
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:14bb5808df4b56693781efc849f2bb20306d9a92d2cf4e060555b6fe5b9c1945",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQFK537EcIDgzQHwfAc5chGz57NkbEPo1a1PcJPh6sMF3VyAnA2\nDA6tOjShmzaLIQ8bkpGeZ7Q+WE8/v18NWKtAU=\n-----END SSH SIGNATURE-----\n"
+  }
+}

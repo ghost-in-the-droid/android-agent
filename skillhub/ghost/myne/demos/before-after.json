@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/myne",
+ "action": "search_books",
+ "prompt": "In Myne, search the public Gutenberg catalog for Pride and Prejudice. List the first two complete exposed results with title, author and language, then say whether those visible fields differ. Stay in the catalog: do not download, open a reader, import files or use Library.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 60.79,
+  "tokens": 547512,
+  "tool_calls": 20,
+  "ok": false
+ },
+ "after": {
+  "seconds": 54.9,
+  "tokens": 47226,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "Original BEFORE and exact original prompt retained. AFTER refreshed on current 1.0.1 with Samsung Keyboard suggestions disabled and verified; defaults restored after filming. Source,readiness,terminal,phone and overlay audits passed.",
+ "source": "phone-b-before-after"
+}

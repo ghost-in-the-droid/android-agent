@@ -1,0 +1,108 @@
+# Ghost in the Droid: Futoshiki (login-free FOSS seed skill, installed from F-Droid)
+# A 4x4 number puzzle with inequality arrows; digits are readable, the arrows are not.
+
+name: futoshiki
+version: 1.0.0
+author: ghost
+description: "Futoshiki (F-Droid): start a 4x4 puzzle, place digits, read the grid. The inequality arrows are drawn only, so an agent reads them from a screenshot. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [deletes_data]
+destructive: true
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.hexcorp.futoshiki
+  app_version: ">=1.4"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/futoshiki"
+
+popup_detectors: []
+
+actions:
+  - name: new_game
+    description: "Restart the app and start a fresh 4x4 puzzle (easy, medium or hard); returns the grid."
+    ref_prompt: "Start a Futoshiki puzzle"
+    demo_params: {difficulty: easy}
+    params:
+      - {name: difficulty, type: str, required: false, description: "easy, medium or hard (default easy)"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - {action: launch_app, package: com.hexcorp.futoshiki}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:new_game"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:game_started"}
+    test_case:
+      ref_prompt_variants:
+        - "play futoshiki"
+        - "new number puzzle"
+      expected_success: true
+
+  - name: place
+    description: "Put a digit 1-4 into a cell (row and column 1-4, top-left is 1,1); returns the grid and whether the cell now shows it (false on a given cell)."
+    ref_prompt: "Put 2 in row 1 column 2"
+    demo_params: {row: 1, col: 2, digit: 2}
+    params:
+      - {name: row, type: int, required: true, description: "1-4 from the top"}
+      - {name: col, type: int, required: true, description: "1-4 from the left"}
+      - {name: digit, type: int, required: true, description: "1-4"}
+    steps:
+      - {action: launch_app, package: com.hexcorp.futoshiki}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:place"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:placed"}
+    test_case:
+      ref_prompt_variants:
+        - "write 3 in the top right cell"
+        - "fill row 2 column 3 with 1"
+      expected_success: true
+
+  - name: reset_puzzle
+    description: "Clear all the digits you entered (the RESET button)."
+    ref_prompt: "Reset the puzzle"
+    demo_params: {confirm: yes}
+    params:
+      - {name: confirm, type: str, required: true, description: "Must be yes: this clears your entries"}
+    steps:
+      - {action: launch_app, package: com.hexcorp.futoshiki}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:reset_puzzle"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:reset_done"}
+    test_case:
+      ref_prompt_variants:
+        - "reset the futoshiki board"
+      expected_success: true
+
+  - name: get_grid
+    description: "Read the 4x4 grid (0 = empty), the timer and whether rows and columns are complete."
+    ref_prompt: "What is on the Futoshiki board?"
+    params: []
+    steps:
+      - {action: launch_app, package: com.hexcorp.futoshiki}
+      - {action: sleep, duration_s: 1.5}
+      - python_action: "helpers:get_grid"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:grid_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show the futoshiki grid"
+        - "how far am I in the puzzle"
+      expected_success: true
+

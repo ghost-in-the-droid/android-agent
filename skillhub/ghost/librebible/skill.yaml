@@ -1,0 +1,103 @@
+# Ghost in the Droid: LibreBible (login-free FOSS seed skill, installed from F-Droid)
+# LibreBible (F-Droid): browse the Latin Vulgate offline, open a book and chapter and read its verses. No account.
+
+name: librebible
+version: 1.0.0
+author: ghost
+description: "LibreBible (F-Droid): browse the Latin Vulgate offline, open a book and chapter and read its verses. No account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: xyz.yeikoff.librebible
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/librebible"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: xyz.yeikoff.librebible}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_books
+    description: "Restart the app and show the book list."
+    ref_prompt: "Open the LibreBible book list"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_books"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:books_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open LibreBible"
+      expected_success: true
+
+  - name: list_books
+    description: "Scroll the whole book list and return every book name."
+    ref_prompt: "List all books in LibreBible"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:list_books"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:books_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "which books does the Vulgate have"
+      expected_success: true
+
+  - name: open_chapter
+    description: "Open a book and chapter by name and number."
+    ref_prompt: "Open Ruth chapter 1 in LibreBible"
+    demo_params: {book: "Ruth", chapter: "1"}
+    params:
+      - {name: book, type: str, required: true, description: "book name as listed, for example Ruth or 1 Samuel"}
+      - {name: chapter, type: str, required: true, description: "chapter number"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:open_chapter"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:chapter_opened"}
+    test_case:
+      ref_prompt_variants:
+        - "open Genesis 1 in the Latin Bible"
+      expected_success: true
+
+  - name: read_chapter
+    description: "Read every verse of the open chapter (Latin text, verse numbers by order)."
+    ref_prompt: "Read the open chapter in LibreBible"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:open_ruth"
+      - python_action: "helpers:read_chapter"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:chapter_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read this chapter aloud in Latin"
+      expected_success: true
