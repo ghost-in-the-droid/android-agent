@@ -1,0 +1,10 @@
+<hierarchy>
+  <node resource-id="com.google.android.contacts:id/open_search_bar" bounds="[0,0][100,40]" />
+  <node resource-id="com.google.android.contacts:id/cliv_name_textview" text="Alan Turing" bounds="[0,100][100,140]" />
+  <node resource-id="com.google.android.contacts:id/open_search_view" bounds="[0,0][1080,2200]">
+    <node resource-id="com.google.android.contacts:id/open_search_view_edit_text" text="Grace" bounds="[0,40][100,80]" />
+    <node resource-id="com.google.android.contacts:id/cliv_name_textview" text="Grace Hopper" bounds="[0,200][100,240]" />
+    <node resource-id="com.google.android.contacts:id/cliv_name_textview" text="Grace Kelly" bounds="[0,300][100,340]" />
+    <node resource-id="com.google.android.contacts:id/cliv_name_textview" text="Alan Turing" bounds="[0,400][100,440]" />
+  </node>
+</hierarchy>

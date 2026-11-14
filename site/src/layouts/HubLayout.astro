@@ -1,0 +1,83 @@
+---
+// Shared shell for every /skills/ hub page (not Starlight docs pages).
+import '../styles/hub.css';
+import { loadHub } from '../lib/hub/registry';
+
+interface Props {
+	title: string;
+	description: string;
+	current?: 'browse' | 'compatibility' | 'leaderboard' | 'scoring' | 'validate';
+	/** Mark the page as a search target for Pagefind (skill pages only). */
+	searchable?: boolean;
+	theme?: 'dark' | 'light';
+}
+const { title, description, current, searchable = false, theme } = Astro.props;
+const hub = loadHub();
+const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://ghostinthedroid.com');
+const links: [string, string, Props['current']][] = [
+	['Ghost Skill', '/ghost-skill/', undefined],
+	['Browse', '/skills/', 'browse'],
+	['Compatibility', '/skills/compatibility/', 'compatibility'],
+	['Leaderboard', '/skills/leaderboard/', 'leaderboard'],
+	['Scoring', '/skills/scoring/', 'scoring'],
+	['Validate', '/skills/validate/', 'validate'],
+	['Blog', '/blog/ghost-1-6/', undefined],
+];
+---
+<!doctype html>
+<html lang="en" data-hub-theme={theme}>
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>{title}</title>
+	<meta name="description" content={description} />
+	<link rel="canonical" href={canonical.href} />
+	<meta property="og:title" content={title} />
+	<meta property="og:description" content={description} />
+	<meta property="og:type" content="website" />
+	<meta property="og:url" content={canonical.href} />
+	<meta property="og:image" content="https://ghostinthedroid.com/mascot/40-lineup-banner.png" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={title} />
+	<meta name="twitter:image" content="https://ghostinthedroid.com/mascot/40-lineup-banner.png" />
+	<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+	<slot name="head" />
+	{import.meta.env.VERCEL === '1' && <script is:inline defer src="/_vercel/insights/script.js"></script>}
+</head>
+<body>
+	<header class="hub-nav">
+		<a class="logo" href="/" aria-label="Ghost in the Droid home"><i aria-hidden="true"></i><span>Ghost in the Droid</span></a>
+		<nav aria-label="Skill Hub">
+			<ul>
+				{links.map(([label, href, key]) => (
+					<li class={['Ghost Skill', 'Validate', 'Blog'].includes(label) ? 'opt' : undefined}><a href={href} aria-current={key && current === key ? 'page' : undefined}>{label}</a></li>
+				))}
+				<li class="opt"><a href="/skills/overview/">Docs</a></li>
+			</ul>
+		</nav>
+	</header>
+	{hub.source === 'fixture' && (
+		<div class="preview-banner" role="note">
+			Preview data. The registry has not been generated yet, so these skills come from build fixtures.
+		</div>
+	)}
+	<main class="wrap" data-pagefind-body={searchable ? '' : undefined}>
+		<slot />
+	</main>
+	<footer class="hub-foot">
+		<div class="wrap">
+			<span>Ghost Skill Hub. Registry generated {hub.generatedAt.slice(0, 10)} from <a href={`https://github.com/${hub.repo}`}>{hub.repo}</a>.</span>
+			<nav aria-label="Footer">
+				<a href="/skills/publishing/">Publish a skill</a>
+				<a href="/skills/scoring/">How scoring works</a>
+				<a href="/skills/schema/v2.json">Schema</a>
+				<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
+				<a href="https://discord.gg/gmvDX4Juk">Discord</a>
+			</nav>
+		</div>
+	</footer>
+</body>
+</html>

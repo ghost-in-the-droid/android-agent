@@ -1,9 +1,10 @@
 ---
 /**
- * Sizzle — full-width autoplaying hero reel (public/showcase/hero-reel.webm,
- * built by the showcase pipeline) with tagline + CTAs. Respects
+ * Sizzle — an approved clean action clip with tagline + CTAs. Respects
  * prefers-reduced-motion by showing the poster instead of autoplaying.
  */
+import { loadAllSpecs } from '../lib/showcase';
+const cleanClip = loadAllSpecs()[0];
 interface Props {
 	/** Where "Watch all demos" points. Same-page anchor on /showcase, page URL elsewhere. */
 	demosHref?: string;
@@ -14,17 +15,17 @@ const { demosHref = '/showcase/', getStartedHref = '/getting-started/installatio
 ---
 
 <section class="sizzle" aria-label="Ghost in the Droid demo reel">
-	<video
+	{cleanClip && <video
 		class="sizzle-video"
 		muted
 		loop
 		playsinline
 		preload="metadata"
-		poster="/showcase/hero-poster.png"
+		poster={cleanClip.poster}
 		data-sizzle-video
 	>
-		<source src="/showcase/hero-reel.webm" type="video/webm" />
-	</video>
+		<source src={cleanClip.video} type="video/webm" />
+	</video>}
 	<div class="sizzle-overlay">
 		<h1>Ghost in the Droid</h1>
 		<p class="sizzle-tagline">Real phones. Any AI. Zero cloud.</p>
@@ -49,7 +50,7 @@ const { demosHref = '/showcase/', getStartedHref = '/getting-started/installatio
 		inset: 0;
 		width: 100%;
 		height: 100%;
-		object-fit: cover;
+		object-fit: contain;
 	}
 	.sizzle-overlay {
 		position: relative;

@@ -1,0 +1,10 @@
+---
+import { metricValue } from '../../lib/hub/showcase';
+import type { BenchTask } from '../../lib/hub/bench';
+interface Props { task: BenchTask }
+const { task } = Astro.props;
+const before = metricValue(task, 'before', 'tokens'), after = metricValue(task, 'after_mcp', 'tokens');
+const max = Math.max(before ?? 0, after ?? 0);
+const w = (n: number | null) => max && n != null ? Math.max(0, n / max * 100) : 0;
+---
+<svg class="benchmark-spark" width="100%" height="20" role="img" aria-label={`Median tokens: ${before ?? 'not recorded'} before, ${after ?? 'not recorded'} with skill`}><title>Before / with skill median tokens</title><rect class="spark-before" width={`${w(before)}%`} height="5" y="3" rx="1" /><rect class="spark-after" width={`${w(after)}%`} height="5" y="12" rx="1" /></svg>

@@ -1,0 +1,183 @@
+---
+// /skills/scoring : the public formula (synthesis D2, scoring v1). Rendered
+// from lib/hub/scoring.ts, the same constants the hub pages use.
+import HubLayout from '../../layouts/HubLayout.astro';
+import Trust from '../../components/hub/Trust.astro';
+import { TIERS, CATEGORIES, FRESHNESS, ANTI_GAMING, TRUST, SCORING_VERSION, MAX_POINTS, SELF_RELIABILITY, VALIDATOR_RULE, SCORING_RULES, MAINTENANCE_DECAY_DAYS, type Trust as TrustT } from '../../lib/hub/scoring';
+import { MIN_RUNS_FOR_RATING } from '../../lib/hub/config';
+import { loadHub } from '../../lib/hub/registry';
+import { pickExample, workedExample } from '../../lib/hub/worked-example';
+import { REP, repPointRules } from '../../lib/hub/rep';
+const tierVar = (id: string) => `--tc: var(--t-${id})`;
+const md = (s: string) => s.replace(/`([^`]+)`/g, '<code>$1</code>');
+const usageCap = CATEGORIES.find((c) => c.id === 'community_usage' || c.id === 'usage')?.cap;
+const formula = [
+	`score  = (${CATEGORIES.map((c) => `min(${c.id}, ${c.cap})`).join(' + ')}) x freshness_multiplier`,
+	`max    = ${CATEGORIES.map((c) => c.cap).join(' + ')} = ${MAX_POINTS}`,
+	...(usageCap ? [`community_usage = round(${usageCap} x wilson_lower(passed_90d, runs_90d)) once enough recent runs exist, else 0`] : []),
+].join('\n');
+const exSkill = pickExample(loadHub().skills);
+const ex = exSkill ? workedExample(exSkill) : null;
+---
+<HubLayout title="How skills are scored | Ghost Skill Hub" description="The public quality formula: five tiers, capped point categories, freshness decay and the anti-gaming rules." current="scoring">
+	<section class="page-head">
+		<h1>How skills are scored</h1>
+		<p>
+			Every skill carries two separate badges. Trust says who published it and how it got into the hub.
+			Quality says whether it works and how well it is documented. This page is the whole quality formula, scoring {SCORING_VERSION}: a score from 0 to {MAX_POINTS}.
+		</p>
+	</section>
+
+	<p><strong>auto-login runner: beta.</strong> Action state badges declare prerequisites and transitions: “Requires: logged in”, “Sets: logged in”, or “Clears: logged in”. They do not prove a session exists or add scoring points. Deterministic probes check the current device; signed passing runs remain the evidence.</p>
+	<h2 class="sec">Trust</h2>
+	<div class="table-scroll">
+		<table class="t">
+			<tbody>
+				{(Object.keys(TRUST) as TrustT[]).map((k) => (<tr><td style="width:140px"><Trust trust={k} /></td><td>{TRUST[k].blurb}</td></tr>))}
+			</tbody>
+		</table>
+	</div>
+
+	<h2 class="sec">Quality tiers</h2>
+	<p class="prose-p">A skill needs both the points and every hard gate of a tier to hold it. Tiers are a ladder: each one includes the gates below it.</p>
+	<ol class="ladder-steps">
+		{TIERS.map((t) => (
+			<li style={tierVar(t.id)}>
+				<h3>{t.label}</h3>
+				<div class="pts">{t.points} points</div>
+				<ul>{t.gates.map((g) => <li>{g}</li>)}</ul>
+			</li>
+		))}
+	</ol>
+
+	<h2 class="sec">Where points come from</h2>
+	<p class="prose-p">Each category has a cap, and the caps add up to {MAX_POINTS}, so no single axis can carry a skill up the ladder.</p>
+	<div class="table-scroll">
+		<table class="t">
+			<thead><tr><th>Category</th><th class="num">Cap</th><th>Earned by</th></tr></thead>
+			<tbody>
+				{CATEGORIES.map((c) => (
+					<tr>
+						<td>{c.label}</td>
+						<td class="num">{c.cap}</td>
+						<td>{c.items.length ? c.items.map(([what, pts], i) => (<>{i > 0 && ', '}{what}{' '}<code>{pts}</code></>)) : c.earnedBy}</td>
+					</tr>
+				))}
+				<tr><td>Downloads and likes</td><td class="num">0</td><td>Shown on the page, never scored.</td></tr>
+			</tbody>
+		</table>
+	</div>
+
+	<div class="formula" style="margin-top:1rem">{formula}</div>
+	{(SELF_RELIABILITY || VALIDATOR_RULE) && (
+		<div class="prose-p" data-scoring-v11>
+			{SELF_RELIABILITY && (
+				<p><strong>Self-reliability.</strong> Up to {SELF_RELIABILITY.cap} points inside Self-evidence for the pass rate of your own verified runs, pass or fail: the Wilson lower bound (95%) of passed over total, times {SELF_RELIABILITY.cap}, rounded. It starts counting at {SELF_RELIABILITY.minRuns} recorded self-runs, so a single lucky run earns nothing and a skill that fails often loses the points on its own evidence.</p>
+			)}
+			{VALIDATOR_RULE && (
+				<p><strong>Validators are scored per {VALIDATOR_RULE.per}.</strong> The action with the fewest validator units sets the number: +{VALIDATOR_RULE.each} per unit up to +{VALIDATOR_RULE.cap}{Object.keys(VALIDATOR_RULE.weights).length > 0 && <>, where {Object.entries(VALIDATOR_RULE.weights).map(([k, w], i) => <>{i > 0 && ', '}{k.replace(/_/g, ' ')} counts x{w}</>)}</>}. Ten trivial checks on one action cannot stand in for the rest.</p>
+			)}
+		</div>
+	)}
+
+	{SCORING_RULES.length > 0 && (
+		<>
+			<h2 class="sec">Rules in the scoring file</h2>
+			<p class="prose-p">Verbatim from <code>skillhub/scoring/v1.json</code> ({SCORING_VERSION}); the registry builder applies exactly these.</p>
+			<ul class="prose-p" data-scoring-rules style="padding-left:1.2rem;display:flex;flex-direction:column;gap:.35rem">
+				{SCORING_RULES.map((r) => <li>{r}</li>)}
+			</ul>
+		</>
+	)}
+	{MAINTENANCE_DECAY_DAYS != null && (
+		<p class="prose-p" data-maintenance-decay>Maintenance points are worth their full value for 30 days after the last passing run that was not self-recorded, then fall linearly to 0 at {MAINTENANCE_DECAY_DAYS} days.</p>
+	)}
+
+	{ex && (
+		<>
+			<h2 class="sec">A worked example: <a class="inline-link" href={`/skills/${ex.id}/`}>{ex.id}</a></h2>
+			<p class="prose-p" data-worked-example>
+				Every number below is read from this skill's entry in <code>registry.json</code> when the site is built, not typed. It is the highest-scoring
+				skill in the registry today: trust <strong>{ex.trust}</strong>, tier <strong>{ex.tier}</strong>, {ex.points} of {ex.max} points.
+			</p>
+			<div class="table-scroll">
+				<table class="t">
+					<thead><tr><th>Category</th><th class="num">Cap</th><th class="num">Earned</th></tr></thead>
+					<tbody>
+						{ex.rows.map((r) => (<tr><td>{r.label}</td><td class="num">{r.cap}</td><td class="num">{r.points}</td></tr>))}
+						<tr><td><strong>Subtotal</strong></td><td class="num">{ex.max}</td><td class="num"><strong>{ex.subtotal}</strong></td></tr>
+					</tbody>
+				</table>
+			</div>
+			<div class="formula" data-worked-formula>{`score = ${ex.subtotal} x freshness ${ex.freshness} = ${ex.score}`}</div>
+			<p class="prose-p">
+				The evidence behind those points is labelled by who ran it. Self-recorded runs: {ex.evidence.self.passed}/{ex.evidence.self.total} passed (the maintainer ran them, not independent).
+				Maintainer-signed replays: {ex.evidence.maintainer.passed}/{ex.evidence.maintainer.total}. Independent runs signed by another account: {ex.evidence.independent.passed}/{ex.evidence.independent.total}.
+				It covers {ex.independentCells} independent device cell{ex.independentCells === 1 ? '' : 's'}; {ex.cells} cell{ex.cells === 1 ? ' is' : 's are'} recorded, none of which count as coverage until another account runs there.
+				{ex.decayDays != null && <> Its maintenance points would decay linearly to 0 over {ex.decayDays} days after the last non-self passing run.</>}
+			</p>
+			{ex.next && <p class="prose-p">Next rung: <strong>{ex.next.label}</strong> needs {ex.next.points} points{ex.next.missing > 0 ? `, ${ex.next.missing} more than it has` : ''} and every gate of that tier listed above. Independent and maintainer runs are what the empty categories are waiting for.</p>}
+		</>
+	)}
+
+	<h2 class="sec">Freshness</h2>
+	<div class="table-scroll">
+		<table class="t"><tbody>{FRESHNESS.map(([when, effect]) => <tr><td>{when}</td><td>{effect}</td></tr>)}</tbody></table>
+	</div>
+
+	<h2 class="sec">Device coverage</h2>
+	<p class="prose-p">A device cell is one combination of four axes: app version × OS version × screen (WxH + density) × locale.
+		Only verified independent runs on the current skill cover a cell; repeated runs increase its run count, not its coverage count.
+		Failures count as runs too: coverage means tested, not passed. Maintainer and self runs are recorded as “not independent”.
+		Missing fingerprint axes appear as <code>*</code> and cover no cell. Skills default to en-US, but a run must record its locale.</p>
+	<p class="prose-p">The registry publishes <code>quality.runs.device_grid</code>. For one release, <code>independent_devices</code>
+		is an alias for <code>device_grid.independent_cells</code>, a cell count, not a count of physical devices. This display change does not change the points formula.</p>
+
+	<h2 class="sec">Run counts and the confidence floor</h2>
+	<p class="prose-p" data-success-copy>
+		A skill page and the leaderboard show the raw count of counted runs, <code>passed / total</code>, split by evidence class:
+		self-recorded by the author, maintainer-signed replays (a maintainer-held key re-running the author's steps, which is
+		reproducibility, not independence), and independent runs signed by another account. Runs on an emulator image are flagged.
+		No percentage is shown as a success rate.
+	</p>
+	<p class="prose-p">
+		Below the count, a skill page prints a <strong>confidence floor</strong>: the lower bound of the 95% Wilson score interval over the
+		counted runs, with no prior. It is deliberately conservative: 3 of 3 passed gives a floor of 44%, 32 of 32 gives 89%, so the floor
+		rewards more runs and never exceeds the observed rate.
+	</p>
+	<p class="prose-p">
+		For sorting only, the leaderboard breaks ties between skills with equal points and tier on a Wilson lower bound computed after adding a
+		prior of 10 passes and 10 failures. That number is never displayed, because read as a rate it would say one run in three fails when none did.
+	</p>
+	<div class="formula">{`wilson_lower(p, n) = (p + z²/2n - z·sqrt(p(1-p)/n + z²/4n²)) / (1 + z²/n),  z = 1.96
+confidence_floor   = wilson_lower(passed / total, total)                      shown on the page
+sort_tiebreak      = wilson_lower((passed + 10) / (total + 20), total + 20)   never shown`}</div>
+
+	<h2 class="sec">Anti-gaming rules</h2>
+	<ul class="prose-p" style="padding-left:1.2rem;display:flex;flex-direction:column;gap:.35rem">
+		{ANTI_GAMING.map((r) => <li set:html={md(r)} />)}
+	</ul>
+	{REP.rules.length > 0 && (
+		<section id="rep" data-rep-version={REP.version}>
+			<h2 class="sec">How rep works</h2>
+			<p class="prose-p">Quality points belong to a skill. Rep belongs to a person: your GitHub login, the same name as your author folder and your signed run principal. There are no accounts. Rep {REP.version} is built from the same registry, from <code>skillhub/scoring/rep-v1.json</code>.</p>
+			<div class="table-scroll">
+				<table class="t" data-rep-points>
+					<thead><tr><th>Earned by</th><th>Rep</th></tr></thead>
+					<tbody>{repPointRules().map((r) => <tr><td>{r.source}</td><td>{r.points}</td></tr>)}</tbody>
+				</table>
+			</div>
+			<h3 class="sec">Badges</h3>
+			<div class="table-scroll">
+				<table class="t" data-rep-badges>
+					<tbody>{REP.badges.map((b) => <tr><td style="width:160px"><span class="rep-badge">{b.label}</span></td><td>{b.description}</td></tr>)}</tbody>
+				</table>
+			</div>
+			<ul class="prose-p" style="padding-left:1.2rem;display:flex;flex-direction:column;gap:.35rem">
+				{REP.rules.map((r) => <li set:html={md(r)} />)}
+			</ul>
+		</section>
+	)}
+
+	<p class="prose-p" style="margin-bottom:4rem">Point values live in a versioned scoring file and change only at season boundaries. Past scores are never recomputed under a new formula.</p>
+</HubLayout>

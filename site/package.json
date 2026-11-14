@@ -5,19 +5,36 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
+    "predev": "node scripts/compile-skill-schema.mjs",
+    "prebuild": "node scripts/compile-skill-schema.mjs",
     "build": "astro build",
+    "postbuild": "node scripts/check-assetlinks.mjs",
     "preview": "astro preview",
+    "pretest:unit": "node scripts/compile-skill-schema.mjs",
+    "test:unit": "node --test tests/unit/*.test.mjs",
+    "check:hub-size": "node scripts/check-hub-size.mjs",
+    "check:links": "node scripts/check-links.mjs",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",
     "@astrojs/starlight": "^0.38.2",
     "@vercel/analytics": "^2.0.1",
+    "ajv": "^8.20.0",
     "astro": "^6.0.1",
     "js-yaml": "^4.3.0",
-    "sharp": "^0.34.2"
+    "qrcode": "^1.5.4",
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "sharp": "^0.34.2",
+    "unified": "^11.0.5"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1"
+    "@playwright/test": "^1.61.1",
+    "linkinator": "8.1.0"
   }
 }

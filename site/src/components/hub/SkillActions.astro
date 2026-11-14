@@ -1,0 +1,25 @@
+---
+import type { Skill } from '../../lib/hub/registry';
+import ActionPrompts from './ActionPrompts.astro';
+import { stateBadges } from '../../lib/hub/states';
+import CopyCmd from './CopyCmd.astro';
+interface Props { skill: Skill }
+const { skill } = Astro.props;
+---
+{skill.latestEntry.actions.map((action) => <article class="skill-action" data-skill-action={action}>
+	<header><h3><code>{action}</code></h3>{skill.demoClips.some((clip) => clip.action === action)
+		? <a class="inline-link demo-link" href={`#demo-a-${action}`} data-demo-link aria-label={`Play the ${action} demo`}>Play demo</a>
+		: <span class="muted">no demo yet</span>}</header>
+	{stateBadges(skill.latestEntry.action_states?.[action]).map((badge) => <span class="state-badge">{badge}</span>)}
+	{skill.latestEntry.action_states?.[action]?.requires_state?.length ? <p class="muted">auto-login runner: beta</p> : null}
+	<ActionPrompts prompts={skill.actionPrompts[action]} action={action} />
+	<CopyCmd cmd={`ghost skill run ${skill.id} ${action}`} label={`Run ${action}`} />
+</article>)}
+<style>
+	.state-badge { display: inline-block; margin: .5rem .5rem .25rem 0; padding: .2rem .5rem; border: 1px solid var(--line); border-radius: .3rem; font-size: .8rem; }
+	.skill-action { border-top: 1px solid var(--line); padding-block: 1.25rem; }
+	header { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; flex-wrap: wrap; }
+	h3 { font-size: 1rem; min-width: 0; overflow-wrap: anywhere; }
+	header > span, header > a { font-size: .8rem; }
+	.skill-action :global(.cmd) { margin-top: 1rem; }
+</style>

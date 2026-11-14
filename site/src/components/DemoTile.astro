@@ -2,7 +2,7 @@
 /**
  * DemoTile — 16:9 poster tile that plays the demo on hover and opens a modal
  * with the full video, the code snippet, and a docs link on click.
- * All data resolves at build time from public/showcase/<feature>/spec.yaml.
+ * All media resolves at build time from the clean Skill Hub demo catalog.
  */
 import { Code } from 'astro:components';
 import { loadSpec, loadSnippet, demoAssets } from '../lib/showcase';
@@ -193,7 +193,7 @@ const modalId = `demo-modal-${feature}`;
 
 		tile.addEventListener('click', () => {
 			if (!modal) return;
-			modal.showModal(); // native focus trap + Esc handling
+			modal.showModal(); // native modal isolation + Esc handling
 			const mv = modal.querySelector('video');
 			// If the modal is closed before play() resolves (fast backdrop/Esc),
 			// pause on resolve — otherwise the pending promise resumes playback.
@@ -203,6 +203,24 @@ const modalId = `demo-modal-${feature}`;
 		});
 
 		if (modal) {
+			// Native dialogs isolate the page, but Chromium can move focus to
+			// browser chrome at the tab boundaries. Wrap those boundaries while
+			// leaving the video's native controls in their normal tab order.
+			modal.addEventListener('keydown', (event) => {
+				if (event.key !== 'Tab') return;
+				const controls = Array.from(modal.querySelectorAll<HTMLElement>(
+					'button:not(:disabled), a[href], video[controls], [tabindex="0"]',
+				)).filter((control) => control.getClientRects().length > 0);
+				const first = controls[0];
+				const last = controls[controls.length - 1];
+				if (event.shiftKey && document.activeElement === first) {
+					event.preventDefault();
+					last?.focus();
+				} else if (!event.shiftKey && document.activeElement === last) {
+					event.preventDefault();
+					first?.focus();
+				}
+			});
 			modal.querySelector('[data-close]')?.addEventListener('click', () => modal.close());
 			modal.addEventListener('click', (e) => {
 				if (e.target === modal) modal.close(); // backdrop click

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+  <int name="timer_state_0" value="1" />
+  <long name="timer_original_timet_0" value="240000" />
+  <string name="timer_label_0">Tea</string>
+  <int name="sw_state" value="1" />
+</map>

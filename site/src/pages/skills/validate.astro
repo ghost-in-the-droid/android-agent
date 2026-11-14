@@ -1,0 +1,285 @@
+---
+// /skills/validate : client-side skill.yaml validator. Monaco is loaded from
+// jsDelivr at runtime (no bundled editor bytes); js-yaml and a precompiled
+// ajv standalone validator are bundled.
+// The schema is the one tools/export_schema.py derives from the loader.
+import HubLayout from '../../layouts/HubLayout.astro';
+
+const MONACO = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs';
+---
+<HubLayout title="Validate a skill.yaml | Ghost Skill Hub" description="Paste or open a skill.yaml and check it against the hub schema in your browser. Nothing is uploaded." current="validate">
+	<section class="page-head">
+		<h1>Validate a skill</h1>
+		<p>
+			Paste a <code>skill.yaml</code> or open one from disk. It is checked in your browser against the
+			<a class="inline-link" href="/skills/schema/v2.json">hub schema</a>; nothing is uploaded.
+			This runs the same structural checks as <code>ghost skill validate</code>. Import checks for Python helpers still need the CLI.
+		</p>
+	</section>
+
+	<div class="validator">
+		<div>
+			<div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap">
+				<label class="btn ghost" for="file">Open skill.yaml</label>
+				<input id="file" type="file" accept=".yaml,.yml,text/yaml" hidden />
+				<button type="button" class="btn ghost" id="example">Load example</button>
+			</div>
+			<div id="editor" data-monaco={MONACO}><textarea id="fallback" spellcheck="false" aria-label="skill.yaml source"></textarea></div>
+		</div>
+		<div class="results" aria-live="polite">
+			<div class="verdict" id="verdict">Checking...</div>
+			<div id="issues" class="results"></div>
+		</div>
+	</div>
+    <section class="demo-check" aria-labelledby="demo-heading">
+        <h2 id="demo-heading">Check a demo video</h2>
+        <p>Open the WebM from <code>ghost skill demo</code>. Size, duration and dimensions
+            are checked locally; your video stays in your browser. Review it for private
+            information before including it in your hub submission.</p>
+        <label for="demo-file">Demo WebM (up to 3 MB, 30 seconds)</label>
+        <input id="demo-file" type="file" accept=".webm,video/webm" aria-describedby="demo-status" />
+        <p id="demo-status" role="status">Choose a demo to check.</p>
+        <video id="demo-preview" controls preload="metadata" hidden aria-label="Demo video preview"></video>
+    </section>
+</HubLayout>
+
+<style>
+    .demo-check { margin-block: 2rem; }
+    .demo-check label, .demo-check input { display: block; margin-block: .75rem; }
+    .demo-check input { max-width: 100%; min-height: 40px; }
+    .demo-check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+    #demo-preview { max-width: 100%; max-height: 32rem; }
+    #demo-preview[hidden] { display: none; }
+</style>
+
+<script>
+	import { load as yamlLoad } from 'js-yaml';
+	// Standalone ajv validator precompiled from skill.schema.json (prebuild).
+	import check from '../../lib/hub/skill.validate.generated.js';
+
+	const EXAMPLE = `name: whatsapp-messaging
+version: 1.0.0
+author: alice
+description: Send a WhatsApp message to a saved contact
+license: MIT
+generated_with: hand
+skill_class: hard
+data_access: [contacts]
+side_effects: [sends_message]
+destructive: false
+tos_risk: low
+locale: [en-US]
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.whatsapp
+  app_version: ">=2.24.15"
+actions:
+  - name: send_msg
+    ref_prompt: Text John saying I'm late
+    params:
+      - {name: contact_name, type: str, required: true}
+      - {name: message, type: str, required: true}
+    steps:
+      - {action: launch_app, package: com.whatsapp}
+      - {action: tap_element, desc: Search}
+      - {action: type_text, text: "{contact_name}"}
+      - {action: tap_element, text: "{contact_name}"}
+      - {action: type_text, text: "{message}"}
+      - {action: tap_element, desc: Send}
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "{message}"}
+    test_case:
+      ref_prompt_variants: ["text mom I'll be late"]
+      expected_success: true
+`;
+
+	type Issue = { level: 'error' | 'warn'; path: string; message: string; line: number };
+	type AjvError = { instancePath: string; keyword: string; params: Record<string, any>; message?: string };
+
+	/** Best-effort line lookup for a JSON pointer in YAML source. */
+	function lineFor(src: string, pointer: string): number {
+		const lines = src.split('\n');
+		let cursor = 0;
+		let indent = -1;
+		for (const seg of pointer.split('/').filter(Boolean)) {
+			if (/^\d+$/.test(seg)) {
+				let n = Number(seg), itemIndent = -1;
+				for (let i = cursor; i < lines.length; i++) {
+					const m = /^(\s*)- /.exec(lines[i]);
+					if (!m) continue;
+					if (itemIndent < 0) itemIndent = m[1].length;
+					if (m[1].length < itemIndent) break;
+					if (m[1].length === itemIndent && n-- === 0) { cursor = i; indent = itemIndent; break; }
+				}
+			} else {
+				const re = new RegExp(`^(\\s*)(- )?["']?${seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']?\\s*:`);
+				for (let i = cursor; i < lines.length; i++) {
+					const m = re.exec(lines[i]);
+					if (m && m[1].length + (m[2] ? 2 : 0) > indent - 1) { cursor = i; indent = m[1].length; break; }
+				}
+			}
+		}
+		return cursor + 1;
+	}
+
+	function validate(src: string): Issue[] {
+		let doc: unknown;
+		try {
+			doc = yamlLoad(src);
+		} catch (e) {
+			const err = e as { reason?: string; message: string; mark?: { line: number } };
+			return [{ level: 'error', path: '', message: `YAML does not parse: ${err.reason ?? err.message}. Check indentation, and quote types like 'list[str]'.`, line: (err.mark?.line ?? 0) + 1 }];
+		}
+		if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
+			return [{ level: 'error', path: '', message: 'The file must be a mapping with name, version and actions at the top level.', line: 1 }];
+		}
+		const d = doc as Record<string, any>;
+		const official = d.author === 'ghost';
+		const out: Issue[] = [];
+		if (!check(doc)) {
+			for (const e of ((check as any).errors ?? []) as AjvError[]) {
+				const missing = e.keyword === 'required' ? (e.params as { missingProperty: string }).missingProperty : null;
+				const path = missing ? `${e.instancePath}/${missing}` : e.instancePath;
+				// Amendment A: license + generated_with are warnings for official skills until migrated.
+				const soft = official && e.instancePath === '' && (missing === 'license' || missing === 'generated_with');
+				if (e.keyword === 'if') continue; // the 'then' error carries the message
+				out.push({
+					level: soft ? 'warn' : 'error',
+					path: path || '/',
+					message: missing ? `Missing required field \`${missing}\`.` : `\`${path || '/'}\` ${e.message}${e.keyword === 'enum' ? `: ${(e.params as { allowedValues: unknown[] }).allowedValues.join(', ')}` : ''}.`,
+					line: lineFor(src, missing ? e.instancePath : path),
+				});
+			}
+		}
+		// Loader checks that JSON Schema cannot express.
+		const names = new Set<string>();
+		(Array.isArray(d.actions) ? d.actions : []).forEach((a: any, i: number) => {
+			if (a?.name && names.has(a.name)) out.push({ level: 'error', path: `/actions/${i}/name`, message: `Duplicate action name \`${a.name}\`.`, line: lineFor(src, `/actions/${i}/name`) });
+			names.add(a?.name);
+		});
+		(Array.isArray(d.subroutines) ? d.subroutines : []).forEach((s: any, i: number) => {
+			if (s?.name && names.has(s.name)) out.push({ level: 'error', path: `/subroutines/${i}/name`, message: `Subroutine \`${s.name}\` has the same name as an action. Rename one of them.`, line: lineFor(src, `/subroutines/${i}/name`) });
+		});
+		if (d.destructive === true && !/confirm_before|dry_run/.test(src)) {
+			out.push({ level: 'warn', path: '/destructive', message: 'Destructive skills need a `confirm_before:` step or `dry_run` support.', line: lineFor(src, '/destructive') });
+		}
+		return out.sort((a, b) => a.line - b.line);
+	}
+
+	// ── UI ──
+	const verdict = document.getElementById('verdict')!;
+	const issuesEl = document.getElementById('issues')!;
+	const host = document.getElementById('editor')!;
+	const fallback = document.getElementById('fallback') as HTMLTextAreaElement;
+	let getValue = () => fallback.value;
+	let setValue = (v: string) => { fallback.value = v; run(); };
+	let reveal = (_line: number) => {};
+	let mark = (_issues: Issue[]) => {};
+
+	function run() {
+		const src = getValue();
+		const issues = src.trim() ? validate(src) : [];
+		mark(issues);
+		const errs = issues.filter((i) => i.level === 'error').length;
+		const warns = issues.length - errs;
+		verdict.dataset.state = !src.trim() ? '' : errs ? 'err' : warns ? 'warn' : 'ok';
+		verdict.textContent = !src.trim() ? 'Paste a skill.yaml to check it.'
+			: errs ? `${errs} ${errs === 1 ? 'error' : 'errors'}${warns ? `, ${warns} ${warns === 1 ? 'warning' : 'warnings'}` : ''}. Fix the errors before submitting.`
+			: warns ? `Valid, with ${warns} ${warns === 1 ? 'warning' : 'warnings'}.`
+			: 'Valid. Next: run ghost skill test on a device.';
+		issuesEl.replaceChildren(...issues.map((i) => {
+			const el = document.createElement('div');
+			el.className = i.level === 'warn' ? 'issue warn' : 'issue';
+			const b = document.createElement('button');
+			b.type = 'button';
+			b.textContent = `Line ${i.line}`;
+			b.addEventListener('click', () => reveal(i.line));
+			const msg = document.createElement('span');
+			msg.innerHTML = ' ' + i.message.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!).replace(/`([^`]+)`/g, '<code>$1</code>');
+			el.append(b, msg);
+			return el;
+		}));
+	}
+
+	let timer: number | undefined;
+	const schedule = () => { clearTimeout(timer); timer = window.setTimeout(run, 250); };
+	fallback.addEventListener('input', schedule);
+	fallback.value = EXAMPLE;
+	run();
+
+	document.getElementById('example')!.addEventListener('click', () => setValue(EXAMPLE));
+	document.getElementById('file')!.addEventListener('change', async (ev) => {
+		const f = (ev.target as HTMLInputElement).files?.[0];
+		if (f) setValue(await f.text());
+	});
+
+    const demoInput = document.getElementById('demo-file') as HTMLInputElement;
+    const demoStatus = document.getElementById('demo-status')!;
+    const demoPreview = document.getElementById('demo-preview') as HTMLVideoElement;
+    let demoURL: string | undefined;
+    function releaseDemo() {
+        demoPreview.pause();
+        demoPreview.hidden = true;
+        demoPreview.removeAttribute('src');
+        demoPreview.load();
+        if (demoURL) URL.revokeObjectURL(demoURL);
+        demoURL = undefined;
+    }
+    demoInput.addEventListener('change', () => {
+        releaseDemo();
+        const file = demoInput.files?.[0];
+        if (!file) { demoStatus.textContent = 'Choose a demo to check.'; return; }
+        if (!file.name.toLowerCase().endsWith('.webm') || file.size === 0 || file.size > 3_000_000) {
+            demoStatus.textContent = 'Choose a non-empty WebM no larger than 3 MB. Record it with ghost skill demo.';
+            return;
+        }
+        demoStatus.textContent = 'Checking video metadata…';
+        demoURL = URL.createObjectURL(file);
+        demoPreview.onloadedmetadata = () => {
+            if (!Number.isFinite(demoPreview.duration) || demoPreview.duration <= 0 || demoPreview.duration > 30 ||
+                Math.max(demoPreview.videoWidth, demoPreview.videoHeight) > 1920 || !demoPreview.videoWidth) {
+                demoStatus.textContent = 'The demo must be at most 30 seconds and 1920 pixels on its longest side. Record it with ghost skill demo.';
+                releaseDemo();
+                return;
+            }
+            demoPreview.hidden = false;
+            demoStatus.textContent = `Demo accepted: ${demoPreview.duration.toFixed(1)} seconds, ${demoPreview.videoWidth} × ${demoPreview.videoHeight}. Include this file in demos/<action>.webm in your submission.`;
+        };
+        demoPreview.onerror = () => {
+            demoStatus.textContent = 'Could not read this WebM. Try another recording from ghost skill demo.';
+            releaseDemo();
+        };
+        demoPreview.src = demoURL;
+    });
+    window.addEventListener('pagehide', releaseDemo);
+
+	// Upgrade the textarea to Monaco when the CDN is reachable.
+	const base = host.dataset.monaco!;
+	const s = document.createElement('script');
+	s.src = `${base}/loader.js`;
+	s.onload = () => {
+		const req = (window as any).require;
+		req.config({ paths: { vs: base } });
+		req(['vs/editor/editor.main'], (monaco: any) => {
+			const current = fallback.value;
+			host.replaceChildren();
+			const ed = monaco.editor.create(host, {
+				value: current, language: 'yaml', theme: 'vs-dark', minimap: { enabled: false },
+				fontSize: 13, fontFamily: 'JetBrains Mono, monospace', scrollBeyondLastLine: false, automaticLayout: true, tabSize: 2,
+			});
+			getValue = () => ed.getValue();
+			setValue = (v) => ed.setValue(v);
+			reveal = (line) => { ed.revealLineInCenter(line); ed.setPosition({ lineNumber: line, column: 1 }); ed.focus(); };
+			mark = (issues) => monaco.editor.setModelMarkers(ed.getModel(), 'ghost', issues.map((i) => ({
+				startLineNumber: i.line, endLineNumber: i.line, startColumn: 1, endColumn: 200,
+				message: i.message.replace(/`/g, ''), severity: i.level === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+			})));
+			ed.onDidChangeModelContent(schedule);
+			run();
+		});
+	};
+	document.head.appendChild(s);
+</script>

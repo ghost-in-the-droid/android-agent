@@ -1,0 +1,243 @@
+---
+// /skills/<author>/<slug>/ : one page per registry skill.
+import HubLayout from '../../../layouts/HubLayout.astro';
+import Ladder from '../../../components/hub/Ladder.astro';
+import Trust from '../../../components/hub/Trust.astro';
+import Status from '../../../components/hub/Status.astro';
+import AppIcon from '../../../components/hub/AppIcon.astro';
+import DemoTabs from '../../../components/hub/DemoTabs.astro';
+import HumanAssistedDemo from '../../../components/hub/HumanAssistedDemo.astro';
+import { humanAssistedDemoFor } from '../../../lib/hub/human-assisted';
+import CopyCmd from '../../../components/hub/CopyCmd.astro';
+import SkillActions from '../../../components/hub/SkillActions.astro';
+import DeviceCoverage from '../../../components/hub/DeviceCoverage.astro';
+import ReliabilityCard from '../../../components/hub/ReliabilityCard.astro';
+import SkillBenchSummary from '../../../components/hub/SkillBenchSummary.astro';
+import ShortSha from '../../../components/hub/ShortSha.astro';
+import BenchCard from '../../../components/hub/BenchCard.astro';
+import { loadHub, formatBytes, formatDate, type Skill } from '../../../lib/hub/registry';
+import { renderMarkdown, qrSvg } from '../../../lib/hub/render';
+import { appLinkFor, cdnUrl, installCommand, sourceUrl } from '../../../lib/hub/config';
+import { CATEGORIES, MAX_POINTS, TIERS, categoryPoints, freshnessLabel } from '../../../lib/hub/scoring';
+
+export function getStaticPaths() {
+	return loadHub().skills.map((skill) => ({ params: { author: skill.author, slug: skill.slug }, props: { skill } }));
+}
+
+const { skill } = Astro.props as { skill: Skill };
+const hub = loadHub();
+const e = skill.latestEntry;
+const humanDemo = humanAssistedDemoFor(skill.id);
+const fp = e.fingerprint;
+const q = skill.quality;
+const docBase = { assets: cdnUrl(skill.author, skill.slug, e.tag), links: sourceUrl(skill.author, skill.slug, e.tag) };
+const readme = await renderMarkdown(skill.readme, docBase);
+const soft = await renderMarkdown(skill.soft, docBase);
+const appLink = appLinkFor(skill.author, skill.slug, skill.latest);
+const qr = await qrSvg(appLink);
+const fresh = freshnessLabel(q.signals.last_verified, hub.generatedAt);
+const provisional = !!q.provisional_until && Date.parse(q.provisional_until) > Date.parse(hub.generatedAt);
+const nextTier = TIERS[skill.tierIndex + 1];
+const latestRecord = skill.versionList[0]?.record;
+const fpRows = Object.entries(fp).filter(([, v]) => v !== undefined && v !== '' && v !== null && !(Array.isArray(v) && v.length === 0)).map(([k, v]) => [k, v === '*' ? 'any' : Array.isArray(v) ? v.join(', ') : v] as const);
+const changelog = skill.changelog ? await renderMarkdown(skill.changelog, docBase) : null;
+const lineage = skill.lineage;
+const tabs = [
+	['readme', 'README'],
+	['soft', 'SOFT.md'],
+	['actions', `Actions (${e.actions.length})`],
+	['versions', `Versions (${skill.versionList.length})`],
+	...(changelog ? [['changelog', 'Changelog']] : []),
+] as [string, string][];
+---
+<HubLayout
+	title={`${skill.id}: ${skill.description} | Ghost Skill Hub`}
+	description={skill.description}
+	searchable
+>
+	<span data-pagefind-filter="kind" hidden>skill</span>
+	<span data-pagefind-meta="title" hidden>{skill.id}</span>
+	<div class="page-head">
+		<div class="crumbs" data-pagefind-ignore><a href="/skills/">Skills</a> / <a href={`/skills/${skill.author}/`}>{skill.author}</a></div>
+		<div class="title-line">
+			<AppIcon skill={skill} size={64} />
+			<h1 class="skill-title"><span class="a"><a href={`/skills/${skill.author}/`}>{skill.author}</a>/</span>{skill.slug}</h1>
+		</div>
+		<p>{skill.description}</p>
+		<div class="badges">
+			<Ladder tier={q.tier} provisional={provisional} />
+			{skill.beforeAfter?.summary?.tokensFewer && <a class="chip savings-chip" href="#token-savings" title="Tokens without the skill vs with it, same phone and prompt" data-skill-savings-chip>{skill.beforeAfter.summary.tokens}</a>}
+			<a class="chip score-chip" href="#quality" title="Quality score: points out of 100, see Quality points" data-skill-score>Score {skill.points}/{MAX_POINTS}</a>
+			<Trust trust={skill.trust} />
+			<Status status={skill.status} />
+			<span class={skill.skill_class === 'soft' ? 'chip soft' : 'chip'}>{skill.skill_class} skill</span>
+			{e.has_python && <span class="chip" title="Ships Python helpers">python</span>}
+			{e.data_access.map((d) => <span class="chip" title="Declared data access">{d}</span>)}
+			{skill.staleUpstream && <span class="chip stale" title="The target app shipped a version outside the tested range" data-stale>upstream drift</span>}
+			{skill.reference && <span class="chip reference" title="Benchmark reference skill: generated from a benchmark task, hidden from the default browse until its steps are authored" data-reference>benchmark reference</span>}
+		</div>
+		{e.tos_risk === 'high' && (
+			<p class="lineage" data-tos-risk="high" role="note">
+				<strong>High terms-of-service risk.</strong> The vendor's terms prohibit automated access or bot-created accounts. Published for research: do not run it against live accounts. Not vendor-approved.
+			</p>
+		)}
+		{(lineage.forkedFrom || lineage.supersededBy || lineage.deprecatedReason) && (
+			<p class="lineage" data-lineage>
+				{lineage.supersededBy && <>Superseded by <a class="inline-link" href={`/skills/${lineage.supersededBy.replace(/@.*$/, '')}/`}><code>{lineage.supersededBy}</code></a>. </>}
+				{lineage.deprecatedReason && <>Deprecated: {lineage.deprecatedReason}. </>}
+				{lineage.forkedFrom && <>Forked from <a class="inline-link" href={`/skills/${lineage.forkedFrom.replace(/@.*$/, '')}/`}><code>{lineage.forkedFrom}</code></a>; run history starts fresh in a fork.</>}
+			</p>
+		)}
+	</div>
+
+	<SkillBenchSummary skill={skill} />
+
+	<div class="skill-grid">
+		<div>
+			{humanDemo && <HumanAssistedDemo demo={humanDemo} />}
+			{skill.demoClips.length > 0 || skill.beforeAfter ? <DemoTabs skill={skill} /> : !humanDemo && <p class="no-clean-demo">No clean demo yet. Recordings will start on HOME and show the app launching.</p>}
+			<div class="tabs" role="tablist" data-pagefind-ignore>
+				{tabs.map(([id, label], i) => (
+					<button type="button" role="tab" id={`tab-${id}`} aria-controls={`panel-${id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{label}</button>
+				))}
+			</div>
+
+			<section class="tabpanel" role="tabpanel" id="panel-readme" aria-labelledby="tab-readme">
+				{readme ? <div class="md" set:html={readme} /> : <p class="prose-p">This skill has no README yet. The docs category of its score is capped until one lands.</p>}
+			</section>
+
+			<section class="tabpanel" role="tabpanel" id="panel-soft" aria-labelledby="tab-soft" hidden>
+				<p class="prose-p">SOFT.md is the narrative an agent reads when the exact steps no longer match your app version and it has to adapt the skill.</p>
+				{soft ? <div class="md" set:html={soft} /> : <p class="prose-p">No SOFT.md in this version.</p>}
+			</section>
+
+			<section class="tabpanel" role="tabpanel" id="panel-actions" aria-labelledby="tab-actions">
+				<p class="prose-p">Try a sample prompt or run an action by name. Replace any parameters in braces with your own values.</p>
+				<SkillActions skill={skill} />
+			</section>
+
+			<section class="tabpanel" role="tabpanel" id="panel-versions" aria-labelledby="tab-versions" hidden>
+				<p class="prose-p">Each release is an immutable git tag. The tree hash pins the exact skill directory the installer verifies.</p>
+				<div class="table-scroll">
+					<table class="t">
+						<thead><tr><th>Version</th><th>Released</th><th>App versions</th><th>Tree</th><th class="num">Size</th><th>Provenance</th></tr></thead>
+						<tbody>
+							{skill.versionList.map(({ version, entry, record }) => (
+								<tr>
+									<td><code>{version}</code>{version === skill.latest && <span class="chip" style="margin-left:.4rem">latest</span>}</td>
+									<td>{formatDate(record?.released_at)}</td>
+									<td><code>{entry.fingerprint.app_version ?? '*'}</code></td>
+									<td>{record?.git_tree ? <code title={record.git_tree}>{record.git_tree.slice(0, 10)}</code> : <span title="Pinned when the version is tagged">pending</span>}</td>
+									<td class="num">{formatBytes(record?.size ?? entry.size_bytes)}</td>
+									<td>{record?.attestation ? <a class="inline-link" href={record.attestation}>attested</a> : entry.tag ? 'tag only' : 'untagged'}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</section>
+
+			{changelog && (
+				<section class="tabpanel" role="tabpanel" id="panel-changelog" aria-labelledby="tab-changelog" hidden>
+					<div class="md" set:html={changelog} />
+				</section>
+			)}
+		</div>
+
+		<aside class="side" data-pagefind-ignore>
+			<div class="panel">
+				<h3>Install</h3>
+				<CopyCmd cmd={installCommand(skill.author, skill.slug, skill.latest)} />
+				{skill.blocked && <p class="cmd-note">This skill is blocked: it cannot finish on its own right now. It still installs, and the CLI prints a warning. The README explains the blocker.</p>}
+				<p class="cmd-note">Pinned to {skill.latest}. Drop <code>@{skill.latest}</code> to follow the newest release.</p>
+			</div>
+
+			<div class="panel qr">
+				<div class="code" set:html={qr} role="img" aria-label={`QR code for ${appLink}`} />
+				<p>Scan to open this skill's install page on your phone.<br /><a href={appLink}>{appLink.replace('https://', '')}</a></p>
+			</div>
+
+			<ReliabilityCard skill={skill} now={hub.generatedAt} />
+
+
+			<div class="panel quality-panel" id="quality">
+				<h3>Quality points <span class="pts-secondary">{skill.points} of {MAX_POINTS}</span></h3>
+				<div class="cats">
+					{CATEGORIES.map((c) => {
+						const v = categoryPoints(q.categories, c.id);
+						return (
+							<div class="cat">
+								<span>{c.label}</span><span class="n">{v}/{c.cap}</span>
+								<span class="bar" aria-hidden="true"><i style={`width:${Math.min(100, (v / c.cap) * 100)}%`} /></span>
+							</div>
+						);
+					})}
+				</div>
+				{skill.legacyQuality && <p class="cmd-note">This registry build predates the quality ladder, so the skill shows as Draft until it is rescored.</p>}
+				<p class="cmd-note">
+					{fresh.label}{q.freshness_multiplier != null && q.freshness_multiplier !== 1 && `, points x${q.freshness_multiplier}`}.
+					{nextTier ? ` Next tier: ${nextTier.label} at ${nextTier.points} points plus its gates.` : ' Top tier.'}
+					{' '}<a class="inline-link" href="/skills/scoring/">How scoring works</a>
+				</p>
+			</div>
+
+			<div class="panel">
+				<h3>Tested on</h3>
+				<dl class="kv">
+					{fpRows.map(([k, v]) => (<><dt>{k.replace(/_/g, ' ')}</dt><dd>{String(v)}</dd></>))}
+					<dt>devices</dt><dd>{q.signals.fingerprints_verified} verified</dd>
+				</dl>
+				<DeviceCoverage grid={q.runs?.device_grid} />
+			</div>
+
+			<div class="panel">
+				<h3>Package</h3>
+				<dl class="kv">
+					<dt>files</dt><dd>{Object.keys(e.files).join(', ')}</dd>
+					<dt>size</dt><dd>{formatBytes(e.size_bytes)}</dd>
+					<dt>commit</dt><dd><ShortSha value={e.commit} label="commit" /></dd>
+					{latestRecord?.sha256 && (<><dt>sha256</dt><dd title={latestRecord.sha256}><ShortSha value={latestRecord.sha256} label="content SHA" /></dd></>)}
+				</dl>
+				<p class="cmd-note"><a class="inline-link" href={sourceUrl(skill.author, skill.slug, e.tag)}>View source on GitHub</a></p>
+			</div>
+		</aside>
+	</div>
+	{skill.benches.length > 0 && <details class="benchmark-details" id="benchmarks" data-benchmark-details>
+  <summary>Benchmark details</summary>
+  <div class="skill-benches"><BenchCard skill={skill} /></div>
+ </details>}
+</HubLayout>
+
+<script>
+ const openBench = () => {
+  const details = document.querySelector<HTMLDetailsElement>('[data-benchmark-details]');
+  if (details && location.hash === '#benchmarks') details.open = true;
+ };
+ openBench();
+ window.addEventListener('hashchange', openBench);
+ document.querySelector('[data-open-bench]')?.addEventListener('click', () => {
+  const details = document.querySelector<HTMLDetailsElement>('[data-benchmark-details]');
+  if (details) details.open = true;
+ });
+	const tabs = [...document.querySelectorAll<HTMLButtonElement>('.tabs [role=tab]')];
+	function select(tab: HTMLButtonElement, focus = false) {
+		for (const t of tabs) {
+			const on = t === tab;
+			t.setAttribute('aria-selected', String(on));
+			t.tabIndex = on ? 0 : -1;
+			document.getElementById(t.getAttribute('aria-controls')!)!.hidden = !on;
+		}
+		if (focus) tab.focus();
+		history.replaceState(null, '', `#${tab.id.slice(4)}`);
+	}
+	tabs.forEach((t, i) => {
+		t.addEventListener('click', () => select(t));
+		t.addEventListener('keydown', (ev) => {
+			const d = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : 0;
+			if (d) select(tabs[(i + d + tabs.length) % tabs.length], true);
+		});
+	});
+	const fromHash = tabs.find((t) => t.id === `tab-${location.hash.slice(1)}`);
+	if (fromHash) select(fromHash);
+	else document.getElementById('panel-actions')!.hidden = true;
+</script>

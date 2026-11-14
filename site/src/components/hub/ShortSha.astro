@@ -1,0 +1,29 @@
+---
+interface Props { value?: string | null; label?: string }
+const { value, label = 'SHA' } = Astro.props;
+const short = value?.match(/[a-f0-9]{8,64}/i)?.[0].slice(0, 8) ?? value?.slice(0, 8);
+---
+{value ? <span class="short-sha" data-short-sha><code title={value}>{short}</code><button type="button" hidden data-copy-sha={value} aria-label={`Copy ${label}`}>Copy</button><span class="sr-only" role="status" aria-live="polite"></span></span> : <span>not recorded</span>}
+<script>
+ document.querySelectorAll<HTMLButtonElement>('[data-copy-sha]').forEach((button) => {
+  button.hidden = false;
+  button.addEventListener('click', async () => {
+   const status = button.parentElement!.querySelector('[role="status"]')!;
+   try {
+    await navigator.clipboard.writeText(button.dataset.copySha!);
+    status.textContent = 'Copied.';
+   } catch {
+    const code = button.parentElement!.querySelector('code')!;
+    code.textContent = button.dataset.copySha!;
+    status.textContent = 'Select the full value to copy it.';
+   }
+  });
+ });
+</script>
+<style>
+ .short-sha { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: .35rem; }
+ code { font-family: var(--mono); overflow-wrap: anywhere; }
+ button { font: inherit; font-size: .65rem; color: var(--muted); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 3px; padding: .2rem .4rem; cursor: pointer; }
+ button[hidden] { display: none; }
+ button:hover { color: var(--text); }
+</style>

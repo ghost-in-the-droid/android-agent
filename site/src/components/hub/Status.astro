@@ -1,0 +1,13 @@
+---
+// Grey lifecycle badge. Renders nothing for active skills.
+import type { SkillStatus } from '../../lib/hub/registry';
+interface Props { status: SkillStatus }
+const { status } = Astro.props;
+const copy: Record<string, [string, string]> = {
+	blocked: ['Blocked', 'Cannot complete on its own right now, for example a mandatory phone check. Installs with a warning.'],
+	deprecated: ['Deprecated', 'Scheduled for removal from the hub. Look for a replacement.'],
+	draft: ['Draft', 'Scaffold only: steps and validators are not authored yet, so it will not replay. Installs with a warning.'],
+};
+const c = copy[status];
+---
+{c && <span class="status" data-status={status} title={c[1]}>{c[0]}</span>}

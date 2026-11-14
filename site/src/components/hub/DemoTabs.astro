@@ -1,0 +1,137 @@
+---
+// Demo panel: one tab per clip (skill overview first if there is one, then each
+// action that has a clip), a "Before / after" tab for the no-skill vs with-skill
+// pair, greyed entries for actions with no clip yet. Videos are click-to-play
+// (no autoplay, preload="none") with the app icon as poster; gifs are lazy images.
+// Clean-catalog clips keep the HOME → launch → action wording; recorded session
+// clips and the pair say what they are. The default tab is the first action clip.
+import { DEMO_MIME, type DemoClip, type Skill } from '../../lib/hub/registry';
+import { formatCount, formatSeconds } from '../../lib/hub/before-after';
+interface Props { skill: Skill }
+const { skill } = Astro.props;
+const clips = skill.demoClips;
+const ba = skill.beforeAfter;
+const m = ba?.metrics ?? null;
+const key = (c: DemoClip) => (c.action ? `a-${c.action}` : 'overview');
+const first = clips.find((c) => c.action) ?? clips[0];
+const baDefault = !first && !!ba;
+const caption = (c: DemoClip) => c.clean ? `Demo: ${c.label} · HOME → launch → action` : `Recorded: ${c.label} · live agent session on a real phone`;
+const okWord = (ok: boolean) => m?.ok_means === 'verified_task_check' ? (ok ? 'passed' : 'failed') : (ok ? 'finished' : 'stopped early');
+const setting = [m?.device, m?.model].filter(Boolean).join(', ');
+---
+<section class="demos" aria-label="Demos">
+	<div class="demo-tabs" role="tablist" aria-label="Demo per action">
+		{clips.map((c) => (
+			<button type="button" role="tab" class="demo-tab" id={`demo-tab-${key(c)}`} aria-controls={`demo-${key(c)}`}
+				aria-selected={c === first ? 'true' : 'false'} tabindex={c === first ? 0 : -1}>{c.label}</button>
+		))}
+		{ba && (
+			<button type="button" role="tab" class="demo-tab ba-tab" id="demo-tab-before-after" aria-controls="demo-before-after"
+				aria-selected={baDefault ? 'true' : 'false'} tabindex={baDefault ? 0 : -1} data-before-after-tab>Before / after</button>
+		)}
+		{skill.demoMissing.map((a) => (
+			<span class="demo-tab off" title={`${a}: no clean demo yet`}>{a} <small>no clean demo yet</small></span>
+		))}
+	</div>
+	{clips.map((c) => (
+		<figure class={c.clean ? 'demo' : 'demo wide'} role="tabpanel" id={`demo-${key(c)}`} aria-labelledby={`demo-tab-${key(c)}`} hidden={c !== first} data-clean={c.clean ? 'true' : 'false'}>
+			<figcaption class="demo-label">{caption(c)}</figcaption>
+			{c.kind === 'gif' ? (
+				<img src={c.url} loading="lazy" decoding="async" alt={`Demo of ${skill.id} ${c.label}`} />
+			) : (
+				<>
+					<video muted loop playsinline preload="none" poster={c.clean ? skill.iconUrl ?? undefined : undefined} aria-label={`Demo of ${skill.id} ${c.label}`}>
+						<source src={c.url} type={DEMO_MIME[c.kind]} />
+					</video>
+					{!c.clean && skill.iconUrl && <span class="demo-cover" aria-hidden="true"><img src={skill.iconUrl} alt="" width="64" height="64" loading="lazy" decoding="async" /></span>}
+					<button type="button" class="demo-play" aria-label={`Play the ${c.label} demo of ${skill.id}`}>
+						<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
+						Play demo
+					</button>
+				</>
+			)}
+		</figure>
+	))}
+	{ba && (
+		<div class="ba-panel" role="tabpanel" id="demo-before-after" aria-labelledby="demo-tab-before-after" hidden={!baDefault} data-before-after>
+			<figure class="demo wide">
+				<figcaption class="demo-label">Before / after · same prompt, same phone</figcaption>
+				{ba.kind === 'gif' ? (
+					<img src={ba.url} loading="lazy" decoding="async" alt={`Before / after recording of ${skill.id}`} />
+				) : (
+					<>
+						<video muted loop playsinline preload="none" aria-label={`Before / after recording of ${skill.id}: no skill on the left, with the skill on the right`}>
+							<source src={ba.url} type={DEMO_MIME[ba.kind]} />
+						</video>
+						{skill.iconUrl && <span class="demo-cover" aria-hidden="true"><img src={skill.iconUrl} alt="" width="64" height="64" loading="lazy" decoding="async" /></span>}
+						<button type="button" class="demo-play" aria-label={`Play the before / after recording of ${skill.id}`}>
+							<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
+							Play before / after
+						</button>
+					</>
+				)}
+			</figure>
+			{ba.summary && m && (
+				<p class="ba-headline" data-ba-headline><strong>{ba.summary.headline}</strong> with the skill. {ba.summary.outcome}</p>
+			)}
+			{m && (
+				<div class="table-scroll">
+					<table class="t ba-table" data-ba-table>
+						<thead><tr><th scope="col">Run</th><th class="num" scope="col">Time</th><th class="num" scope="col">Tokens</th><th class="num" scope="col">Tool calls</th><th scope="col">Result</th></tr></thead>
+						<tbody>
+							<tr><th scope="row">No skill: agent drives by hand</th><td class="num">{formatSeconds(m.before.seconds)}</td><td class="num">{formatCount(m.before.tokens)}</td><td class="num">{formatCount(m.before.tool_calls)}</td><td>{okWord(m.before.ok)}</td></tr>
+							<tr><th scope="row">With skill: find_skill, run_skill{m.action && <> (<code>{m.action}</code>)</>}</th><td class="num">{formatSeconds(m.after.seconds)}</td><td class="num">{formatCount(m.after.tokens)}</td><td class="num">{formatCount(m.after.tool_calls)}</td><td>{okWord(m.after.ok)}</td></tr>
+						</tbody>
+					</table>
+				</div>
+			)}
+			{m?.prompt && <p class="ba-prompt">Prompt: <q>{m.prompt}</q></p>}
+			{m?.notes && <details class="ba-notes"><summary>How this pair was measured</summary><p>{m.notes}</p></details>}
+			<p class="ba-fine">One recorded pair{setting && ` on ${setting}`}; tokens count every input, cache and output token once per assistant message. Not a signed run: it adds no run evidence.</p>
+		</div>
+	)}
+</section>
+
+<script>
+	const tabs = [...document.querySelectorAll<HTMLButtonElement>('.demo-tabs [role=tab]')];
+	function selectDemo(tab: HTMLButtonElement, focus = false) {
+		for (const t of tabs) {
+			const on = t === tab;
+			t.setAttribute('aria-selected', String(on));
+			t.tabIndex = on ? 0 : -1;
+			const panel = document.getElementById(t.getAttribute('aria-controls')!)!;
+			panel.hidden = !on;
+			if (!on) panel.querySelector('video')?.pause();
+		}
+		if (focus) tab.focus();
+	}
+	tabs.forEach((t, i) => {
+		t.addEventListener('click', () => selectDemo(t));
+		t.addEventListener('keydown', (ev) => {
+			const d = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : 0;
+			if (d) selectDemo(tabs[(i + d + tabs.length) % tabs.length], true);
+		});
+	});
+	// Links from the Actions table (href="#demo-a-<action>") and "#demo-before-after" pick the tab and scroll to it.
+	function fromHash(hash: string) {
+		const tab = tabs.find((t) => `#${t.getAttribute('aria-controls')}` === hash);
+		if (!tab) return false;
+		selectDemo(tab);
+		document.querySelector('.demos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		return true;
+	}
+	document.querySelectorAll<HTMLAnchorElement>('a[data-demo-link]').forEach((a) => {
+		a.addEventListener('click', (ev) => { if (fromHash(a.hash)) ev.preventDefault(); });
+	});
+	fromHash(location.hash);
+	document.querySelectorAll<HTMLButtonElement>('.demo-play').forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const video = btn.parentElement?.querySelector('video');
+			if (!video) return;
+			video.controls = true;
+			btn.hidden = true;
+			btn.parentElement?.querySelector('.demo-cover')?.remove();
+			video.play().catch(() => { btn.hidden = false; });
+		});
+	});
+</script>

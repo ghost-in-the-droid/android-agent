@@ -1,0 +1,162 @@
+---
+// /skills/leaderboard : skills and authors ranked by evidence-based points.
+// "Last 90 days" only counts skills re-verified inside the window (synthesis D2
+// freshness); "All time" ranks everything. Downloads and likes never rank.
+import HubLayout from '../../layouts/HubLayout.astro';
+import Ladder from '../../components/hub/Ladder.astro';
+import Trust from '../../components/hub/Trust.astro';
+import Rating from '../../components/hub/Rating.astro';
+import Status from '../../components/hub/Status.astro';
+import AppIcon from '../../components/hub/AppIcon.astro';
+import { loadHub, formatDate, type Skill } from '../../lib/hub/registry';
+import { RECENT_WINDOW_DAYS } from '../../lib/hub/config';
+import { avatarUrl, badgesOf, rankContributors } from '../../lib/hub/rep';
+
+const hub = loadHub();
+const rank = (list: Skill[]) => [...list].sort((a, b) =>
+	b.points - a.points || b.tierIndex - a.tierIndex || (b.rating ?? -1) - (a.rating ?? -1) || a.id.localeCompare(b.id));
+// Blocked skills are listed (hidden until the toggle is on) but never ranked.
+// Benchmark reference skills (AndroidWorld scaffolds) are never ranked and never listed.
+const unranked = (s: Skill) => s.blocked || s.reference;
+const ranked = (list: Skill[]) => [...rank(list.filter((s) => !unranked(s))), ...rank(list.filter((s) => s.blocked && !s.reference))];
+function authorsOf(list: Skill[]) {
+	const m = new Map<string, { handle: string; points: number; skills: number; top: Skill }>();
+	for (const s of list) {
+		const a = m.get(s.author) ?? { handle: s.author, points: 0, skills: 0, top: s };
+		a.points += s.points; a.skills += 1;
+		if (s.tierIndex > a.top.tierIndex) a.top = s;
+		m.set(s.author, a);
+	}
+	return [...m.values()].sort((a, b) => b.points - a.points || a.handle.localeCompare(b.handle));
+}
+const boards = [
+	{ id: 'recent', label: `Last ${RECENT_WINDOW_DAYS} days`, skills: ranked(hub.skills.filter((s) => s.recent)) },
+	{ id: 'all', label: 'All time', skills: ranked(hub.skills) },
+].map((b) => ({ ...b, authors: authorsOf(b.skills.filter((s) => !unranked(s))) }));
+const contributors = rankContributors(hub.contributors);
+const blockedCount = hub.skills.filter((s) => s.blocked && !s.reference).length;
+const referenceCount = hub.skills.filter((s) => s.reference).length;
+---
+<HubLayout title="Leaderboard | Ghost Skill Hub" description="Skills, authors and contributors ranked by verified run evidence. Downloads and likes are worth zero points." current="leaderboard">
+	<section class="page-head">
+		<h1>Leaderboard</h1>
+		<p>
+			Ranked by quality points, which only signed run evidence and documentation can earn. Downloads and likes count for nothing.
+			Run counts are raw passed / total per skill; the split by evidence class is in the tooltip. Ties break on a conservative
+			Wilson bound that is never shown as a rate. The {RECENT_WINDOW_DAYS}-day board only lists skills with a counted run in that window.
+		</p>
+	</section>
+	<p class="showcase-link"><a class="inline-link" href="/skills/showcase/">Before / after showcase: compare per-action benchmark evidence →</a></p>
+
+	{blockedCount > 0 && (
+		<label class="toggle"><input id="f-blocked" type="checkbox" /> Show blocked skills ({blockedCount}, unranked)</label>
+	)}
+	<div class="tabs" role="tablist">
+		{boards.map((b, i) => (
+			<button type="button" role="tab" id={`tab-${b.id}`} aria-controls={`panel-${b.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{b.label}</button>
+		))}
+		<button type="button" role="tab" id="tab-contributors" aria-controls="panel-contributors" aria-selected="false" tabindex={-1}>Contributors</button>
+	</div>
+
+	{boards.map((b, i) => (
+		<section class="tabpanel" role="tabpanel" id={`panel-${b.id}`} aria-labelledby={`tab-${b.id}`} hidden={i !== 0}>
+			<h2 class="sec">Skills</h2>
+			{b.skills.filter((s) => !s.blocked).length === 0 && (
+				<p class="prose-p" data-empty>No skill had a counted run in the last {RECENT_WINDOW_DAYS} days. Run one with <code>ghost skill verify</code> to put it here.</p>
+			)}
+			{b.skills.length === 0 ? (
+				null
+			) : (
+				<div class="table-scroll">
+					<table class="t" data-board="skills">
+						<thead><tr><th class="num">#</th><th>Skill</th><th>Tier</th><th>Trust</th><th class="num">Points</th><th class="num" title="Counted runs: passed / total. Hover a cell for the split by evidence class.">Passed / runs</th><th>Last run</th></tr></thead>
+						<tbody>
+							{b.skills.map((s, n) => (
+								<tr data-blocked={s.blocked ? '1' : undefined} hidden={s.blocked}>
+									<td class="num">{s.blocked ? '' : n + 1}</td>
+									<td><span class="ref-line"><AppIcon skill={s} size={24} /><a class="ref inline-link" href={`/skills/${s.author}/${s.slug}/`}><code>{s.id}</code></a> <Status status={s.status} /></span></td>
+									<td><Ladder tier={s.quality.tier} /></td>
+									<td><Trust trust={s.trust} /></td>
+									<td class="num">{s.points}</td>
+									<td class="num"><Rating compact runs={s.runs} /></td>
+									<td>{formatDate(s.quality.signals.last_verified)}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			)}
+			<h2 class="sec">Authors</h2>
+			{b.authors.length === 0 ? <p class="prose-p">No authors on this board yet.</p> : (
+				<div class="table-scroll">
+					<table class="t" data-board="authors">
+						<thead><tr><th class="num">#</th><th>Author</th><th class="num">Skills</th><th class="num">Points</th><th>Best skill</th></tr></thead>
+						<tbody>
+							{b.authors.map((a, n) => (
+								<tr>
+									<td class="num">{n + 1}</td>
+									<td><a class="inline-link" href={`/skills/${a.handle}/`}>{a.handle}</a></td>
+									<td class="num">{a.skills}</td>
+									<td class="num">{a.points}</td>
+									<td><Ladder tier={a.top.quality.tier} label={false} /> <code>{a.top.slug}</code></td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			)}
+		</section>
+	))}
+	<section class="tabpanel" role="tabpanel" id="panel-contributors" aria-labelledby="tab-contributors" hidden>
+		<h2 class="sec">Contributors</h2>
+		<p class="prose-p">Ranked by rep: quality points of the skills you publish, plus independent runs that verify other people's skills. Identity is your GitHub login. <a class="inline-link" href="/skills/scoring/#rep">How rep works</a>.</p>
+		{contributors.length === 0 ? <p class="prose-p" data-empty-contributors>No contributor has rep yet.</p> : (
+			<div class="table-scroll">
+				<table class="t" data-board="contributors">
+					<thead><tr><th class="num">#</th><th>Contributor</th><th class="num">Rep</th><th class="num">Published</th><th class="num">Verified</th><th class="num">Maintained</th><th>Badges</th></tr></thead>
+					<tbody>
+						{contributors.map((c, n) => (
+							<tr data-contributor={c.login}>
+								<td class="num">{n + 1}</td>
+								<td>{avatarUrl(c.github, 44) && <img class="lb-avatar" src={avatarUrl(c.github, 44)!} alt="" width="22" height="22" loading="lazy" />}<a class="inline-link" href={`/skills/${c.login}/`}>{c.login}</a></td>
+								<td class="num"><strong>{c.rep}</strong></td>
+								<td class="num">{c.breakdown.published}</td>
+								<td class="num">{c.breakdown.verified}</td>
+								<td class="num">{c.breakdown.maintained}</td>
+								<td>{badgesOf(c).map((b) => <span class="rep-badge" title={b.description}>{b.label}</span>)}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		)}
+	</section>
+	{referenceCount > 0 && <p class="prose-p" data-reference-note>{referenceCount} benchmark reference {referenceCount === 1 ? 'skill is' : 'skills are'} not ranked: they are generated from benchmark tasks and have no authored steps yet. <a class="inline-link" href="/skills/?reference=1">Browse them</a>.</p>}
+	<p class="prose-p" style="margin:2rem 0 4rem">Points and tiers follow the <a href="/skills/scoring/">public scoring formula</a>. Contributors earn rep for publishing and for verifying other people's skills.</p>
+</HubLayout>
+
+<script>
+	const tabs = [...document.querySelectorAll<HTMLButtonElement>('[role=tab]')];
+	document.getElementById('f-blocked')?.addEventListener('change', (ev) => {
+		const on = (ev.target as HTMLInputElement).checked;
+		document.querySelectorAll<HTMLElement>('tr[data-blocked]').forEach((tr) => { tr.hidden = !on; });
+	});
+	function select(tab: HTMLButtonElement, focus = false) {
+		for (const t of tabs) {
+			const on = t === tab;
+			t.setAttribute('aria-selected', String(on));
+			t.tabIndex = on ? 0 : -1;
+			document.getElementById(t.getAttribute('aria-controls')!)!.hidden = !on;
+		}
+		if (focus) tab.focus();
+	}
+	const fromHash = tabs.find((t) => `#${t.id.replace(/^tab-/, '')}` === location.hash);
+	if (fromHash) select(fromHash);
+	tabs.forEach((t, i) => {
+		t.addEventListener('click', () => select(t));
+		t.addEventListener('keydown', (ev) => {
+			const d = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : 0;
+			if (d) select(tabs[(i + d + tabs.length) % tabs.length], true);
+		});
+	});
+</script>

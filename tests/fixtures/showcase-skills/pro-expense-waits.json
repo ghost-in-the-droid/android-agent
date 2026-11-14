@@ -1,0 +1,7 @@
+{
+  "launch_delay_seconds": 35,
+  "editor_delay_seconds": 15,
+  "editor_after_second_fab_seconds": 2,
+  "foreign_foreground": "mResumedActivity: ActivityRecord{u0 com.android.launcher3/.Launcher}",
+  "expense_foreground": "mResumedActivity: ActivityRecord{u0 com.arduia.expense/.MainActivity}"
+}

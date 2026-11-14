@@ -1,0 +1,90 @@
+---
+// /skills/compatibility/: which skills have signed runs on which phone + Android version.
+import HubLayout from '../../layouts/HubLayout.astro';
+import AppIcon from '../../components/hub/AppIcon.astro';
+import { loadHub } from '../../lib/hub/registry';
+import { buildCompat } from '../../lib/hub/compat';
+
+const hub = loadHub();
+const shown = hub.skills.filter((s) => !s.blocked && !s.reference);
+const { columns, rows } = buildCompat(shown);
+const pct = (p: number, t: number) => (t ? Math.round((100 * p) / t) : 0);
+const level = (p: number, t: number) => (pct(p, t) >= 90 ? 'ok' : pct(p, t) >= 60 ? 'mid' : 'low');
+---
+<HubLayout current="compatibility" title="Compatibility matrix: Ghost skills by phone and Android version" description="Which Ghost skills have signed runs on which phone and Android version, with passed / total runs for each.">
+	<section class="page-head">
+		<h1>Compatibility matrix</h1>
+		<p>Which skills work on which phone. Each row is a skill, each column a setup: phone model, Android version and screen. A cell shows <strong>how often the skill succeeded</strong> on that setup: the share of its recorded runs that passed, failures included.</p>
+		<ul class="compat-legend">
+			<li><span class="sw ok"></span>90% or more of runs passed</li>
+			<li><span class="sw mid"></span>60 to 89%</li>
+			<li><span class="sw low"></span>below 60%</li>
+			<li><span class="sw none"></span>not tested on that setup yet (not broken)</li>
+		</ul>
+	</section>
+
+	<div class="compat-summary">
+		{columns.map((c) => (
+			<div class="compat-card" data-compat-col={c.key}>
+				<span class="dev">{c.device}</span>
+				<span class="os">Android {c.android}{c.screen && <> · {c.screen}</>}</span>
+				<strong>{c.skills} {c.skills === 1 ? 'skill' : 'skills'}</strong>
+				<small>{c.passed.toLocaleString('en-US')} of {c.runs.toLocaleString('en-US')} runs passed</small>
+			</div>
+		))}
+	</div>
+
+	<div class="compat-scroll">
+		<table class="compat-table" data-compat-table>
+			<caption class="sr-only">Skills by device setup: passed / total signed runs</caption>
+			<thead>
+				<tr>
+					<th scope="col" class="c-skill">Skill</th>
+					{columns.map((c) => <th scope="col" class="c-dev"><span>{c.device}</span><small>Android {c.android}</small>{c.screen && <small>{c.screen}</small>}</th>)}
+				</tr>
+			</thead>
+			<tbody>
+				{rows.map(({ skill, cells }) => (
+					<tr data-compat-row={skill.id}>
+						<th scope="row" class="c-skill"><a class="skill-identity" href={`/skills/${skill.author}/${skill.slug}/`}><AppIcon skill={skill} size={24} decorative /><span>{skill.slug}</span></a></th>
+						{columns.map((c) => {
+							const cell = cells[c.key];
+							return cell
+								? <td class={`cell ${level(cell.passed, cell.total)}`} title={`${cell.passed} of ${cell.total} runs passed`}><strong>{pct(cell.passed, cell.total)}%</strong><small>{cell.passed} of {cell.total} runs</small></td>
+								: <td class="cell none" aria-label="Not tested"></td>;
+						})}
+					</tr>
+				))}
+			</tbody>
+		</table>
+	</div>
+	<p class="prose-p compat-note">Runs are signed run records from all versions of each skill, recorded by the maintainer, not independent runs. Run a skill on your own phone and the signed run adds your setup here. <a class="inline-link" href="/skills/scoring/">How scoring works</a></p>
+</HubLayout>
+<style>
+	.compat-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .6rem; margin: 1rem 0 1.5rem; }
+	.compat-card { display: flex; flex-direction: column; gap: .1rem; border: 1px solid var(--line); border-radius: var(--r-s); padding: .7rem .8rem; background: var(--panel-2); }
+	.compat-card .dev { font-weight: 600; color: var(--text); }
+	.compat-card .os, .compat-card small { color: var(--muted); font-size: .75rem; }
+	.compat-card strong { font: 600 1.2rem var(--mono); color: var(--text); margin-top: .3rem; }
+	.compat-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: var(--r-s); }
+	.compat-table { border-collapse: collapse; width: 100%; font-size: .8rem; }
+	.compat-table thead th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
+	.compat-table th, .compat-table td { padding: .4rem .6rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+	.compat-table .c-dev { text-align: center; font-weight: 600; }
+	.compat-table .c-dev small { display: block; font-weight: 400; color: var(--muted); }
+	.compat-table th.c-skill { text-align: left; font-weight: 400; position: sticky; left: 0; background: var(--panel); }
+	.compat-table .skill-identity { display: inline-flex; align-items: center; gap: .5rem; font-family: var(--mono); color: var(--text); text-decoration: none; }
+	.compat-table .cell { text-align: center; font-variant-numeric: tabular-nums; }
+	.compat-table .cell strong { display: block; font: 600 .85rem var(--mono); }
+	.compat-table .cell small { display: block; font-size: .65rem; opacity: .75; }
+	.compat-legend { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; font-size: .8rem; color: var(--muted); margin-top: .8rem; }
+	.compat-legend li { display: flex; align-items: center; gap: .4rem; }
+	.compat-legend .sw { width: .9rem; height: .9rem; border-radius: 3px; border: 1px solid var(--line); }
+	.compat-legend .sw.ok { background: color-mix(in srgb, var(--signal) 25%, transparent); }
+	.compat-legend .sw.mid { background: color-mix(in srgb, #d9a03f 30%, transparent); }
+	.compat-legend .sw.low { background: color-mix(in srgb, #c0392b 25%, transparent); }
+	.compat-table .cell.ok { color: var(--signal); background: color-mix(in srgb, var(--signal) 10%, transparent); }
+	.compat-table .cell.mid { color: #b7791f; background: color-mix(in srgb, #d9a03f 12%, transparent); }
+	.compat-table .cell.low { color: #c0392b; background: color-mix(in srgb, #c0392b 10%, transparent); }
+	.compat-note { margin-top: 1rem; font-size: .85rem; }
+</style>

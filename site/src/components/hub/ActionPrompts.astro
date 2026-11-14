@@ -1,0 +1,38 @@
+---
+import type { ActionPrompts } from '../../lib/hub/prompts';
+interface Props { prompts: ActionPrompts; action: string; mode?: 'all' | 'primary' | 'variants' }
+const { prompts, action, mode = 'all' } = Astro.props;
+const lines = mode === 'variants' ? prompts.variants : [prompts.primary, ...(mode === 'all' ? prompts.variants : [])];
+---
+{lines.length > 0 && <div class="action-prompts" data-action-prompts={action}>
+	<p class="prompt-label">{mode === 'variants' ? 'Other ways to ask' : 'Try asking'}</p>
+	<ul>{lines.map((text) => <li><span data-prompt-text>{text}</span><button type="button" data-copy-prompt hidden aria-label={`Copy prompt: ${text}`}>Copy</button></li>)}</ul>
+	<span class="prompt-status" role="status" aria-live="polite"></span>
+</div>}
+<script>
+	document.querySelectorAll<HTMLButtonElement>('[data-copy-prompt]').forEach((button) => {
+		button.hidden = false;
+		button.addEventListener('click', async () => {
+			const text = button.parentElement!.querySelector('[data-prompt-text]')!.textContent ?? '';
+			const status = button.closest('.action-prompts')!.querySelector('[role="status"]')!;
+			try {
+				if (!navigator.clipboard) throw new Error('Clipboard unavailable');
+				await navigator.clipboard.writeText(text);
+				status.textContent = 'Prompt copied.';
+			} catch {
+				status.textContent = 'Select the prompt text to copy it.';
+			}
+		});
+	});
+</script>
+<style>
+	.action-prompts { margin-top: .8rem; font-size: .85rem; }
+	.prompt-label { color: var(--muted); font-size: .75rem; margin-bottom: .35rem; }
+	ul { list-style: none; padding: 0; margin: 0; }
+	li { display: flex; align-items: flex-start; gap: .65rem; margin-block: .3rem; }
+	[data-prompt-text] { flex: 1; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; color: var(--text); }
+	button { flex: none; min-height: 44px; padding: .4rem .65rem; border: 1px solid var(--line); border-radius: var(--r-s); background: var(--panel-2); color: var(--text); cursor: pointer; font: inherit; font-size: .75rem; }
+	button[hidden] { display: none; }
+	button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+	.prompt-status { display: block; color: var(--muted); font-size: .75rem; }
+</style>

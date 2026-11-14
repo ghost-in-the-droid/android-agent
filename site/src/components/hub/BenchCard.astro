@@ -1,0 +1,65 @@
+---
+import { BENCH_ARMS, fmtTokens, fmtWall, passText, pairedLabel, humanBenchText, countedEpisode, labelledEpisodeOutcome } from '../../lib/hub/bench';
+import BenchVersion from './BenchVersion.astro';
+import ShortSha from './ShortSha.astro';
+import type { Skill } from '../../lib/hub/registry';
+interface Props { skill: Skill }
+const { skill } = Astro.props;
+const ARM_LABEL = Object.fromEntries(BENCH_ARMS.map((a) => [a.id, a.label]));
+const repo = 'https://github.com/ghost-in-the-droid/android-agent/blob/main/';
+const show = (n: number | null | undefined) => n == null ? '—' : n.toLocaleString('en-US');
+---
+{skill.benches.map((b) => (
+	<section class="panel bench" data-bench data-bench-arms={b.arms.join(',')}>
+		<h3>{b.suite === 'ghost-native' ? 'Ghost-native' : 'AndroidWorld'} before/after</h3>
+		<p class="bench-provenance"><strong>{b.label}</strong><br />Model: {b.model ?? ([...new Set(b.tasks.flatMap((t) => t.episodes.filter((e) => e.valid).map((e) => e.model).filter(Boolean)))].join(', ') || 'not recorded')} · Date: {b.generatedAt?.slice(0, 10) ?? 'not recorded'}</p>
+		<p class="cmd-note">Same task across three arms. Skill replay runs without a model. Medians include every valid episode, including failures. {b.source && <a class="inline-link" href={repo + b.source}>Raw episode files</a>}</p>
+		{b.tasks.map((t) => (
+			<section class="bench-task" data-task={t.task_id}>
+				<h4>{t.label ?? t.task_id}</h4>
+				<p>N={t.seeds ?? 'not recorded'} seeds · {t.generatedAt?.slice(0, 10) ?? b.generatedAt?.slice(0, 10) ?? 'date not recorded'} {t.source && <a class="inline-link" href={repo + t.source}>Task source</a>}</p>
+				<div class="table-scroll" tabindex="0" role="region" aria-label={`${t.task_id} arm comparison`}>
+					<table class="t bench-t" data-bench-arms-table>
+						<thead><tr><th>Arm / provenance</th><th class="num">Pass a/b · Wilson 95% CI</th><th class="num">Tokens, median [q1–q3]</th><th class="num">LLM calls, median</th><th class="num">UI actions, median</th><th class="num">Wall, median</th></tr></thead>
+						<tbody>{BENCH_ARMS.map((a) => {
+							const r = t.arms[a.id], st = t.stats.arms[a.id];
+							return <tr data-arm={a.id}><th>{a.label}<span class="bench-version">{r?.model ?? (a.id === 'after_replay' ? 'no model' : b.model ?? 'model not recorded')} · {(r?.generatedAt ?? t.generatedAt ?? b.generatedAt)?.slice(0, 10) ?? 'date not recorded'}<br /><BenchVersion version={r} /></span></th><td class="num">{passText(r, st?.wilson95)}</td><td class="num">{r ? show(st?.tokensMedian ?? r.tokens_median) : '—'} {r && st?.tokensQ1 != null && st.tokensQ3 != null ? `[${show(st.tokensQ1)}–${show(st.tokensQ3)}]` : '[no quartiles]'}</td><td class="num">{r ? show(st?.llmCallsMedian) : '—'}</td><td class="num">{r ? show(st?.uiActionsMedian) : '—'}</td><td class="num">{r ? fmtWall(st?.wallMsMedian ?? r.wall_ms_median) || '—' : '—'}</td></tr>;
+						})}</tbody>
+					</table>
+				</div>
+				{t.voidArms.length > 0 && <ul class="bench-void" data-bench-void>{t.voidArms.map((v) => <li><strong>{ARM_LABEL[v.arm]}: void</strong> ({v.total} episodes discarded). {v.reason}<span class="bench-version">{v.model ?? 'model not recorded'} · {(v.generatedAt ?? t.generatedAt ?? b.generatedAt)?.slice(0, 10) ?? 'date not recorded'} · <BenchVersion version={v} /></span></li>)}</ul>}
+				{t.labelledResults.length > 0 && <div data-bench-labelled><h4>pre-fix (supply-chain finding)</h4>{t.labelledResults.map((r) => <section><p><strong>{humanBenchText(r.label)}</strong>: {r.result ? `${r.result.passed}/${r.result.total} passed` : 'void'} · {r.model ?? 'model not recorded'} · {(r.result?.generatedAt ?? t.generatedAt ?? b.generatedAt)?.slice(0, 10) ?? 'date not recorded'} · <BenchVersion version={r.result ?? undefined} />. {r.note && humanBenchText(r.note)}</p>{r.episodes.length > 0 && <div class="table-scroll" tabindex="0" role="region" aria-label={humanBenchText(r.label)}><table class="t bench-t"><caption>{humanBenchText(r.label)}: historical episodes</caption><thead><tr><th>Arm</th><th class="num">Seed</th><th>Model</th><th>Result</th><th class="num">Tokens</th><th>Trace</th></tr></thead><tbody>{r.episodes.map((e) => <tr data-labelled-episode><td>{ARM_LABEL[e.arm]}</td><td class="num">{e.seed}</td><td>{e.model ?? 'replay, no model'}<span class="bench-version">{(e.generatedAt ?? t.generatedAt ?? b.generatedAt)?.slice(0, 10) ?? 'date not recorded'} · <BenchVersion version={e} /></span></td><td>{labelledEpisodeOutcome(e)}</td><td class="num">{countedEpisode(e) ? show(e.tokens) : 'void'}</td><td>{e.trace && <a class="inline-link" href={repo + e.trace}>trace</a>}</td></tr>)}</tbody></table></div>}</section>)}</div>}
+				{t.stats.paired.map((p) => <p class="cmd-note" data-bench-paired>{pairedLabel(p.key)}: {p.pairs} paired seeds; {p.onlyAfterPassed} fail → pass, {p.onlyBeforePassed} pass → fail; McNemar exact p = {p.mcnemarExactP ?? 'not recorded'}. Median tokens saved: {show(p.tokensSavedMedian)}.</p>)}
+			</section>
+		))}
+		{b.tasks.some((t) => t.episodes.some((e) => countedEpisode(e) && !e.pass)) && <section data-bench-failures><h4>Failed episodes</h4><ul>{b.tasks.flatMap((t) => t.episodes.filter((e) => countedEpisode(e) && !e.pass).map((e) => <li>{t.label ?? t.task_id} · {ARM_LABEL[e.arm]} · seed {e.seed ?? 'not recorded'} · {e.model ?? 'replay, no model'}</li>))}</ul></section>}
+		{b.hasEpisodes && (
+			<details class="bench-episodes" data-bench-episodes>
+				<summary>Episodes ({b.tasks.reduce((n, t) => n + t.episodes.length, 0)})</summary>
+				<div class="table-scroll">
+					<table class="t bench-t">
+						<thead><tr><th>Task</th><th>Arm</th><th class="num">Seed</th><th>Model</th><th>Pass</th><th class="num">LLM calls</th><th class="num">Tokens</th><th class="num">UI actions</th><th class="num">Wall</th><th>Trace</th></tr></thead>
+						<tbody>
+							{b.tasks.flatMap((t) => t.episodes.map((e) => (
+								<tr data-episode={`${t.task_id}/${e.arm}/${e.seed ?? ''}`} data-valid={e.valid ? '1' : '0'} data-counted={countedEpisode(e) ? '1' : '0'} class={countedEpisode(e) ? undefined : 'void'}>
+									<td>{t.label ?? (t.action ?? t.task_id).replaceAll('_', ' ')}</td>
+									<td>{ARM_LABEL[e.arm]}</td>
+									<td class="num">{e.seed ?? ''}</td>
+									<td>{e.model ?? <span class="muted">replay</span>}<span class="bench-version">{(e.generatedAt ?? t.generatedAt ?? b.generatedAt)?.slice(0, 10) ?? 'date not recorded'} · <BenchVersion version={e} /></span></td>
+									<td>{countedEpisode(e) ? (e.pass ? 'pass' : e.countedAs ?? 'fail') : <span class="muted" title={e.invalidReason ?? ''}>void</span>}</td>
+									<td class="num">{e.llmCalls ?? ''}</td>
+									<td class="num" title={e.tokensCacheRead != null ? `${fmtTokens(e.tokensIn)} in, ${fmtTokens(e.tokensOut)} out, ${fmtTokens(e.tokensCacheRead)} cache read` : undefined}>{fmtTokens(e.tokens)}</td>
+									<td class="num" title={e.uiActions ? `${e.uiActions.tap} tap, ${e.uiActions.type} type, ${e.uiActions.swipe} swipe, ${e.uiActions.key} key, ${e.uiActions.launch} launch` : undefined}>{e.uiActions ? e.uiActions.total : (e.actions.length || '')}</td>
+									<td class="num">{fmtWall(e.wallMs)}</td>
+									<td>{e.trace ? <a class="inline-link" href={`https://github.com/ghost-in-the-droid/android-agent/blob/main/${e.trace}`}>trace</a> : ''}</td>
+								</tr>
+							)))}
+						</tbody>
+					</table>
+				</div>
+			</details>
+		)}
+
+		<p class="cmd-note">Display only: points come from signed run artifacts. {b.upstreamCommit && <>AndroidWorld @ <ShortSha value={b.upstreamCommit} label="upstream commit" />. </>}{b.protocol && <a class="inline-link" href={repo + b.protocol}>Protocol</a>}</p>
+	</section>
+))}

@@ -1,0 +1,22 @@
+---
+import { fmtWall, passText, type BenchTask } from '../../lib/hub/bench';
+import { metricValue, medianReduction, type ChartMetric } from '../../lib/hub/showcase';
+interface Props { task: BenchTask; label: string; metric: ChartMetric; scale?: number; compact?: boolean; savingUnit?: string }
+const { task, label, metric } = Astro.props;
+const before = metricValue(task, 'before', metric), after = metricValue(task, 'after_mcp', metric);
+const maximum = Astro.props.scale ?? Math.max(before ?? 0, after ?? 0);
+const width = (n: number | null) => n == null || maximum <= 0 ? 0 : Math.max(0, Math.min(100, n / maximum * 100));
+const format = (n: number | null) => n == null ? 'not recorded' : metric === 'time' ? fmtWall(n) : n.toLocaleString('en-US', { maximumFractionDigits: 1 });
+const saving = medianReduction(task, metric);
+const change = saving == null ? '—' : `${saving > 0 ? '−' : saving < 0 ? '+' : ''}${Math.abs(saving * 100).toFixed(0)}%`;
+const seeds = `N=${task.arms.before?.total ?? '—'} before / ${task.arms.after_mcp?.total ?? '—'} with skill`;
+const description = `${label}. Median ${metric}: before ${format(before)}, with skill ${format(after)}. ${seeds}.`;
+const interval = `Before ${passText(task.arms.before, task.stats.arms.before?.wilson95)}; with skill ${passText(task.arms.after_mcp, task.stats.arms.after_mcp?.wilson95)}`;
+---
+<div class="benchmark-row" tabindex="0" title={`${seeds}. ${interval}`}>
+ <span class="comparison-label">{label}</span>
+ <svg class="comparison-bars" role="img" aria-label={description} width="100%" height="24"><title>{description}</title><rect class="bar-before" x="0" y="3" width={`${width(before)}%`} height="6" rx="1" /><rect class="bar-after" x="0" y="15" width={`${width(after)}%`} height="6" rx="1" /></svg>
+ <span class="comparison-values"><span>{format(before)}</span><strong>{format(after)}</strong></span>
+ <span class="comparison-saving"><strong>{change}{Astro.props.savingUnit && <small> {Astro.props.savingUnit}</small>}</strong><small>N={task.arms.before?.total ?? '—'}/{task.arms.after_mcp?.total ?? '—'}</small></span>
+ <span class="evidence-tip" role="tooltip">{seeds}<br />{interval}</span>
+</div>

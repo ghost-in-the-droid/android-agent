@@ -1,0 +1,31 @@
+---
+// Web fallback for the App Link the QR code encodes. With the Ghost app
+// installed, Android opens the app directly (once assetlinks.json is served on
+// HUB_DOMAIN); without it, the browser lands here.
+import HubLayout from '../../../layouts/HubLayout.astro';
+import CopyCmd from '../../../components/hub/CopyCmd.astro';
+import { loadHub, type Skill } from '../../../lib/hub/registry';
+import { customSchemeLinkFor, installCommand } from '../../../lib/hub/config';
+
+export function getStaticPaths() {
+	return loadHub().skills.flatMap((skill) => [
+		{ params: { ref: `${skill.author}/${skill.slug}` }, props: { skill, version: undefined } },
+		...skill.versionList.map(({ version }) => ({ params: { ref: `${skill.author}/${skill.slug}@${version}` }, props: { skill, version } })),
+	]);
+}
+const { skill, version } = Astro.props as { skill: Skill; version?: string };
+const page = `/skills/${skill.author}/${skill.slug}/`;
+---
+<HubLayout title={`Install ${skill.id} | Ghost Skill Hub`} description={`Install ${skill.id} with the Ghost CLI or the Ghost app.`}>
+	<meta slot="head" name="robots" content="noindex" />
+	<link slot="head" rel="canonical" href={page} />
+	<section class="page-head">
+		<h1>Install <span class="mono">{skill.id}{version && `@${version}`}</span></h1>
+		<p>This link opens the skill in the Ghost app on a phone that has it. On a computer, install it with the CLI:</p>
+	</section>
+	<div style="max-width:560px;padding-bottom:4rem">
+		<CopyCmd cmd={installCommand(skill.author, skill.slug, version)} />
+		<p class="prose-p" style="margin-top:1.25rem">On a phone with Ghost installed where this page opened in the browser instead, <a class="inline-link" href={customSchemeLinkFor(skill.author, skill.slug, version)}>open it with the ghost:// link</a>.</p>
+		<p class="prose-p"><a class="inline-link" href={page}>See what this skill does before installing it</a></p>
+	</div>
+</HubLayout>

@@ -1,0 +1,20 @@
+---
+// Raw "passed / runs" cell. Never a percent: the prior-adjusted Wilson rating
+// only breaks ties in the leaderboard sort. The tooltip carries the class split
+// (self-recorded, maintainer-signed replay, independent) and the emulator count.
+import { passedOverRuns, runSplit, type Skill } from '../../lib/hub/registry';
+import { confidenceFloor } from '../../lib/hub/scoring';
+interface Props { runs: Skill['runs']; compact?: boolean }
+const { runs, compact = false } = Astro.props;
+const split = runSplit(runs);
+const floor = confidenceFloor(runs.passed, runs.total);
+const title = runs.total === 0 ? 'No counted run yet.' : `${split}${floor ? ` Confidence floor ${floor} (95% Wilson lower bound, no prior).` : ''}`;
+---
+{compact
+	? <span class={runs.total === 0 ? 'rating-none' : 'rating-raw'} title={title} data-passed={runs.passed} data-total={runs.total}>{passedOverRuns(runs)}{runs.emulator.total > 0 && runs.total > 0 && <span class="muted" title={`${runs.emulator.total} of ${runs.total} counted runs on an emulator image`}> emu</span>}</span>
+	: (
+	<div class="rating">
+		<div class="big" data-passed={runs.passed} data-total={runs.total}>{passedOverRuns(runs)}</div>
+		<p>{title}</p>
+	</div>
+)}

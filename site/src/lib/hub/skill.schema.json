@@ -1,0 +1,561 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ghostinthedroid.com/skills/schema/v2.json",
+  "title": "Ghost skill.yaml (schema v2)",
+  "x-ghost-source": "gitd.skills.engine.loader",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$",
+      "description": "kebab-case slug"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[a-zA-Z0-9.]+)?$",
+      "description": "SemVer"
+    },
+    "author": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "skill_class": {
+      "type": "string",
+      "enum": [
+        "hard",
+        "soft"
+      ]
+    },
+    "data_access": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "bluetooth",
+          "calendar",
+          "camera",
+          "clipboard",
+          "contacts",
+          "files",
+          "location",
+          "mic",
+          "microphone",
+          "network",
+          "notifications",
+          "photos",
+          "sms",
+          "storage"
+        ]
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "blocked",
+        "deprecated",
+        "draft"
+      ],
+      "default": "active",
+      "description": "Lifecycle: blocked = cannot complete autonomously today; deprecated = scheduled for removal; draft = scaffold whose steps and validators are not authored yet."
+    },
+    "forked_from": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.-]*/[a-z][a-z0-9_-]{0,63}@\\d+\\.\\d+\\.\\d+(?:-[a-zA-Z0-9.]+)?$",
+      "description": "<author>/<slug>@<version> this skill was forked from (ghost skill fork writes it); evidence never carries over"
+    },
+    "superseded_by": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_.-]*/[a-z][a-z0-9_-]{0,63}(@.+)?$",
+      "description": "Ref users should install instead of this skill"
+    },
+    "deprecated_reason": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Why status is deprecated"
+    },
+    "icon": {},
+    "demo": {},
+    "demos": {
+      "type": "object"
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "description": "SPDX identifier, e.g. MIT or Apache-2.0"
+    },
+    "generated_with": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Tools or models used to author the skill; write 'hand' if none."
+    },
+    "side_effects": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "sends_message",
+          "posts_content",
+          "makes_payment",
+          "modifies_account",
+          "deletes_data",
+          "none"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "destructive": {
+      "type": "boolean"
+    },
+    "tos_risk": {
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "locale": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "BCP-47 locales the skill was tested in"
+    },
+    "fingerprint": {
+      "$ref": "#/$defs/Fingerprint"
+    },
+    "entry_url": {
+      "type": "string"
+    },
+    "repo_url": {
+      "type": "string"
+    },
+    "skill_path": {
+      "type": "string"
+    },
+    "popup_detectors": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "os_popup_policy": {
+      "type": "object"
+    },
+    "state_probes": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "element_present"
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[^{}]+$"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[^{}]+$"
+              },
+              "desc": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[^{}]+$"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "oneOf": [
+              {
+                "required": [
+                  "id"
+                ]
+              },
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "desc"
+                ]
+              }
+            ],
+            "minProperties": 2,
+            "maxProperties": 2
+          },
+          {
+            "type": "object",
+            "properties": {
+              "not": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "element_present"
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[^{}]+$"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[^{}]+$"
+                  },
+                  "desc": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[^{}]+$"
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "oneOf": [
+                  {
+                    "required": [
+                      "id"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "text"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "desc"
+                    ]
+                  }
+                ],
+                "minProperties": 2,
+                "maxProperties": 2
+              }
+            },
+            "required": [
+              "not"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ActionDef"
+      },
+      "minItems": 1
+    },
+    "subroutines": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SubroutineDef"
+      }
+    },
+    "trust_tier": {
+      "enum": [
+        "official",
+        "benchmark",
+        "verified",
+        "unverified",
+        "quarantined"
+      ],
+      "description": "Set by the registry, never by the author."
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "Fingerprint": {
+      "type": "object",
+      "properties": {
+        "os": {
+          "type": "string",
+          "enum": [
+            "android",
+            "ios"
+          ]
+        },
+        "os_version": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "hardware": {
+          "type": "string"
+        },
+        "app_package": {
+          "type": "string"
+        },
+        "app_version": {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        "screen_wxh": {
+          "type": "string",
+          "pattern": "^\\d+x\\d+$"
+        },
+        "density": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "locale": {
+          "type": "string"
+        },
+        "theme": {
+          "enum": [
+            "light",
+            "dark",
+            "*"
+          ]
+        },
+        "apps": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*)+$"
+          },
+          "uniqueItems": true,
+          "description": "Other packages a multi-app skill drives; app_package stays the primary"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ActionDef": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "requires_state": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+          }
+        },
+        "provides_state": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+          }
+        },
+        "clears_state": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+          }
+        },
+        "idempotent": {
+          "type": "boolean",
+          "default": false
+        },
+        "description": {
+          "type": "string"
+        },
+        "ref_prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Param"
+          }
+        },
+        "pre_hooks": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "minItems": 1
+        },
+        "checkpoints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "reason": {
+                "enum": [
+                  "captcha",
+                  "email",
+                  "generic",
+                  "llm_decision",
+                  "login",
+                  "sms"
+                ]
+              }
+            }
+          }
+        },
+        "end_state_validator": {
+          "type": "object",
+          "minProperties": 1
+        },
+        "test_case": {
+          "type": "object"
+        },
+        "on_popup": {
+          "type": "object"
+        },
+        "demo_params": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "required": [
+        "name",
+        "ref_prompt",
+        "steps",
+        "end_state_validator"
+      ]
+    },
+    "Param": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "secret": {
+          "type": "boolean",
+          "default": false
+        },
+        "default": {},
+        "values": {
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true,
+      "required": [
+        "name"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "secret": {
+                "const": true
+              }
+            },
+            "required": [
+              "secret"
+            ]
+          },
+          "then": {
+            "properties": {
+              "type": {
+                "const": "str"
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "default"
+                  ]
+                },
+                {
+                  "required": [
+                    "values"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "enum"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "values"
+            ],
+            "properties": {
+              "values": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "SubroutineDef": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+        },
+        "description": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": true,
+      "required": [
+        "name",
+        "steps"
+      ]
+    }
+  },
+  "required": [
+    "name",
+    "version",
+    "actions",
+    "license",
+    "generated_with"
+  ]
+}

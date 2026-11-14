@@ -1,0 +1,134 @@
+---
+// /skills/<login>/ : one GitHub handle's profile: the skills it publishes, the
+// skills it verified or maintained, and its rep (registry.json `contributors`).
+import HubLayout from '../../../layouts/HubLayout.astro';
+import Ladder from '../../../components/hub/Ladder.astro';
+import Trust from '../../../components/hub/Trust.astro';
+import Rating from '../../../components/hub/Rating.astro';
+import Status from '../../../components/hub/Status.astro';
+import AppIcon from '../../../components/hub/AppIcon.astro';
+import RepSummary from '../../../components/hub/RepSummary.astro';
+import { loadHub, formatDate } from '../../../lib/hub/registry';
+import { avatarUrl, isGithubLogin, REP, type Contributor } from '../../../lib/hub/rep';
+
+type Author = ReturnType<typeof loadHub>['authors'][number];
+export function getStaticPaths() {
+	const hub = loadHub();
+	const handles = [...new Set([...hub.authors.map((a) => a.handle), ...hub.contributors.map((c) => c.login)])].sort();
+	return handles.map((handle) => ({
+		params: { author: handle },
+		props: { handle, author: hub.authors.find((a) => a.handle === handle) ?? null, contributor: hub.contributors.find((c) => c.login === handle) ?? null },
+	}));
+}
+const { handle, author, contributor } = Astro.props as { handle: string; author: Author | null; contributor: Contributor | null };
+const skills = author?.skills ?? [];
+const points = skills.reduce((n, s) => n + s.points, 0);
+const best = skills.reduce<(typeof skills)[number] | null>((a, s) => (!a || s.tierIndex > a.tierIndex ? s : a), null);
+const apps = new Set(skills.map((s) => s.latestEntry.fingerprint.app_package).filter(Boolean));
+const github = contributor?.github ?? author?.github ?? handle;
+// Avatars only for profiles the rep build vouches for: imported namespaces (androidworld) are not GitHub users.
+const avatar = contributor ? avatarUrl(github) : null;
+const noRep = (REP.published.excluded_authors ?? []).includes(handle)
+	? 'Imported benchmark scaffolds have no human author and earn no rep.'
+	: undefined;
+const pointsOf = new Map((contributor?.published ?? []).map((p) => [p.skill, p.points]));
+const desc = skills.length
+	? `Skills published by ${handle}: ${skills.map((s) => s.slug).join(', ')}.`
+	: `${handle} on the Ghost Skill Hub: ${contributor?.rep ?? 0} rep from verified runs of other people's skills.`;
+---
+<HubLayout title={`${handle} on the Ghost Skill Hub`} description={desc}>
+	<section class="page-head">
+		<div class="crumbs"><a href="/skills/">Skills</a> / <a href="/skills/leaderboard/#contributors">Contributors</a></div>
+		<div class="author-head">
+			<div class="avatar" aria-hidden="true">{avatar ? <img src={avatar} alt="" width="64" height="64" loading="lazy" /> : handle.slice(0, 1).toUpperCase()}</div>
+			<div>
+				<h1>{handle}</h1>
+				<div class="badges">
+					{author && <Trust trust={author.trust} />}
+					{isGithubLogin(github) && <a class="inline-link" href={`https://github.com/${github}`}>github.com/{github}</a>}
+					{contributor && contributor.maintainers.length > 0 && (
+						<span class="maintainers" data-maintainers>
+							Maintained by
+							{contributor.maintainers.filter(isGithubLogin).map((m) => (
+								<a class="inline-link" href={`https://github.com/${m}`}><img src={avatarUrl(m, 40)!} alt="" width="20" height="20" loading="lazy" />@{m}</a>
+							))}
+						</span>
+					)}
+				</div>
+			</div>
+		</div>
+		<RepSummary contributor={contributor} note={noRep} />
+		{author && best && (
+			<div class="stats">
+				<div><strong>{skills.length}</strong>{skills.length === 1 ? 'skill' : 'skills'}</div>
+				<div><strong>{apps.size}</strong>{apps.size === 1 ? 'app' : 'apps'}</div>
+				<div><strong>{points}</strong>quality points</div>
+				<div><strong><Ladder tier={best.quality.tier} /></strong>highest tier</div>
+			</div>
+		)}
+	</section>
+
+	{skills.length > 0 && (
+		<>
+			<h2 class="sec">Published</h2>
+			<div class="row-head" aria-hidden="true"><span>Skill</span><span>Quality</span><span>Success rate</span><span>Latest</span></div>
+			<ul class="rows">
+				{skills.map((s) => (
+					<li class="row">
+						<div>
+							<div class="ref-line">
+								<AppIcon skill={s} size={24} />
+								<a class="ref" href={`/skills/${s.author}/${s.slug}/`}><span class="a">{s.author}/</span><span class="s">{s.slug}</span></a>
+							</div>
+							<p class="desc">{s.description}</p>
+							<div class="meta">
+								<Status status={s.status} /><span class="pkg">{s.latestEntry.fingerprint.app_package}</span><span class="pkg">updated {formatDate(s.updated_at)}</span>
+								{pointsOf.has(s.id) && <span class="pkg" data-rep-skill>+{pointsOf.get(s.id)} rep</span>}
+							</div>
+						</div>
+						<Ladder tier={s.quality.tier} />
+						<span class="pkg"><Rating compact rating={s.rating} runs={s.runs} /></span>
+						<span class="ver">{s.latest}</span>
+					</li>
+				))}
+			</ul>
+		</>
+	)}
+
+	{contributor && (
+		<>
+			<h2 class="sec">Verified</h2>
+			{contributor.verified.length === 0 ? (
+				<p class="prose-p" data-empty-verified>No independent passing runs of other people's skills yet. Run one with <code>ghost skill verify</code>.</p>
+			) : (
+				<div class="table-scroll">
+					<table class="t" data-board="verified">
+						<thead><tr><th>Skill</th><th class="num">Counted runs</th><th class="num">New device classes</th><th class="num">New bench models</th><th class="num">Rep</th></tr></thead>
+						<tbody>
+							{contributor.verified.map((v) => (
+								<tr><td><a class="inline-link" href={`/skills/${v.skill}/`}><code>{v.skill}</code></a></td><td class="num">{v.runs}</td><td class="num">{v.new_device_classes}</td><td class="num">{v.new_bench_models}</td><td class="num">{v.points}</td></tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			)}
+			{contributor.maintained.length > 0 && (
+				<>
+					<h2 class="sec">Maintained</h2>
+					<p class="prose-p">Other people's skills re-verified with a maintainer or platform key. A small fixed bonus per skill, not per run.</p>
+					<div class="table-scroll">
+						<table class="t" data-board="maintained">
+							<thead><tr><th>Skill</th><th class="num">Passing runs</th><th class="num">Rep</th></tr></thead>
+							<tbody>
+								{contributor.maintained.map((m) => (
+									<tr><td><a class="inline-link" href={`/skills/${m.skill}/`}><code>{m.skill}</code></a></td><td class="num">{m.runs}</td><td class="num">{m.points}</td></tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</>
+			)}
+		</>
+	)}
+	<p class="prose-p" style="margin:2rem 0 4rem">Rep follows <a class="inline-link" href="/skills/scoring/#rep">How rep works</a> ({REP.version}). Downloads and likes are worth 0.</p>
+</HubLayout>
