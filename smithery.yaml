@@ -6,4 +6,4 @@ startCommand:
     type: object
     properties: {}
   commandFunction: |-
-    (config) => ({command: 'python', args: ['-m', 'ghost_in_the_droid'], env: {}})
+    (config) => ({command: 'uvx', args: ['--from', 'ghost-in-the-droid', 'android-agent-mcp'], env: {}})

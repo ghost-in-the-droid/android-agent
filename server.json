@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ghost-in-the-droid/android-agent",
+  "title": "Ghost in the Droid",
+  "description": "Give any AI agent a real Android phone or iPhone. 66 MCP tools, 117 hub skills, human in the loop.",
+  "repository": {
+    "url": "https://github.com/ghost-in-the-droid/android-agent",
+    "source": "github"
+  },
+  "websiteUrl": "https://ghostinthedroid.com",
+  "version": "1.6.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "ghost-in-the-droid",
+      "version": "1.6.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
