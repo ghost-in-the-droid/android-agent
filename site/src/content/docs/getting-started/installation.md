@@ -152,5 +152,5 @@ android-agent/
 
 ## Next Steps
 
-- [Connect Your Phone](/getting-started/connect-phone/) -- enable USB debugging and authorize
+- **[Connect Your Phone](/getting-started/connect-phone/) -- enable USB debugging and authorize** (next in the path)
 - [Hello World](/getting-started/hello-world/) -- run your first automation

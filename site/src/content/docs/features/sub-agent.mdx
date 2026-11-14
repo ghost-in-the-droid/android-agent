@@ -36,7 +36,7 @@ export SUB_AGENT_MODEL=claude-sonnet-5     # optional model override (default)
 ## Not chainable
 
 Because it spawns a paid LLM call, `sub_agent` is **`EXEC_CAPABLE`, not `SAFE`** —
-it can't be smuggled into a [`run_flow`](/features/run-flow/) or
+it can't be smuggled into a [`run_flow`](/features/mcp-server/#orchestration-2-tools) or
 [`chain`](/features/chain/) batch, so an untrusted flow can't fan out arbitrary
 billed vision calls.
 

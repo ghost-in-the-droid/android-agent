@@ -55,7 +55,7 @@ _Pending marketing copy._
 
 ## Related
 
-- [MCP Server](../mcp-server/) — the 41 tools agents call
+- [MCP Server](../mcp-server/) — the 66 tools agents call
 - [MCP Clients](../mcp-clients/) — every client that can drive Ghost
 - [LLM Providers](../llm-providers/) — bring any model, cloud or local
 - [On-Device LLM](../on-device-llm/) — the fully-offline story

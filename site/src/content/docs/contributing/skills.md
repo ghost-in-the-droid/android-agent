@@ -1,173 +1,122 @@
 ---
-title: "🧩 Contribute Skills"
-description: How to contribute a skill for a new Android app — the highest-impact contribution.
+title: "🧩 Contributing Skills"
+description: How to contribute a skill to Ghost. TL;DR — scaffold, edit, validate, test, submit as PR. Full flow at /skills/publishing/.
 ---
 
-**Adding skills for new apps is the most valuable contribution.** Every new app skill makes the framework more useful for everyone. This page covers the process specifically for contributors.
+**Adding skills for real apps is the highest-impact contribution to Ghost.**
 
-## Contribution Types
+Every new skill turns your one-time authoring effort into infinite $0-per-invocation replays for everyone else on your fingerprint. Skills compound the ecosystem's value.
 
-| Type | Difficulty | Impact |
-|------|-----------|--------|
-| Add UI elements for a new app | Easy-Medium | High |
-| Write an Action for an existing app | Medium | High |
-| Write a Workflow (multi-step) | Medium | High |
-| Build a complete app Skill | Medium-Hard | Very High |
+---
 
-## Step-by-Step
-
-### 1. Scaffold the Directory
+## Quick start
 
 ```bash
-mkdir -p gitd/skills/whatsapp/actions
-mkdir -p gitd/skills/whatsapp/workflows
-touch gitd/skills/whatsapp/__init__.py
-touch gitd/skills/whatsapp/actions/__init__.py
-touch gitd/skills/whatsapp/workflows/__init__.py
+pip install ghost-in-the-droid>=1.6.0
+
+ghost skill scaffold alice/whatsapp-messaging \
+    --app com.whatsapp \
+    --actions send_msg,check_inbox
+
+# ... edit skillhub/alice/whatsapp-messaging/skill.yaml + helpers.py ...
+
+ghost skill validate skillhub/alice/whatsapp-messaging
+ghost skill test skillhub/alice/whatsapp-messaging --live --device asus
+ghost skill submit skillhub/alice/whatsapp-messaging
 ```
 
-### 2. Define UI Elements
+For the full walkthrough see:
 
-Use the **Skill Creator** tab (live device stream with element overlay) to identify elements on the target app:
+- [Creating Skills](/skills/creating-skills/) — step-by-step author flow
+- [Publishing Skills](/skills/publishing/) — PR submit flow + review process
+- [Skill Hub](/features/skill-hub/) — trust tiers + registry model
+- [Skill Schema v2 Reference](/api/skill-classes/) — every YAML field
 
-```yaml
-# gitd/skills/whatsapp/elements.yaml
-package: com.whatsapp
-app_version: "2.24.x"
+---
 
-elements:
-  search_icon:
-    resource_id: "com.whatsapp:id/menuitem_search"
-    content_desc: "Search"
-    description: "Search icon in toolbar"
+## Contribution types (impact-ordered)
 
-  chat_input:
-    resource_id: "com.whatsapp:id/entry"
-    description: "Message text input field"
+| Type | Difficulty | Impact | Notes |
+|---|---|---|---|
+| **New skill for a top mainstream app** | Med-Hard | Very High | WhatsApp, Google Maps, Spotify, Instagram, Uber... |
+| **New action on an existing skill** | Easy | High | e.g. `reply_last` on `alice/whatsapp-messaging` |
+| **Alternate skill for a different fingerprint** | Medium | High | Pixel 10 variant of a Samsung S24 skill |
+| **Bench trace on a shipped skill** | Easy | Medium | Real with-vs-without-skill numbers on your brain |
+| **Docs improvement** | Easy | Medium | Correct/expand these very pages |
+| **Static analyzer signature** | Medium | High | Catch new Python patterns worth flagging in CI |
 
-  send_button:
-    resource_id: "com.whatsapp:id/send"
-    content_desc: "Send"
-    description: "Send message button"
-```
+---
 
-Always provide at least 2 locator fields per element (e.g., `resource_id` + `content_desc`).
+## What you can and cannot ship
 
-### 3. Write Actions
+**Yes, allowed**:
+- Skills for any app you can install
+- Actions on your own account (nav, read your own data, upload your own content)
+- Custom `python_action:` targets — the escape hatch is unavoidable for real complexity, trust tier handles it
+- Gated skills with a human captcha checkpoint
+- Skills that require paid API credentials (declare in `data_access:`)
 
-```python
-# gitd/skills/whatsapp/actions/send_message.py
-from gitd.skills.base import Action, ActionResult
+**No, will be rejected**:
+- Skills that violate the target app's ToS at scale (mass outreach, mass scraping, spam)
+- Skills that automate engagement to game platform metrics (mass-like, mass-follow, view farms)
+- Skills that scrape other users' private data
+- Skills that impersonate specific users
+- Skills that bypass anti-abuse mechanisms (captcha solvers, phone-number spoofers)
+- Malicious code — obfuscated python, credential exfiltration, network calls to unknown hosts
 
-class SendMessage(Action):
-    name = "send_message"
-    description = "Type a message and tap send"
+The line: **can a user reasonably run this themselves without violating the app's Acceptable Use?** If yes → probably fine. If no → premium-only or don't ship.
 
-    def precondition(self, dev, xml):
-        return dev.find_bounds(xml, resource_id="com.whatsapp:id/entry") is not None
+---
 
-    def execute(self, dev, text="Hello", **kwargs):
-        xml = dev.dump_xml()
-        bounds = dev.find_bounds(xml, resource_id="com.whatsapp:id/entry")
-        dev.tap(*dev.bounds_center(bounds))
-        dev.type_text(text)
-
-        xml = dev.dump_xml()
-        bounds = dev.find_bounds(xml, resource_id="com.whatsapp:id/send")
-        if bounds:
-            dev.tap(*dev.bounds_center(bounds))
-            return ActionResult(success=True)
-        return ActionResult(success=False, error="Send button not found")
-```
-
-### 4. Write Workflows (Optional)
-
-```python
-# gitd/skills/whatsapp/workflows/send_dm.py
-from gitd.skills.base import Workflow
-
-class SendDM(Workflow):
-    name = "send_dm"
-    description = "Send a DM to a contact"
-
-    def steps(self):
-        return [
-            ("open_app", {}),
-            ("search_contact", {"query": self.params["contact"]}),
-            ("send_message", {"text": self.params["message"]}),
-        ]
-```
-
-### 5. Register
-
-```python
-# gitd/skills/whatsapp/__init__.py
-from gitd.skills.base import Skill
-
-def load():
-    skill = Skill.from_yaml("gitd/skills/whatsapp")
-    from .actions.send_message import SendMessage
-    skill.register_action(SendMessage)
-    from .workflows.send_dm import SendDM
-    skill.register_workflow(SendDM)
-    return skill
-```
-
-### 6. Test
-
-```bash
-# Verify it loads
-python3 -c "
-from gitd.skills.whatsapp import load
-s = load()
-print(f'{s.name}: {len(s.elements)} elements, {s.list_actions()}, {s.list_workflows()}')
-"
-
-# Run on device
-python3 -c "
-from gitd.skills.whatsapp import load
-from gitd.bots.common.adb import Device
-s = load()
-dev = Device()
-action = s.get_action('send_message', dev)
-result = action.run(text='Hello from the bot')
-print(f'Success: {result.success}')
-"
-```
-
-### 7. Submit PR
-
-```bash
-git checkout -b skill/whatsapp
-git add gitd/skills/whatsapp/
-git commit -m "Add WhatsApp skill: send_message action, send_dm workflow"
-```
-
-Include in the PR:
-
-- App name and version tested on
-- Device model and Android version
-- What actions and workflows are included
-- Screenshot of the skill working (appreciated but optional)
-
-## Quality Checklist
+## First-time contributor checklist
 
 Before submitting:
 
-- [ ] `skill.yaml` has `name`, `version`, `app_package`, `description`
-- [ ] `elements.yaml` uses multiple locator fields per element
-- [ ] All actions have `name` and `description`
-- [ ] At least one action has a `postcondition()`
-- [ ] Skill loads without errors
-- [ ] Tested on a real device
-- [ ] No hardcoded serials or credentials
+- [ ] `ghost skill validate <path>` returns 0
+- [ ] `ghost skill test <path> --live` passes for at least one action
+- [ ] `README.md` explains what the skill does + shows the WebM recorded with `ghost skill demo`
+- [ ] `SOFT.md` has semantic-level narrative for each action (LLM will read this for adapt-mode)
+- [ ] `ref_prompt` on every action is a real natural-language phrase (not "TODO")
+- [ ] `test_case.ref_prompt_variants` are actual variants, not duplicates
+- [ ] `data_access:` honestly declared
+- [ ] `popup_detectors:` include the popups you encountered during testing
+- [ ] `python_action:` targets scoped — no `os.system`, no writes outside skill dir, no network outside `gitd.http`
+- [ ] Fingerprint matches what you actually tested against (don't wildcard `hardware:` if you only tested one device)
 
-## Even Partial Skills Help
+---
 
-Even a skeleton with just `skill.yaml` and `elements.yaml` (no actions) is a valid contribution. It saves the next person from starting from scratch and provides the UI element mappings for the app.
+## Getting help
 
-## Related
+- **Discord**: [join our server](https://discord.gg/gmvDX4Juk) to share what you build and get help
+- **GitHub Issues**: use the `skill-question` label
+- **`ghost doctor`**: diagnoses local skill-authoring environment
+- **[Publishing Skills](/skills/publishing/)** — canonical reference for the flow
 
-- [Creating Skills Guide](/skills/creating-skills/) -- detailed walkthrough
-- [Elements Reference](/skills/elements/) -- how locator chains work
-- [Code Contributions](/contributing/code/) -- general PR guidelines
+## Record the hub demo
+
+Use `ghost skill demo` to make the hub video with the original Ghost showcase
+recorder: asciinema terminal on the left, live phone in its device frame on the right.
+
+```bash
+ghost skill demo <author>/<skill> <action> --mode hard --device <device> --render-host <render-host>
+# Reference notes followed by a real Claude Code session:
+ghost skill demo <author>/<skill> <action> --mode soft --device <device> --render-host <render-host> --max-tokens 12000
+```
+
+The recorder clears only the installed non-system demo app, seeds its sample data,
+returns HOME, starts capture and launches the app. Use a disposable demo app state.
+System apps are refused. Configure app-scoped seed broadcasts and all card text in
+`--spec spec.yaml`; card flags override the spec. `--dry` prints the plan without
+recording; `--trim-idle` removes static time from both panes together after composition.
+Soft mode uses the Haiku model alias and stops at its transcript token budget;
+a response already in flight may cross the threshold. Its output tokens are also bounded.
+
+Output is `demos/<action>.webm` plus its `.spec.yaml` (first action also updates
+`demo.webm`). The VP9 WebM is silent, at most 30 seconds and 3 MB, and goes through
+terminal and OCR privacy scans before publication to the local output path.
+Open this WebM in [Validate](/skills/validate/) to check it locally, then include
+it in the hub submission. See the repository's `docs/DEMO_RECORDING.md` for the
+full spec and the original `scripts/record_showcase_reel.py` grid reel workflow.
+
+HARD means deterministic `run_skill` replay. SOFT means `SOFT.md` reference notes
+read with `get_skill_notes`. A human captcha is a GATE, not a soft skill.

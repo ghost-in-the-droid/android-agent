@@ -1,123 +1,162 @@
 ---
-title: "🛠️ Skill Creator"
-description: Split-screen LLM-powered tool for building skills — chat interface, live device stream, element overlay, and 4 LLM backends.
+title: "🛠️ Skill Creator (Miner)"
+description: The BFS state-graph explorer that turns an LLM's trace of driving your phone into a v2 skill.yaml, or bootstraps a brand-new skill from an unknown app.
 ---
 
-The Skill Creator is a visual tool for building new Android automation skills through LLM-assisted interaction. It provides a split-screen interface in the dashboard.
+The **Skill Creator** — internally `gitd/skills/auto_creator.py`, sometimes called the **Skill Miner** — is Ghost's mechanism for producing skills automatically from an LLM's exploration of an app.
 
-## Interface Layout
+> **Planned feature.** `ghost skill mine` is not implemented in v1.6.0; `gitd/skills/auto_creator.py` is a BFS state explorer with no LLM calls and no v2 output. This page describes the design. Until it ships, author skills by hand or import them (see [Creating Skills](/skills/creating-skills/)).
 
-| Panel | Content |
-|-------|---------|
-| **Left** | LLM chat -- type natural language instructions, view proposed action plans |
-| **Right** | Live device screen (WebRTC) with numbered interactive element overlay |
+It is designed to solve the Tier 2 (Adapt) + Tier 3 (Mine) cases of the [Skills acquisition model](/skills/overview/#three-acquisition-tiers): when a skill doesn't exactly match your device, or when no skill exists at all, an agent runs the miner and emits a fresh v2 skill.
 
-## How It Works
+---
+
+## The pattern
 
 ```
-User types: "Open Gmail and compose an email to test@example.com"
-    |
-    v
-Dashboard collects context:
-  - Current screen elements (via GET /api/phone/elements/<device>)
-  - Action history (last 15 entries)
-  - Selected backend + model
-    |
-    v
-POST /api/creator/chat -> server builds system prompt with:
-  - Capability list (tap, swipe, type, launch, screenshot, etc.)
-  - Existing skill references (tiktok: 13 actions, base: 9 actions)
-  - Current screen elements with bounds + labels
-  - Action history
-    |
-    v
-LLM returns structured skill spec + action plan as JSON
-    |
-    v
-Dashboard renders:
-  - Natural language explanation
-  - Structured skill spec with parameters
-  - Step-by-step plan with "Execute" button
-    |
-    v
-Execute -> sends tap/type/back commands to device -> results feed back to LLM
+Agent drives phone
+    │
+    ▼
+Every tool call → recorded in a trace
+    │
+    ▼
+Trace → Skill Miner
+    │  BFS: discovers screen states, deduplicates, extracts stable locators
+    ▼
+Emits: skill.yaml (v2) + helpers.py + SOFT.md skeleton
+    │
+    ▼
+Agent lightly polishes (or you tweak)
+    │
+    ▼
+ghost skill validate + test + submit
 ```
 
-## LLM Backends
+**Key insight**: Schema v2 was designed to be near-1:1 with an LLM's tool-call output. Every step primitive matches an MCP tool name (`tap_element`, `type_text`, `wait_for_text`, `launch_intent`). Selectors mirror tool-call args. Validators can be inferred from the observed terminal screen ("agent saw text X → emit `text_visible: {text: X}`").
 
-| Backend | Config | Default Model | Timeout |
-|---------|--------|---------------|---------|
-| OpenRouter | `OPENROUTER_API_KEY` env var | `anthropic/claude-sonnet-4` | 60s |
-| Claude API | `ANTHROPIC_API_KEY` env var | `claude-sonnet-4-20250514` | 60s |
-| Ollama | Auto-detect at `localhost:11434` | `llama3` | 60s |
-| Claude Code | `claude` CLI installed | `sonnet` | 120s |
+---
 
-The backend and model selection persist in localStorage across sessions.
+## Two invocation modes
 
-## LLM Skill Spec Format
+### Mine a specific action
 
-The LLM produces structured JSON action plans:
-
-```json
-{
-  "name": "send_gmail",
-  "display_name": "Send Gmail Email",
-  "description": "Compose and send an email via the Gmail app",
-  "app_package": "com.google.android.gm",
-  "parameters": [
-    {
-      "name": "recipient",
-      "type": "string",
-      "description": "Email address",
-      "example": "hello@example.com",
-      "required": true
-    }
-  ],
-  "usage_example": "Send an email to john@example.com with subject 'Meeting'",
-  "steps": [
-    {"action": "launch", "package": "com.google.android.gm", "goal": "Open Gmail"},
-    {"action": "tap", "element_idx": 5, "goal": "Open composer"},
-    {"action": "type", "text": "{recipient}", "goal": "Enter recipient"}
-  ]
-}
+```bash
+ghost skill mine skillhub/alice/whatsapp-messaging \
+    --action send_msg \
+    --ref-prompt "Text John Smith saying I'll be late"
 ```
 
-Parameters use `{param_name}` placeholders in step text fields, filled at runtime.
+Runs the agent with the given ref_prompt, records the trace, appends the action to the skill's `actions[]` list. Existing actions untouched.
 
-## Usage
+### Mine from scratch
 
-1. Open the dashboard at http://localhost:5055
-2. Navigate to the **Skill Creator** tab
-3. Select your LLM backend and model from the dropdowns
-4. Start the WebRTC stream for your target device (Phone Agent tab or inline)
-5. Type a natural language instruction in the chat input
-6. Review the LLM's proposed skill spec and action steps
-7. Click **Execute** to run steps on the device, or approve individually
-8. Iterate: results feed back to the LLM as context for refinement
+```bash
+ghost skill mine skillhub/alice/whatsapp-full \
+    --app com.whatsapp \
+    --explore
+```
 
-## Element Overlay
+BFS-explore the app from launch, discover ~20-40 screens, propose actions the LLM can articulate (from screen affordances). Emits a starter skill.yaml with candidate actions the author refines.
 
-The right panel shows the live device screen with numbered labels on every interactive element. This helps you:
+---
 
-- Reference elements by index when chatting with the LLM ("tap element #5")
-- Identify resource IDs and content descriptions for writing `elements.yaml`
-- Verify that the correct element was found
+## Under the hood
 
-Elements are fetched via `GET /api/phone/elements/<device>`.
+The miner does three things:
 
-## API Endpoints
+**1. Trace capture**
+- Runs the agent against the target app
+- Records every tool call (name, args, result)
+- Records every screen dump (a11y XML) + screenshot
+- Records validator observations at each step
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| POST | `/api/creator/chat` | Send message to LLM with screen context |
-| GET | `/api/creator/ollama-models` | List available Ollama models |
-| GET | `/api/phone/elements/<device>` | Get interactive UI elements |
-| POST | `/api/phone/tap` | Execute tap on device |
-| POST | `/api/phone/type` | Type text on device |
-| POST | `/api/phone/back` | Press back button |
+**2. State-graph analysis**
+- Deduplicates screens by content-hash (skip similar states)
+- Extracts stable locators per element (prefers content-desc > resource-id > text > coord)
+- Detects popups (transient modals) vs. screens (persistent state)
+- Maps ref_prompt → step sequence
+
+**3. YAML emission**
+- Steps become `- {action: <tool_name>, ...args}` entries
+- Parameters extracted from repeated string values ({contact_name} substitution)
+- Popup detectors emitted from transient-modal patterns
+- `end_state_validator` drafted from 2-3 terminal-screen affordances
+- `ref_prompt` = the original user request or a paraphrase
+
+---
+
+## Trace→YAML mapping (rules)
+
+For any LLM agent that just drove your phone, the Skill Miner (or the LLM directly) can follow these rules to emit valid v2 yaml:
+
+1. **Every tool call becomes a step** — copy the tool name as `action:`, args as sibling keys
+2. **Parameterize repeated values** — same string typed as search + same string tapped in results is likely `{contact_name}` → extract to `params:`
+3. **Emit an `end_state_validator`** by observing the terminal screen — 2-3 things you can assert (text visible, checkmark shown, URL contains)
+4. **Emit a `ref_prompt`** — the natural-language phrase the user gave (or a paraphrase)
+5. **Decision mid-trace on novel content** → wrap as `checkpoint: {reason: llm_decision, ...}` — declares the flow soft, warns future replay
+6. **Custom helper invoked** (not in atomic set) → emit `python_action: <module>:<func>` + ship helper alongside → raises trust badge to `has_python: true`
+
+Ghost ships a `skill-creation-guide` skill (meta-tier) that packages these rules + worked examples so any competent LLM can be handed a trace + this guide and produce a submission-ready skill dir.
+
+---
+
+## Popup catalog growth (--update-popups)
+
+```bash
+ghost skill mine ghost/tiktok --update-popups
+```
+
+Post-processes recent `runs/<id>/unknown-popup-*.png` artifacts (from Layer 4 safety-net captures) into detector proposals. OCR each screenshot, propose a `{detect, button, label}` entry, ask the author to confirm.
+
+Empirical grow-your-catalog workflow — replaces manual popup discovery.
+
+---
+
+## Adapt (Tier 2)
+
+When a skill's fingerprint doesn't exactly match your device (e.g. your Pixel 10 vs. author's Samsung S24), the engine calls the miner in **adapt mode**:
+
+1. Loads the existing hard-skill(s) with nearest fingerprint(s) as concrete reference
+2. Loads the skill's `SOFT.md` as semantic narrative
+3. LLM re-mines the flow on YOUR device
+4. Emits a new hard-skill for YOUR fingerprint (stored locally, optionally submitted back to community)
+
+Adapt-mode uses fewer tokens than mine-mode because it has the reference structure — LLM only re-verifies + re-emits the drift.
+
+Distance-based cutoff (designed, not yet in the engine): 0 → Hit, 1-2 → warn + try, 3+ → Adapt automatically.
+
+---
+
+## Other starting points: import and migrate
+
+Mining is not the only way to get a first draft. Two commands turn existing automation into a v2 skill without any LLM tokens:
+
+```bash
+ghost skill import --maestro login_flow.yaml --out skillhub/<you>/my-app
+ghost skill import --automate my_flow.flo   --out skillhub/<you>/my-app
+ghost skill migrate skillhub/<you>/old-v1-skill [--dry-run]
+```
+
+- **`import`** reads a Maestro YAML flow or an Automate flow export and writes a skill folder: `skill.yaml` with one action per flow, a `helpers.py` stub, `README.md`, `SOFT.md`, and the original source kept next to them. Steps that map one to one become v2 steps; anything else stays as a TODO step for you to finish. If the flow does not end on a wait the importer can turn into a validator, the action gets a TODO end-state validator. `generated_with:` records the importer, and a multi-app source must be split into one skill per app. Native binary Automate `.flo` files are kept verbatim with a TODO placeholder; nothing in them is executed or decoded.
+- **`migrate`** wraps an older v1 skill (Python `actions/` and `workflows/` classes, a recorded flow, or a FLOW.md-only soft skill) as Schema v2 in place. v1 files stay, so the old runtime keeps working.
+
+Either way, review the result before replaying it: fill the TODOs, check the fingerprint and `data_access`, then run `ghost skill lint` and `ghost skill test --live`.
+
+---
 
 ## Related
 
-- [App Explorer](/features/app-explorer/) -- discover UI states automatically
-- [Creating Skills](/skills/creating-skills/) -- write the skill code manually
-- [Elements](/skills/elements/) -- understand locator chains found via the overlay
+- [Skill System](/features/skill-system/) — how the emitted skills execute
+- [Creating Skills](/skills/creating-skills/) — author flow (mine as one option)
+- [What Are Skills?](/skills/overview/) — the 3-tier acquisition model
+- [Execution Engine](/features/skill-execution-engine/) — runtime that consumes the emitted skills
+
+## Skill Creator agent guide
+
+The companion agent skill is `skillhub/_guides/skill-creation-guide/SKILL.md`
+(`ghost-skill-creation-guide`). Use it to turn explored actions or a trace into a
+versioned hub skill: scaffold, author steps and validators, write SOFT.md notes,
+validate, lint, analyze, run with signed evidence, record with `ghost skill demo`,
+then prepare `ghost skill submit`. Push and publish only when the user requests it.
+HARD is deterministic replay; SOFT is reference notes read through get_skill_notes;
+a captcha is a GATE. The general `ghost` guide handles everyday phone tasks.

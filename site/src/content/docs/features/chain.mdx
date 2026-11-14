@@ -7,7 +7,7 @@ import PlatformBadges from '../../../components/PlatformBadges.astro';
 <PlatformBadges android="yes" ios="yes" />
 
 `chain` runs an ordered list of sub-actions in a **single tool call**, settling
-between each one. It's the agent-loop cousin of [`run_flow`](/features/run-flow/):
+between each one. It's the agent-loop cousin of [`run_flow`](/features/mcp-server/#orchestration-2-tools):
 where `run_flow` batches an MCP round-trip, `chain` lets the agent collapse a
 short "do this, then this, then this" into one step without re-reading the
 screen between every action.
@@ -51,5 +51,5 @@ restricted to the safe allow-list, so higher-privilege tools (like
 
 ## Related
 
-- [Run Flow](/features/run-flow/) — the MCP-level batch primitive
+- [Run Flow](/features/mcp-server/#orchestration-2-tools) — the MCP-level batch primitive
 - [Screenshot Sequence](/features/screenshot-sequence/) — chainable frame burst

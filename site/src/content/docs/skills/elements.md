@@ -1,156 +1,119 @@
 ---
 title: "🎯 Elements & Locators"
-description: UI locator chains, fallback priority, finding elements on screen, and elements.yaml format reference.
+description: How Ghost skills locate UI elements — the id → desc → text → xpath chain, and when to fall back to coord blind-tap for known-stable landmarks.
 ---
 
-Elements are named UI locators that identify interactive controls on the screen. They are the foundation of the skill system -- every action that interacts with the UI uses elements to find where to tap, type, or swipe.
+Every UI interaction in a Ghost skill needs to **find** an element. This page covers the locator model.
 
-## Why Elements?
+---
 
-App updates change resource IDs, rearrange layouts, and rename buttons. Hardcoded coordinates break immediately. Elements solve this with **fallback chains** -- multiple locator strategies tried in priority order:
+## The locator chain
 
-```
-content_desc -> text -> resource_id -> class_name -> absolute coords (x, y)
-```
+Ghost's `tap_element` and `wait_for_element` primitives use a fallback chain, tried in order:
 
-If `content_desc` fails, the system tries `text`. If that fails, it tries `resource_id`, and so on. This makes skills resilient to minor app updates.
+1. **`id:`** — Android resource-id or iOS accessibility-id. Most precise. Changes between app builds.
+2. **`desc:`** — content-desc (Android) or accessibility label (iOS). Most stable across app versions.
+3. **`text:`** — visible text. Locale-dependent. Weak.
+4. **`xpath:`** — full xpath expression. Escape hatch for complex hierarchies (limited support in v2).
 
-## elements.yaml Format
+First match wins. If no match found → `StepFailedError` with `hint: "consider wait_for_element before this step"`.
 
 ```yaml
-# gitd/skills/tiktok/elements.yaml
-package: com.zhiliaoapp.musically
-app_version: "44.3.3"
-
-elements:
-  search_icon:
-    resource_id: "com.zhiliaoapp.musically:id/j4d"
-    content_desc: "Search"
-    description: "Home screen search magnifier"
-
-  search_box:
-    resource_id: "com.zhiliaoapp.musically:id/gti"
-    class_name: "android.widget.EditText"
-    description: "Search text input field"
-
-  profile_tab:
-    resource_id: "com.zhiliaoapp.musically:id/n19"
-    text: "Profile"
-    content_desc: "Profile"
-    description: "Bottom nav Profile icon"
-
-  follow_button:
-    text: "Follow"
-    content_desc: "Follow"
-    description: "Follow button on user profile"
-    x: 540
-    y: 650
+steps:
+  - {action: tap_element, desc: "Send button"}                    # try desc first
+  - {action: tap_element, id: "com.whatsapp:id/send"}             # id-based, brittle to app updates
+  - {action: tap_element, text: "Save"}                           # text-based, locale-fragile
 ```
 
-### Field Reference
+**Best practice**: prefer `desc:` — most stable across app versions + locales. Use `id:` when desc is missing. Use `text:` only when the text is a known-stable UI landmark ("Post", "Send", "Cancel").
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `resource_id` | string | Android resource ID (e.g., `com.app:id/btn1`) |
-| `content_desc` | string | Accessibility content description |
-| `text` | string | Visible text label |
-| `class_name` | string | Android widget class (e.g., `android.widget.Button`) |
-| `x`, `y` | int | Absolute coordinates (last resort fallback) |
-| `description` | string | Human-readable description (not used for finding) |
+---
 
-## How Element.find() Works
+## Getting locators
 
-```python
-element = skill.elements["search_icon"]
-coords = element.find(device, xml)
-# Returns (cx, cy) tuple or None
-```
+Two ways to discover the right locator:
 
-The `find()` method tries each locator in priority order:
+### Live inspection (recommended)
 
-1. **content_desc** -- `find_bounds(xml, content_desc="Search")`
-2. **text** -- `find_bounds(xml, text="Search")`
-3. **resource_id** -- `find_bounds(xml, resource_id="com.app:id/j4d")`
-4. **class_name** -- `find_bounds(xml, resource_id="android.widget.EditText")` (uses same lookup)
-5. **Absolute coords** -- returns `(x, y)` directly if defined
-
-The first match wins. Bounds are converted to center coordinates automatically.
-
-## Finding Elements on Screen
-
-### Method 1: Skill Creator Overlay
-
-The fastest way. Open the **Skill Creator** tab in the dashboard, start the WebRTC stream, and the element overlay will show numbered labels on every interactive element. Click a number to copy its locator info.
-
-### Method 2: XML Dump
-
-```python
-from gitd.bots.common.adb import Device
-dev = Device()
-xml = dev.dump_xml()
-
-# Print all elements with identifying info
-for node in dev.nodes(xml):
-    rid = dev.node_rid(node)
-    text = dev.node_text(node)
-    desc = dev.node_content_desc(node)
-    bounds = dev.node_bounds(node)
-    if rid or text or desc:
-        print(f"RID: {rid:40s}  text: {text:20s}  desc: {desc:20s}  bounds: {bounds}")
-```
-
-### Method 3: Interactive Element Endpoint
+While the app is on the target screen:
 
 ```bash
-curl -s http://localhost:5055/api/phone/elements/YOUR_DEVICE_SERIAL | python3 -m json.tool
+adb -s <serial> shell uiautomator dump --compressed /sdcard/ui.xml
+adb -s <serial> pull /sdcard/ui.xml /tmp/ui.xml
+grep -oE '(content-desc|resource-id|text)="[^"]+"' /tmp/ui.xml | sort -u
 ```
 
-Returns a numbered list of interactive elements currently on screen, including bounds, text, resource_id, and content_desc.
+Look for a unique attribute on the element you want to tap. Content-desc is best.
 
-### Method 4: RID Discovery Tool
+### Ghost inspector (via Skill Creator)
 
-For systematic RID extraction after an app update:
-
-```python
-from gitd.bots.common.discover_rids import discover
-discover(device_serial="YOUR_DEVICE_SERIAL", package="com.zhiliaoapp.musically")
+```bash
+ghost skill mine <skill> --explore   # planned (v1.7); not in v1.6.0
 ```
 
-This saves a JSON map of all RIDs found on each screen to `bots/common/rid_maps/`.
+BFS walks the app, records every screen, extracts stable locators. Faster than manual inspection.
 
-## Element Resolution in the TikTok Skill
+---
 
-The TikTok skill has **41 defined elements** covering:
+## Coord blind-tap (for known-stable landmarks)
 
-- Bottom navigation (Home, Discover, Camera, Inbox, Profile)
-- Search UI (icon, input box, tabs, filters)
-- Video player (like, comment, share, follow)
-- Profile page (followers, following, edit, message)
-- Upload flow (next button, caption input, hashtag area, post/draft buttons)
-- DM interface (message input, send button)
-- Popups and overlays (10+ known patterns)
+Some elements have NO stable a11y attributes — TikTok's bottom-nav icons are `content-desc="Profile"` (stable, use `desc:`), but the display-name area at the top of the profile page (used to open the account-switcher) has no reliable attribute. In those cases, use empirically-verified coordinates:
 
-## RID Maps
-
-Version-specific resource ID maps are stored in `bots/common/rid_maps/`:
-
-```
-rid_maps/
-  tiktok_44.3.3.json
+```yaml
+- {action: tap, x: 972, y: 2214}   # TT Profile bottom-nav, 1080x2400 devices
+- {action: sleep, duration_s: 2}
 ```
 
-When TikTok updates, RIDs change. The `discover_rids.py` tool helps extract new RIDs by comparing XML dumps against known patterns. The Skill Creator's element overlay is also useful for this.
+**When to use blind-tap**:
+- Known-stable landmark whose position doesn't shift across app versions
+- No content-desc / resource-id / text is available
+- Video-app screens where `uiautomator` can't reach idle (TT/IG/YT autoplay pages)
 
-## Best Practices
+**When NOT to blind-tap**: modals, dynamic content, small target areas, screens where coords could shift with an app update. Always prefer a11y locators when they exist.
 
-1. **Always provide multiple locators** -- at minimum, `resource_id` + one of `content_desc`/`text`
-2. **Add absolute coords as last resort** -- useful for elements that have no stable identifiers
-3. **Use description for documentation** -- helps other developers understand what the element is
-4. **Test on multiple devices** -- resource IDs are consistent across devices for the same app version, but screen coordinates differ
-5. **Version your elements.yaml** -- include the `app_version` field to track which version the RIDs were extracted from
+Document your coord choices in the skill's SOFT.md so future adapt passes know what to preserve.
+
+---
+
+## Element filtering by attribute
+
+Currently supported: `id`, `desc`, `text`. Combined filters (find element matching multiple attrs) not yet in v2 — use `xpath:` for complex cases:
+
+```yaml
+- {action: tap_element, xpath: "//android.widget.Button[@content-desc='Send' and @clickable='true']"}
+```
+
+**Note**: xpath support in v2 is minimal — id/desc/text covers 95% of cases. Extend via `custom_python` if you need more.
+
+---
+
+## Locator patterns per app class
+
+**Native Android apps** (Chrome, Gmail, Instagram):
+- Content-desc is usually populated and stable
+- Resource-id changes on major app updates
+- Text works but is locale-dependent
+
+**React Native / Flutter apps** (many indie apps):
+- Content-desc often missing (framework doesn't emit it by default)
+- Resource-id often auto-generated hashes → unstable across builds
+- Text or coord may be the only viable option → use `screen_hash:` validator to detect drift
+
+**Web-view apps** (banking, some social):
+- Locators are actually browser-side — use `url_contains:` validators
+- `open_url` + `type_text` into form fields
+- iframe elements especially hard to hit — often needs `custom_python` with WebView-JS injection
+
+**Video-autoplay apps** (TikTok, Instagram, YouTube):
+- `uiautomator dump` fails to reach idle
+- Use blind-tap for bottom-nav / known landmarks
+- Dump AFTER navigating to a static page (profile, settings) — that's when a11y is reliable
+- `_fast_dump` in the engine handles Portal fallback automatically
+
+---
 
 ## Related
 
-- [Creating Skills](/skills/creating-skills/) -- full skill creation walkthrough
-- [Skill System](/features/skill-system/) -- Action/Workflow/Element class APIs
-- [ADB Device](/features/adb-device/) -- dump_xml, find_bounds, and other XML methods
+- [Creating Skills](/skills/creating-skills/) — full author flow
+- [Skill Schema v2 Reference](/api/skill-classes/) — tap_element + wait_for_element specs
+- [Execution Engine](/features/skill-execution-engine/) — the fast_dump gotcha, Layer 1-4 popup handling

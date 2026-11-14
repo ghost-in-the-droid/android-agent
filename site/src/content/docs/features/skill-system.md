@@ -1,189 +1,175 @@
 ---
 title: "🧠 Skill System"
-description: Action, Workflow, Skill, and Element base classes — execution flow, retry logic, and the TikTok reference implementation.
+description: The action-first architecture for phone automation — Skills bundle Actions built from atomic Steps with typed Params, Validators, and community-contributable Subroutines.
 ---
 
-The skill system provides formal abstractions for Android automation. It is defined in `gitd/skills/base.py` (262 lines) and includes five core classes.
+Ghost's Skill System is what turns a probabilistic LLM-driven phone-driving loop into a **deterministic, replayable, community-contributable library of $0 automations**.
 
-## Base Classes
+If you're here to understand the *architecture*, you're in the right place. If you're here to *use* skills, start with [Using Skills](/skills/using-skills/). If you're here to *author* skills, start with [Creating Skills](/skills/creating-skills/).
 
-### ActionResult
+---
 
-Return value from action execution:
-
-```python
-@dataclass
-class ActionResult:
-    success: bool
-    data: dict = field(default_factory=dict)
-    error: str = ""
-    duration_ms: float = 0.0
-```
-
-`ActionResult` is truthy when `success=True`, so you can use it in conditionals: `if result: ...`
-
-### Element
-
-UI locator with fallback chain:
-
-```python
-class Element:
-    # Locator fields (tried in this order):
-    content_desc: str
-    text: str
-    resource_id: str
-    class_name: str
-    x: int  # absolute fallback
-    y: int
-
-    def find(self, device, xml) -> tuple[int, int] | None:
-        """Try each locator in priority order, return center coords."""
-```
-
-### Action (Abstract)
-
-Atomic operation with pre/post validation:
-
-```python
-class Action:
-    name: str
-    description: str
-    max_retries: int = 2
-    retry_delay: float = 1.0
-
-    def precondition(self, dev, xml) -> bool: ...   # Override to validate state
-    def execute(self, dev, **kwargs) -> ActionResult: ...  # Must implement
-    def postcondition(self, dev, xml) -> bool: ...   # Override to verify success
-    def rollback(self, dev) -> None: ...             # Override to undo on failure
-    def run(self, dev, **kwargs) -> ActionResult: ...  # Orchestrator
-```
-
-### Workflow
-
-Composed action sequence:
-
-```python
-class Workflow:
-    name: str
-    description: str
-    params: dict
-
-    def steps(self) -> list: ...   # Override: return [(action_name, params), ...]
-    def run(self, dev) -> ActionResult: ...  # Execute all steps in order
-```
-
-### Skill
-
-Top-level container that loads from YAML:
-
-```python
-class Skill:
-    name: str
-    app_package: str
-    version: str
-    elements: dict[str, Element]
-
-    def register_action(self, action_cls): ...
-    def register_workflow(self, workflow_cls): ...
-    def get_action(self, name, device) -> Action: ...
-    def get_workflow(self, name, device, **params) -> Workflow: ...
-    def list_actions(self) -> list[str]: ...
-    def list_workflows(self) -> list[str]: ...
-
-    @classmethod
-    def from_yaml(cls, path) -> Skill: ...  # Load skill.yaml + elements.yaml
-```
-
-## Execution Flow
-
-### Action.run()
+## The hierarchy
 
 ```
-precondition() -> False? -> return failure immediately
-      | True
-      v
-execute() -> loop up to max_retries (default 2):
-    |  success + postcondition() True? -> return success
-    |  failure? -> rollback(), retry after retry_delay (default 1.0s)
-    v
-All retries exhausted -> return failure with last error
+Skill (a package)
+├── fingerprint       (os × hw × app-version this is verified against)
+├── status            (active | blocked | deprecated, default active)
+├── license, generated_with, side_effects, destructive, tos_risk, locale
+├── data_access       (permissions the skill uses — informational)
+├── popup_detectors   (skill-scoped popups auto-dismissed mid-flow)
+├── os_popup_policy   (permission grant/deny overrides)
+├── subroutines[]     (internal reusable step-lists — de-dup helpers)
+└── actions[]         (agent-invocable, first-class)
+    ├── ref_prompt        (natural-language phrase LLM matches against)
+    ├── params[]          (typed inputs, {name} interpolation)
+    ├── pre_hooks[]       (python_action prep before device flow)
+    ├── steps[]           (the flow — atomic primitives + control flow + composition)
+    ├── end_state_validator (composable predicate on terminal screen)
+    └── test_case         (canonical prompt variants + expected success)
 ```
 
-### Workflow.run()
+Everything lives in `skill.yaml` next to a flat `helpers.py` (Python for `python_action:` escape hatches).
+
+New skills must declare `license:` (an SPDX id such as `MIT`) and `generated_with:` (how the skill was written, for example `hand` or the tool that produced it). `side_effects:` (`sends_message`, `posts_content`, `makes_payment`, `modifies_account`, `deletes_data`, `none`), `destructive:`, `tos_risk:` (`low`, `medium`, `high`) and `locale:` describe what the skill does to the world; a `destructive: true` skill needs a `confirm_before:` gate or a `dry_run` param. You can check a file in the browser at [Validate a skill](/skills/validate/).
+
+---
+
+## Why action-first
+
+v1 split skill code into `actions/` (atomic Python classes) + `workflows/` (compositions calling actions) — two tiers, two Python conventions, one confusing distinction because both were called "actions" in the wild.
+
+v2 collapses to **one first-class thing** — the Action — with clear ancillary primitives for the different needs it was solving:
+
+| v1 concept | v2 replacement | Why |
+|---|---|---|
+| `actions/` (atomic Python classes) | Not needed — atomic ops are yaml primitives (`tap`, `wait_for_element`, etc.) or `python_action:` escape hatches | LLMs can emit YAML from a trace; Python classes are opaque to them |
+| `workflows/` (multi-step compositions) | `actions:` with inline `steps:` | The composition IS the action — one thing, one name |
+| Shared prelude Python between workflows | `subroutines:` (named reusable step-lists in the same yaml) | De-dup without inventing a "helper action" that isn't agent-invocable |
+
+Now: **every named thing an agent can invoke is an Action**. Every Action has `ref_prompt` + `end_state_validator` + `test_case`. Every Action can be tested, benched, and validated in isolation.
+
+---
+
+## The action lifecycle
+
+When you call `ghost skill run ghost/tiktok get_active_account --device asus`:
+
+1. **Loader** parses `skillhub/ghost/tiktok/skill.yaml` → typed `SkillDef` w/ validated Schema v2 conformance
+2. **Runner** builds a `RunContext` (params, result, device_serial, popup detectors, os_popup_policy, skill_dir)
+3. **Runner** resolves params against the action's `params[]` — type-checks, fills defaults, validates enums
+4. **Pre-hooks** — any `pre_hooks: [{python_action: ...}]` fire before device steps (media prep, TTS injection, etc.)
+5. For each step in `steps[]`:
+   - **Interpolate** `{param}` and `{context.attr}` placeholders in every string field
+   - **Layer 1** OS popup sweep (permission dialogs, battery-opt, etc.) — only before a11y-reading steps
+   - **Layer 2** skill popup sweep (from `popup_detectors:`) — same selectivity
+   - **Dispatch** to step handler (16 built-in step types, pluggable registry)
+   - **Layer 4 safety net**: if step failed AND a11y-diff shows a new modal appeared → screenshot + BACK cascade + retry ONCE → else `UnknownPopupError` with screenshot
+6. **Validator** on end_state_validator — kind-dispatch (7 built-in, composable via all_of/any_of/not)
+7. **Result** — structured `RunResult(success, data, error, duration_ms, trace[])` — never raises
+
+Full engine internals: [Execution Engine](/features/skill-execution-engine/).
+
+---
+
+## Step primitives
+
+All available via yaml step syntax (see the ["step" grammar](/api/skill-classes/)):
+
+**Atomic device interactions**:
+`tap`, `tap_element` (id/desc/text locator chain), `type_text`, `long_press`, `swipe`, `press_key`, `launch_app`, `launch_intent` (full Android Intent w/ mime_type + URI extras), `open_url`, `screenshot`, `dump_xml`, `dismiss_popups`.
+
+**Waits**:
+`wait_for_text`, `wait_for_element`, `sleep`.
+
+**Control flow**:
+`if_visible: {selector, then: [...], else: [...]}`, `retry: {max, backoff_s, steps: [...], on_failure}`, `run_skill: {name, action, params}` (cross-skill composition), `subroutine: <name>` (in-skill composition), `checkpoint: {reason, prompt, success, timeout_s}` (HITL gate for soft skills).
+
+A `checkpoint:` step pauses at a gate the bot must not clear itself, such as a captcha or an emailed code. The run is marked `awaiting_human` and shows the `prompt`; it continues when a person resumes it (`POST /api/skills/runs/{id}/resume` for dashboard and MCP runs) or when the step's `success:` validator passes, and ends `timed_out` after `timeout_s` (default 600). A dry run, `run_action(..., dry_run=True)`, needs no device: it resolves params, passes checkpoints straight through and lists every other step as skipped, which makes it a cheap smoke test for a skill's structure.
+
+**Escape hatch**:
+`python_action: <module>:<function>` — arbitrary Python callable receiving `(device, params, context)`, returns `ActionResult`. Required for real-world complexity (custom validators, media prep, OCR helpers). Raises trust tier — Community submissions with `python_action:` get extra reviewer attention.
+
+---
+
+## Validator primitives
+
+Compose via `all_of` / `any_of` / `not`. Leaf kinds:
+
+- `text_visible: {text}` — a11y tree substring match
+- `element_present: {id | desc | xpath}` — element in tree
+- `url_contains: {substring}` — WebView URL
+- `pixel_at: {x, y, rgb, tolerance}` — screencap pixel color check
+- `ocr_text_present: {text, region?}` — RapidOCR on screencap (optionally in a region)
+- `screen_hash: {ref_hash, similarity_min}` — perceptual hash match against reference
+- `custom_python: {function}` — arbitrary Python predicate `(device, context) -> bool`
+
+Example:
+
+```yaml
+end_state_validator:
+  all_of:
+    - {kind: text_visible, text: "Sent"}
+    - any_of:
+        - {kind: element_present, id: sent_check_icon}
+        - {kind: pixel_at, x: 990, y: 1200, rgb: [34, 187, 51]}
+    - not:
+        {kind: text_visible, text: "Failed to send"}
+```
+
+---
+
+## Popup handling (4 layers)
+
+TT-style flake was the #1 pain of v1 skills. v2 handles it at four layers so authors barely think about it for the common case:
+
+- **Layer 1** — engine-global OS popups: permission dialogs, battery-opt, Google Play nag, screen-recording confirm. Always-on, deny-by-default (with per-skill `os_popup_policy.allow_permissions[]` opt-in).
+- **Layer 2** — skill-scoped `popup_detectors:` in skill.yaml. Auto-dismissed before every a11y-reading step.
+- **Layer 3** — action-level `on_popup:` override for popups that are PART of the flow (Ad Authorization, cookie consents that must be accepted specifically).
+- **Layer 4** — safety net: unknown modal detected after step failure → dismiss cascade → retry once → screenshot + `UnknownPopupError` if still failing. Screenshot becomes the seed for extending the skill's detector catalog.
+
+---
+
+## Trust, quality and status
+
+Every skill on the [Skill Hub](/features/skill-hub/) carries two separate badges, and the author sets neither of them:
+
+- **Trust** comes from where the skill lives: **Official** (`skillhub/ghost/*`), **Verified** (a community folder merged through a reviewed PR), **Unverified** (installed from a URL outside the hub; the installer asks first), **Quarantined** (blocked).
+- **Quality** comes from evidence: **Draft, Runs, Proven, Hardened, Reference**, earned with signed run artifacts, independent runs on other devices, validators and docs. See [Scoring](/skills/scoring/).
+
+The author does set `status:`. A `blocked` skill cannot finish on its own right now (for example a mandatory phone check); the hub hides it by default and the installer warns, but it still installs.
+
+---
+
+## Upgrading v1 skills
+
+Older skills were Python packages (`actions/` and `workflows/` classes) or FLOW.md notes. `ghost skill migrate <path>` wraps one as a Schema v2 skill in place without deleting any v1 file: each v1 action or workflow becomes a v2 action whose single step is a generated `python_action` adapter, and a FLOW.md-only soft skill becomes an `open_url` plus a `checkpoint:`. It also generates `SOFT.md`. Re-running it refreshes the generated block, and `--dry-run` reports what would change.
+
+---
+
+## Where this fits
+
+Skills sit between agents and the [MCP Server](/features/mcp-server/):
 
 ```
-for action in steps():
-    result = action.run()
-    if not result:
-        return failure (completed_steps count + failed_step name)
-return success (total completed_steps)
+Agent (Claude / Codex / GPT / etc)
+    │  MCP tool: run_skill(name, action, params)
+    ▼
+Ghost Skill Engine
+    │  loads skill.yaml → dispatches steps
+    ▼
+Device (Android via ADB / iOS via WebDriverAgent)
 ```
 
-## Skill Directory Structure
+Agents can use skills, and agents can *author* skills — the "LLM emission" mode of the schema is intentional: an LLM that just drove the phone can dump its own tool-call trace and get a near-1:1 YAML back. See [Creating Skills](/skills/creating-skills/) for the trace→yaml recipe.
 
-```
-skills/tiktok/
-  skill.yaml           # metadata: name, version, app_package, description
-  elements.yaml        # 41 UI elements with fallback locator chains
-  __init__.py          # load() function registers actions + workflows
-  actions/
-    __init__.py
-    core.py            # OpenApp, NavigateToProfile, TapSearch, TypeAndSearch, DismissPopup
-  workflows/
-    __init__.py
-    upload_video.py
-    publish_draft.py
-```
+---
 
-## TikTok Skill Reference
+## Reference
 
-### 5 Actions
-
-| Action | File | Has Postcondition |
-|--------|------|-------------------|
-| `open_app` | core.py | Yes (checks TIKTOK_PKG in dumpsys) |
-| `navigate_to_profile` | core.py | Yes (checks followers/Following) |
-| `tap_search` | core.py | Yes (checks search box RID) |
-| `type_and_search` | core.py | No |
-| `dismiss_popup` | core.py | No |
-
-### 2 Workflows
-
-| Workflow | Wraps |
-|----------|-------|
-| `upload_video` | `bots/tiktok/upload.py` (43-step flow) |
-| `publish_draft` | `bots/tiktok/upload.py --publish-draft` |
-
-### Base Skill (9 shared actions)
-
-The `_base` skill provides generic actions usable by any app: tap_element, swipe_direction, type_text, wait, back, home, launch_app, take_screenshot, and press_enter.
-
-## Subprocess Execution
-
-When skills are executed via the scheduler or API, they run as subprocesses:
-
-```bash
-python3 skills/_run_skill.py \
-  --skill tiktok \
-  --workflow upload_video \
-  --device YOUR_DEVICE_SERIAL \
-  --params '{"video_path": "/tmp/video.mp4"}'
-```
-
-This keeps the server responsive and provides process isolation.
-
-## Files
-
-| File | Lines | Purpose |
-|------|-------|---------|
-| `skills/base.py` | 262 | ActionResult, Element, Action, Workflow, Skill |
-| `skills/tiktok/` | -- | 5 actions + 2 workflows + 41 elements |
-| `skills/_base/` | -- | 9 shared actions |
-| `skills/instagram/` | -- | Skeleton (skill.yaml only) |
-| `skills/_run_skill.py` | -- | CLI runner for job queue |
-
-## Related
-
-- [Skills Overview](/skills/overview/) -- concepts and quick start
-- [Elements](/skills/elements/) -- locator chains deep dive
-- [API: Skill Classes](/api/skill-classes/) -- full class reference
+- [`docs/skill-taxonomy-soft-vs-hard.md`](https://github.com/ghost-in-the-droid/android-agent/blob/main/docs/skill-taxonomy-soft-vs-hard.md) — hard vs soft, 3-tier acquisition, empirical basis
+- [`docs/skill-schema-v2.md`](https://github.com/ghost-in-the-droid/android-agent/blob/main/docs/skill-schema-v2.md) — full YAML spec, every primitive, composition rules
+- [Execution Engine](/features/skill-execution-engine/) — runtime internals
+- [Skill Hub](/features/skill-hub/) — registry + community + trust
+- [Skill Creator](/features/skill-creator/) — the auto-BFS Skill Miner
+- [Publishing Skills](/skills/publishing/) — PR submit flow

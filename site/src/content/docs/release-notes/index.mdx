@@ -3,35 +3,33 @@ title: "Releases"
 description: All Ghost in the Droid release notes.
 ---
 
-import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+Every version of Ghost in the Droid, newest first. Pick a release to read the full notes.
 
-Every version of Ghost in the Droid. Pick a release to read the full notes.
-
-<CardGrid>
-  <LinkCard
-    title="v1.3.0 — The Agent Harness"
-    description="Target ship: TBD · iOS support (experimental) · 5 new LLM backends (Claude Code, Anthropic API, OpenRouter, on-device Gemma, vLLM) · LangChain + LlamaIndex adapters · Unified ghost CLI (task-first) · run_flow + chain batched execution · screenshot_sequence + sub_agent · Differential a11y · Rate-limit backoff + effort-scaled timeouts"
-    href="/release-notes/v1-3-0/"
-  />
-  <LinkCard
-    title="v1.2.0 — Ghost Bench"
-    description="2026-04-17 · In-dashboard benchmark system with 14 built-in tasks · 7 benchmark API endpoints · Runner with SSE live streaming · Live Ollama model discovery + background model pull without blocking the UI"
-    href="/release-notes/v1-2-0/"
-  />
-  <LinkCard
-    title="v1.1.0 — Ollama + Emulator"
-    description="2026-04-16 · Ollama support with multi-turn tool loop · Emulator support (full stack) · Mac + Apple Silicon HVF acceleration · MCP distribution (.mcp.json) · PyPI package · CI/CD release pipeline"
-    href="/release-notes/v1-1-0/"
-  />
-  <LinkCard
-    title="v1.0.0 — Open-Source Launch"
-    description="2026-04-08 · Initial public release · Open-source Android automation framework · 41 device methods over ADB · Skill system · Local-first, no cloud dependency"
-    href="/release-notes/v1-0-0/"
-  />
-</CardGrid>
+<div class="rel-list">
+  <a class="rel-item" href="/release-notes/v1-6-0/">
+    <div class="rel-head"><span class="rel-ver">v1.6.0</span><span class="rel-title">Skill System v2 and the Skill Hub</span><span class="rel-latest">Latest</span><span class="rel-date">November 2026</span></div>
+    <div class="rel-tags"><span class="rel-tag">117 skills for 113 apps</span><span class="rel-tag">Hard and soft skills</span><span class="rel-tag">Median 90% fewer tokens</span><span class="rel-tag">Human in the loop</span><span class="rel-tag">Compatibility matrix</span></div>
+  </a>
+  <a class="rel-item" href="/release-notes/v1-3-0/">
+    <div class="rel-head"><span class="rel-ver">v1.3.0</span><span class="rel-title">The Agent Harness</span><span class="rel-date">2026-07-18</span></div>
+    <div class="rel-tags"><span class="rel-tag">iOS support (experimental)</span><span class="rel-tag">On-device Gemma</span><span class="rel-tag">LangChain + LlamaIndex</span><span class="rel-tag">Task-first ghost CLI</span><span class="rel-tag">run_flow + chain</span></div>
+  </a>
+  <a class="rel-item" href="/release-notes/v1-2-0/">
+    <div class="rel-head"><span class="rel-ver">v1.2.0</span><span class="rel-title">Ghost Bench</span><span class="rel-date">2026-04-17</span></div>
+    <div class="rel-tags"><span class="rel-tag">Benchmark system</span><span class="rel-tag">14 built-in tasks</span><span class="rel-tag">Live SSE runner</span><span class="rel-tag">Ollama model discovery</span></div>
+  </a>
+  <a class="rel-item" href="/release-notes/v1-1-0/">
+    <div class="rel-head"><span class="rel-ver">v1.1.0</span><span class="rel-title">Ollama + Emulator</span><span class="rel-date">2026-04-16</span></div>
+    <div class="rel-tags"><span class="rel-tag">Ollama tool loop</span><span class="rel-tag">Emulator support</span><span class="rel-tag">Apple Silicon</span><span class="rel-tag">PyPI package</span></div>
+  </a>
+  <a class="rel-item" href="/release-notes/v1-0-0/">
+    <div class="rel-head"><span class="rel-ver">v1.0.0</span><span class="rel-title">Open-Source Launch</span><span class="rel-date">2026-04-08</span></div>
+    <div class="rel-tags"><span class="rel-tag">First public release</span><span class="rel-tag">41 device methods</span><span class="rel-tag">Skill system</span><span class="rel-tag">Local-first</span></div>
+  </a>
+</div>
 
 ## Get notified about new releases
 
 - Watch [ghost-in-the-droid/android-agent](https://github.com/ghost-in-the-droid/android-agent) on GitHub
+- Join the [Ghost Discord](https://discord.gg/gmvDX4Juk)
 - Follow [@ghostinthedroid](https://x.com/ghostinthedroid) on X
-- Star the repo to catch it in your feed

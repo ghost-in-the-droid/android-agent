@@ -160,7 +160,11 @@ The visual way -- no code required.
 
 ## What's Next?
 
-Now that you have automation running, dive deeper:
+Now that you have automation running, the next step is your first hub skill:
+
+- **[Using Skills](/skills/using-skills/) -- search the Skill Hub, install a skill, run it with `ghost skill run`** (next in the path)
+
+Then, if you want to dig deeper:
 
 - [TikTok Upload Guide](/guides/tiktok-upload/) -- the full 43-step video upload pipeline
 - [Macros Guide](/guides/macros/) -- advanced macro recording and editing
