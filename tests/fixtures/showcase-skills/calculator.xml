@@ -1,0 +1,11 @@
+<hierarchy>
+  <node resource-id="org.fossify.math:id/result" text="42" bounds="[0,100][600,200]" />
+  <node resource-id="org.fossify.math:id/alertTitle" text="History" bounds="[0,200][600,250]" />
+  <node resource-id="org.fossify.math:id/item_formula" text="6×7" bounds="[0,300][600,350]" />
+  <node resource-id="org.fossify.math:id/item_result" text="42" bounds="[0,350][600,400]" />
+  <node resource-id="org.fossify.math:id/top_unit_name" text="Fahrenheit" bounds="[0,500][600,550]" />
+  <node resource-id="org.fossify.math:id/top_unit_text" text="100" bounds="[0,550][600,600]" />
+  <node resource-id="org.fossify.math:id/bottom_unit_name" text="Celsius" bounds="[0,600][600,650]" />
+  <node resource-id="org.fossify.math:id/bottom_unit_text" text="37.777778" bounds="[0,650][600,700]" />
+  <node resource-id="org.fossify.math:id/bottom_unit_symbol" text="°C" bounds="[0,700][600,750]" />
+</hierarchy>

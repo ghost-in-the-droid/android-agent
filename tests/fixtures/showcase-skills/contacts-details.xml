@@ -1,0 +1,5 @@
+<hierarchy>
+  <node resource-id="com.google.android.contacts:id/large_title" text="Grace Hopper" bounds="[0,100][600,200]" />
+  <node content-desc="Call +1 555 0100" bounds="[0,300][600,400]" />
+  <node content-desc="Email Home grace@example.com" bounds="[0,500][600,600]" />
+</hierarchy>

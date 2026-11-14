@@ -287,7 +287,7 @@ def get_device(serial: str | None):
     return Device(serial)
 
 
-def phone_privacy_prep(dev, workdir: Path, patterns) -> dict:
+def phone_privacy_prep(dev, workdir: Path, patterns, *, need_ocr: bool = True) -> dict:
     """Best-effort device hygiene before recording (#787). Returns a dict of
     settings we changed so they can be restored afterwards. Hard-fails only on
     the OCR gate — everything else degrades to a warning + checklist item."""
@@ -323,6 +323,10 @@ def phone_privacy_prep(dev, workdir: Path, patterns) -> dict:
     restore["stay_on"] = dev.adb_soft(
         "shell", "settings", "get", "global", "stay_on_while_plugged_in").stdout or "0"
     soft("keep screen awake", "svc", "power", "stayon", "true")
+
+    if not need_ocr:
+        log('WARNING: pre-record OCR skipped (--no-ocr)')
+        return restore
 
     # Pre-record screenshot → OCR gate: refuse to record a dirty screen.
     shot = workdir / "prep_check.png"
@@ -486,7 +490,19 @@ def run_inner(plan_path: Path) -> int:
 
 def ocr_png(png: Path) -> str:
     r = subprocess.run(["tesseract", str(png), "stdout"], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError('OCR command failed; refusing an unscanned recording')
     return r.stdout or ""
+
+
+def capture_external_cast(command: list[str], cast: Path, *, env=None, cwd=None, timeout=150):
+    """Run a cast-producing driver directly, without an enclosing asciinema PTY."""
+    result = subprocess.run(command, env=env, cwd=cwd, timeout=timeout)
+    if result.returncode != 0:
+        raise RuntimeError('External terminal capture failed')
+    if not cast.is_file():
+        raise RuntimeError('External terminal capture did not produce a cast')
+    return cast
 
 
 def render_terminal(cast: Path, out_mp4: Path, workdir: Path) -> None:
@@ -626,11 +642,13 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
     tail_f = f"tpad=stop_mode=clone:stop_duration={tail_hold}," if tail_hold else ""
     captions = workdir / "captions.ass"
     build_captions(spec, captions)
+    # Negative phone offset = the phone must START later: clone its first frame.
+    delay = f',tpad=start_mode=clone:start_duration={-phone_offset_s}' if phone_offset_s < 0 else ''
 
     # Rounded-corner mask for the phone video. Overlaying the phone as a SQUARE
     # rect bleeds past the bezel's rounded screen cutout — invisible on pixel8
     # (screen_radius 56) but obvious on iphone15pro (100). Mask the phone to the
-    # frame's screen_radius so its corners match the bezel hole (CKL bug). The
+    # frame's screen_radius so its corners match the bezel hole (the maintainer bug). The
     # phone chain becomes: scale → alphamerge(mask) → overlay; harmless on any
     # frame, essential on high-radius ones.
     radius = int(fr.get("screen_radius", 0))
@@ -668,7 +686,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
             # fps=30 (CFR) BEFORE trim: adb screenrecord is sparse VFR (a static
             # screen emits no frames), so normalize first or the overlay timing
             # drifts and playback stutters.
-            f"[2:v]fps={FPS},trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS,"
+            f"[2:v]fps={FPS},trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS{delay},"
             f"scale={po_rw}:{po_rh},setsar=1[phscaled];"
             + _round("[phscaled]", 6) +
             f"[m0][phone]overlay={po_rx}:{po_ry}[c1];"
@@ -765,7 +783,7 @@ def composite(spec: dict, workdir: Path, term_mp4: Path, phone_mp4: Path,
         + (f"[2:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1[term];" if three_pane else
            f"[2:v]null[term];")  # native render — zero rescale
         + f"[c0][term]overlay={TERM_X}:{TERM_Y}[c1];"
-        f"[3:v]trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS,"
+        f"[3:v]trim=start={max(phone_offset_s, 0)},setpts=PTS-STARTPTS{delay},"
         f"scale={rw}:{rh},setsar=1[phscaled];"
         + _round("[phscaled]", mask_idx) +
         f"[c1][phone]overlay=x='{phone_x}':y={ry}[c2];"
@@ -874,14 +892,17 @@ def do_dry_run(demo: str) -> int:
 
 
 def do_record(demo: str, serial: str | None, skip_phone_prep: bool,
-              keep_workdir: bool, no_local_patterns: bool = False) -> int:
+              keep_workdir: bool, no_local_patterns: bool = False, *,
+              external_cast_command: list[str] | None = None, phone_lead_s: float = 0.0,
+              no_ocr: bool = False, workdir_override: Path | None = None,
+              recording_duration_s: float | None = None) -> int:
     spec = load_spec(demo)
     errs = validate_spec(spec)
     if errs:
         for e in errs:
             print(f"  ✗ {e}")
         die("spec invalid — fix before recording (or run --dry-run)")
-    missing = check_tools()
+    missing = check_tools(need_ocr=not no_ocr)
     if missing:
         die(f"missing tools: {', '.join(missing)} — the privacy gate requires all of them")
     if spec["device"] == "ios":
@@ -898,7 +919,7 @@ def do_record(demo: str, serial: str | None, skip_phone_prep: bool,
                 "list is not set up (see RECORDING_CHECKLIST.md §3). If you really "
                 "want to record without it, pass --no-local-patterns.")
 
-    workdir = REPO_ROOT / ".recordings" / demo
+    workdir = Path(workdir_override) if workdir_override is not None else REPO_ROOT / ".recordings" / demo
     if workdir.exists():
         shutil.rmtree(workdir)
     workdir.mkdir(parents=True)
@@ -913,11 +934,11 @@ def do_record(demo: str, serial: str | None, skip_phone_prep: bool,
         if skip_phone_prep:
             log("phone prep SKIPPED (--skip-phone-prep) — dev runs only, never ship this")
         else:
-            restore = phone_privacy_prep(dev, workdir, patterns)
+            restore = phone_privacy_prep(dev, workdir, patterns, need_ocr=not no_ocr)
         run_setup(dev, spec)
 
         content_s = timeline_end(spec)
-        rec = PhoneRecorder(dev.serial, content_s + 10, spec.get("record_size"))
+        rec = PhoneRecorder(dev.serial, recording_duration_s or content_s + 10, spec.get("record_size"))
         log(f"recording ~{content_s:.0f}s of content on {dev.serial}")
         rec.start()
 
@@ -935,13 +956,22 @@ def do_record(demo: str, serial: str | None, skip_phone_prep: bool,
         env = dict(os.environ)
         env.update({"COLUMNS": str(TERM_COLS), "LINES": str(term_rows),
                     "PYTHONUNBUFFERED": "1"})
+        env.update({key: str(value) for key, value in (spec.get("env") or {}).items()})
+        if external_cast_command is not None:
+            env.pop("TMUX", None)
+            env["TERM"] = "xterm-256color"
         inner_cmd = f"{shlex.quote(sys.executable)} {shlex.quote(str(Path(__file__).resolve()))} --_inner {shlex.quote(str(plan_path))}"
-        r = subprocess.run(
-            ["asciinema", "rec", "--overwrite", "--cols", str(TERM_COLS),
-             "--rows", str(term_rows), "-c", inner_cmd, str(cast)],
-            env=env)
-        if r.returncode != 0 or not (workdir / "inner_done").exists():
-            die("timeline execution failed (see output above)")
+        phone_offset -= phone_lead_s
+        if external_cast_command is not None:
+            command = [str(cast) if part == '{cast}' else part for part in external_cast_command]
+            capture_external_cast(command, cast, env=env, cwd=str(REPO_ROOT))
+        else:
+            r = subprocess.run(
+                ["asciinema", "rec", "--overwrite", "--cols", str(TERM_COLS),
+                 "--rows", str(term_rows), "-c", inner_cmd, str(cast)],
+                env=env)
+            if r.returncode != 0 or not (workdir / "inner_done").exists():
+                die("timeline execution failed (see output above)")
 
         phone_mp4 = workdir / "phone.mp4"
         rec.stop_and_pull(phone_mp4)
@@ -987,16 +1017,18 @@ def do_record(demo: str, serial: str | None, skip_phone_prep: bool,
     composite(spec, workdir, term_mp4, workdir / "phone.mp4",
               phone_offset_s=phone_offset, out_webm=out_webm)
 
-    log("privacy OCR gate: extracting frames + tesseract scan")
-    violations = ocr_gate(out_webm, workdir, patterns)
-    if violations:
-        for v in violations:
-            log(f"  FORBIDDEN {v}")
-        die(f"OCR gate FAILED ({len(violations)} hit(s)) — output stays quarantined in "
-            f"{workdir}, nothing was copied to site/public/. Inspect the frames, fix "
-            f"the leak, re-record.")
-    log("privacy OCR gate: clean")
-
+    if no_ocr:
+        log('WARNING: final OCR gate skipped (--no-ocr)')
+    else:
+        log("privacy OCR gate: extracting frames + tesseract scan")
+        violations = ocr_gate(out_webm, workdir, patterns)
+        if violations:
+            for v in violations:
+                log(f"  FORBIDDEN {v}")
+            die(f"OCR gate FAILED ({len(violations)} hit(s)) — output stays quarantined in "
+                f"{workdir}, nothing was copied to site/public/. Inspect the frames, fix "
+                f"the leak, re-record.")
+        log("privacy OCR gate: clean")
     out_dir = SHOWCASE_DIR / demo
     out_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(out_webm, out_dir / "demo.webm")
@@ -1145,6 +1177,8 @@ def main() -> int:
                     help="terminal.cast to render for --compose (omit only for phone_only)")
     ap.add_argument("--phone-offset", type=float, default=0.0,
                     help="seconds trimmed off the phone video start (manual sync for --compose)")
+    ap.add_argument('--external-cast-command', help='Cast-producing command run directly; use {cast} as an argv placeholder')
+    ap.add_argument('--phone-lead', type=float, default=0.0, help='Seconds to delay phone content relative to the terminal')
     ap.add_argument("--_inner", metavar="PLAN", help=argparse.SUPPRESS)
     args = ap.parse_args()
 
@@ -1162,7 +1196,9 @@ def main() -> int:
         return do_compose(args.demo, args.phone_video, args.terminal_cast,
                           args.phone_offset, args.keep_workdir, args.no_local_patterns)
     return do_record(args.demo, args.serial, args.skip_phone_prep, args.keep_workdir,
-                     args.no_local_patterns)
+                     args.no_local_patterns,
+                     external_cast_command=shlex.split(args.external_cast_command) if args.external_cast_command else None,
+                     phone_lead_s=args.phone_lead)
 
 
 if __name__ == "__main__":

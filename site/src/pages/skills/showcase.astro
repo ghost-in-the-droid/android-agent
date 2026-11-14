@@ -1,0 +1,120 @@
+---
+import HubLayout from '../../layouts/HubLayout.astro';
+import AppIcon from '../../components/hub/AppIcon.astro';
+import ActionPrompts from '../../components/hub/ActionPrompts.astro';
+import BenchmarkBars from '../../components/hub/BenchmarkBars.astro';
+import BenchmarkSpark from '../../components/hub/BenchmarkSpark.astro';
+import { loadHub } from '../../lib/hub/registry';
+import { passText, fmtWall, fmtSkillVersion } from '../../lib/hub/bench';
+import { readShowcase, listedTasks, pairedSavings, pooledPass, pooledMcNemar, metricValue, medianReduction, type ChartMetric } from '../../lib/hub/showcase';
+const entries = readShowcase(loadHub());
+const listed = listedTasks(entries), tasks = listed.map(({ task }) => task);
+const declaredCount = entries.reduce((sum, e) => sum + e.taskIds.length, 0);
+const savings = tasks.map(pairedSavings);
+const tokenRows = savings.filter((s) => s.tokens != null), actionRows = savings.filter((s) => s.actions != null);
+const before = pooledPass(tasks, 'before'), after = pooledPass(tasks, 'after_mcp'), replay = pooledPass(tasks, 'after_replay');
+const paired = pooledMcNemar(tasks);
+const replayTokens = tasks.length && tasks.every((t) => (t.stats.arms.after_replay?.tokensMedian ?? t.arms.after_replay?.tokens_median) === 0) ? '0' : 'not fully recorded';
+const models = [...new Set(listed.flatMap(({ bench, task }) => bench.model ? [bench.model] : task.episodes.filter((e) => e.model).map((e) => e.model)))];
+const dates = [...new Set(listed.map(({ bench, task }) => (task.generatedAt ?? bench.generatedAt)?.slice(0, 10) ?? 'not recorded'))];
+const n = (v: number | null | undefined) => v == null ? 'not recorded' : v.toLocaleString('en-US', { maximumFractionDigits: 1 });
+const count = (v: { passed: number; total: number } | null) => v ? `${v.passed}/${v.total}` : 'not recorded';
+const arms = [{ id: 'before', label: 'Before' }, { id: 'after_mcp', label: 'With skill' }, { id: 'after_replay', label: 'Replay' }] as const;
+const metrics: { id: ChartMetric; label: string }[] = [{ id: 'tokens', label: 'Tokens' }, { id: 'actions', label: 'UI actions' }, { id: 'time', label: 'Time' }];
+const savingText = (task: typeof tasks[number]) => { const v = medianReduction(task, 'tokens'); return v == null ? 'not recorded' : `${v < 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(0)}%`; };
+---
+<HubLayout title="Before / after showcase | Ghost Skill Hub" description="Measured changes in tokens, UI actions and pass counts when an agent has a skill." theme="dark">
+ <script slot="head" is:inline>
+  try { if (localStorage.getItem('ghost-showcase-theme') === 'light') document.documentElement.dataset.hubTheme = 'light'; } catch {}
+ </script>
+ <div class="showcase-v3">
+  <header class="showcase-hero">
+   <div><a class="showcase-back" href="/skills/">Skill Hub / Showcase</a><h1><svg class="ghost-motif" aria-hidden="true" viewBox="0 0 32 36"><path d="M5 31V15a11 11 0 0 1 22 0v16l-5-4-6 4-6-4z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="15" r="2" fill="currentColor"/><circle cx="21" cy="15" r="2" fill="currentColor"/></svg>Same task. Less work.</h1></div>
+   <button class="theme-toggle" type="button" hidden data-theme-toggle aria-pressed="false">Light mode</button>
+  </header>
+  <section class="showcase-kpis" aria-label="Pooled benchmark results">
+   <div class="panel"><span>Tokens saved</span><strong>{tokenRows.length ? n(tokenRows.reduce((sum, s) => sum + s.tokens!, 0)) : 'not recorded'}</strong><small>Paired medians · {tokenRows.length}/{declaredCount} tasks · N={tokenRows.reduce((sum, s) => sum + s.tokenPairs, 0)}</small></div>
+   <div class="panel"><span>UI actions saved</span><strong>{actionRows.length ? n(actionRows.reduce((sum, s) => sum + s.actions!, 0)) : 'not recorded'}</strong><small>Paired medians · {actionRows.length}/{declaredCount} tasks · N={actionRows.reduce((sum, s) => sum + s.actionPairs, 0)}</small></div>
+   <div class="panel"><span>Pass · before → with skill</span><strong data-pooled-pass>{count(before)} → {count(after)}</strong><small>N small, not significant</small></div>
+  </section>
+  <section class="panel showcase-chart" aria-labelledby="chart-title">
+   <div class="chart-heading"><div><h2 id="chart-title">What the skill changes</h2><p><i class="legend-before"></i>Before <i class="legend-after"></i>With skill · median per task</p></div><div class="chart-tabs" role="tablist" aria-label="Comparison metric">{metrics.map(({ id, label }, i) => <button type="button" role="tab" id={`metric-${id}`} aria-controls={`chart-${id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{label}</button>)}</div></div>
+   <div class="comparison-columns" aria-hidden="true"><span>Action</span><span>Before / with skill</span><span>Median</span><span>% saved</span></div>
+   {metrics.map(({ id }, index) => {
+    const rows = [...listed].sort((a, b) => (medianReduction(b.task, id) ?? -Infinity) - (medianReduction(a.task, id) ?? -Infinity));
+    const scale = Math.max(0, ...rows.flatMap(({ task }) => [metricValue(task, 'before', id) ?? 0, metricValue(task, 'after_mcp', id) ?? 0]));
+    return <div id={`chart-${id}`} role="tabpanel" aria-labelledby={`metric-${id}`} hidden={index !== 0} data-chart={id}>{rows.map(({ task }) => <BenchmarkBars task={task} label={task.label ?? task.task_id} metric={id} scale={scale} />)}</div>;
+   })}
+  </section>
+  <div class="action-index-heading"><h2>Try a skill</h2><span>{entries.length} skills · {listed.length} benchmarked actions</span></div>
+  <div class="action-index" aria-label="Skills and sample prompts">
+   <div class="action-columns" aria-hidden="true"><span>Skill</span><span>Action</span><span>Tokens saved</span><span>Before / with</span></div>
+   {entries.map((entry, entryIndex) => <div data-showcase-skill={entry.ref}>
+    {entry.rows.map(({ bench, task }, rowIndex) => {
+     const panelId = `skill-prompts-${entryIndex}-${rowIndex}`;
+     const saved = pairedSavings(task);
+     const clip = entry.skill?.demoClips.find((c) => c.action === task.action);
+     const tip = `Before ${passText(task.arms.before, task.stats.arms.before?.wilson95)}; with skill ${passText(task.arms.after_mcp, task.stats.arms.after_mcp?.wilson95)}`;
+     return <details class="showcase-details" data-action={task.action}>
+      <summary class="action-summary" aria-controls={panelId}><span class="index-skill">{entry.skill && <AppIcon skill={entry.skill} size={26} />}<span>{entry.skill?.name ?? entry.ref}</span></span><span class="index-action">{task.label ?? task.task_id}</span><span class="index-saving" title={tip}>{savingText(task)}<small>N={task.arms.before?.total ?? '—'}/{task.arms.after_mcp?.total ?? '—'}</small></span><BenchmarkSpark task={task} /></summary>
+      <div class="index-details" id={panelId}>
+       {clip ? <figure class="clean-action-demo"><figcaption>Demo · HOME → launch → action · no independent credit</figcaption><video controls muted playsinline preload="none" aria-label={`${entry.ref} ${task.action} clean demo`} style="width:100%;max-height:480px"><source src={clip.url} type="video/webm" /></video></figure> : <p>No clean demo yet for this action.</p>}
+       <div class="index-prompts">{entry.skill && task.action && <ActionPrompts prompts={entry.skill.actionPrompts[task.action]} action={task.action} />}</div>
+       <div class="index-evidence"><p><code>{task.action}</code> · N={task.seeds ?? 'not recorded'} seeds · {(task.generatedAt ?? bench.generatedAt)?.slice(0, 10) ?? 'date not recorded'}</p>
+       <div class="showcase-passes">{arms.map(({ id, label }) => <div><strong>{label}</strong><span>{passText(task.arms[id], task.stats.arms[id]?.wilson95)}</span><span class="bench-version">{task.arms[id]?.model ?? (id === 'after_replay' ? 'no model' : bench.model ?? 'model not recorded')} · {(task.arms[id]?.generatedAt ?? task.generatedAt ?? bench.generatedAt)?.slice(0, 10) ?? 'date not recorded'}<br />{fmtSkillVersion(task.arms[id])}</span></div>)}</div>
+						<div class="table-scroll" tabindex="0" role="region" aria-label={`${task.task_id} medians`}><table class="t"><thead><tr><th>Median</th>{arms.map(({ label }) => <th>{label}</th>)}</tr></thead><tbody>
+						<tr><th>Tokens</th>{arms.map(({ id }) => <td>{n(metricValue(task, id, 'tokens'))}</td>)}</tr>
+						<tr><th>UI actions</th>{arms.map(({ id }) => <td>{n(metricValue(task, id, 'actions'))}</td>)}</tr>
+						<tr><th>LLM calls</th>{arms.map(({ id }) => <td>{n(task.stats.arms[id]?.llmCallsMedian)}</td>)}</tr>
+						<tr><th>Wall</th>{arms.map(({ id }) => <td>{fmtWall(metricValue(task, id, 'time')) || 'not recorded'}</td>)}</tr>
+						</tbody></table></div>
+						<p class="showcase-saving">Tokens saved: {n(saved.tokens)}; median of paired seeds, N={saved.tokenPairs}. Each pair is before minus with skill, including counted failures.</p>
+						{(task.source ?? bench.source) && <a class="inline-link" href={`https://github.com/ghost-in-the-droid/android-agent/blob/main/${task.source ?? bench.source}`}>Raw episode files</a>}
+       <a class="inline-link" href={`/skills/${entry.ref}/#benchmarks`}>Full evidence, failures and traces →</a>
+       </div>
+      </div>
+     </details>;
+    })}
+   </div>)}
+  </div>
+  <div class="showcase-bottom"><p>Replay: {replayTokens} tokens · {count(replay)} passed · no model.</p><details class="method-details"><summary>Method & coverage</summary><div>
+   <p>{models.join(', ')} · data date {dates.join(', ')}. All {declaredCount} manifest tasks contribute their published current before/after_mcp arm counts. Every current counted failure is included. Historical pre-fix (supply-chain finding) rows are excluded.</p>
+   <p>{passText(before ?? undefined, before?.ci)} before; {passText(after ?? undefined, after?.ci)} with skill. {paired && <>Paired McNemar: {paired.forSkill} for / {paired.againstSkill} against, p={paired.p.toFixed(2)}, N={paired.pairs} pairs.</>}</p>
+   <p>KPI savings sum the task medians of paired-seed differences. Bars compare arm medians; N is before / with skill. UI actions are the agent’s own interactions. Tasks were chosen ad hoc; missing pairs are not invented.</p>
+   <p>{entries.map((entry) => `${entry.skill?.name ?? entry.ref}: ${entry.covered}/${entry.actions.length} actions benchmarked`).join(' · ')}. Two more skills are TBD.</p>
+  </div></details></div>
+  <p class="showcase-footnote">Maintainer-run, not independent · {models.join(', ')} · Every failure is counted (intention-to-treat). · p not significant.</p>
+ </div>
+</HubLayout>
+<script>
+ // Keep native summary activation (click, Enter, Space and no-JS disclosure).
+ // Add explicit ARIA only when its state can be kept in sync with `open`.
+ document.querySelectorAll<HTMLDetailsElement>('.showcase-details').forEach((details) => {
+  const row = details.querySelector<HTMLElement>(':scope > summary')!;
+  const syncExpanded = () => row.setAttribute('aria-expanded', String(details.open));
+  syncExpanded();
+  details.addEventListener('toggle', syncExpanded);
+ });
+ const toggle = document.querySelector<HTMLButtonElement>('[data-theme-toggle]')!;
+ const sync = () => { const light = document.documentElement.dataset.hubTheme === 'light'; toggle.textContent = light ? 'Dark mode' : 'Light mode'; toggle.setAttribute('aria-pressed', String(light)); };
+ toggle.hidden = false; sync();
+ toggle.addEventListener('click', () => {
+  const theme = document.documentElement.dataset.hubTheme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.hubTheme = theme;
+  try { localStorage.setItem('ghost-showcase-theme', theme); } catch {}
+  sync();
+ });
+ const tabs = [...document.querySelectorAll<HTMLButtonElement>('.chart-tabs [role="tab"]')];
+ function select(tab: HTMLButtonElement) {
+  for (const item of tabs) { const active = item === tab; item.setAttribute('aria-selected', String(active)); item.tabIndex = active ? 0 : -1; document.getElementById(item.getAttribute('aria-controls')!)!.hidden = !active; }
+ }
+ tabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => select(tab));
+  tab.addEventListener('keydown', (event) => {
+   const direction = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+   if (!direction && event.key !== 'Home' && event.key !== 'End') return;
+   event.preventDefault();
+   const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + direction + tabs.length) % tabs.length]; select(next); next.focus();
+  });
+ });
+</script>

@@ -1,0 +1,6 @@
+---
+import ShortSha from './ShortSha.astro';
+import type { BenchVersion } from '../../lib/hub/bench';
+const { version } = Astro.props as { version?: BenchVersion };
+---
+<span>Skill {version?.skillVersion ?? 'not recorded'} · SHA <ShortSha value={version?.skillSha} label="skill SHA" /></span>

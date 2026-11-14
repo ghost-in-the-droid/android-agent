@@ -1,257 +1,212 @@
 ---
-// Skill Hub — Browse Page
-// Standalone page matching the landing page aesthetic
-const skills = [
-	{
-		name: 'tiktok', display: 'TikTok', icon: '🎵', version: '1.0.0',
-		pkg: 'com.zhiliaoapp.musically',
-		desc: 'TikTok automation — upload, navigate, search, engage',
-		actions: 5, workflows: 3, elements: 41,
-		devices: ['ASUS ROG Phone II', 'Samsung Galaxy A15'],
-	},
-	{
-		name: 'instagram', display: 'Instagram', icon: '📸', version: '1.0.0',
-		pkg: 'com.instagram.android',
-		desc: 'Instagram automation — navigate profiles, search by hashtag',
-		actions: 3, workflows: 1, elements: 0,
-		devices: ['ASUS ROG Phone II'],
-	},
-	{
-		name: 'base', display: 'Base Actions', icon: '🧩', version: '1.0.0',
-		pkg: null,
-		desc: 'Universal actions for any Android app — tap, swipe, type, wait, launch, screenshot, dismiss',
-		actions: 9, workflows: 0, elements: 0,
-		devices: ['ASUS ROG Phone II', 'Samsung Galaxy A15'],
-	},
-	{
-		name: 'send_gmail_email', display: 'Send Gmail Email', icon: '📧', version: '1.0.0',
-		pkg: 'com.google.android.gm',
-		desc: 'Auto-generated skill for sending emails via the Gmail Android app',
-		actions: 0, workflows: 1, elements: 0,
-		devices: ['ASUS ROG Phone II'],
-	},
-]
-const totalActions = skills.reduce((s, k) => s + k.actions, 0)
-const totalWorkflows = skills.reduce((s, k) => s + k.workflows, 0)
-const totalElements = skills.reduce((s, k) => s + k.elements, 0)
+// /skills/ hub browser, generated from skillhub/registry.json at build time.
+import HubLayout from '../../layouts/HubLayout.astro';
+import AppIcon from '../../components/hub/AppIcon.astro';
+import { loadHub } from '../../lib/hub/registry';
+import { TIERS, MAX_POINTS } from '../../lib/hub/scoring';
+
+const hub = loadHub();
+const blockedCount = hub.skills.filter((s) => s.blocked && !s.reference).length;
+// Benchmark reference skills (AndroidWorld scaffolds) are hidden until toggled: they are
+// generated from benchmark tasks and have no authored steps or users yet.
+const referenceCount = hub.skills.filter((s) => s.reference).length;
+const hiddenByDefault = (s: typeof hub.skills[number]) => s.blocked || s.reference;
+const shownCount = hub.skills.filter((s) => !hiddenByDefault(s)).length;
+const shownSkills = hub.skills.filter((s) => !hiddenByDefault(s));
+const apps = new Set(shownSkills.map((s) => s.latestEntry.fingerprint.app_package).filter(Boolean));
+const authorCount = new Set(shownSkills.map((s) => s.author)).size;
+let rank = 0;
 ---
-<html lang="en">
-<head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<meta name="google-site-verification" content="lCpzZZM3agcLw_H0vN9ek2NKHN3aRF5ijaIwX5Vsnyw" />
-	<title>Skill Hub — Ghost in the Droid</title>
-	<meta name="description" content="Browse, install, and share automation skills for any Android app." />
-	<meta property="og:title" content="Skill Hub — Ghost in the Droid" />
-	<meta property="og:description" content="Browse, install, and share automation skills for any Android app. TikTok, Instagram, Gmail and more." />
-	<meta property="og:image" content="https://ghostinthedroid.com/mascot/40-lineup-banner.png" />
-	<meta property="og:type" content="website" />
-	<meta property="og:url" content="https://ghostinthedroid.com/skills/" />
-	<meta name="twitter:card" content="summary_large_image" />
-	<meta name="twitter:title" content="Skill Hub — Ghost in the Droid" />
-	<meta name="twitter:image" content="https://ghostinthedroid.com/mascot/40-lineup-banner.png" />
-	<link rel="preconnect" href="https://fonts.googleapis.com" />
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-	<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-	<style>
-		*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-		html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
-		body { font-family: 'Outfit', sans-serif; background: #050505; color: #b0b0b0; line-height: 1.6; overflow-x: hidden; }
-		a { color: inherit; text-decoration: none; }
-		:root {
-			--accent: #00e5a0; --accent-dim: #00e5a018; --accent-mid: #00e5a040;
-			--surface: #0c0c0c; --surface-raised: #111111;
-			--border: #1a1a1a; --border-hover: #2a2a2a;
-			--text-primary: #e8e8e8; --text-secondary: #777;
-			--max-w: 1140px; --radius: 12px;
-		}
-		body::before { content: ''; position: fixed; inset: 0; opacity: 0.03; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-size: 256px 256px; pointer-events: none; z-index: 9999; }
-
-		/* NAV */
-		nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; background: #050505cc; backdrop-filter: blur(20px) saturate(1.4); border-bottom: 1px solid var(--border); }
-		.nav-logo { font-weight: 700; font-size: 1.2rem; color: var(--text-primary); letter-spacing: -0.5px; display: flex; align-items: center; gap: 0.5rem; }
-		.nav-logo .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 12px var(--accent); animation: pulse-dot 2s ease-in-out infinite; }
-		@keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.85); } }
-		.nav-links { display: flex; gap: 2rem; align-items: center; }
-		.nav-links a { font-size: 0.875rem; font-weight: 400; color: var(--text-secondary); transition: color 0.2s; }
-		.nav-links a:hover, .nav-links a.active { color: var(--text-primary); }
-		.nav-links a.active { color: var(--accent); font-weight: 500; }
-		.nav-cta { font-size: 0.8rem !important; font-weight: 500 !important; color: #050505 !important; background: var(--accent); padding: 0.4rem 1rem; border-radius: 6px; transition: opacity 0.2s, transform 0.2s; }
-		.nav-cta:hover { opacity: 0.9; transform: translateY(-1px); }
-
-		.container { max-width: var(--max-w); margin: 0 auto; padding: 0 2rem; }
-
-		/* HERO */
-		.hub-hero { padding: 7rem 0 3rem; text-align: center; position: relative; }
-		.hub-hero::before { content: ''; position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 600px; height: 500px; background: radial-gradient(ellipse, var(--accent-dim) 0%, transparent 70%); pointer-events: none; }
-		.hub-hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; letter-spacing: -2px; color: var(--text-primary); margin-bottom: 0.75rem; animation: fade-up 0.5s ease-out both; }
-		.hub-hero h1 .gradient { background: linear-gradient(135deg, var(--accent) 0%, #00b4d8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-		.hub-sub { font-size: 1.05rem; color: var(--text-secondary); max-width: 520px; margin: 0 auto 2rem; font-weight: 300; animation: fade-up 0.5s ease-out 0.1s both; }
-
-		/* STATS */
-		.hub-stats { display: flex; justify-content: center; gap: 3rem; margin-bottom: 2.5rem; animation: fade-up 0.5s ease-out 0.15s both; flex-wrap: wrap; }
-		.hub-stat-val { font-size: 1.8rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.5px; }
-		.hub-stat-lbl { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; }
-
-		/* SEARCH */
-		.hub-search-wrap { max-width: 540px; margin: 0 auto 3rem; animation: fade-up 0.5s ease-out 0.2s both; position: relative; }
-		.hub-search { width: 100%; padding: 0.9rem 1.2rem 0.9rem 2.8rem; font-size: 0.95rem; font-family: 'Outfit', sans-serif; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text-primary); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
-		.hub-search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-		.hub-search::placeholder { color: #555; }
-		.hub-search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #555; pointer-events: none; }
-
-		/* SKILL GRID */
-		.skill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; animation: fade-up 0.5s ease-out 0.25s both; }
-
-		/* SKILL CARD */
-		.skill-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; display: flex; flex-direction: column; gap: 0; transition: all 0.25s ease; position: relative; overflow: hidden; }
-		.skill-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--accent), #00b4d8); opacity: 0; transition: opacity 0.3s; }
-		.skill-card:hover { border-color: var(--accent-mid); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0, 229, 160, 0.06); }
-		.skill-card:hover::before { opacity: 1; }
-
-		.card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
-		.card-icon { width: 40px; height: 40px; border-radius: 10px; background: var(--accent-dim); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-		.card-title-block { min-width: 0; }
-		.card-name { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); transition: color 0.2s; }
-		.skill-card:hover .card-name { color: var(--accent); }
-		.card-version { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-secondary); background: var(--surface-raised); padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
-		.card-badge { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; padding: 3px 8px; border-radius: 100px; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-mid); margin-left: auto; flex-shrink: 0; }
-		.card-pkg { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #555; margin-bottom: 8px; }
-		.card-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55; margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-		.card-stats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-		.card-stat { font-size: 0.7rem; font-weight: 500; padding: 3px 8px; border-radius: 6px; background: var(--surface-raised); color: var(--text-secondary); border: 1px solid #1a1a1a; }
-		.card-devices { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
-		.card-device { font-size: 0.65rem; padding: 2px 7px; border-radius: 4px; background: #0a1a14; color: #4ade80; border: 1px solid #1a3a2a; }
-
-		/* EMPTY STATE */
-		.no-results { text-align: center; padding: 4rem 2rem; color: var(--text-secondary); font-size: 0.95rem; grid-column: 1 / -1; }
-
-		/* SUBMIT CTA */
-		.hub-cta { text-align: center; padding: 5rem 0 6rem; }
-		.hub-cta h2 { font-size: 1.8rem; font-weight: 700; color: var(--text-primary); letter-spacing: -1px; margin-bottom: 0.75rem; }
-		.hub-cta p { color: var(--text-secondary); margin-bottom: 1.5rem; font-weight: 300; }
-		.btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.75rem; background: var(--accent); color: #050505; font-weight: 600; font-size: 0.95rem; border-radius: 8px; transition: transform 0.2s, box-shadow 0.2s; }
-		.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px #00e5a030; }
-		.btn-outline { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.75rem; background: transparent; color: var(--text-primary); font-weight: 500; font-size: 0.95rem; border-radius: 8px; border: 1px solid var(--border); transition: border-color 0.2s, background 0.2s; }
-		.btn-outline:hover { border-color: var(--border-hover); background: var(--surface); }
-
-		/* FOOTER */
-		footer { border-top: 1px solid var(--border); padding: 3rem 0; }
-		.footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-		.footer-left { font-size: 0.8rem; color: var(--text-secondary); }
-		.footer-links { display: flex; gap: 1.5rem; }
-		.footer-links a { font-size: 0.8rem; color: var(--text-secondary); transition: color 0.2s; }
-		.footer-links a:hover { color: var(--text-primary); }
-
-		@keyframes fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-		@media (max-width: 768px) {
-			.skill-grid { grid-template-columns: 1fr; }
-			.hub-stats { gap: 1.5rem; }
-			.nav-links a:not(.nav-cta) { display: none; }
-		}
-	</style>
-	<!-- Vercel Web Analytics (Starlight head-injection doesn't reach this standalone page) -->
-	<script defer src="/_vercel/insights/script.js"></script>
-</head>
-<body>
-	<nav>
-		<a href="/" class="nav-logo"><span class="dot"></span> Ghost in the Droid</a>
-		<div class="nav-links">
-			<a href="/">Home</a>
-			<a href="/getting-started/introduction/">Docs</a>
-			<a href="/skills/" class="active">Skill Hub</a>
-			<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
-			<a href="/getting-started/installation/" class="nav-cta">Get Started</a>
-		</div>
-	</nav>
-
-	<section class="hub-hero">
-		<div class="container">
-			<h1><span class="gradient">Skill Hub</span></h1>
-			<p class="hub-sub">Browse, install, and share automation skills for any Android app.</p>
-			<div class="hub-stats">
-				<div><span class="hub-stat-val">{skills.length}</span><div class="hub-stat-lbl">Skills</div></div>
-				<div><span class="hub-stat-val">{totalActions}</span><div class="hub-stat-lbl">Actions</div></div>
-				<div><span class="hub-stat-val">{totalWorkflows}</span><div class="hub-stat-lbl">Workflows</div></div>
-				<div><span class="hub-stat-val">{totalElements}</span><div class="hub-stat-lbl">Elements</div></div>
-			</div>
-			<div class="hub-search-wrap">
-				<svg class="hub-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-				<input type="text" class="hub-search" id="skill-search" placeholder="Search skills by name, app, or description..." />
-			</div>
-		</div>
+<HubLayout
+	title="Skill Hub: phone automations you can install | Ghost in the Droid"
+	description="Find a phone automation. Compare actions, verified runs and quality scores, then inspect the evidence."
+	current="browse"
+>
+	<section class="page-head browse-head">
+		<h1>Skill Hub</h1>
+		<p>
+			{shownCount} {shownCount === 1 ? 'skill' : 'skills'} for {apps.size} {apps.size === 1 ? 'app' : 'apps'} from {authorCount} {authorCount === 1 ? 'author' : 'authors'}. Find an action. Check the evidence. Put it to work.
+		</p>
 	</section>
+	<p class="showcase-link"><a class="inline-link" href="/skills/showcase/">Before / after showcase: compare per-action benchmark evidence →</a></p>
 
-	<section style="padding-top:0">
-		<div class="container">
-			<div class="skill-grid" id="skill-grid">
-				{skills.map(s => (
-					<a href={`/skills/${s.name}/`} class="skill-card" data-name={s.display.toLowerCase()} data-desc={s.desc.toLowerCase()} data-pkg={s.pkg?.toLowerCase() || 'universal'}>
-						<div class="card-top">
-							<div class="card-icon">{s.icon}</div>
-							<div class="card-title-block">
-								<span class="card-name">{s.display}</span>
-								<span class="card-version">v{s.version}</span>
-							</div>
-							<span class="card-badge">Official</span>
-						</div>
-						<div class="card-pkg">{s.pkg || 'universal'}</div>
-						<div class="card-desc">{s.desc}</div>
-						<div class="card-stats">
-							{s.actions > 0 && <span class="card-stat">{s.actions} actions</span>}
-							{s.workflows > 0 && <span class="card-stat">{s.workflows} workflows</span>}
-							{s.elements > 0 && <span class="card-stat">{s.elements} elements</span>}
-						</div>
-						<div class="card-devices">
-							{s.devices.map(d => <span class="card-device">{d}</span>)}
-						</div>
+	<div class="toolbar" role="search">
+		<label class="search">
+			<span class="sr-only">Search skills</span>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+			<input id="q" type="search" placeholder="Search skills or actions…" autocomplete="off" />
+		</label>
+		<label><span class="sr-only">Minimum quality tier</span>
+			<select id="f-tier">
+				<option value="0">Any tier</option>
+				{TIERS.slice(1).map((t, i) => <option value={i + 1}>{t.label} or better</option>)}
+			</select>
+		</label>
+		<label><span class="sr-only">Trust</span>
+			<select id="f-trust">
+				<option value="">Any trust</option>
+				<option value="official">Official</option>
+				<option value="verified">Verified</option>
+				<option value="benchmark">Benchmark</option>
+				<option value="unverified">Unverified</option>
+			</select>
+		</label>
+		<label><span class="sr-only">Skill class</span>
+			<select id="f-class">
+				<option value="">Hard and soft</option>
+				<option value="hard">Hard only</option>
+				<option value="soft">Soft only</option>
+			</select>
+		</label>
+		{blockedCount > 0 && (
+			<label class="toggle" title="Blocked skills cannot complete on their own right now">
+				<input id="f-blocked" type="checkbox" /> Show blocked ({blockedCount})
+			</label>
+		)}
+		{referenceCount > 0 && (
+			<label class="toggle" title="Reference skills are generated from benchmark tasks (AndroidWorld) and have no authored steps yet">
+				<input id="f-reference" type="checkbox" /> Show benchmark reference skills ({referenceCount})
+			</label>
+		)}
+		<span class="count" id="count" aria-live="polite">{shownCount} {shownCount === 1 ? 'skill' : 'skills'}</span>
+	</div>
+
+	<table class="browse-table">
+		<caption class="sr-only">Skills. Use the column header buttons to sort.</caption>
+		<thead>
+			<tr>
+				<th class="c-rank num" scope="col"><span aria-label="Rank">#</span></th>
+				<th class="c-name" scope="col" aria-sort="none"><button type="button" data-sort="name">Skill<i class="arrow" aria-hidden="true"></i></button></th>
+				<th class="c-desc" scope="col">Description</th>
+				<th class="c-savings num" scope="col" aria-sort="none"><button type="button" data-sort="savings" title="Tokens without the skill divided by tokens with it, on the same phone and prompt (before / after recording).">Token savings<i class="arrow" aria-hidden="true"></i></button></th>
+				<th class="c-score num" scope="col" aria-sort="none"><button type="button" data-sort="score">Score<i class="arrow" aria-hidden="true"></i></button></th>
+			</tr>
+		</thead>
+		<tbody id="rows">
+		{hub.skills.map((s, i) => (
+			<tr
+				class="row browse-row"
+				data-url={`/skills/${s.author}/${s.slug}/`}
+				data-score={s.points}
+				data-tier={s.tierIndex}
+				data-trust={s.trust}
+				data-class={s.skill_class}
+				data-blocked={s.blocked ? '1' : '0'}
+				data-reference={s.reference ? '1' : '0'}
+				data-stale={s.staleUpstream ? '1' : '0'}
+				hidden={hiddenByDefault(s)}
+				data-name={s.id}
+				data-actions={s.latestEntry.actions.length}
+				data-runs={s.runs.total}
+				data-savings={s.beforeAfter?.metrics && s.beforeAfter.metrics.after.tokens > 0 ? s.beforeAfter.metrics.before.tokens / s.beforeAfter.metrics.after.tokens : 0}
+				data-order={i}
+				data-before-after={s.beforeAfter ? '1' : undefined}
+				data-text={[s.id, s.description, s.latestEntry.fingerprint.app_package, ...s.latestEntry.actions, ...(s.beforeAfter ? ['before after'] : [])].join(' ').toLowerCase()}
+			>
+				<td class="c-rank num" data-rank>{hiddenByDefault(s) ? '' : ++rank}</td>
+				<td class="c-name">
+					<a class="ref skill-identity" href={`/skills/${s.author}/${s.slug}/`} title={`${s.id} — ${s.description}`}>
+						<AppIcon skill={s} size={32} decorative />
+						<span class="skill-name"><span class="a">{s.author}/</span><span class="s">{s.slug}</span></span>
+						{(s.trust === 'official' || s.trust === 'verified') && <span class="trust-tick" data-trust={s.trust} role="img" aria-label={s.trust === 'official' ? 'Official author' : 'Verified author'} title={s.trust === 'official' ? 'Official author' : 'Verified author'}><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="currentColor" opacity=".15"/><path d="m4.5 8 2.3 2.3 4.7-4.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>}
 					</a>
-				))}
-				<div class="no-results" id="no-results" style="display:none">No skills match your search.</div>
-			</div>
-		</div>
-	</section>
+				</td>
+				<td class="c-desc"><span class="desc" title={s.description}>{s.description}</span></td>
+				<td class="c-savings num">{s.beforeAfter?.summary ? <a class="savings" data-before-after-badge href={`/skills/${s.author}/${s.slug}/`} data-fewer={s.beforeAfter.summary.tokensFewer ? '1' : '0'} title={`Before / after recording: ${s.beforeAfter.summary.headline} with the skill`}>{s.beforeAfter.summary.tokens.replace(/ tokens$/, '')}</a> : <span class="none" aria-label="Not measured yet">-</span>}</td>
+				<td class="c-score num"><span data-skill-score>{s.points}<span class="score-denominator">/{MAX_POINTS}</span></span></td>
+			</tr>
+		))}
+		</tbody>
+	</table>
+	<div class="empty" id="empty" hidden>
+		<strong>No skill matches these filters.</strong>
+		Clear the search or lower the tier filter. If the app you need is missing, <a class="inline-link" href="/skills/creating-skills/">write the skill</a> and it will show up here once merged.
+	</div>
+	<p class="prose-p" style="margin-top:2rem">
+		Token savings compares tokens used without the skill and with it, same phone and same prompt. <a href="/skills/scoring/">How scoring works.</a>
+	</p>
+</HubLayout>
 
-	<section class="hub-cta">
-		<div class="container">
-			<h2>Build a skill for any app</h2>
-			<p>Create automation for WhatsApp, Telegram, Spotify, or any Android app — and share it with the community.</p>
-			<div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
-				<a href="/skills/creating-skills/" class="btn-primary">Create a Skill</a>
-				<a href="https://github.com/ghost-in-the-droid/android-agent/tree/main/registry" class="btn-outline">Use Template</a>
-			</div>
-		</div>
-	</section>
+<script>
+	import { nextSort, ariaSort, compareRows, type SortKey, type SortState, type SortRow } from '../../lib/hub/table-sort';
+	type PF = { search: (q: string, o?: object) => Promise<{ results: { data: () => Promise<{ url: string }> }[] }>; init?: () => Promise<void> };
+	const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+	const q = $<HTMLInputElement>('q');
+	const fTier = $<HTMLSelectElement>('f-tier');
+	const fTrust = $<HTMLSelectElement>('f-trust');
+	const fClass = $<HTMLSelectElement>('f-class');
+	const fBlocked = document.getElementById('f-blocked') as HTMLInputElement | null;
+	const fReference = document.getElementById('f-reference') as HTMLInputElement | null;
+	const list = $<HTMLElement>('rows');
+	const rows = [...list.querySelectorAll<HTMLTableRowElement>('tr.row')];
+	let sort: SortState = { key: null, dir: 'desc' };
+	let pagefind: PF | null | undefined;
+	let hits: Set<string> | null = null;   // URLs matched by full-text search, null = no query
 
-	<footer>
-		<div class="container">
-			<div class="footer-inner">
-				<div class="footer-left">Ghost in the Droid &mdash; Open-source Android automation</div>
-				<div class="footer-links">
-					<a href="/getting-started/introduction/">Docs</a>
-					<a href="/skills/">Skill Hub</a>
-					<a href="/contributing/setup/">Contribute</a>
-					<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
-				</div>
-			</div>
-		</div>
-	</footer>
+	async function loadPagefind(): Promise<PF | null> {
+		if (pagefind !== undefined) return pagefind;
+		try {
+			const path = '/pagefind/pagefind.js';
+			pagefind = (await import(/* @vite-ignore */ path)) as PF;
+			await pagefind.init?.();
+		} catch {
+			pagefind = null; // dev server or index missing: substring match only
+		}
+		return pagefind;
+	}
 
-	<script>
-		const input = document.getElementById('skill-search');
-		const grid = document.getElementById('skill-grid');
-		const noResults = document.getElementById('no-results');
-		input?.addEventListener('input', () => {
-			const q = input.value.toLowerCase().trim();
-			const cards = grid?.querySelectorAll('.skill-card');
-			let visible = 0;
-			cards?.forEach(card => {
-				const match = !q || card.dataset.name?.includes(q) || card.dataset.desc?.includes(q) || card.dataset.pkg?.includes(q);
-				card.style.display = match ? '' : 'none';
-				if (match) visible++;
-			});
-			if (noResults) noResults.style.display = visible === 0 ? '' : 'none';
+	async function search() {
+		const text = q.value.trim().toLowerCase();
+		if (!text) { hits = null; return apply(); }
+		const pf = await loadPagefind();
+		const local = new Set(rows.filter((r) => text.split(/\s+/).every((w) => r.dataset.text!.includes(w))).map((r) => r.dataset.url!));
+		if (pf) {
+			const res = await pf.search(text, { filters: { kind: 'skill' } });
+			const data = await Promise.all(res.results.slice(0, 50).map((r) => r.data()));
+			for (const d of data) local.add(new URL(d.url, location.origin).pathname);
+		}
+		if (q.value.trim().toLowerCase() !== text) return; // a newer query is in flight
+		hits = local;
+		apply();
+	}
+
+	function apply() {
+		const minTier = Number(fTier.value);
+		let shown = 0;
+		for (const r of rows) {
+			const ok = (hits == null || hits.has(r.dataset.url!))
+				&& Number(r.dataset.tier) >= minTier
+				&& (!fTrust.value || r.dataset.trust === fTrust.value)
+				&& (!fClass.value || r.dataset.class === fClass.value)
+				&& (r.dataset.blocked !== '1' || !!fBlocked?.checked)
+				&& (r.dataset.reference !== '1' || !!fReference?.checked);
+			r.hidden = !ok;
+			if (ok) shown++;
+		}
+		const rowKey = (r: HTMLElement): SortRow => ({ name: r.dataset.name!, order: Number(r.dataset.order), actions: Number(r.dataset.actions), score: Number(r.dataset.score), runs: Number(r.dataset.runs), savings: Number(r.dataset.savings) });
+		const sorted = [...rows].sort((a, b) => compareRows(sort, rowKey(a), rowKey(b)));
+		list.append(...sorted);
+		let position = 0;
+		for (const r of sorted) r.querySelector<HTMLElement>('[data-rank]')!.textContent = r.hidden ? '' : String(++position);
+		$('count').textContent = `${shown} ${shown === 1 ? 'skill' : 'skills'}`;
+		$('empty').hidden = shown > 0;
+	}
+
+	for (const btn of document.querySelectorAll<HTMLButtonElement>('th button[data-sort]')) {
+		btn.addEventListener('click', () => {
+			sort = nextSort(sort, btn.dataset.sort as SortKey);
+			for (const b of document.querySelectorAll<HTMLButtonElement>('th button[data-sort]')) {
+				b.closest('th')!.setAttribute('aria-sort', ariaSort(sort, b.dataset.sort as SortKey));
+			}
+			apply();
 		});
-	</script>
-</body>
-</html>
+	}
+
+	let t: number | undefined;
+	q.addEventListener('input', () => { clearTimeout(t); t = window.setTimeout(search, 150); });
+	[fTier, fTrust, fClass, fBlocked, fReference].forEach((el) => el?.addEventListener('change', apply));
+	const params = new URLSearchParams(location.search);
+	if (params.get('reference') === '1' && fReference) { fReference.checked = true; apply(); }
+	const initial = params.get('q');
+	if (initial) { q.value = initial; search(); }
+</script>

@@ -1,0 +1,16 @@
+---
+// Quality tier glyph: five rising rungs, filled up to the skill's tier.
+import { TIERS, TIER_INDEX, type Tier } from '../../lib/hub/scoring';
+interface Props { tier: Tier; provisional?: boolean; label?: boolean; note?: string }
+const { tier, provisional = false, label = true, note } = Astro.props;
+const idx = TIER_INDEX[tier] ?? 0;
+const name = TIERS[idx].label;
+---
+<span class="ladder" data-tier={tier} title={`Quality tier: ${name}${provisional ? ' (provisional)' : ''}${note ? `. ${note}` : ''}`}>
+	<svg width="26" height="16" viewBox="0 0 26 16" aria-hidden="true">
+		{TIERS.map((_, i) => (
+			<rect class={i <= idx ? 'rung on' : 'rung'} x={i * 5.4} y={12 - i * 3} width="4" height={4 + i * 3} rx="1" />
+		))}
+	</svg>
+	{label ? <span class="lbl">{name}{provisional && <span class="prov"> provisional</span>}</span> : <span class="sr-only">{name}</span>}
+</span>

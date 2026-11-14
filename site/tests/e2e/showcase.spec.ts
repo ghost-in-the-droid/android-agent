@@ -32,13 +32,20 @@ test.describe('showcase page', () => {
 			.poll(() => page.evaluate(() => !!document.activeElement?.closest('dialog[open]')))
 			.toBe(true);
 
-		// native focus trap: Tab never escapes the open dialog
+		// Tab never escapes the open dialog, including its native video controls.
 		for (let i = 0; i < 8; i++) {
 			await page.keyboard.press('Tab');
 			expect(
 				await page.evaluate(() => !!document.activeElement?.closest('dialog[open]')),
 			).toBe(true);
 		}
+		const close = dialog.getByRole('button', { name: 'Close', exact: true });
+		const docs = dialog.locator('.docs-link');
+		await docs.focus();
+		await page.keyboard.press('Tab');
+		await expect(close).toBeFocused();
+		await page.keyboard.press('Shift+Tab');
+		await expect(docs).toBeFocused();
 
 		// Esc closes and focus returns to the invoking tile
 		await page.keyboard.press('Escape');
@@ -99,9 +106,26 @@ test.describe('showcase page', () => {
 		expect(violations).toEqual([]);
 	});
 
-	test('landing page hero swap: sizzle + 3 featured cards', async ({ page }) => {
+	test('landing demo selector loads video and switches playback', async ({ page }) => {
 		await page.goto(`${BASE}/`, { waitUntil: 'networkidle' });
-		await expect(page.locator('[data-sizzle-video]')).toHaveCount(1);
-		await expect(page.locator('.featured-card')).toHaveCount(3);
+		await expect(page.getByRole('heading', { level: 1 })).toContainText('Summon a Ghost');
+		// This branch retains the three-demo landing. Sizzle lives on /showcase/.
+		const tabs = page.locator('.demo-tab[data-video]');
+		const videos = page.locator('.demo-player video');
+		await expect(tabs).toHaveCount(3);
+		await expect(videos).toHaveCount(3);
+		for (const key of ['reddit', 'amazon', 'booking']) {
+			await page.locator(`.demo-tab[data-video="${key}"]`).click();
+			const active = page.locator('.demo-player video.active');
+			await expect(active).toHaveCount(1);
+			await expect(active).toHaveAttribute('src', `/demo/${key}.mp4`);
+			await expect(active).toBeVisible();
+			await expect.poll(() => active.evaluate((v: HTMLVideoElement) => v.videoWidth)).toBeGreaterThan(0);
+			await expect(active).toHaveJSProperty('muted', true);
+			await expect(active).toHaveJSProperty('paused', false);
+			await expect.poll(() => videos.evaluateAll((els) => els
+				.filter((v) => !v.classList.contains('active'))
+				.every((v) => (v as HTMLVideoElement).paused))).toBe(true);
+		}
 	});
 });

@@ -620,7 +620,7 @@
 		}
 		.stats-grid {
 			display: grid;
-			grid-template-columns: repeat(4, 1fr);
+			grid-template-columns: repeat(5, 1fr);
 			gap: 2rem;
 			text-align: center;
 		}
@@ -685,7 +685,9 @@
 		}
 		.footer-links {
 			display: flex;
-			gap: 1.5rem;
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 0.75rem 1.5rem;
 		}
 		.footer-links a {
 			font-size: 0.8rem;
@@ -708,6 +710,9 @@
 			.feature-img img { max-width: 200px; }
 			.steps-grid { grid-template-columns: 1fr; }
 			.stats-grid { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+			.demo-group { max-width: 100%; }
+			.demo-tabs { flex-wrap: wrap; }
+			.demo-tab, .install-tab { flex: 1 1 auto; }
 			.hero { padding: 8rem 0 4rem; }
 			.nav-links a:not(.nav-cta) { display: none; }
 			section { padding: 4rem 0; }
@@ -730,6 +735,8 @@
 		<div class="nav-links">
 			<a href="/getting-started/introduction/">Docs</a>
 			<a href="/skills/">Skill Hub</a>
+			<a href="/ghost-skill/">Agent Guide</a>
+			<a href="/blog/ghost-1-6/">Blog</a>
 			<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
 			<a href="/getting-started/installation/" class="nav-cta">Get Started</a>
 		</div>
@@ -741,10 +748,10 @@
 	<!-- HERO -->
 	<section class="hero" style="position:relative;z-index:1">
 		<div class="container">
-			<div class="hero-badge">
-				<span class="tag">Open Source</span>
-				<span>MIT Licensed — free forever</span>
-			</div>
+			<a class="hero-badge" href="/blog/ghost-1-6/" style="text-decoration:none">
+				<span class="tag">New in 1.6</span>
+				<span>Skill Hub with 117 skills, human in the loop</span>
+			</a>
 			<div class="hero-split">
 				<div class="hero-content">
 					<h1>
@@ -823,7 +830,7 @@
 		<div class="container">
 			<div style="max-width:840px;margin:0 auto;text-align:center">
 				<h2 style="font-size:1.4rem;font-weight:700;color:var(--text-primary);margin-bottom:0.5rem">Wire up your agent — one command per client</h2>
-				<p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem">62 MCP tools — tap, swipe, type, screenshot, OCR, launch apps, run skills. Pick your client:</p>
+				<p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem">66 MCP tools — tap, swipe, type, screenshot, OCR, launch apps, run skills. Pick your client:</p>
 				<div class="demo-groups">
 					<div class="demo-group">
 						<span class="demo-group-label">CLI — one command</span>
@@ -923,13 +930,14 @@
 		<div class="container">
 			<div class="section-label">The Reel</div>
 			<h2 class="section-title">Give any AI agent a real phone</h2>
-			<p class="section-sub">The 32-second master reel. Real devices, real agents, one voiceover. Hover for sound.</p>
+			<p class="section-sub">The 32-second master reel. Real devices, real agents, one voiceover. <a href="https://youtu.be/fdaXdFQo61o" target="_blank" rel="noopener">Watch it with sound on YouTube.</a></p>
 			<div class="reel-player">
 				<video
 					id="hero-reel"
 					src="/showcase/hero-reel.webm"
 					poster="/showcase/hero-poster.png"
 					autoplay muted loop playsinline preload="metadata"
+					aria-label="Ghost in the Droid master reel"
 				></video>
 			</div>
 		</div>
@@ -999,7 +1007,7 @@
 				<div class="feature-text">
 					<span class="feature-tag">Device Control</span>
 					<h3>The ghost taps what you'd tap</h3>
-					<p>62 MCP tools — tap, swipe, type, clipboard, screenshots, browser primitives, TTS, camera. Works on any Android 5.0+ phone via USB or Wi-Fi ADB. Works on iPhone via WebDriverAgent. The ghost doesn't install anything on your device. It possesses through the debug bridge (Android) or the WDA tunnel (iOS).</p>
+					<p>66 MCP tools — tap, swipe, type, clipboard, screenshots, browser primitives, TTS, camera. Works on any Android 5.0+ phone via USB or Wi-Fi ADB. Works on iPhone via WebDriverAgent. The ghost doesn't install anything on your device. It possesses through the debug bridge (Android) or the WDA tunnel (iOS).</p>
 				</div>
 			</div>
 
@@ -1021,7 +1029,7 @@
 				<div class="feature-text">
 					<span class="feature-tag">Skill System</span>
 					<h3>Forge reusable skills for any app</h3>
-					<p>YAML-defined UI elements per platform (elements.yaml for Android, elements_ios.yaml for iOS). Python actions with precondition checks. Multi-step workflows that chain. Ships with TikTok, Play Store, Chrome News. Crack any app. Forge a skill. Share it on the Skill Hub.</p>
+					<p>Declarative YAML actions with popup handling, validators and human checkpoints. A skill runs a recorded route instead of making the model look at every screen, which cuts tokens. The Skill Hub has 117 skills for 113 apps. Install one, or forge your own and share it.</p>
 				</div>
 			</div>
 
@@ -1054,7 +1062,7 @@
 				<div class="feature-text">
 					<span class="feature-tag">AI Agent Body</span>
 					<h3>Your agent can think. Now it can touch.</h3>
-					<p>MCP server exposes 62 tools. LangChain + LlamaIndex adapters wrap the same surface behind a fail-closed allow-list. Point Claude Code, Codex, Antigravity, Cursor, Opencode, or a model running inside the phone itself at it — your agent grows hands. The ghost is the bridge between thought and tap.</p>
+					<p>MCP server exposes 66 tools. LangChain + LlamaIndex adapters wrap the same surface behind a fail-closed allow-list. Point Claude Code, Codex, Antigravity, Cursor, Opencode, or a model running inside the phone itself at it — your agent grows hands. The ghost is the bridge between thought and tap.</p>
 				</div>
 			</div>
 
@@ -1112,8 +1120,12 @@
 		<div class="container">
 			<div class="stats-grid">
 				<div>
-					<div class="stat-value">62</div>
+					<div class="stat-value">66</div>
 					<div class="stat-label">MCP tools</div>
+				</div>
+				<div>
+					<div class="stat-value">117</div>
+					<div class="stat-label">Skills on the hub</div>
 				</div>
 				<div>
 					<div class="stat-value">6</div>
@@ -1154,9 +1166,11 @@
 				<div class="footer-links">
 					<a href="/getting-started/introduction/">Docs</a>
 					<a href="/skills/">Skill Hub</a>
+					<a href="/blog/ghost-1-6/">Blog</a>
 					<a href="/api/device-methods/">API</a>
 					<a href="/contributing/setup/">Contribute</a>
 					<a href="https://github.com/ghost-in-the-droid/android-agent">GitHub</a>
+					<a href="https://discord.gg/gmvDX4Juk">Discord</a>
 					<a href="https://x.com/ghostinthedroid">X</a>
 				</div>
 			</div>
@@ -1351,7 +1365,7 @@
 		const subs = {
 			'mcp-claude-code-tui': 'Claude Code drives the phone. Type in the TUI, watch it act.',
 			'mcp-codex-tui': 'Codex operating a real phone over MCP.',
-			'mcp-agy-tui': 'Google Antigravity, same 62-tool body.',
+			'mcp-agy-tui': 'Google Antigravity, same 66-tool body.',
 			'ghost-cli': 'ghost "check reddit" --device asus — one line, real phone.',
 			'langchain': 'Ghost tools inside a LangChain agent.',
 			'web-chat-gui': 'Chat in your browser, it drives the phone.',

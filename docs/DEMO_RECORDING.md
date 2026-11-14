@@ -1,8 +1,113 @@
-# Recording a Showcase Demo (internal)
+# Recording a Showcase Demo
 
 The showcase pipeline is "Ghost records Ghost": a spec-driven recorder drives
 a real phone with Ghost's own adb primitives while capturing the terminal and
 the phone screen in sync, then composites a branded WebM.
+
+## Skill hub videos: `ghost skill demo`
+
+From a source checkout (`pip install -e .`), use the first-class wrapper:
+
+```bash
+ghost skill demo ghost/calculator calculate --mode hard --device <device> --render-host <render-host>
+ghost skill demo ghost/calculator calculate --mode soft --device <device> --render-host <render-host> --max-tokens 12000
+ghost skill demo ghost/calculator calculate --mode hard --device <device> --dry --title "Calculator in action"
+```
+
+This extends the original `scripts/record_demo.py` pipeline; it does not synthesize
+a terminal. Hard mode runs `ghost skill run` through asciinema. Soft mode records a
+real Claude Code TUI (with replay tools and built-in shell tools withheld) through `scripts/showcase/claude_tui_driver.py`, using its sample
+prompt and `get_skill_notes`, the Haiku model alias, a response output cap and a
+per-clip transcript token budget. The driver counts input, output and cached tokens
+per unique message and stops at the threshold. A response in flight may cross it.
+Authentication failure stops soft mode; it never silently replays a hard action.
+
+Terminal capture stays local; phone capture, agg and ffmpeg run on `--render-host`.
+The original `_brand/asciinema-ghost.json` theme and `_brand/frames.json` are reused.
+Both checkouts must have the current scripts and Pillow/pexpect installed, plus the
+tools listed below. The sample demo app must be installed as a non-system app on a
+clean demo device. Its data is erased on every recording: force-stop, `pm clear`,
+app-scoped seed broadcasts, HOME, start capture, launch. System and absent packages
+are refused. With no seeds, the empty app state is the sample state.
+
+`--spec spec.yaml` accepts:
+
+```yaml
+cards:
+  header: GHOST IN THE DROID
+  eyebrow: SKILL SHOWCASE
+  title: Calculator in action
+  byline: "@ghost"
+  subheader: "ghost/calculator: calculate"
+  outro_title: ghost/calculator
+  outro_cmd: ghost skill install ghost/calculator
+  outro_url: https://ghostinthedroid.com/skills/ghost/calculator/
+# Optional fixture receiver implemented by the demo app (always package-targeted):
+seed:
+  - action: org.example.demo.SEED
+    extras: {fixture: showcase}
+```
+
+All eight strings also accept CLI overrides: `--header`, `--eyebrow`, `--title`,
+`--byline`, `--subheader`, `--outro-title`, `--outro-cmd`, `--outro-url`.
+CLI wins over spec; omitted strings derive from the skill and action. The default
+header is GHOST IN THE DROID, eyebrow SKILL SHOWCASE, subheader author/skill: action,
+and outro command is the real `ghost skill install author/skill` command.
+
+`--trim-idle` applies `mpdecimate` to the final composite only, keeping both panes
+in sync. It never edits the captured cast or phone stream independently. Privacy
+scans scrub and inspect the terminal, then OCR-gate the final clip. `--no-ocr`
+requires manual privacy review. Output `demos/<action>.webm` is silent VP9, at most
+30 seconds and 3 MB; it is accepted by the hub's upload/validate flow. Its `.spec.yaml`
+saves the card settings. Omit the action to record every action independently.
+The original `scripts/record_showcase_reel.py` remains the grid reel builder.
+
+The underlying recorder workflow follows.
+
+## Before / after pairs: `demos/before-after.*`
+
+A skill page can show one recorded pair next to its demos: the same prompt on the same
+phone, once without the skill (the agent drives the UI by hand) and once with it
+(`find_skill` + `run_skill`). Two files in the skill dir, both outside the install set
+and the signed digest:
+
+- `demos/before-after.webm` (or `.mp4`/`.gif`): the composite, left = no skill, right =
+  with skill, at most 3 MB. VP9 at 10 fps and 1600 px wide keeps a three minute pair
+  near 2 MB with the shell text legible.
+- `demos/before-after.json` (schema 1): the measured numbers.
+
+```json
+{
+  "schema_version": 1,
+  "action": "generate_qr",
+  "prompt": "Generate a QR code for https://example.org/solar",
+  "model": "claude-haiku-5-5",
+  "device": "samsung-demo",
+  "ok_means": "verified_task_check",
+  "before": {"seconds": 52.24, "tokens": 254235, "tool_calls": 18, "ok": false},
+  "after":  {"seconds": 27.49, "tokens": 127442, "tool_calls": 5, "ok": true},
+  "notes": "Same clean temporary app per side; ..."
+}
+```
+
+`ok_means` is `verified_task_check` when `ok` comes from an independent check of the
+final phone state, or `agent_finished_turn` when it only says the agent ended its
+turn. The site derives the headline ("11.8x fewer tokens, 1.9x faster") and says
+slower or more-tokens results as plainly as better ones; a malformed json drops the
+numbers and keeps the clip. The registry exposes the pair as `before_after`. The pair is not a signed run and adds no
+run evidence (scoring v1.3 counts it as a docs item). Every pair clip passes the same privacy gate as a
+demo (terminal panes OCR'd frame by frame, source casts scrubbed of home paths and
+device identifiers) before it is committed.
+
+## Adding clips to the hub
+
+Hub clips are rendered and OCR-gated outside this repository, then copied into
+`skillhub/<author>/<slug>/` (`demo.webm`, `demos/<action>.webm`,
+`demos/before-after.webm` + `.json`). Only an output that passed the privacy gate
+(terminal panes and the keyboard suggestion strip OCR'd frame by frame, casts scrubbed
+of home paths and device identifiers) is committed, and every `.webm` must be complete
+(EBML header, DocType webm, known Segment size, Cues element). Run
+`tools/build_registry.py` afterwards so the registry carries the new file hashes.
 
 ## TL;DR
 

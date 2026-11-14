@@ -1,0 +1,38 @@
+---
+import { completeCell, type DeviceGrid } from '../../lib/hub/device-grid';
+const { grid } = Astro.props as { grid?: DeviceGrid };
+const cells = grid?.cells ?? [];
+const covered = cells.filter((cell) => cell.independent > 0 && completeCell(cell));
+const recorded = cells.filter((cell) => cell.maintainer > 0);
+const incomplete = cells.filter((cell) => cell.independent > 0 && !completeCell(cell));
+const val = (v: string | undefined) => (!v || v === '*' ? 'not recorded' : v);
+const rows = [
+ ...covered.map((cell) => ({ cell, runs: `${cell.independent} independent`, kind: 'covered' })),
+ ...recorded.map((cell) => ({ cell, runs: `${cell.maintainer} maintainer ${cell.maintainer === 1 ? 'run' : 'runs'}`, kind: 'recorded' })),
+ ...incomplete.map((cell) => ({ cell, runs: `${cell.independent} independent, incomplete`, kind: 'incomplete' })),
+];
+---
+<div class="device-coverage" aria-label="Runs by device" data-device-coverage>
+ <h4>Runs by device <span class="coverage-count">{covered.length} independent {covered.length === 1 ? 'cell' : 'cells'}</span></h4>
+ {covered.length === 0 && <p class="coverage-note" data-device-empty>No independent device runs yet.</p>}
+ {rows.map(({ cell, runs, kind }) => (
+  <dl class="kv cell-kv" data-device-covered={kind === 'covered' ? '' : undefined} data-device-recorded={kind === 'recorded' ? '' : undefined} data-device-incomplete={kind === 'incomplete' ? '' : undefined}>
+   {cell.device_labels?.length ? <><dt>device</dt><dd>{cell.device_labels.join(', ')}</dd></> : null}
+   <dt>android</dt><dd>{val(cell.os_version)}</dd>
+   <dt>app version</dt><dd>{val(cell.app_version)}</dd>
+   <dt>screen</dt><dd class={cell.screen === '*' ? 'unrec' : ''}>{cell.screen === '*' && cell.density === '*' ? 'not recorded' : `${val(cell.screen)} @ ${val(cell.density)} dpi`}</dd>
+   <dt>locale</dt><dd class={cell.locale === '*' ? 'unrec' : ''}>{val(cell.locale)}</dd>
+   <dt>runs</dt><dd>{runs}{kind !== 'covered' && <span class="unrec note">not independent</span>}</dd>
+  </dl>
+ ))}
+ <p class="coverage-note">A cell is app version × Android × screen × locale. Only independent runs with all four recorded cover one. Failures included.</p>
+</div>
+<style>
+ .device-coverage { margin-top: .9rem; padding-top: .7rem; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+ .device-coverage h4 { display: flex; flex-wrap: wrap; gap: .4rem; align-items: baseline; font-size: .8rem; margin: 0 0 .4rem; color: var(--text); }
+ .coverage-count, .coverage-note, .unrec { color: var(--muted); }
+ .coverage-count { margin-left: auto; font-size: .72rem; font-weight: 400; }
+ .coverage-note { font-size: .72rem; line-height: 1.6; margin-top: .5rem; }
+ .cell-kv { margin: .5rem 0; }
+ .cell-kv .note { display: block; font-family: var(--sans); font-size: .72rem; word-break: normal; }
+</style>

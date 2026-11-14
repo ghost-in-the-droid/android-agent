@@ -102,15 +102,23 @@ def draw_version_stamp(img: Image.Image, version: str) -> None:
     d.text((x, y), label, font=f, fill=hex_rgb(GRAY_3))
 
 
-def intro_card(slug: str, name: str, version: str) -> Image.Image:
+def intro_card(slug: str, name: str, version: str, kicker: str = "FEATURE",
+               byline: str | None = None) -> Image.Image:
+    """Showcase opener. Kicker (letter-spaced accent), optional byline (e.g. '@ghost'
+    for skill demos), then the title; with a byline the title and bar move down one line."""
     img = brand_background()
     draw_lockup(img)
     draw_version_stamp(img, version)
     d = ImageDraw.Draw(img)
 
-    kicker = "F E A T U R E"
+    kicker = " ".join(kicker.upper().replace(" ", "\u2002"))   # F E A T U R E style
     fk = mono(30, 500)
-    d.text(((W - d.textlength(kicker, font=fk)) / 2, 402), kicker, font=fk, fill=hex_rgb(ACCENT))
+    top = 402 - (40 if byline else 0)
+    d.text(((W - d.textlength(kicker, font=fk)) / 2, top), kicker, font=fk, fill=hex_rgb(ACCENT))
+    if byline:
+        fb = mono(40, 500)
+        d.text(((W - d.textlength(byline, font=fb)) / 2, top + 58), byline, font=fb, fill=hex_rgb(GRAY_3))
+    shift = 50 if byline else 0
 
     size = 118
     ft = outfit(size, 800)
@@ -118,11 +126,11 @@ def intro_card(slug: str, name: str, version: str) -> Image.Image:
         size -= 6
         ft = outfit(size, 800)
     tw = d.textlength(name, font=ft)
-    d.text(((W - tw) / 2, 462 + (118 - size) * 0.55), name, font=ft, fill=hex_rgb(GRAY_1))
+    d.text(((W - tw) / 2, 462 + shift + (118 - size) * 0.55), name, font=ft, fill=hex_rgb(GRAY_1))
 
     bar_w = 180
     d.rounded_rectangle(
-        [(W - bar_w) / 2, 640, (W + bar_w) / 2, 648], radius=4, fill=hex_rgb(ACCENT)
+        [(W - bar_w) / 2, 640 + shift, (W + bar_w) / 2, 648 + shift], radius=4, fill=hex_rgb(ACCENT)
     )
     return img
 
@@ -269,6 +277,30 @@ def main() -> None:
 
     (BRAND / "frames.json").write_text(json.dumps(frames, indent=2) + "\n")
     print("frames: pixel8 + iphone15pro (+ frames.json)")
+
+
+def generate_native_terminal_assets(directory: Path | None = None) -> list[Path]:
+    """Rebuild the native terminal/phone layout from Ghost's own fonts and mascot."""
+    directory = directory or BRAND
+    directory.mkdir(parents=True, exist_ok=True)
+    bg = brand_background()
+    d = ImageDraw.Draw(bg)
+    d.text((42, 40), "GHOST IN THE DROID", font=outfit(30, 600), fill=hex_rgb(ACCENT))
+    bg.save(directory / "cprime-bg.png")
+    frame = Image.new("RGBA", (W, H))
+    d = ImageDraw.Draw(frame)
+    d.rounded_rectangle((32, 208, 1394, 1034), radius=16, fill=hex_rgb(GRAY_7), outline=hex_rgb(GRAY_5), width=2)
+    d.rectangle((40, 256, 1386, 1026), fill=(0, 0, 0, 0))
+    for x, color in [(58, "#ff5f57"), (82, "#febc2e"), (106, "#28c840")]:
+        d.ellipse((x, 226, x + 12, 238), fill=hex_rgb(color))
+    d.text((145, 222), "Ghost", font=mono(18), fill=hex_rgb(GRAY_3))
+    frame.save(directory / "terminal-frame-macos.png")
+    mascot = Image.new("RGBA", (W, H))
+    ghost = Image.open(MASCOT / "43-wave.png").convert("RGBA")
+    ghost.thumbnail((140, 140), Image.Resampling.LANCZOS)
+    mascot.alpha_composite(ghost, (1190, 105))
+    mascot.save(directory / "cprime-mascot.png")
+    return [directory / name for name in ("cprime-bg.png", "terminal-frame-macos.png", "cprime-mascot.png")]
 
 
 if __name__ == "__main__":

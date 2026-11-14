@@ -13,8 +13,7 @@ export default defineConfig({
 			tagline: 'Open-source Android automation framework',
 			social: [
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/ghost-in-the-droid/android-agent' },
-				{ icon: 'external', label: 'Home', href: '/' },
-				{ icon: 'puzzle', label: 'Skill Hub', href: '/skills/' },
+				{ icon: 'discord', label: 'Discord', href: 'https://discord.gg/gmvDX4Juk' },
 			],
 			customCss: ['./src/styles/custom.css'],
 			head: [
@@ -34,33 +33,14 @@ export default defineConfig({
 				},
 				{
 					tag: 'script',
-					attrs: {
-						defer: true,
-						src: '/_vercel/insights/script.js',
-					},
-				},
-				{
-					tag: 'script',
-					attrs: {
-						async: true,
-						src: 'https://www.googletagmanager.com/gtag/js?id=G-5H5CYJFJLJ',
-					},
-				},
-				{
-					tag: 'script',
-					content:
-						"window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-5H5CYJFJLJ');",
-				},
-				{
-					tag: 'script',
 					content: `
 document.addEventListener('DOMContentLoaded', function() {
-	var nav = document.querySelector('header nav .right-group, header nav');
+	var nav = document.querySelector('header .right-group') || document.querySelector('header nav');
 	if (!nav) return;
 	var socialLinks = nav.querySelector('.social-icons, [class*="social"]');
 	var wrap = document.createElement('div');
 	wrap.style.cssText = 'display:flex;gap:1rem;align-items:center;margin-right:0.75rem;';
-	['Home:/', 'Skill Hub:/skills/'].forEach(function(item) {
+	['Home:/', 'Skill Hub:/skills/', 'Agent Guide:/ghost-skill/'].forEach(function(item) {
 		var parts = item.split(':');
 		var a = document.createElement('a');
 		a.href = parts[1];
@@ -125,6 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
 						{ label: '🖥️ Phone Farm', slug: 'guides/phone-farm' },
 						{ label: '🎬 Record Macros', slug: 'guides/macros' },
 						{ label: '🥷 Stealth Mode', slug: 'guides/stealth' },
+						{ label: '🙋 Human in the Loop', slug: 'guides/human-in-the-loop' },
 					],
 				},
 				{
@@ -133,8 +114,13 @@ document.addEventListener('DOMContentLoaded', function() {
 						{ label: '🧩 What Are Skills?', slug: 'skills/overview' },
 						{ label: '⚡ Using Skills', slug: 'skills/using-skills' },
 						{ label: '🔨 Creating Skills', slug: 'skills/creating-skills' },
+						{ label: '📘 Skill Creation Guide', slug: 'skills/skill-creation-guide' },
 						{ label: '🎯 Elements & Locators', slug: 'skills/elements' },
 						{ label: '📦 Publishing Skills', slug: 'skills/publishing' },
+						{ label: '🏅 Contribute', slug: 'skills/contribute' },
+						{ label: '📊 Scoring', link: '/skills/scoring/' },
+						{ label: '🏆 Leaderboard', link: '/skills/leaderboard/' },
+						{ label: '✅ Validate a skill', link: '/skills/validate/' },
 					],
 				},
 				{
@@ -196,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					collapsed: true,
 					items: [
 						{ label: 'All releases', slug: 'release-notes' },
+						{ label: 'v1.6.0', slug: 'release-notes/v1-6-0' },
 						{ label: 'v1.3.0', slug: 'release-notes/v1-3-0' },
 						{ label: 'v1.2.0', slug: 'release-notes/v1-2-0' },
 						{ label: 'v1.1.0', slug: 'release-notes/v1-1-0' },

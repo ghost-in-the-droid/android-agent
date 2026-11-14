@@ -1,0 +1,28 @@
+---
+// Copyable shell command. The text comes from registry data, never from README.
+interface Props { cmd: string; label?: string }
+const { cmd, label = 'Install command' } = Astro.props;
+---
+<div class="cmd">
+	<code aria-label={label}>{cmd}</code>
+	<button type="button" data-copy={cmd} aria-label={`Copy ${label.toLowerCase()}`}>Copy</button>
+</div>
+<script>
+	document.querySelectorAll<HTMLButtonElement>('button[data-copy]').forEach((b) => {
+		if (b.dataset.bound) return;
+		b.dataset.bound = '1';
+		b.addEventListener('click', async () => {
+			const text = b.dataset.copy ?? '';
+			try {
+				await navigator.clipboard.writeText(text);
+			} catch {
+				const ta = document.createElement('textarea');
+				ta.value = text; document.body.appendChild(ta); ta.select();
+				document.execCommand('copy'); ta.remove();
+			}
+			b.textContent = 'Copied';
+			b.setAttribute('data-copied', '');
+			setTimeout(() => { b.textContent = 'Copy'; b.removeAttribute('data-copied'); }, 1600);
+		});
+	});
+</script>

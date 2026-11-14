@@ -1,0 +1,21 @@
+---
+// App icon for a skill: the registry's icon.webp, or a generic app glyph when
+// the skill has none (title text = the app package). Decorative next to the
+// skill name, so the image itself carries an empty alt.
+import type { Skill } from '../../lib/hub/registry';
+interface Props { skill: Skill; size: 24 | 32 | 40 | 64; decorative?: boolean }
+const { skill, size, decorative = false } = Astro.props;
+const pkg = skill.latestEntry.fingerprint.app_package || 'no app package';
+---
+{skill.iconUrl ? (
+	<img class="app-icon" src={skill.iconUrl} width={size} height={size} loading="lazy" decoding="async" alt="" title={decorative ? undefined : pkg} />
+) : (
+	<svg class="app-icon glyph" width={size} height={size} viewBox="0 0 24 24" role={decorative ? undefined : "img"} aria-hidden={decorative ? "true" : undefined} aria-label={decorative ? undefined : pkg}>
+		{!decorative && <title>{pkg}</title>}
+		<rect x="1" y="1" width="22" height="22" rx="5.5" fill="var(--panel-2)" stroke="var(--line-2)" />
+		<rect x="6.5" y="6.5" width="4" height="4" rx="1" fill="var(--faint)" />
+		<rect x="13.5" y="6.5" width="4" height="4" rx="1" fill="var(--faint)" />
+		<rect x="6.5" y="13.5" width="4" height="4" rx="1" fill="var(--faint)" />
+		<rect x="13.5" y="13.5" width="4" height="4" rx="1" fill="var(--faint)" />
+	</svg>
+)}

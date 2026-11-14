@@ -1,0 +1,107 @@
+---
+import BenchmarkBars from './BenchmarkBars.astro';
+import type { Skill } from '../../lib/hub/registry';
+import { pairedSavings, pooledPass, metricValue } from '../../lib/hub/showcase';
+import { formatCount, formatSeconds } from '../../lib/hub/before-after';
+const { skill } = Astro.props as { skill: Skill };
+const rows = skill.benches.flatMap((bench) => bench.tasks.filter((task) => task.arms.before && task.arms.after_mcp).map((task) => ({ bench, task })));
+const tasks = rows.map(({ task }) => task);
+const savings = tasks.map(pairedSavings);
+const tokens = savings.filter((s) => s.tokens != null), actions = savings.filter((s) => s.actions != null);
+const before = pooledPass(tasks, 'before'), after = pooledPass(tasks, 'after_mcp');
+const covered = new Set(tasks.map((task) => task.action));
+const remaining = skill.latestEntry.actions.filter((action) => !covered.has(action)).length;
+const format = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 1 });
+const count = (v: typeof before) => v ? `${v.passed}/${v.total}` : 'not recorded';
+const scale = Math.max(0, ...tasks.flatMap((task) => [metricValue(task, 'before', 'tokens') ?? 0, metricValue(task, 'after_mcp', 'tokens') ?? 0]));
+const ba = skill.beforeAfter?.metrics && skill.beforeAfter.summary ? { m: skill.beforeAfter.metrics, s: skill.beforeAfter.summary } : null;
+const bar = (key: string, name: string, b: number, a: number, fmt: (n: number) => string, unitFew: string, unitMore: string) => {
+	const top = Math.max(a, b) || 1, pct = b > 0 ? Math.round((1 - a / b) * 100) : 0;
+	return { key, name, before: fmt(b), after: fmt(a), wBefore: (100 * b) / top, wAfter: Math.max(1.5, (100 * a) / top), better: a <= b,
+		delta: a <= b ? `${pct}% ${unitFew}` : `${Math.round((a / b - 1) * 100)}% ${unitMore}` };
+};
+const bars = ba ? [
+	bar('tokens', 'Tokens', ba.m.before.tokens, ba.m.after.tokens, formatCount, 'fewer', 'more'),
+	bar('time', 'Time', ba.m.before.seconds, ba.m.after.seconds, formatSeconds, 'less time', 'more time'),
+	bar('calls', 'Tool calls', ba.m.before.tool_calls, ba.m.after.tool_calls, formatCount, 'fewer', 'more'),
+] : [];
+const pctFewer = ba && ba.m.before.tokens > 0 ? Math.round((1 - ba.m.after.tokens / ba.m.before.tokens) * 100) : null;
+const provenance = [...new Set(rows.map(({ bench, task }) => `${bench.label} · ${bench.model ?? task.arms.after_mcp?.model ?? 'model not recorded'} · ${(task.generatedAt ?? bench.generatedAt)?.slice(0, 10) ?? 'date not recorded'}`))];
+---
+{tasks.length > 0 && <section class="panel skill-bench-summary" data-skill-bench-summary aria-label="Benchmark summary">
+ <div class="summary-heading"><h2>Before / after</h2><a class="inline-link" href="#benchmarks" data-open-bench>Benchmark details ↓</a></div>
+ <div class="bench-kpis" aria-label="Benchmark results">
+  <div><span>Tokens saved</span><strong data-skill-token-saving>{tokens.length ? format(tokens.reduce((sum, s) => sum + s.tokens!, 0)) : 'not recorded'}</strong><small>Paired medians · {tokens.length}/{tasks.length} tasks · N={tokens.reduce((sum, s) => sum + s.tokenPairs, 0)}</small></div>
+  <div><span>UI actions saved</span><strong data-skill-action-saving>{actions.length ? format(actions.reduce((sum, s) => sum + s.actions!, 0)) : 'not recorded'}</strong><small>Paired medians · {actions.length}/{tasks.length} tasks · N={actions.reduce((sum, s) => sum + s.actionPairs, 0)}</small></div>
+  <div><span>Pass · before → with skill</span><strong data-skill-pass>{count(before)} → {count(after)}</strong><small>Current arms · failures included</small></div>
+ </div>
+ <p class="summary-legend"><i class="legend-before"></i>Before <i class="legend-after"></i>With skill · median tokens per task</p>
+ {rows.map(({ task }) => <BenchmarkBars task={task} label={task.label ?? (task.action ?? task.task_id).replaceAll('_', ' ')} metric="tokens" scale={scale} savingUnit="tokens" />)}
+ {remaining > 0 && <p class="summary-note" data-unbenched>{remaining} more {remaining === 1 ? 'action' : 'actions'} not benchmarked yet</p>}
+ <p class="summary-note">{provenance.join(' · ')}. Every failure is counted (intention-to-treat).</p>
+</section>}
+{tasks.length === 0 && ba && <section class="panel skill-bench-summary" id="token-savings" data-skill-token-savings aria-label="Token savings">
+ <div class="summary-heading"><h2>Token savings</h2>{pctFewer != null && pctFewer > 0 && <span class="pct">{pctFewer}% fewer tokens</span>}</div>
+ <div class="ba-bars" aria-label="Without vs with the skill">
+  {bars.map((b) => (
+   <div class="ba-metric" data-ba-metric={b.key}>
+    <span class="ba-name">{b.name}</span>
+    <span class="ba-arm">without</span>
+    <span class="ba-track"><span class="ba-fill before" style={`width:${b.wBefore}%`}></span></span>
+    <span class="ba-val">{b.before}</span>
+    <span class="ba-arm">with</span>
+    <span class="ba-track"><span class={`ba-fill after ${b.better ? 'good' : 'worse'}`} style={`width:${b.wAfter}%`}></span></span>
+    <span class={`ba-val after ${b.better ? 'good' : 'worse'}`} data-skill-token-saving={b.key === 'tokens' ? '' : undefined}>{b.after}{' '}<em>({b.delta})</em></span>
+   </div>
+  ))}
+ </div>
+ <p class="summary-note">{ba.s.outcome}</p>
+ <p class="summary-note">One recorded run each way{ba.m.action && <> on <code>{ba.m.action}</code></>}{ba.m.model && <>, {ba.m.model}</>}, same phone and same prompt. Watch it in the <a class="inline-link" href="#demo-before-after">Before / after</a> tab.</p>
+</section>}
+{tasks.length === 0 && !ba && remaining > 0 && <p class="summary-note summary-empty" data-unbenched>{remaining} {remaining === 1 ? 'action' : 'actions'} not benchmarked yet</p>}
+<style>
+ .skill-bench-summary { margin-bottom: 1.5rem; min-width: 0; }
+ .summary-heading { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+ h2 { color: var(--text); font-size: 1rem; }
+ .summary-heading a { font-size: .75rem; }
+ .ba-bars { display: grid; gap: .9rem; margin: .9rem 0 .4rem; }
+ .ba-metric { display: grid; grid-template-columns: 6.5rem 3.6rem minmax(0, 1fr) 11.5rem; align-items: center; gap: .3rem .6rem; }
+ .ba-name { grid-row: span 2; font-weight: 600; color: var(--text); font-size: .9rem; }
+ .ba-arm { font-size: .72rem; color: var(--muted); }
+ .ba-track { height: 14px; display: block; }
+ .ba-fill { display: block; height: 100%; border-radius: 3px; }
+ .ba-fill.before { background: var(--muted); opacity: .45; }
+ .ba-fill.after.good { background: #3fb68b; }
+ .ba-fill.after.worse { background: #d9a03f; }
+ .ba-val { font: .8rem var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+ .ba-val.after { font-weight: 600; }
+ .ba-val.after.good { color: #3fb68b; }
+ .ba-val.after.worse { color: #d9a03f; }
+ .ba-val em { font-style: normal; }
+ .summary-heading .pct { font: 600 .85rem var(--mono); color: var(--signal); }
+ .bench-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin: .75rem 0; }
+ .bench-kpis > div { display: flex; flex-direction: column; gap: .12rem; border: 1px solid var(--line); border-radius: var(--r-s); padding: .5rem .7rem; background: var(--panel-2); }
+ .bench-kpis span { font-size: .7rem; }
+ .bench-kpis strong { color: var(--text); font: 500 1.15rem var(--mono); font-variant-numeric: tabular-nums; }
+ .bench-kpis small { font-size: .65rem; }
+ .summary-legend, .summary-note { font-size: .7rem; line-height: 1.6; }
+ .summary-legend { display: flex; gap: .3rem; align-items: center; margin-bottom: .35rem; }
+ .summary-note { margin-top: .65rem; }
+ .summary-empty { margin-bottom: 1.5rem; }
+ .skill-bench-summary :global(.benchmark-row) { grid-template-columns: 230px minmax(0, 1fr) 105px 100px; }
+ .skill-bench-summary :global(.bar-before) { fill: var(--muted); opacity: .45; }
+ .skill-bench-summary :global(.bar-after) { fill: var(--signal); }
+ .skill-bench-summary :global(.comparison-saving strong) { font-size: .9rem; }
+ @media (max-width: 700px) {
+  .bench-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bench-kpis > div:last-child { grid-column: 1/-1; }
+  .ba-metric { grid-template-columns: 3.4rem minmax(0, 1fr) auto; }
+  .ba-name { grid-row: auto; grid-column: 1 / -1; }
+  .bench-kpis strong { overflow-wrap: anywhere; }
+  .skill-bench-summary :global(.benchmark-row) { grid-template-columns: minmax(0, 1fr) 83px 70px; }
+  .skill-bench-summary :global(.comparison-label) { grid-column: 1/3; }
+  .skill-bench-summary :global(.comparison-bars) { grid-column: 1; grid-row: 2; }
+  .skill-bench-summary :global(.comparison-values) { grid-column: 2; grid-row: 2; }
+  .skill-bench-summary :global(.comparison-saving) { grid-column: 3; grid-row: 1/3; }
+ }
+</style>

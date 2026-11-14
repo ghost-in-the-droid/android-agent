@@ -1,0 +1,6313 @@
+{
+  "stats": {
+    "tasks": [
+      {
+        "task_id": "calc_3plus3",
+        "arms": {
+          "after_mcp": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 61837.0,
+              "q1": 61677.0,
+              "q3": 111942.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 59885.0,
+              "q1": 59728.0,
+              "q3": 61522.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 3.0,
+              "q1": 3.0,
+              "q3": 4.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 1.0,
+              "q1": 1.0,
+              "q3": 1.0,
+              "n": 5
+            },
+            "tool_errors": 5,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "after_replay": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": null,
+            "tokens": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 43074.0,
+              "q1": 40979.0,
+              "q3": 43191.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 6.0,
+              "q1": 6.0,
+              "q3": 6.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "before": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 184681.0,
+              "q1": 132498.0,
+              "q3": 267125.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 41500.0,
+              "q1": 36939.0,
+              "q3": 45717.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 6.0,
+              "q1": 6.0,
+              "q3": 8.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 6.0,
+              "q1": 5.0,
+              "q3": 6.0,
+              "n": 5
+            },
+            "tool_errors": 3,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          }
+        },
+        "paired": {
+          "after_mcp_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 0,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 123150,
+            "break_even_reuses": null
+          },
+          "after_replay_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 0,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 184681,
+            "break_even_reuses": null
+          }
+        }
+      },
+      {
+        "task_id": "clock_alarm",
+        "arms": {
+          "after_mcp": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 84163.0,
+              "q1": 84027.0,
+              "q3": 84954.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 44791.0,
+              "q1": 44283.0,
+              "q3": 61743.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 4.0,
+              "q1": 4.0,
+              "q3": 4.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 1.0,
+              "q1": 1.0,
+              "q3": 1.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "after_replay": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": null,
+            "tokens": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 22100.0,
+              "q1": 20946.0,
+              "q3": 22327.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 6.0,
+              "q1": 6.0,
+              "q3": 6.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "before": {
+            "passed": 4,
+            "total": 5,
+            "wilson95": [
+              0.3755,
+              0.9638
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 1113113.0,
+              "q1": 1010774.0,
+              "q3": 1417012.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 115913.0,
+              "q1": 113225.0,
+              "q3": 119589.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 20.0,
+              "q1": 17.0,
+              "q3": 25.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 14.0,
+              "q1": 14.0,
+              "q3": 14.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          }
+        },
+        "paired": {
+          "after_mcp_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 1,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 1029086,
+            "break_even_reuses": null
+          },
+          "after_replay_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 1,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 1113113,
+            "break_even_reuses": null
+          }
+        }
+      },
+      {
+        "task_id": "contacts_create",
+        "arms": {
+          "after_mcp": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 367882.0,
+              "q1": 318140.0,
+              "q3": 466520.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 84339.0,
+              "q1": 82125.0,
+              "q3": 85890.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 8.0,
+              "q1": 8.0,
+              "q3": 9.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 2.0,
+              "q1": 1.0,
+              "q3": 2.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "after_replay": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": null,
+            "tokens": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 32781.0,
+              "q1": 32044.0,
+              "q3": 33535.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 6.0,
+              "q1": 6.0,
+              "q3": 6.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "before": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 889687.0,
+              "q1": 743265.0,
+              "q3": 896962.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 74521.0,
+              "q1": 65642.0,
+              "q3": 105181.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 13.0,
+              "q1": 12.0,
+              "q3": 15.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 10.0,
+              "q1": 10.0,
+              "q3": 10.0,
+              "n": 5
+            },
+            "tool_errors": 3,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          }
+        },
+        "paired": {
+          "after_mcp_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 0,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 343499,
+            "break_even_reuses": null
+          },
+          "after_replay_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 0,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 889687,
+            "break_even_reuses": null
+          }
+        }
+      }
+    ]
+  },
+  "episodes": {
+    "calc_3plus3": [
+      {
+        "arm": "after_mcp",
+        "seed": 0,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 61531,
+        "tokens_in": 6665,
+        "tokens_out": 616,
+        "tokens_cache_read": 54250,
+        "wall_ms": 59885,
+        "steps": 3,
+        "llm_calls": 3,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-after_mcp-0.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.calculator2"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "calculate"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3174,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1783,
+            "tokens_out": null,
+            "tokens_cache_read": 18547
+          },
+          {
+            "i": 3,
+            "tokens_in": 1708,
+            "tokens_out": null,
+            "tokens_cache_read": 20328
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 0,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 43352,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 0,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 184681,
+        "tokens_in": 14213,
+        "tokens_out": 1246,
+        "tokens_cache_read": 169222,
+        "wall_ms": 55410,
+        "steps": 12,
+        "llm_calls": 8,
+        "ui_actions": {
+          "tap": 5,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-before-0.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.calculator2"
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "6"
+          },
+          {
+            "i": 12,
+            "type": "read",
+            "tool": "ocr_region",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3051,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 4137,
+            "tokens_out": null,
+            "tokens_cache_read": 15334
+          },
+          {
+            "i": 3,
+            "tokens_in": 375,
+            "tokens_out": null,
+            "tokens_cache_read": 19469
+          },
+          {
+            "i": 4,
+            "tokens_in": 5233,
+            "tokens_out": null,
+            "tokens_cache_read": 19842
+          },
+          {
+            "i": 5,
+            "tokens_in": 332,
+            "tokens_out": null,
+            "tokens_cache_read": 25073
+          },
+          {
+            "i": 6,
+            "tokens_in": 409,
+            "tokens_out": null,
+            "tokens_cache_read": 25403
+          },
+          {
+            "i": 7,
+            "tokens_in": 198,
+            "tokens_out": null,
+            "tokens_cache_read": 25810
+          },
+          {
+            "i": 8,
+            "tokens_in": 478,
+            "tokens_out": null,
+            "tokens_cache_read": 26006
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 1,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 254189,
+        "tokens_in": 68635,
+        "tokens_out": 949,
+        "tokens_cache_read": 184605,
+        "wall_ms": 48897,
+        "steps": 7,
+        "llm_calls": 6,
+        "ui_actions": {
+          "tap": 1,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 2
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-after_mcp-1.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.google.android.calculator"
+          },
+          {
+            "i": 3,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "flow",
+            "tool": "run_flow",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "6"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3174,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1877,
+            "tokens_out": null,
+            "tokens_cache_read": 18547
+          },
+          {
+            "i": 3,
+            "tokens_in": 229,
+            "tokens_out": null,
+            "tokens_cache_read": 20422
+          },
+          {
+            "i": 4,
+            "tokens_in": 5233,
+            "tokens_out": null,
+            "tokens_cache_read": 20649
+          },
+          {
+            "i": 5,
+            "tokens_in": 57854,
+            "tokens_out": null,
+            "tokens_cache_read": 25880
+          },
+          {
+            "i": 6,
+            "tokens_in": 268,
+            "tokens_out": null,
+            "tokens_cache_read": 83732
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 1,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 40979,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 1,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 132498,
+        "tokens_in": 13632,
+        "tokens_out": 1007,
+        "tokens_cache_read": 117859,
+        "wall_ms": 45717,
+        "steps": 10,
+        "llm_calls": 6,
+        "ui_actions": {
+          "tap": 5,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-before-1.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.google.android.calculator"
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "6"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3051,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 4230,
+            "tokens_out": null,
+            "tokens_cache_read": 15334
+          },
+          {
+            "i": 3,
+            "tokens_in": 309,
+            "tokens_out": null,
+            "tokens_cache_read": 19562
+          },
+          {
+            "i": 4,
+            "tokens_in": 5233,
+            "tokens_out": null,
+            "tokens_cache_read": 19869
+          },
+          {
+            "i": 5,
+            "tokens_in": 611,
+            "tokens_out": null,
+            "tokens_cache_read": 25100
+          },
+          {
+            "i": 6,
+            "tokens_in": 198,
+            "tokens_out": null,
+            "tokens_cache_read": 25709
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 2,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 61837,
+        "tokens_in": 6817,
+        "tokens_out": 677,
+        "tokens_cache_read": 54343,
+        "wall_ms": 61522,
+        "steps": 3,
+        "llm_calls": 3,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-after_mcp-2.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.google.android.calculator"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "calculate"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3174,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1876,
+            "tokens_out": null,
+            "tokens_cache_read": 18547
+          },
+          {
+            "i": 3,
+            "tokens_in": 1767,
+            "tokens_out": null,
+            "tokens_cache_read": 20421
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 2,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 43074,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 2,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 114546,
+        "tokens_in": 10064,
+        "tokens_out": 878,
+        "tokens_cache_read": 103604,
+        "wall_ms": 41500,
+        "steps": 9,
+        "llm_calls": 6,
+        "ui_actions": {
+          "tap": 5,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-before-2.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.calculator2"
+          },
+          {
+            "i": 2,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "6"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3053,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 665,
+            "tokens_out": null,
+            "tokens_cache_read": 15336
+          },
+          {
+            "i": 3,
+            "tokens_in": 309,
+            "tokens_out": null,
+            "tokens_cache_read": 15999
+          },
+          {
+            "i": 4,
+            "tokens_in": 5233,
+            "tokens_out": null,
+            "tokens_cache_read": 16306
+          },
+          {
+            "i": 5,
+            "tokens_in": 606,
+            "tokens_out": null,
+            "tokens_cache_read": 21537
+          },
+          {
+            "i": 6,
+            "tokens_in": 198,
+            "tokens_out": null,
+            "tokens_cache_read": 22141
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 3,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 61677,
+        "tokens_in": 6739,
+        "tokens_out": 604,
+        "tokens_cache_read": 54334,
+        "wall_ms": 59728,
+        "steps": 3,
+        "llm_calls": 3,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-after_mcp-3.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.google.android.calculator"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "calculate"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3170,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1875,
+            "tokens_out": null,
+            "tokens_cache_read": 18543
+          },
+          {
+            "i": 3,
+            "tokens_in": 1694,
+            "tokens_out": null,
+            "tokens_cache_read": 20416
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 3,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 40814,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 3,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 288166,
+        "tokens_in": 32279,
+        "tokens_out": 1401,
+        "tokens_cache_read": 254486,
+        "wall_ms": 36891,
+        "steps": 11,
+        "llm_calls": 8,
+        "ui_actions": {
+          "tap": 4,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 5
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-before-3.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "read",
+            "tool": "search_apps",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "list_apps",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "org.fossify.math"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "read",
+            "tool": "ocr_region",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "read",
+            "tool": "ocr_region",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3053,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 124,
+            "tokens_out": null,
+            "tokens_cache_read": 15336
+          },
+          {
+            "i": 3,
+            "tokens_in": 21258,
+            "tokens_out": null,
+            "tokens_cache_read": 15458
+          },
+          {
+            "i": 4,
+            "tokens_in": 6335,
+            "tokens_out": null,
+            "tokens_cache_read": 36714
+          },
+          {
+            "i": 5,
+            "tokens_in": 504,
+            "tokens_out": null,
+            "tokens_cache_read": 43047
+          },
+          {
+            "i": 6,
+            "tokens_in": 351,
+            "tokens_out": null,
+            "tokens_cache_read": 43549
+          },
+          {
+            "i": 7,
+            "tokens_in": 303,
+            "tokens_out": null,
+            "tokens_cache_read": 43898
+          },
+          {
+            "i": 8,
+            "tokens_in": 351,
+            "tokens_out": null,
+            "tokens_cache_read": 44199
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 4,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 111942,
+        "tokens_in": 34873,
+        "tokens_out": 687,
+        "tokens_cache_read": 76382,
+        "wall_ms": 67168,
+        "steps": 4,
+        "llm_calls": 4,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-after_mcp-4.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.calculator2"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "calculate"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3176,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1783,
+            "tokens_out": null,
+            "tokens_cache_read": 18549
+          },
+          {
+            "i": 3,
+            "tokens_in": 1800,
+            "tokens_out": null,
+            "tokens_cache_read": 20330
+          },
+          {
+            "i": 4,
+            "tokens_in": 28114,
+            "tokens_out": null,
+            "tokens_cache_read": 22128
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 4,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 43191,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 4,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 267125,
+        "tokens_in": 54486,
+        "tokens_out": 1130,
+        "tokens_cache_read": 211509,
+        "wall_ms": 36939,
+        "steps": 9,
+        "llm_calls": 6,
+        "ui_actions": {
+          "tap": 4,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 5
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-before-4.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "read",
+            "tool": "search_apps",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "list_apps",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "org.fossify.math"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3047,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 124,
+            "tokens_out": null,
+            "tokens_cache_read": 15330
+          },
+          {
+            "i": 3,
+            "tokens_in": 21258,
+            "tokens_out": null,
+            "tokens_cache_read": 15452
+          },
+          {
+            "i": 4,
+            "tokens_in": 28752,
+            "tokens_out": null,
+            "tokens_cache_read": 36708
+          },
+          {
+            "i": 5,
+            "tokens_in": 820,
+            "tokens_out": null,
+            "tokens_cache_read": 65458
+          },
+          {
+            "i": 6,
+            "tokens_in": 485,
+            "tokens_out": null,
+            "tokens_cache_read": 66276
+          }
+        ]
+      }
+    ],
+    "clock_alarm": [
+      {
+        "arm": "after_mcp",
+        "seed": 0,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 84954,
+        "tokens_in": 7898,
+        "tokens_out": 691,
+        "tokens_cache_read": 76365,
+        "wall_ms": 71349,
+        "steps": 4,
+        "llm_calls": 4,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 2,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/clock_alarm-after_mcp-0.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.deskclock"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "set_alarm"
+          },
+          {
+            "i": 4,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "list_alarms"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3184,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1922,
+            "tokens_out": null,
+            "tokens_cache_read": 18557
+          },
+          {
+            "i": 3,
+            "tokens_in": 1481,
+            "tokens_out": null,
+            "tokens_cache_read": 20477
+          },
+          {
+            "i": 4,
+            "tokens_in": 1311,
+            "tokens_out": null,
+            "tokens_cache_read": 21956
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 0,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 22100,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 0,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 1010774,
+        "tokens_in": 60956,
+        "tokens_out": 4520,
+        "tokens_cache_read": 945298,
+        "wall_ms": 119589,
+        "steps": 41,
+        "llm_calls": 20,
+        "ui_actions": {
+          "tap": 12,
+          "type": 1,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 14
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/clock_alarm-before-0.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.deskclock"
+          },
+          {
+            "i": 2,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 12,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 13,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 14,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 15,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 16,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 17,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 18,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 19,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 20,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 21,
+            "type": "read",
+            "tool": "ocr_region",
+            "ok": true
+          },
+          {
+            "i": 22,
+            "type": "read",
+            "tool": "get_screen_xml",
+            "ok": true
+          },
+          {
+            "i": 23,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 24,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 25,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 26,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 27,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 28,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 29,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 30,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 31,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 32,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 33,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 34,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 35,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 36,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Gym"
+          },
+          {
+            "i": 37,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 38,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 39,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 40,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 41,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3063,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 663,
+            "tokens_out": null,
+            "tokens_cache_read": 15346
+          },
+          {
+            "i": 3,
+            "tokens_in": 284,
+            "tokens_out": null,
+            "tokens_cache_read": 16007
+          },
+          {
+            "i": 4,
+            "tokens_in": 5047,
+            "tokens_out": null,
+            "tokens_cache_read": 16289
+          },
+          {
+            "i": 5,
+            "tokens_in": 297,
+            "tokens_out": null,
+            "tokens_cache_read": 21334
+          },
+          {
+            "i": 6,
+            "tokens_in": 761,
+            "tokens_out": null,
+            "tokens_cache_read": 21629
+          },
+          {
+            "i": 7,
+            "tokens_in": 31570,
+            "tokens_out": null,
+            "tokens_cache_read": 22388
+          },
+          {
+            "i": 8,
+            "tokens_in": 929,
+            "tokens_out": null,
+            "tokens_cache_read": 53956
+          },
+          {
+            "i": 9,
+            "tokens_in": 1060,
+            "tokens_out": null,
+            "tokens_cache_read": 54883
+          },
+          {
+            "i": 10,
+            "tokens_in": 1318,
+            "tokens_out": null,
+            "tokens_cache_read": 55941
+          },
+          {
+            "i": 11,
+            "tokens_in": 1128,
+            "tokens_out": null,
+            "tokens_cache_read": 57257
+          },
+          {
+            "i": 12,
+            "tokens_in": 565,
+            "tokens_out": null,
+            "tokens_cache_read": 58383
+          },
+          {
+            "i": 13,
+            "tokens_in": 6262,
+            "tokens_out": null,
+            "tokens_cache_read": 58946
+          },
+          {
+            "i": 14,
+            "tokens_in": 1850,
+            "tokens_out": null,
+            "tokens_cache_read": 65206
+          },
+          {
+            "i": 15,
+            "tokens_in": 337,
+            "tokens_out": null,
+            "tokens_cache_read": 67054
+          },
+          {
+            "i": 16,
+            "tokens_in": 1068,
+            "tokens_out": null,
+            "tokens_cache_read": 67389
+          },
+          {
+            "i": 17,
+            "tokens_in": 1872,
+            "tokens_out": null,
+            "tokens_cache_read": 68455
+          },
+          {
+            "i": 18,
+            "tokens_in": 492,
+            "tokens_out": null,
+            "tokens_cache_read": 70325
+          },
+          {
+            "i": 19,
+            "tokens_in": 597,
+            "tokens_out": null,
+            "tokens_cache_read": 70815
+          },
+          {
+            "i": 20,
+            "tokens_in": 1793,
+            "tokens_out": null,
+            "tokens_cache_read": 71410
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 1,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 83975,
+        "tokens_in": 6911,
+        "tokens_out": 664,
+        "tokens_cache_read": 76400,
+        "wall_ms": 44791,
+        "steps": 4,
+        "llm_calls": 4,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/clock_alarm-after_mcp-1.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.deskclock"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "set_alarm"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Gym"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3184,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1922,
+            "tokens_out": null,
+            "tokens_cache_read": 18557
+          },
+          {
+            "i": 3,
+            "tokens_in": 1516,
+            "tokens_out": null,
+            "tokens_cache_read": 20477
+          },
+          {
+            "i": 4,
+            "tokens_in": 289,
+            "tokens_out": null,
+            "tokens_cache_read": 21991
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 1,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 20509,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 1,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 535038,
+        "tokens_in": 46092,
+        "tokens_out": 2598,
+        "tokens_cache_read": 486348,
+        "wall_ms": 73973,
+        "steps": 29,
+        "llm_calls": 13,
+        "ui_actions": {
+          "tap": 9,
+          "type": 1,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 11
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/clock_alarm-before-1.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.deskclock"
+          },
+          {
+            "i": 2,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 12,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 13,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 14,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 15,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 16,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 17,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 18,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 19,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 20,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 21,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 22,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 23,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 24,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Gym"
+          },
+          {
+            "i": 25,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 26,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 27,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 28,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 29,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Gym"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3059,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 663,
+            "tokens_out": null,
+            "tokens_cache_read": 15342
+          },
+          {
+            "i": 3,
+            "tokens_in": 284,
+            "tokens_out": null,
+            "tokens_cache_read": 16003
+          },
+          {
+            "i": 4,
+            "tokens_in": 5047,
+            "tokens_out": null,
+            "tokens_cache_read": 16285
+          },
+          {
+            "i": 5,
+            "tokens_in": 272,
+            "tokens_out": null,
+            "tokens_cache_read": 21330
+          },
+          {
+            "i": 6,
+            "tokens_in": 29811,
+            "tokens_out": null,
+            "tokens_cache_read": 21600
+          },
+          {
+            "i": 7,
+            "tokens_in": 809,
+            "tokens_out": null,
+            "tokens_cache_read": 51409
+          },
+          {
+            "i": 8,
+            "tokens_in": 1241,
+            "tokens_out": null,
+            "tokens_cache_read": 52216
+          },
+          {
+            "i": 9,
+            "tokens_in": 1147,
+            "tokens_out": null,
+            "tokens_cache_read": 53455
+          },
+          {
+            "i": 10,
+            "tokens_in": 2106,
+            "tokens_out": null,
+            "tokens_cache_read": 54600
+          },
+          {
+            "i": 11,
+            "tokens_in": 560,
+            "tokens_out": null,
+            "tokens_cache_read": 56704
+          },
+          {
+            "i": 12,
+            "tokens_in": 597,
+            "tokens_out": null,
+            "tokens_cache_read": 57262
+          },
+          {
+            "i": 13,
+            "tokens_in": 496,
+            "tokens_out": null,
+            "tokens_cache_read": 57857
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 2,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 167437,
+        "tokens_in": 37716,
+        "tokens_out": 802,
+        "tokens_cache_read": 128919,
+        "wall_ms": 61743,
+        "steps": 6,
+        "llm_calls": 5,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/clock_alarm-after_mcp-2.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.deskclock"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "set_alarm"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Gym"
+          },
+          {
+            "i": 6,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "7:30"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3184,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1922,
+            "tokens_out": null,
+            "tokens_cache_read": 18557
+          },
+          {
+            "i": 3,
+            "tokens_in": 1458,
+            "tokens_out": null,
+            "tokens_cache_read": 20477
+          },
+          {
+            "i": 4,
+            "tokens_in": 30646,
+            "tokens_out": null,
+            "tokens_cache_read": 21933
+          },
+          {
+            "i": 5,
+            "tokens_in": 506,
+            "tokens_out": null,
+            "tokens_cache_read": 52577
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 2,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 22327,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 2,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 2000860,
+        "tokens_in": 95116,
+        "tokens_out": 3744,
+        "tokens_cache_read": 1902000,
+        "wall_ms": 115913,
+        "steps": 29,
+        "llm_calls": 25,
+        "ui_actions": {
+          "tap": 13,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 14
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/clock_alarm-before-2.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.deskclock"
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 12,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 13,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 14,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 15,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 16,
+            "type": "read",
+            "tool": "screenshot_cropped",
+            "ok": true
+          },
+          {
+            "i": 17,
+            "type": "read",
+            "tool": "get_screen_xml",
+            "ok": true
+          },
+          {
+            "i": 18,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 19,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "AM"
+          },
+          {
+            "i": 20,
+            "type": "read",
+            "tool": "get_screen_xml",
+            "ok": true
+          },
+          {
+            "i": 21,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 22,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 23,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 24,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 25,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 26,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 27,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 28,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 29,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3067,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 26939,
+            "tokens_out": null,
+            "tokens_cache_read": 15350
+          },
+          {
+            "i": 3,
+            "tokens_in": 151,
+            "tokens_out": null,
+            "tokens_cache_read": 42287
+          },
+          {
+            "i": 4,
+            "tokens_in": 5047,
+            "tokens_out": null,
+            "tokens_cache_read": 42436
+          },
+          {
+            "i": 5,
+            "tokens_in": 163,
+            "tokens_out": null,
+            "tokens_cache_read": 47481
+          },
+          {
+            "i": 6,
+            "tokens_in": 761,
+            "tokens_out": null,
+            "tokens_cache_read": 47642
+          },
+          {
+            "i": 7,
+            "tokens_in": 362,
+            "tokens_out": null,
+            "tokens_cache_read": 48401
+          },
+          {
+            "i": 8,
+            "tokens_in": 30715,
+            "tokens_out": null,
+            "tokens_cache_read": 48761
+          },
+          {
+            "i": 9,
+            "tokens_in": 884,
+            "tokens_out": null,
+            "tokens_cache_read": 79474
+          },
+          {
+            "i": 10,
+            "tokens_in": 338,
+            "tokens_out": null,
+            "tokens_cache_read": 80356
+          },
+          {
+            "i": 11,
+            "tokens_in": 761,
+            "tokens_out": null,
+            "tokens_cache_read": 80692
+          },
+          {
+            "i": 12,
+            "tokens_in": 403,
+            "tokens_out": null,
+            "tokens_cache_read": 81451
+          },
+          {
+            "i": 13,
+            "tokens_in": 761,
+            "tokens_out": null,
+            "tokens_cache_read": 81852
+          },
+          {
+            "i": 14,
+            "tokens_in": 6286,
+            "tokens_out": null,
+            "tokens_cache_read": 82611
+          },
+          {
+            "i": 15,
+            "tokens_in": 6124,
+            "tokens_out": null,
+            "tokens_cache_read": 88895
+          },
+          {
+            "i": 16,
+            "tokens_in": 465,
+            "tokens_out": null,
+            "tokens_cache_read": 95017
+          },
+          {
+            "i": 17,
+            "tokens_in": 6062,
+            "tokens_out": null,
+            "tokens_cache_read": 95480
+          },
+          {
+            "i": 18,
+            "tokens_in": 176,
+            "tokens_out": null,
+            "tokens_cache_read": 101540
+          },
+          {
+            "i": 19,
+            "tokens_in": 1503,
+            "tokens_out": null,
+            "tokens_cache_read": 101714
+          },
+          {
+            "i": 20,
+            "tokens_in": 216,
+            "tokens_out": null,
+            "tokens_cache_read": 103215
+          },
+          {
+            "i": 21,
+            "tokens_in": 1031,
+            "tokens_out": null,
+            "tokens_cache_read": 103429
+          },
+          {
+            "i": 22,
+            "tokens_in": 219,
+            "tokens_out": null,
+            "tokens_cache_read": 104458
+          },
+          {
+            "i": 23,
+            "tokens_in": 1509,
+            "tokens_out": null,
+            "tokens_cache_read": 104675
+          },
+          {
+            "i": 24,
+            "tokens_in": 136,
+            "tokens_out": null,
+            "tokens_cache_read": 106182
+          },
+          {
+            "i": 25,
+            "tokens_in": 1037,
+            "tokens_out": null,
+            "tokens_cache_read": 106316
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 3,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 84163,
+        "tokens_in": 6978,
+        "tokens_out": 727,
+        "tokens_cache_read": 76458,
+        "wall_ms": 44180,
+        "steps": 4,
+        "llm_calls": 4,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/clock_alarm-after_mcp-3.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.deskclock"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "set_alarm"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Gym"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3188,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1922,
+            "tokens_out": null,
+            "tokens_cache_read": 18561
+          },
+          {
+            "i": 3,
+            "tokens_in": 1562,
+            "tokens_out": null,
+            "tokens_cache_read": 20481
+          },
+          {
+            "i": 4,
+            "tokens_in": 306,
+            "tokens_out": null,
+            "tokens_cache_read": 22041
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 3,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 20946,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 3,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": false,
+        "tokens": 1417012,
+        "tokens_in": 62448,
+        "tokens_out": 5418,
+        "tokens_cache_read": 1349146,
+        "wall_ms": 120752,
+        "steps": 44,
+        "llm_calls": 25,
+        "ui_actions": {
+          "tap": 11,
+          "type": 5,
+          "swipe": 0,
+          "key": 15,
+          "launch": 1,
+          "total": 32
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/clock_alarm-before-3.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.deskclock"
+          },
+          {
+            "i": 2,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "type",
+            "tool": "paste_text",
+            "ok": true,
+            "target": "7"
+          },
+          {
+            "i": 11,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 12,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 13,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 14,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 15,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 16,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "7"
+          },
+          {
+            "i": 17,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 18,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 19,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 20,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 21,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "30"
+          },
+          {
+            "i": 22,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 23,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 24,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 25,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 26,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 27,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 28,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 29,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "7"
+          },
+          {
+            "i": 30,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 31,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 32,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 33,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 34,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 35,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 36,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 37,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "30"
+          },
+          {
+            "i": 38,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 39,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 40,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 41,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 42,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 43,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 44,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3063,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 663,
+            "tokens_out": null,
+            "tokens_cache_read": 15346
+          },
+          {
+            "i": 3,
+            "tokens_in": 26074,
+            "tokens_out": null,
+            "tokens_cache_read": 16007
+          },
+          {
+            "i": 4,
+            "tokens_in": 5112,
+            "tokens_out": null,
+            "tokens_cache_read": 42079
+          },
+          {
+            "i": 5,
+            "tokens_in": 164,
+            "tokens_out": null,
+            "tokens_cache_read": 47189
+          },
+          {
+            "i": 6,
+            "tokens_in": 4696,
+            "tokens_out": null,
+            "tokens_cache_read": 47351
+          },
+          {
+            "i": 7,
+            "tokens_in": 289,
+            "tokens_out": null,
+            "tokens_cache_read": 52045
+          },
+          {
+            "i": 8,
+            "tokens_in": 2600,
+            "tokens_out": null,
+            "tokens_cache_read": 52332
+          },
+          {
+            "i": 9,
+            "tokens_in": 136,
+            "tokens_out": null,
+            "tokens_cache_read": 54930
+          },
+          {
+            "i": 10,
+            "tokens_in": 127,
+            "tokens_out": null,
+            "tokens_cache_read": 55064
+          },
+          {
+            "i": 11,
+            "tokens_in": 2731,
+            "tokens_out": null,
+            "tokens_cache_read": 55189
+          },
+          {
+            "i": 12,
+            "tokens_in": 525,
+            "tokens_out": null,
+            "tokens_cache_read": 57918
+          },
+          {
+            "i": 13,
+            "tokens_in": 425,
+            "tokens_out": null,
+            "tokens_cache_read": 58441
+          },
+          {
+            "i": 14,
+            "tokens_in": 329,
+            "tokens_out": null,
+            "tokens_cache_read": 58864
+          },
+          {
+            "i": 15,
+            "tokens_in": 425,
+            "tokens_out": null,
+            "tokens_cache_read": 59191
+          },
+          {
+            "i": 16,
+            "tokens_in": 2600,
+            "tokens_out": null,
+            "tokens_cache_read": 59614
+          },
+          {
+            "i": 17,
+            "tokens_in": 581,
+            "tokens_out": null,
+            "tokens_cache_read": 62212
+          },
+          {
+            "i": 18,
+            "tokens_in": 567,
+            "tokens_out": null,
+            "tokens_cache_read": 62791
+          },
+          {
+            "i": 19,
+            "tokens_in": 2759,
+            "tokens_out": null,
+            "tokens_cache_read": 63356
+          },
+          {
+            "i": 20,
+            "tokens_in": 946,
+            "tokens_out": null,
+            "tokens_cache_read": 66113
+          },
+          {
+            "i": 21,
+            "tokens_in": 766,
+            "tokens_out": null,
+            "tokens_cache_read": 67057
+          },
+          {
+            "i": 22,
+            "tokens_in": 440,
+            "tokens_out": null,
+            "tokens_cache_read": 67821
+          },
+          {
+            "i": 23,
+            "tokens_in": 5511,
+            "tokens_out": null,
+            "tokens_cache_read": 68259
+          },
+          {
+            "i": 24,
+            "tokens_in": 158,
+            "tokens_out": null,
+            "tokens_cache_read": 73768
+          },
+          {
+            "i": 25,
+            "tokens_in": 761,
+            "tokens_out": null,
+            "tokens_cache_read": 73924
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 4,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 84027,
+        "tokens_in": 6924,
+        "tokens_out": 677,
+        "tokens_cache_read": 76426,
+        "wall_ms": 44283,
+        "steps": 4,
+        "llm_calls": 4,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/clock_alarm-after_mcp-4.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.deskclock"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "set_alarm"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Gym"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3184,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1922,
+            "tokens_out": null,
+            "tokens_cache_read": 18557
+          },
+          {
+            "i": 3,
+            "tokens_in": 1542,
+            "tokens_out": null,
+            "tokens_cache_read": 20477
+          },
+          {
+            "i": 4,
+            "tokens_in": 276,
+            "tokens_out": null,
+            "tokens_cache_read": 22017
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 4,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 23413,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 4,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 1113113,
+        "tokens_in": 91601,
+        "tokens_out": 4087,
+        "tokens_cache_read": 1017425,
+        "wall_ms": 113225,
+        "steps": 41,
+        "llm_calls": 17,
+        "ui_actions": {
+          "tap": 12,
+          "type": 1,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 14
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/clock_alarm-before-4.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.deskclock"
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 12,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 13,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 14,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 15,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 16,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 17,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 18,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 19,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 20,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 21,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 22,
+            "type": "read",
+            "tool": "screenshot_cropped",
+            "ok": true
+          },
+          {
+            "i": 23,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 24,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 25,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 26,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 27,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 28,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 29,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 30,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 31,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 32,
+            "type": "read",
+            "tool": "get_phone_state",
+            "ok": true
+          },
+          {
+            "i": 33,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Gym"
+          },
+          {
+            "i": 34,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 35,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 36,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 37,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 38,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 39,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 40,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 41,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3065,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 26747,
+            "tokens_out": null,
+            "tokens_cache_read": 15348
+          },
+          {
+            "i": 3,
+            "tokens_in": 272,
+            "tokens_out": null,
+            "tokens_cache_read": 42093
+          },
+          {
+            "i": 4,
+            "tokens_in": 5047,
+            "tokens_out": null,
+            "tokens_cache_read": 42363
+          },
+          {
+            "i": 5,
+            "tokens_in": 1119,
+            "tokens_out": null,
+            "tokens_cache_read": 47408
+          },
+          {
+            "i": 6,
+            "tokens_in": 1185,
+            "tokens_out": null,
+            "tokens_cache_read": 48525
+          },
+          {
+            "i": 7,
+            "tokens_in": 721,
+            "tokens_out": null,
+            "tokens_cache_read": 49708
+          },
+          {
+            "i": 8,
+            "tokens_in": 1046,
+            "tokens_out": null,
+            "tokens_cache_read": 50427
+          },
+          {
+            "i": 9,
+            "tokens_in": 1083,
+            "tokens_out": null,
+            "tokens_cache_read": 51471
+          },
+          {
+            "i": 10,
+            "tokens_in": 25673,
+            "tokens_out": null,
+            "tokens_cache_read": 52552
+          },
+          {
+            "i": 11,
+            "tokens_in": 849,
+            "tokens_out": null,
+            "tokens_cache_read": 78223
+          },
+          {
+            "i": 12,
+            "tokens_in": 1160,
+            "tokens_out": null,
+            "tokens_cache_read": 79070
+          },
+          {
+            "i": 13,
+            "tokens_in": 9409,
+            "tokens_out": null,
+            "tokens_cache_read": 80228
+          },
+          {
+            "i": 14,
+            "tokens_in": 449,
+            "tokens_out": null,
+            "tokens_cache_read": 89635
+          },
+          {
+            "i": 15,
+            "tokens_in": 3433,
+            "tokens_out": null,
+            "tokens_cache_read": 90082
+          },
+          {
+            "i": 16,
+            "tokens_in": 983,
+            "tokens_out": null,
+            "tokens_cache_read": 93513
+          },
+          {
+            "i": 17,
+            "tokens_in": 9360,
+            "tokens_out": null,
+            "tokens_cache_read": 94494
+          }
+        ]
+      }
+    ],
+    "contacts_create": [
+      {
+        "arm": "after_mcp",
+        "seed": 0,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 553463,
+        "tokens_in": 70787,
+        "tokens_out": 1445,
+        "tokens_cache_read": 481231,
+        "wall_ms": 82125,
+        "steps": 11,
+        "llm_calls": 8,
+        "ui_actions": {
+          "tap": 1,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 0,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/contacts_create-after_mcp-0.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "create_contact"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Ada Lovelace"
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "+1 555 0100"
+          },
+          {
+            "i": 7,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Ada Lovelace"
+          },
+          {
+            "i": 8,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3183,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 34808,
+            "tokens_out": null,
+            "tokens_cache_read": 18556
+          },
+          {
+            "i": 3,
+            "tokens_in": 1293,
+            "tokens_out": null,
+            "tokens_cache_read": 53362
+          },
+          {
+            "i": 4,
+            "tokens_in": 29405,
+            "tokens_out": null,
+            "tokens_cache_read": 54653
+          },
+          {
+            "i": 5,
+            "tokens_in": 221,
+            "tokens_out": null,
+            "tokens_cache_read": 84056
+          },
+          {
+            "i": 6,
+            "tokens_in": 1021,
+            "tokens_out": null,
+            "tokens_cache_read": 84275
+          },
+          {
+            "i": 7,
+            "tokens_in": 368,
+            "tokens_out": null,
+            "tokens_cache_read": 85294
+          },
+          {
+            "i": 8,
+            "tokens_in": 488,
+            "tokens_out": null,
+            "tokens_cache_read": 85660
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 0,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 32781,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 0,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 896962,
+        "tokens_in": 89431,
+        "tokens_out": 1695,
+        "tokens_cache_read": 805836,
+        "wall_ms": 65642,
+        "steps": 17,
+        "llm_calls": 13,
+        "ui_actions": {
+          "tap": 5,
+          "type": 3,
+          "swipe": 0,
+          "key": 0,
+          "launch": 2,
+          "total": 10
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/contacts_create-before-0.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.contacts"
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.contacts"
+          },
+          {
+            "i": 4,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Ada"
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Lovelace"
+          },
+          {
+            "i": 10,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "+1 555 0100"
+          },
+          {
+            "i": 12,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 13,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "+1 555 0100"
+          },
+          {
+            "i": 14,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Lovelace"
+          },
+          {
+            "i": 15,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 16,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Ada Lovelace"
+          },
+          {
+            "i": 17,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "+1 555 0100"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3064,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 34363,
+            "tokens_out": null,
+            "tokens_cache_read": 15347
+          },
+          {
+            "i": 3,
+            "tokens_in": 1094,
+            "tokens_out": null,
+            "tokens_cache_read": 49708
+          },
+          {
+            "i": 4,
+            "tokens_in": 151,
+            "tokens_out": null,
+            "tokens_cache_read": 50800
+          },
+          {
+            "i": 5,
+            "tokens_in": 4248,
+            "tokens_out": null,
+            "tokens_cache_read": 50949
+          },
+          {
+            "i": 6,
+            "tokens_in": 209,
+            "tokens_out": null,
+            "tokens_cache_read": 55195
+          },
+          {
+            "i": 7,
+            "tokens_in": 299,
+            "tokens_out": null,
+            "tokens_cache_read": 55402
+          },
+          {
+            "i": 8,
+            "tokens_in": 303,
+            "tokens_out": null,
+            "tokens_cache_read": 55699
+          },
+          {
+            "i": 9,
+            "tokens_in": 44592,
+            "tokens_out": null,
+            "tokens_cache_read": 56000
+          },
+          {
+            "i": 10,
+            "tokens_in": 530,
+            "tokens_out": null,
+            "tokens_cache_read": 100590
+          },
+          {
+            "i": 11,
+            "tokens_in": 151,
+            "tokens_out": null,
+            "tokens_cache_read": 101118
+          },
+          {
+            "i": 12,
+            "tokens_in": 211,
+            "tokens_out": null,
+            "tokens_cache_read": 101267
+          },
+          {
+            "i": 13,
+            "tokens_in": 216,
+            "tokens_out": null,
+            "tokens_cache_read": 101476
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 1,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 313640,
+        "tokens_in": 36214,
+        "tokens_out": 1267,
+        "tokens_cache_read": 276159,
+        "wall_ms": 84339,
+        "steps": 11,
+        "llm_calls": 8,
+        "ui_actions": {
+          "tap": 1,
+          "type": 0,
+          "swipe": 0,
+          "key": 1,
+          "launch": 0,
+          "total": 2
+        },
+        "skill_calls": 1,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/contacts_create-after_mcp-1.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "get_phone_state",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "create_contact"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Ada Lovelace"
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "555 0100"
+          },
+          {
+            "i": 7,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "key",
+            "tool": "press_back",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3183,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1300,
+            "tokens_out": null,
+            "tokens_cache_read": 18556
+          },
+          {
+            "i": 3,
+            "tokens_in": 1235,
+            "tokens_out": null,
+            "tokens_cache_read": 19854
+          },
+          {
+            "i": 4,
+            "tokens_in": 28479,
+            "tokens_out": null,
+            "tokens_cache_read": 21087
+          },
+          {
+            "i": 5,
+            "tokens_in": 208,
+            "tokens_out": null,
+            "tokens_cache_read": 49564
+          },
+          {
+            "i": 6,
+            "tokens_in": 800,
+            "tokens_out": null,
+            "tokens_cache_read": 49770
+          },
+          {
+            "i": 7,
+            "tokens_in": 819,
+            "tokens_out": null,
+            "tokens_cache_read": 50568
+          },
+          {
+            "i": 8,
+            "tokens_in": 190,
+            "tokens_out": null,
+            "tokens_cache_read": 51385
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 1,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 31945,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 1,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 1411849,
+        "tokens_in": 82005,
+        "tokens_out": 6619,
+        "tokens_cache_read": 1323225,
+        "wall_ms": 105181,
+        "steps": 58,
+        "llm_calls": 23,
+        "ui_actions": {
+          "tap": 11,
+          "type": 5,
+          "swipe": 0,
+          "key": 27,
+          "launch": 2,
+          "total": 45
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/contacts_create-before-1.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_intent",
+            "ok": true,
+            "target": "com.android.contacts"
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "read",
+            "tool": "search_apps",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.contacts"
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Ada"
+          },
+          {
+            "i": 10,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Lovelace"
+          },
+          {
+            "i": 12,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 13,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "+1 555 0100"
+          },
+          {
+            "i": 14,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 15,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 16,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 17,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 18,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 19,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 20,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 21,
+            "type": "tap",
+            "tool": "long_press",
+            "ok": true
+          },
+          {
+            "i": 22,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 23,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 24,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 25,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 26,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 27,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 28,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 29,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 30,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 31,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 32,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 33,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 34,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 35,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 36,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 37,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 38,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 39,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 40,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 41,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 42,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 43,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 44,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 45,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 46,
+            "type": "key",
+            "tool": "press_key",
+            "ok": true
+          },
+          {
+            "i": 47,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 48,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 49,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Lovelace"
+          },
+          {
+            "i": 50,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 51,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 52,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 53,
+            "type": "read",
+            "tool": "get_phone_state",
+            "ok": true
+          },
+          {
+            "i": 54,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "+1 555 0100"
+          },
+          {
+            "i": 55,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 56,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 57,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 58,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3064,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 228,
+            "tokens_out": null,
+            "tokens_cache_read": 15347
+          },
+          {
+            "i": 3,
+            "tokens_in": 6960,
+            "tokens_out": null,
+            "tokens_cache_read": 15573
+          },
+          {
+            "i": 4,
+            "tokens_in": 544,
+            "tokens_out": null,
+            "tokens_cache_read": 22531
+          },
+          {
+            "i": 5,
+            "tokens_in": 759,
+            "tokens_out": null,
+            "tokens_cache_read": 23073
+          },
+          {
+            "i": 6,
+            "tokens_in": 284,
+            "tokens_out": null,
+            "tokens_cache_read": 23830
+          },
+          {
+            "i": 7,
+            "tokens_in": 780,
+            "tokens_out": null,
+            "tokens_cache_read": 24112
+          },
+          {
+            "i": 8,
+            "tokens_in": 336,
+            "tokens_out": null,
+            "tokens_cache_read": 24890
+          },
+          {
+            "i": 9,
+            "tokens_in": 599,
+            "tokens_out": null,
+            "tokens_cache_read": 25224
+          },
+          {
+            "i": 10,
+            "tokens_in": 11844,
+            "tokens_out": null,
+            "tokens_cache_read": 25821
+          },
+          {
+            "i": 11,
+            "tokens_in": 46880,
+            "tokens_out": null,
+            "tokens_cache_read": 37663
+          },
+          {
+            "i": 12,
+            "tokens_in": 1061,
+            "tokens_out": null,
+            "tokens_cache_read": 84541
+          },
+          {
+            "i": 13,
+            "tokens_in": 388,
+            "tokens_out": null,
+            "tokens_cache_read": 85600
+          },
+          {
+            "i": 14,
+            "tokens_in": 134,
+            "tokens_out": null,
+            "tokens_cache_read": 85986
+          },
+          {
+            "i": 15,
+            "tokens_in": 855,
+            "tokens_out": null,
+            "tokens_cache_read": 86118
+          },
+          {
+            "i": 16,
+            "tokens_in": 3370,
+            "tokens_out": null,
+            "tokens_cache_read": 86971
+          },
+          {
+            "i": 17,
+            "tokens_in": 514,
+            "tokens_out": null,
+            "tokens_cache_read": 90339
+          },
+          {
+            "i": 18,
+            "tokens_in": 352,
+            "tokens_out": null,
+            "tokens_cache_read": 90851
+          },
+          {
+            "i": 19,
+            "tokens_in": 774,
+            "tokens_out": null,
+            "tokens_cache_read": 91201
+          },
+          {
+            "i": 20,
+            "tokens_in": 449,
+            "tokens_out": null,
+            "tokens_cache_read": 91973
+          },
+          {
+            "i": 21,
+            "tokens_in": 858,
+            "tokens_out": null,
+            "tokens_cache_read": 92420
+          },
+          {
+            "i": 22,
+            "tokens_in": 326,
+            "tokens_out": null,
+            "tokens_cache_read": 93276
+          },
+          {
+            "i": 23,
+            "tokens_in": 646,
+            "tokens_out": null,
+            "tokens_cache_read": 93600
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 2,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 367882,
+        "tokens_in": 36953,
+        "tokens_out": 1151,
+        "tokens_cache_read": 329778,
+        "wall_ms": 79268,
+        "steps": 10,
+        "llm_calls": 9,
+        "ui_actions": {
+          "tap": 1,
+          "type": 0,
+          "swipe": 0,
+          "key": 1,
+          "launch": 0,
+          "total": 2
+        },
+        "skill_calls": 1,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/contacts_create-after_mcp-2.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "create_contact"
+          },
+          {
+            "i": 3,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Ada Lovelace"
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "+1 555 0100"
+          },
+          {
+            "i": 6,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "key",
+            "tool": "press_back",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3185,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1160,
+            "tokens_out": null,
+            "tokens_cache_read": 18558
+          },
+          {
+            "i": 3,
+            "tokens_in": 1235,
+            "tokens_out": null,
+            "tokens_cache_read": 19716
+          },
+          {
+            "i": 4,
+            "tokens_in": 29427,
+            "tokens_out": null,
+            "tokens_cache_read": 20949
+          },
+          {
+            "i": 5,
+            "tokens_in": 246,
+            "tokens_out": null,
+            "tokens_cache_read": 50374
+          },
+          {
+            "i": 6,
+            "tokens_in": 131,
+            "tokens_out": null,
+            "tokens_cache_read": 50618
+          },
+          {
+            "i": 7,
+            "tokens_in": 553,
+            "tokens_out": null,
+            "tokens_cache_read": 50747
+          },
+          {
+            "i": 8,
+            "tokens_in": 847,
+            "tokens_out": null,
+            "tokens_cache_read": 51298
+          },
+          {
+            "i": 9,
+            "tokens_in": 169,
+            "tokens_out": null,
+            "tokens_cache_read": 52143
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 2,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 33948,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 2,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 401848,
+        "tokens_in": 55615,
+        "tokens_out": 1320,
+        "tokens_cache_read": 344913,
+        "wall_ms": 62391,
+        "steps": 14,
+        "llm_calls": 11,
+        "ui_actions": {
+          "tap": 5,
+          "type": 3,
+          "swipe": 0,
+          "key": 0,
+          "launch": 2,
+          "total": 10
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/contacts_create-before-2.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.contacts"
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.contacts"
+          },
+          {
+            "i": 3,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Ada"
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Lovelace"
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "+1 555 0100"
+          },
+          {
+            "i": 11,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 12,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          },
+          {
+            "i": 13,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 14,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3068,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 712,
+            "tokens_out": null,
+            "tokens_cache_read": 15351
+          },
+          {
+            "i": 3,
+            "tokens_in": 1007,
+            "tokens_out": null,
+            "tokens_cache_read": 16061
+          },
+          {
+            "i": 4,
+            "tokens_in": 151,
+            "tokens_out": null,
+            "tokens_cache_read": 17066
+          },
+          {
+            "i": 5,
+            "tokens_in": 4248,
+            "tokens_out": null,
+            "tokens_cache_read": 17215
+          },
+          {
+            "i": 6,
+            "tokens_in": 325,
+            "tokens_out": null,
+            "tokens_cache_read": 21461
+          },
+          {
+            "i": 7,
+            "tokens_in": 575,
+            "tokens_out": null,
+            "tokens_cache_read": 21784
+          },
+          {
+            "i": 8,
+            "tokens_in": 44348,
+            "tokens_out": null,
+            "tokens_cache_read": 22357
+          },
+          {
+            "i": 9,
+            "tokens_in": 531,
+            "tokens_out": null,
+            "tokens_cache_read": 66703
+          },
+          {
+            "i": 10,
+            "tokens_in": 168,
+            "tokens_out": null,
+            "tokens_cache_read": 67232
+          },
+          {
+            "i": 11,
+            "tokens_in": 482,
+            "tokens_out": null,
+            "tokens_cache_read": 67398
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 3,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 466520,
+        "tokens_in": 36944,
+        "tokens_out": 1622,
+        "tokens_cache_read": 427954,
+        "wall_ms": 85890,
+        "steps": 12,
+        "llm_calls": 11,
+        "ui_actions": {
+          "tap": 2,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 0,
+          "total": 2
+        },
+        "skill_calls": 1,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/contacts_create-after_mcp-3.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "create_contact"
+          },
+          {
+            "i": 3,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Ada Lovelace"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "read",
+            "tool": "get_phone_state",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 12,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3181,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1161,
+            "tokens_out": null,
+            "tokens_cache_read": 18554
+          },
+          {
+            "i": 3,
+            "tokens_in": 1235,
+            "tokens_out": null,
+            "tokens_cache_read": 19713
+          },
+          {
+            "i": 4,
+            "tokens_in": 28262,
+            "tokens_out": null,
+            "tokens_cache_read": 20946
+          },
+          {
+            "i": 5,
+            "tokens_in": 528,
+            "tokens_out": null,
+            "tokens_cache_read": 49206
+          },
+          {
+            "i": 6,
+            "tokens_in": 276,
+            "tokens_out": null,
+            "tokens_cache_read": 49732
+          },
+          {
+            "i": 7,
+            "tokens_in": 466,
+            "tokens_out": null,
+            "tokens_cache_read": 50006
+          },
+          {
+            "i": 8,
+            "tokens_in": 238,
+            "tokens_out": null,
+            "tokens_cache_read": 50470
+          },
+          {
+            "i": 9,
+            "tokens_in": 731,
+            "tokens_out": null,
+            "tokens_cache_read": 50706
+          },
+          {
+            "i": 10,
+            "tokens_in": 378,
+            "tokens_out": null,
+            "tokens_cache_read": 51435
+          },
+          {
+            "i": 11,
+            "tokens_in": 488,
+            "tokens_out": null,
+            "tokens_cache_read": 51811
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 3,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 32044,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 3,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 743265,
+        "tokens_in": 45875,
+        "tokens_out": 2011,
+        "tokens_cache_read": 695379,
+        "wall_ms": 74521,
+        "steps": 21,
+        "llm_calls": 15,
+        "ui_actions": {
+          "tap": 5,
+          "type": 3,
+          "swipe": 0,
+          "key": 0,
+          "launch": 2,
+          "total": 10
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/contacts_create-before-3.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_intent",
+            "ok": true,
+            "target": "android.intent.action.INSERT"
+          },
+          {
+            "i": 2,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "search_apps",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.contacts"
+          },
+          {
+            "i": 7,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 12,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Ada"
+          },
+          {
+            "i": 13,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 14,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Lovelace"
+          },
+          {
+            "i": 15,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 16,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "+1 555 0100"
+          },
+          {
+            "i": 17,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          },
+          {
+            "i": 18,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 19,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 20,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Ada Lovelace"
+          },
+          {
+            "i": 21,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "+1 555 0100"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3064,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 261,
+            "tokens_out": null,
+            "tokens_cache_read": 15347
+          },
+          {
+            "i": 3,
+            "tokens_in": 33743,
+            "tokens_out": null,
+            "tokens_cache_read": 15606
+          },
+          {
+            "i": 4,
+            "tokens_in": 711,
+            "tokens_out": null,
+            "tokens_cache_read": 49347
+          },
+          {
+            "i": 5,
+            "tokens_in": 537,
+            "tokens_out": null,
+            "tokens_cache_read": 50056
+          },
+          {
+            "i": 6,
+            "tokens_in": 894,
+            "tokens_out": null,
+            "tokens_cache_read": 50591
+          },
+          {
+            "i": 7,
+            "tokens_in": 284,
+            "tokens_out": null,
+            "tokens_cache_read": 51483
+          },
+          {
+            "i": 8,
+            "tokens_in": 4248,
+            "tokens_out": null,
+            "tokens_cache_read": 51765
+          },
+          {
+            "i": 9,
+            "tokens_in": 325,
+            "tokens_out": null,
+            "tokens_cache_read": 56011
+          },
+          {
+            "i": 10,
+            "tokens_in": 303,
+            "tokens_out": null,
+            "tokens_cache_read": 56334
+          },
+          {
+            "i": 11,
+            "tokens_in": 307,
+            "tokens_out": null,
+            "tokens_cache_read": 56635
+          },
+          {
+            "i": 12,
+            "tokens_in": 464,
+            "tokens_out": null,
+            "tokens_cache_read": 56940
+          },
+          {
+            "i": 13,
+            "tokens_in": 284,
+            "tokens_out": null,
+            "tokens_cache_read": 57402
+          },
+          {
+            "i": 14,
+            "tokens_in": 211,
+            "tokens_out": null,
+            "tokens_cache_read": 57684
+          },
+          {
+            "i": 15,
+            "tokens_in": 239,
+            "tokens_out": null,
+            "tokens_cache_read": 57893
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 4,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 318140,
+        "tokens_in": 37194,
+        "tokens_out": 1238,
+        "tokens_cache_read": 279708,
+        "wall_ms": 88190,
+        "steps": 9,
+        "llm_calls": 8,
+        "ui_actions": {
+          "tap": 1,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 0,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/contacts_create-after_mcp-4.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "create_contact"
+          },
+          {
+            "i": 3,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Ada Lovelace"
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "555 0100"
+          },
+          {
+            "i": 6,
+            "type": "read",
+            "tool": "get_screen_tree",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3183,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1161,
+            "tokens_out": null,
+            "tokens_cache_read": 18556
+          },
+          {
+            "i": 3,
+            "tokens_in": 1235,
+            "tokens_out": null,
+            "tokens_cache_read": 19715
+          },
+          {
+            "i": 4,
+            "tokens_in": 29483,
+            "tokens_out": null,
+            "tokens_cache_read": 20948
+          },
+          {
+            "i": 5,
+            "tokens_in": 467,
+            "tokens_out": null,
+            "tokens_cache_read": 50429
+          },
+          {
+            "i": 6,
+            "tokens_in": 832,
+            "tokens_out": null,
+            "tokens_cache_read": 50894
+          },
+          {
+            "i": 7,
+            "tokens_in": 345,
+            "tokens_out": null,
+            "tokens_cache_read": 51724
+          },
+          {
+            "i": 8,
+            "tokens_in": 488,
+            "tokens_out": null,
+            "tokens_cache_read": 52067
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 4,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 33535,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 4,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 889687,
+        "tokens_in": 92795,
+        "tokens_out": 1708,
+        "tokens_cache_read": 795184,
+        "wall_ms": 139153,
+        "steps": 19,
+        "llm_calls": 12,
+        "ui_actions": {
+          "tap": 5,
+          "type": 3,
+          "swipe": 0,
+          "key": 0,
+          "launch": 2,
+          "total": 10
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/contacts_create-before-4.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.contacts"
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "com.google.android.contacts"
+          },
+          {
+            "i": 4,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Ada"
+          },
+          {
+            "i": 11,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 12,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "Lovelace"
+          },
+          {
+            "i": 13,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 14,
+            "type": "type",
+            "tool": "type_text",
+            "ok": true,
+            "target": "+1 555 0100"
+          },
+          {
+            "i": 15,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 16,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          },
+          {
+            "i": 17,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 18,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 19,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "Ada Lovelace"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3062,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 34196,
+            "tokens_out": null,
+            "tokens_cache_read": 15345
+          },
+          {
+            "i": 3,
+            "tokens_in": 4688,
+            "tokens_out": null,
+            "tokens_cache_read": 49539
+          },
+          {
+            "i": 4,
+            "tokens_in": 272,
+            "tokens_out": null,
+            "tokens_cache_read": 54225
+          },
+          {
+            "i": 5,
+            "tokens_in": 4248,
+            "tokens_out": null,
+            "tokens_cache_read": 54495
+          },
+          {
+            "i": 6,
+            "tokens_in": 2,
+            "tokens_out": null,
+            "tokens_cache_read": 59064
+          },
+          {
+            "i": 7,
+            "tokens_in": 303,
+            "tokens_out": null,
+            "tokens_cache_read": 59064
+          },
+          {
+            "i": 8,
+            "tokens_in": 307,
+            "tokens_out": null,
+            "tokens_cache_read": 59365
+          },
+          {
+            "i": 9,
+            "tokens_in": 44339,
+            "tokens_out": null,
+            "tokens_cache_read": 59670
+          },
+          {
+            "i": 10,
+            "tokens_in": 534,
+            "tokens_out": null,
+            "tokens_cache_read": 104007
+          },
+          {
+            "i": 11,
+            "tokens_in": 308,
+            "tokens_out": null,
+            "tokens_cache_read": 104539
+          },
+          {
+            "i": 12,
+            "tokens_in": 211,
+            "tokens_out": null,
+            "tokens_cache_read": 104845
+          }
+        ]
+      }
+    ]
+  }
+}

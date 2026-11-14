@@ -1,0 +1,22 @@
+---
+import type { HumanAssistedDemo } from '../../lib/hub/human-assisted';
+interface Props { demo: HumanAssistedDemo }
+const { demo } = Astro.props;
+---
+<section class="human-demo" data-human-assisted-demo data-scored="false" aria-labelledby="human-demo-title">
+ <div class="heading"><h2 id="human-demo-title">The signup · live demo</h2><span>Unscored</span></div>
+ <p>human-assisted captcha demo, not a replay</p>
+ <video controls muted playsinline preload="none" poster={demo.poster} aria-label="The signup: human-assisted captcha demo, not a replay">
+  <source src={demo.url} type="video/mp4" />
+  <track kind="captions" src={demo.captions} srclang="en" label="English" default />
+ </video>
+ <p class="detail">{demo.date} · {demo.device}. The agent fills and submits the form; a human solves the captcha. Recorded from the home screen through the inbox at original speed and resolution, without blur or redaction. Password fields remain masked by the app.</p>
+ <p class="detail">Maintainer-run, not independent. This video adds no scored run, replay success, device coverage, or score points.</p>
+</section>
+<style>
+ .human-demo{padding:1.1rem;border:1px solid var(--border,#30333d);border-radius:12px;margin-bottom:1.5rem;background:var(--panel,#14161c)}
+ .heading{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+ h2{font-size:1.05rem;margin:0}.heading span{font-size:.72rem;border:1px solid #555968;border-radius:20px;padding:.2rem .55rem;color:#bbc0cc}
+ p{font-size:.9rem;color:#d1d5df;line-height:1.5}.detail{font-size:.8rem;color:#a7adbd;margin-bottom:0}
+ video{display:block;width:100%;max-width:360px;max-height:70vh;margin:1rem auto;background:#090b10;border-radius:8px}
+</style>

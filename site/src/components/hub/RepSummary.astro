@@ -1,0 +1,25 @@
+---
+// Rep total, published / verified / maintained breakdown and data-derived badges for one contributor.
+import { badgesOf, REP, type Contributor, type RepTable } from '../../lib/hub/rep';
+interface Props { contributor: Contributor | null; table?: RepTable; note?: string }
+const { contributor: c, table = REP, note } = Astro.props;
+const parts = c ? ([['published', 'published'], ['verified', 'verified'], ['maintained', 'maintained']] as const).map(([k, label]) => ({ k, label, n: c.breakdown[k] })) : [];
+const badges = c ? badgesOf(c, table) : [];
+---
+<section class="rep" data-rep={c ? c.rep : 'none'}>
+	{c ? (
+		<>
+			<div class="rep-total"><strong>{c.rep}</strong> rep</div>
+			<ul class="rep-parts">
+				{parts.map((p) => <li data-rep-part={p.k}><strong>{p.n}</strong>{p.label}</li>)}
+			</ul>
+			{badges.length > 0 ? (
+				<ul class="rep-badges">
+					{badges.map((b) => <li class="rep-badge" data-badge={b.id} title={b.description}>{b.label}</li>)}
+				</ul>
+			) : <p class="prose-p rep-none">No badges yet.</p>}
+		</>
+	) : (
+		<p class="prose-p rep-none">{note ?? 'No rep yet: nothing published or verified that counts.'}</p>
+	)}
+</section>

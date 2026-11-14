@@ -1,0 +1,133 @@
+---
+// Reliability card: the headline on a skill page is the RAW count of counted
+// runs, never a prior-adjusted percent. Then the evidence classes (self-recorded,
+// maintainer-signed replay, independent), the devices they ran on with an
+// emulator flag, the app versions, the last run, and one row per action. The
+// prior-free Wilson lower bound appears as a labelled "confidence floor" line.
+import { ageLabel } from '../../lib/hub/evidence';
+import { confidenceFloor } from '../../lib/hub/scoring';
+import type { Skill } from '../../lib/hub/registry';
+interface Props { skill: Skill; now: string }
+const { skill, now } = Astro.props;
+const r = skill.reliability;
+const q = skill.quality;
+const headline = skill.runs;            // registry counts: what the score saw
+const c = headline.classes;
+const registryStale = r.total !== headline.total;
+const fmt = (n: number | null) => (n == null ? '' : n >= 1000 ? `${(n / 1000).toFixed(1)} s` : `${Math.round(n)} ms`);
+const ratio = (p: number, t: number) => (t === 0 ? 'no runs' : `${p}/${t}`);
+const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`;
+const excluded = r.excluded.simulated + r.excluded.unsigned + r.excluded.invalid;
+const rejected = headline.rejected;
+const REASON_COPY: Record<string, string> = {
+	unsigned: 'unsigned', simulated: 'simulated', 'wrong-skill': 'for another skill', 'bad-bench-block': 'malformed bench block', 'bad-signature': 'signature did not verify',
+};
+const rejectedReasons = Object.entries(rejected.reasons).sort((a, b) => b[1] - a[1]).map(([k, cnt]) => `${cnt} ${REASON_COPY[k] ?? k}`);
+const floor = confidenceFloor(headline.passed, headline.total);
+// Verifier rows: "<label>, maintainer-signed (3/3)" for maintainer-class keys, "independent (@login)" for SIGNERS keys.
+const CLASS_COPY: Record<string, string> = { self: 'self-recorded', maintainer: 'maintainer-signed', ci: 'CI-reproduced', independent: 'independent' };
+const TIER_LABEL: Record<string, string> = { maintainer: 'maintainer key', platform: 'lab emulator replay', community: 'published key' };
+const verifierLine = headline.verifiers.map((v) => {
+	const label = v.label !== v.principal ? v.label : TIER_LABEL[v.tier];
+	const counts = v.total > 0 ? ` ${v.passed}/${v.total}` : '';
+	return `${v.principal} (${label}, ${CLASS_COPY[v.class]}${counts})`;
+}).join('; ');
+// Class sentence: "32 runs self-recorded by ghost (32 passed), 3 maintainer-signed replays (3 passed), no independent run."
+const classParts = [
+	`${n(c.self.total, 'run')} self-recorded by ${skill.author}${c.self.total ? ` (${c.self.passed} passed)` : ''}`,
+	...(c.maintainer.total ? [`${n(c.maintainer.total, 'maintainer-signed replay')} (${c.maintainer.passed} passed)`] : []),
+	...(c.ci.total ? [`${n(c.ci.total, 'CI-reproduced run')} (${c.ci.passed} passed)`] : []),
+	c.independent.total
+		? `${n(c.independent.total, 'independent run')} (${c.independent.passed} passed), ${n(skill.quality.runs?.device_grid?.independent_cells ?? 0, 'covered device cell')}`
+		: 'no independent run',
+];
+const previous = headline.previousVersions;
+const emu = headline.emulator;
+// Pre-contract registries still count older versions in the headline; say so instead of hiding it.
+const previousCounted = headline.classesSource === 'artifacts' && previous.total > 0;
+const currentVersion = headline.currentVersion ?? skill.latest;
+---
+<div class="panel reliability" data-reliability data-classes-source={headline.classesSource}>
+	<h3>Reliability</h3>
+	{headline.total === 0 ? (
+		<div class="rel-head">
+			<div class="rel-big none" data-passed="0" data-total="0">No counted runs{headline.currentVersion ? ` on ${headline.currentVersion}` : ' yet'}</div>
+			<p class="rel-sub">A skill earns its first tier with one signed self-run of every action on the current version. Record one with <code>ghost skill run {skill.id} &lt;action&gt; --record</code>.</p>
+		</div>
+	) : (
+		<div class="rel-head">
+			<div class="rel-big" data-passed={headline.passed} data-total={headline.total}>
+				{headline.passed}<span class="of">/{headline.total}</span> <span class="lbl">signed runs passed</span>
+				{emu.total > 0 && <span class="chip emu" data-emulator={emu.total} title={emu.total === headline.total ? 'Every counted run was recorded on an emulator image' : `${emu.total} of ${headline.total} counted runs were on an emulator image${emu.unknown ? `; ${emu.unknown} did not record the device kind` : ''}`}>{emu.total === headline.total ? 'emulator' : `${emu.total} emulator`}</span>}
+			</div>
+			<p class="rel-sub" data-classes>
+				{classParts.join(', ')}.
+				{verifierLine && <> Signed by {verifierLine}.</>}
+				{headline.bench > 0 && <> <span data-bench-runs={headline.bench}>{n(headline.bench, 'run comes', 'runs come')} from AndroidWorld bench cells.</span></>}
+			</p>
+			{floor && (
+				<p class="rel-floor" data-floor={floor}>
+					Confidence floor <strong>{floor}</strong>: the 95% Wilson lower bound over {headline.total} counted {headline.total === 1 ? 'run' : 'runs'}, no prior. Few runs keep it low even at 100% passed.
+				</p>
+			)}
+		</div>
+	)}
+	{previous.total > 0 && (
+		<p class="rel-previous muted" data-previous-versions={previous.total}>
+			Previous versions: {previous.passed}/{previous.total}{headline.total === 0 ? ` (no counted run on ${currentVersion} yet)` : ''}{previousCounted ? '. This registry predates per-version counting and still includes them above.' : '. Not counted above.'}
+		</p>
+	)}
+	<dl class="kv rel-kv">
+		<dt>last run</dt><dd data-last-run={r.lastRun ?? ''}>{ageLabel(r.lastRun ?? q.signals.last_verified ?? null, now)}</dd>
+		<dt>devices</dt>
+		<dd>
+			{r.fingerprints.length === 0 ? 'none yet' : (
+				<ul class="fps">
+					{r.fingerprints.map((fp) => (
+						<li title={`fingerprint ${fp.hash.slice(0, 12)}: ${fp.passed}/${fp.runs} passed, app ${fp.appVersions.join(', ') || '?'}`} data-device-class>
+							{fp.deviceClass}
+							{fp.emulator && <span class="chip emu" title="Device model is an emulator image">emulator</span>}
+							{fp.independent && <span class="chip indep">independent</span>}
+							{fp.maintainer && !fp.independent && <span class="chip maint" title="Verification signed by a maintainer-held key: reproducibility, not independence">maintainer-signed</span>}
+							<span class="muted"> {fp.passed}/{fp.runs}</span>
+						</li>
+					))}
+				</ul>
+			)}
+		</dd>
+		<dt>app versions</dt><dd>{r.appVersions.length ? r.appVersions.join(', ') : skill.latestEntry.fingerprint.app_version ?? '*'}</dd>
+		{skill.staleUpstream && (
+			<><dt>drift</dt><dd class="warn">Upstream shipped {skill.staleUpstream.app_version ?? 'a newer version'}{skill.staleUpstream.seen_at && ` (${skill.staleUpstream.seen_at.slice(0, 10)})`}, outside the tested range. Re-verify before relying on it.</dd></>
+		)}
+	</dl>
+	{skill.latestEntry.actions.length > 0 && (
+		<div class="table-scroll rel-actions">
+			<table class="t rel-t">
+				<thead><tr><th>Action</th><th class="num">Passed</th><th class="num">Indep.</th><th>Last run</th><th class="num">Median</th></tr></thead>
+				<tbody>
+					{r.actions.map((a) => (
+						<tr data-action={a.action} data-passed={a.passed} data-total={a.total}>
+							<td><code>{a.action}</code>{a.errorKinds.length > 0 && <span class="muted err" title={`Failure kinds seen: ${a.errorKinds.join(', ')}`}> {a.errorKinds[0]}</span>}</td>
+							<td class="num" title={a.appVersions.length ? `app ${a.appVersions.join(', ')}` : undefined}>{ratio(a.passed, a.total)}</td>
+							<td class="num">{a.independent.total === 0 ? <span class="muted">0</span> : ratio(a.independent.passed, a.independent.total)}</td>
+							<td>{ageLabel(a.lastRun, now)}</td>
+							<td class="num">{fmt(a.medianMs)}</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+	)}
+	{rejected.total > 0 && (
+		<p class="cmd-note" data-rejected={rejected.total}>
+			The registry refused {n(rejected.total, 'artifact')} in this skill's folders{rejectedReasons.length > 0 && ` (${rejectedReasons.join(', ')})`}. Refused artifacts never count toward runs or points.
+		</p>
+	)}
+	{(excluded > 0 || registryStale) && (
+		<p class="cmd-note">
+			{excluded > 0 && `${n(excluded, 'artifact')} not counted (${[r.excluded.simulated && `${r.excluded.simulated} simulated`, r.excluded.unsigned && `${r.excluded.unsigned} unsigned`, r.excluded.invalid && `${r.excluded.invalid} unreadable`].filter(Boolean).join(', ')}). `}
+			{registryStale && `The registry was built from ${headline.total} runs; ${r.total} are on disk now. Numbers update on the next registry build.`}
+		</p>
+	)}
+	<p class="cmd-note">Counts are signed run artifacts in the skill's <code>runs/</code> and <code>verifications/</code> folders that verify against a published key. Self-recorded and maintainer-signed runs show the author's own evidence; only independent runs by other accounts can lift a skill past Runs. <a class="inline-link" href="/skills/scoring/">How scoring works</a></p>
+</div>

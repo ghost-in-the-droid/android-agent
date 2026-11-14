@@ -1,0 +1,16 @@
+---
+import { TRUST, type Trust } from '../../lib/hub/scoring';
+interface Props { trust: Trust }
+const { trust } = Astro.props;
+const t = TRUST[trust] ?? TRUST.unverified;
+---
+<span class="trust" data-trust={trust} title={t.blurb}>
+	<svg viewBox="0 0 12 12" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5">
+		{trust === 'quarantined'
+			? <path d="M3 3l6 6M9 3l-6 6" />
+			: trust === 'unverified'
+				? <path d="M6 2.5v4.2M6 8.8v.4" />
+				: <path d="M2.5 6.2l2.3 2.3 4.7-5" />}
+	</svg>
+	{t.label}
+</span>
