@@ -1,0 +1,102 @@
+# Ghost in the Droid: Oblique Strategies (login-free FOSS seed skill, installed from F-Droid)
+# Oblique Strategies (F-Droid): draw Brian Eno and Peter Schmidt creative-block cards and read the text. Offline, no account.
+
+name: oblique-strategies
+version: 1.0.0
+author: ghost
+description: "Oblique Strategies (F-Droid): draw Brian Eno and Peter Schmidt creative-block cards and read the text. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: garden.lina.oblique_strategies
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/oblique-strategies"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: garden.lina.oblique_strategies}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_deck
+    description: "Restart the app and read the card on top (the help card at first)."
+    ref_prompt: "Open the Oblique Strategies deck"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_deck"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:deck_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open Oblique Strategies"
+      expected_success: true
+
+  - name: draw_card
+    description: "Swipe the top card away and return the new card text."
+    ref_prompt: "Draw an Oblique Strategies card"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:draw_card"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:drawn"}
+    test_case:
+      ref_prompt_variants:
+        - "give me a creative prompt"
+        - "I am stuck, draw a strategy card"
+      expected_success: true
+
+  - name: draw_cards
+    description: "Draw several cards (1 to 10) and return each card with its kind (help, title, strategy)."
+    ref_prompt: "Draw three Oblique Strategies cards"
+    demo_params: {count: "4"}
+    params:
+      - {name: count, type: str, required: false, description: "1 to 10, default 3"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:draw_cards"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:drawn_many"}
+    test_case:
+      ref_prompt_variants:
+        - "draw 5 oblique strategies"
+      expected_success: true
+
+  - name: get_card
+    description: "Read the card currently on top."
+    ref_prompt: "What does the current card say?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_card"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:card_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the current strategy"
+      expected_success: true

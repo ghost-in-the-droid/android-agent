@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/markor",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "net.gsantner.markor",
+    "app_version": "2.16.1"
+  },
+  "fingerprint_hash": "85b26b08f7131553dab7e3e37a111a9214f17d9a1130af6e235155666aad3c48",
+  "app_version": "2.16.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T13:12:00.877596+00:00",
+  "finished_at": "2026-11-05T13:12:00.877596+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "read_note",
+      "success": true,
+      "duration_ms": 9883.609128999524,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": -1,
+          "success": true,
+          "duration_ms": 299.4300390018907
+        },
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 6020.857847001025
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1254.8459429999639
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 375.0910480011953
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 1163.8424709999526
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 405.4218109995418
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 255.00351999653503
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:eb6ceda47fed967b8169ad9e870687720e5dddee020aad40c7e6245431a5e134",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQF1hFVi4uEx5yLAH8bw6jBDNmEkz+3XBVwRqfdOn+LuHj94LAq\n+2SeVjfT/takBjU6iu05B4ho9uvy/vjQc1rgU=\n-----END SSH SIGNATURE-----\n"
+  }
+}

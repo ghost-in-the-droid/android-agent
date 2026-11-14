@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/mancala",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.willie.mancala",
+    "app_version": "1.2"
+  },
+  "fingerprint_hash": "e8e748c2f849b6e8973a6c7c2b6afccf2b58a71badc27c911f0f75c066cf7967",
+  "app_version": "1.2",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T21:13:11.890351+00:00",
+  "finished_at": "2026-11-05T21:13:11.890351+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "move",
+      "success": true,
+      "duration_ms": 7200.798705001944,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3677.8468929987866
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3455.2312079977128
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:ef5a6a95aefa1e579d9e9cb65021abc7481a9dafb682c2082dd4998d36793095",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQF3n39mEXOCOPiB5xmb5cAPz30WPi+KJ3r+tP/1ppn57MqlwZH\njxualZUsxfGS1Diau6phxgWUPUBdBRrq+mIAc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

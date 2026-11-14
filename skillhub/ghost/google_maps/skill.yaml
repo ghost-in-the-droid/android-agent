@@ -1,0 +1,149 @@
+name: google_maps
+version: 1.0.0
+description: Google Maps — search places and fetch directions with per-mode ETA and distance
+platforms:
+  - android
+app_package: com.google.android.apps.maps
+android_package: com.google.android.apps.maps
+
+exports:
+  actions:
+    - open_app
+    - search_place
+    - open_directions
+    - select_travel_mode
+    - read_route_summary
+    - close_card
+  workflows:
+    - get_directions
+
+# Consumed by the dashboard Skill Hub; the CLI runner takes --params JSON.
+default_params:
+  workflows:
+    get_directions:
+      destination: "Alexanderplatz Berlin"
+      mode: driving
+
+# No popup_detectors: the directions screen keeps a "Close" button in its own
+# header, and dismiss_popups taps the topmost node matching the button label —
+# a detector with button "Close" would exit the flow instead of the promo
+# sheet. Promo sheets observed so far don't block the trip summary anyway.
+
+# >>> ghost skill migrate (schema v2): generated, re-run to refresh >>>
+author: ghost
+skill_class: hard
+license: MIT
+generated_with: ghost skill migrate
+fingerprint:
+  os: android
+  os_version: '*'
+  hardware: '*'
+  app_package: com.google.android.apps.maps
+  app_version: '*'
+actions:
+- name: get_directions
+  description: Search a destination and return route summary (ETA, distance, per-mode times)
+  ref_prompt: Search a destination and return route summary (ETA, distance, per-mode times)
+  params:
+  - name: destination
+    type: str
+    required: false
+  - name: mode
+    type: str
+    required: false
+    default: driving
+  steps:
+  - python_action: helpers:run_get_directions
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Search a destination and return route summary (ETA, distance, per-mode times)
+    expected_success: true
+- name: open_app
+  description: Force-stop Google Maps and relaunch
+  ref_prompt: Force-stop Google Maps and relaunch to the explore/home screen
+  steps:
+  - python_action: helpers:run_open_app
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Force-stop Google Maps and relaunch to the explore/home screen
+    expected_success: true
+- name: search_place
+  description: Search a place and open its place card
+  ref_prompt: Type a place into the search box and land on its place card
+  params:
+  - name: query
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_search_place
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Type a place into the search box and land on its place card
+    expected_success: true
+- name: open_directions
+  description: Open the directions view from a place card
+  ref_prompt: Tap the Directions button on an open place card
+  steps:
+  - python_action: helpers:run_open_directions
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Tap the Directions button on an open place card
+    expected_success: true
+- name: select_travel_mode
+  description: Select travel mode on the directions screen
+  ref_prompt: Select a travel mode tab (driving / transit / walking / cycling)
+  params:
+  - name: mode
+    type: str
+    required: false
+    default: driving
+  steps:
+  - python_action: helpers:run_select_travel_mode
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Select a travel mode tab (driving / transit / walking / cycling)
+    expected_success: true
+- name: read_route_summary
+  description: Read ETA, distance, and per-mode times from the directions screen
+  ref_prompt: Parse the directions screen into structured route data
+  params:
+  - name: mode
+    type: str
+    required: false
+  steps:
+  - python_action: helpers:run_read_route_summary
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Parse the directions screen into structured route data
+    expected_success: true
+- name: close_card
+  description: Close the open card via its header close button
+  ref_prompt: Close the current place card or directions view
+  steps:
+  - python_action: helpers:run_close_card
+  end_state_validator:
+    kind: custom_python
+    function: helpers:v1_ok
+  test_case:
+    ref_prompt_variants:
+    - Close the current place card or directions view
+    expected_success: true
+# <<< ghost skill migrate <<<

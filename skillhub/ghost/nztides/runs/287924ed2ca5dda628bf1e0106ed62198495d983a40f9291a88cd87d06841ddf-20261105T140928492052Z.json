@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/nztides",
+  "version": "1.1.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "com.palliser.nztides",
+    "app_version": "25"
+  },
+  "fingerprint_hash": "287924ed2ca5dda628bf1e0106ed62198495d983a40f9291a88cd87d06841ddf",
+  "app_version": "25",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T14:09:28.492052+00:00",
+  "finished_at": "2026-11-05T14:09:28.492052+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "read_tides",
+      "success": true,
+      "duration_ms": 5747.279747996799,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2944.0975120014627
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:28ce3ca75987a75ffc0d64c170a5718766e148f9eb0ca4ac50ac57ccfaedb24d",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQDf7Emho4SQ1CVrpr+6W5ZT+EzVOxnKP3/eWIUGb/eOS9nYSOB\nr9zLgomwtuPwSD2uZ5EKZdmPJzzIocvFZCwgg=\n-----END SSH SIGNATURE-----\n"
+  }
+}

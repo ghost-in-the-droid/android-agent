@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/messages",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.apps.messaging",
+    "app_version": "messages.android_20230529_03_RC01_alldpi.x86_64.phone"
+  },
+  "fingerprint_hash": "0b711452e1e4a3e41aba5c1cc3c23b38e9b30ee8606c34f884ef10e714db6db0",
+  "app_version": "messages.android_20230529_03_RC01_alldpi.x86_64.phone",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T19:00:38.201245+00:00",
+  "finished_at": "2026-10-05T19:00:38.201245+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "read_conversation",
+      "success": true,
+      "duration_ms": 5143.7509339884855,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2384.7114450181834
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 20.278153009712696
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 632.678694993956
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 1004.3100070033688
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 27.023572998587042
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 1054.2689749854617
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQLv70dvrQn2sQCv9r766D2gZkemamd0BnjVIud061asbarSlcr\nB1qebaT6GMxF2a0wHDXbtPMt5WFHOhMqwtcAY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

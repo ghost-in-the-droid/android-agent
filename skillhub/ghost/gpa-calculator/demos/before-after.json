@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/gpa-calculator",
+ "action": null,
+ "prompt": "Add a 3 credit A in Maths and a 4 credit B in Physics in the GPA calculator on my phone, then calculate my GPA. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 109.59,
+  "tokens": 532053,
+  "tool_calls": 29,
+  "ok": true
+ },
+ "after": {
+  "seconds": 63.08,
+  "tokens": 41801,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

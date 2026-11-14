@@ -1,0 +1,122 @@
+# Ghost in the Droid: Google Maps (login-free seed skill)
+# Everything is driven through public Maps intents (geo: URIs and the
+# https://www.google.com/maps/dir/?api=1 URL scheme); the UI is only read.
+# The older ghost/google_maps skill is a migrated v1 skill with Python steps;
+# this one is a clean v2 rewrite for a device that was never signed in.
+
+name: maps
+version: 1.0.1
+author: ghost
+description: "Google Maps without an account: look up a place, list search results, identify what is at coordinates, get a route summary for any travel mode."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [network]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.google.android.apps.maps
+  app_version: ">=11.71"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/maps"
+
+popup_detectors:
+  - {detect: "Make it your map", button: "SKIP", label: "First-run sign-in upsell (never sign in)"}
+  - {detect: "Turn on Location History", button: "No thanks", label: "Location History upsell"}
+
+subroutines:
+  - name: launch_maps
+    description: "Bring Maps up and get past the first-run sign-in upsell."
+    steps:
+      - {action: launch_app, package: com.google.android.apps.maps}
+      - {action: sleep, duration_s: 3}
+      - {action: dismiss_popups}
+
+actions:
+  - name: search_place
+    description: "Search Maps for a place and return its card: name, rating, review count, detail lines (address, category, hours). For a list of results the first one is returned."
+    ref_prompt: "Find the Brandenburg Gate on Google Maps"
+    params:
+      - {name: query, type: str, required: true, description: "Place name or address"}
+    steps:
+      - subroutine: launch_maps
+      - python_action: "helpers:search_place"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Directions"}
+        - {kind: custom_python, function: "helpers:place_found"}
+    test_case:
+      ref_prompt_variants:
+        - "where is the Eiffel Tower"
+        - "look up Alexanderplatz on maps"
+        - "show me the Golden Gate Bridge"
+      expected_success: true
+
+  - name: list_places
+    description: "Run a Maps search such as 'cafe near Alexanderplatz' and return up to max_results results with rating and detail lines (ads skipped)."
+    ref_prompt: "Find cafes near Alexanderplatz Berlin"
+    params:
+      - {name: query, type: str, required: true}
+      - {name: max_results, type: int, default: 5, description: "1 to 20"}
+    steps:
+      - subroutine: launch_maps
+      - python_action: "helpers:list_places"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:places_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "restaurants near me in Munich"
+        - "list pharmacies near Hauptbahnhof Hamburg"
+        - "what museums are in Vienna"
+      expected_success: true
+
+  - name: show_location
+    description: "Drop the map on latitude/longitude and return the place Maps resolves there (name, address)."
+    ref_prompt: "What is at 52.5163, 13.3777?"
+    params:
+      - {name: lat, type: float, required: true}
+      - {name: lng, type: float, required: true}
+    steps:
+      - subroutine: launch_maps
+      - python_action: "helpers:show_location"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Directions"}
+        - {kind: custom_python, function: "helpers:place_found"}
+    test_case:
+      ref_prompt_variants:
+        - "show these coordinates on a map: 48.8584, 2.2945"
+        - "what's at lat 40.6892 lon -74.0445"
+        - "open maps at 51.5007, -0.1246"
+      expected_success: true
+
+  - name: get_directions
+    description: "Plan a route from origin to destination for a travel mode and return the fastest route's duration, distance and 'via'. Does not start navigation."
+    ref_prompt: "How long does it take to walk from Alexanderplatz to the Brandenburg Gate?"
+    params:
+      - {name: origin, type: str, required: true}
+      - {name: destination, type: str, required: true}
+      - {name: mode, type: enum, values: [driving, walking, bicycling, transit], default: driving}
+    steps:
+      - subroutine: launch_maps
+      - python_action: "helpers:get_directions"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:route_shown"}
+    test_case:
+      ref_prompt_variants:
+        - "driving time from Munich to Salzburg"
+        - "bike route from Kreuzberg to Tempelhof"
+        - "how do I get from Paris Gare du Nord to the Louvre by transit"
+      expected_success: true

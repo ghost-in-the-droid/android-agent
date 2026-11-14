@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/morse-translator",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "rocks.poopjournal.morse",
+    "app_version": "2.2"
+  },
+  "fingerprint_hash": "f023f1ca1bf496133348648a7ffa0476bce90fa33b499aca60ced25fcd3ad434",
+  "app_version": "2.2",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T13:56:42.820016+00:00",
+  "finished_at": "2026-11-05T13:56:42.820016+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_translation",
+      "success": true,
+      "duration_ms": 5513.630760000524,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4637.445381998987
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 695.3021359986451
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:a8d9e460a2e60845ef0c8720c9cbca8a89bf4bea37c2803d4676aed06c4fa107",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQKMlK3IQUa3W9R0Q+ilLNn7zcs5JNZC5tp2+EudCEYEF1J/1gV\nFV2//AjbRsqYFfkFRv9wNnMGBafCu5OWNufQg=\n-----END SSH SIGNATURE-----\n"
+  }
+}

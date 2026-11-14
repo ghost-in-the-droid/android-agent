@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/nztides",
+ "action": "read_tides",
+ "prompt": "In NZ Tides, show Auckland’s first three listed tide events with height, high/low, date, time and the printed time zone. Briefly compare their heights. Do not use location or change settings.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 10.5,
+  "tokens": 16107,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "after": {
+  "seconds": 17.42,
+  "tokens": 47724,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. BEFORE success10.50s/16107 tokens/3 calls; original case-sensitive Low checker corrected against retained native evidence without retaking it. Published AFTER uses nztides1.1.0 (86ed2ca8) with cold-safe parameter-free read from proven Samsung HOME; success17.42s/47724 tokens/5 calls. The initial1.0.0 AFTER15.82s/42642 tokens failed the skill path after unsupported port parameter and read-before-launch, then completed by hand; it remains private with its complete render/source/audit and official old runs in history. All costs stay in cumulative budget: two AFTER attempts total33.24s/90366 filmed tokens. New version was re-recorded3/3 for every action after all final edits, starting each cycle with cold read. Even the successful new AFTER uses more tokens/time than the3-call manual flow; discovery and guarded native read overhead is included. Both published answers correctly preserve GMT+01:00 and compare native0.80/2.90/0.80m events; first row is the preceding low. No time-zone changes or location requests. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

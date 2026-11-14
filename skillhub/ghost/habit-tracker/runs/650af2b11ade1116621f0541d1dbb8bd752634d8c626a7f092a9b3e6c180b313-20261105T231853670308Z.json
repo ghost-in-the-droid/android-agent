@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/habit-tracker",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.isoron.uhabits",
+    "app_version": "2.3.2"
+  },
+  "fingerprint_hash": "650af2b11ade1116621f0541d1dbb8bd752634d8c626a7f092a9b3e6c180b313",
+  "app_version": "2.3.2",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T23:18:53.670308+00:00",
+  "finished_at": "2026-11-05T23:18:53.670308+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "check_habit",
+      "success": true,
+      "duration_ms": 9579.979132999142,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 6081.393191998359
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3360.624373999599
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:30fb9471ffad508a4e1bb4131964ae551c82b6260e1f8b0cde5e82adfc42d0ed",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQDOSAw1WAro+MCp2EIMhZ0mutH+C5NOgdT6F8/DZx6wI8t1iUD\njpcwNaDqth/aR25coCe0IxsqbwIYbNh4xcSQs=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,138 @@
+# Ghost in the Droid: 1List (login-free FOSS seed skill, installed from F-Droid)
+# 1List (F-Droid): a minimalist offline list app. Create lists, switch between them, add and remove items and read what is on a list. No account, nothing leaves the phone.
+
+name: onelist
+version: 1.0.0
+author: ghost
+description: "1List (F-Droid): a minimalist offline list app. Create lists, switch between them, add and remove items and read what is on a list. No account, nothing leaves the phone."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.lolo.io.onelist
+  app_version: ">=1.5"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/onelist"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.lolo.io.onelist}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_lists
+    description: "Restart the app and read the list tabs and the items of the selected list."
+    ref_prompt: "Open my 1List lists"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_lists"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:lists_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open 1List"
+        - "show my lists"
+      expected_success: true
+
+  - name: create_list
+    description: "Create a new list (it becomes the selected list)."
+    ref_prompt: "Create a list called Groceries"
+    demo_params: {name: "Groceries"}
+    params:
+      - {name: name, type: str, required: true, description: "List name, ASCII"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:create_list"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:list_created"}
+    test_case:
+      ref_prompt_variants:
+        - "make a new list named Trip"
+      expected_success: true
+
+  - name: select_list
+    description: "Switch to a list by its name."
+    ref_prompt: "Switch to the Groceries list"
+    demo_params: {name: "Groceries"}
+    params:
+      - {name: name, type: str, required: true, description: "List name (or part of it)"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:select_list"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:list_selected"}
+    test_case:
+      ref_prompt_variants:
+        - "open the TODO list"
+      expected_success: true
+
+  - name: add_item
+    description: "Add an item to the selected list."
+    ref_prompt: "Add Milk to the list"
+    demo_params: {item: "Milk"}
+    params:
+      - {name: item, type: str, required: true, description: "Item text, ASCII"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:add_item"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:item_added"}
+    test_case:
+      ref_prompt_variants:
+        - "put eggs on my list"
+      expected_success: true
+
+  - name: remove_item
+    description: "Delete an item from the selected list by its text."
+    ref_prompt: "Remove Milk from the list"
+    demo_params: {item: "Milk"}
+    params:
+      - {name: item, type: str, required: true, description: "Item text as shown"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:remove_item"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:item_removed"}
+    test_case:
+      ref_prompt_variants:
+        - "delete eggs from my list"
+      expected_success: true
+
+  - name: get_items
+    description: "Read the list tabs and the items of the selected list."
+    ref_prompt: "What is on my list?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_items"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:items_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show the items on this list"
+      expected_success: true

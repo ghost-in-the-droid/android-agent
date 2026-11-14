@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/kin-nai-d",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.icesu.kinnaid",
+    "app_version": "1.0.7"
+  },
+  "fingerprint_hash": "10a9701ce197b80d4e0fbfd255907ce906707a4c374bcb915a119000a4012bf4",
+  "app_version": "1.0.7",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T16:15:44.107483+00:00",
+  "finished_at": "2026-11-05T16:15:44.107483+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "list_foods",
+      "success": true,
+      "duration_ms": 14327.186957998492,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4688.11388299946
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 8974.647691000428
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 579.8476249983651
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:0aaee451cfe27a153704a430d98cc549d666dffffd96b8945b3a7f9bd26addf7",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQBc7BNjqFkRJMhtCSWQnf3GWVpFTrYyCcig0IDcoAzis3hjoJw\nvjccaiy8WC0ysPOLlu72suzIc9+Sfj+w/UaQc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

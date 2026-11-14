@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/markor",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "net.gsantner.markor",
+    "app_version": "2.16.1"
+  },
+  "fingerprint_hash": "e4fd017d98690b0dea66d5e0368c3206cfd3238b1c24ea4cdc7571184ee61eb5",
+  "app_version": "2.16.1",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T22:37:31.050083+00:00",
+  "finished_at": "2026-10-22T22:37:31.050083+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "list_notes",
+      "success": true,
+      "duration_ms": 45851.35505895596,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 23670.989529928192
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 5580.984088941477
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 4730.122125940397
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 9624.022934003733
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:8ad5d27fcc0e9e5978475e8cdcde04f7cf097568eb88e335e1817da8700a5637",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQBZ5fams2NW1dqVZXBxTg7XPhEK8LeJwMmegvjBh0cv0cMv/C8\n70Fli6yO2Wj5LHNr0pMDIvb512Jud2x8FgWwU=\n-----END SSH SIGNATURE-----\n"
+  }
+}

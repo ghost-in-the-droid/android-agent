@@ -1,0 +1,123 @@
+# Ghost in the Droid: Notally (login-free FOSS seed skill, installed from F-Droid)
+# Notally (F-Droid): a minimalist local notes app. Create notes with a title and body, list them, read one and delete one. Offline, no account, nothing leaves the phone.
+
+name: notally-notes
+version: 1.0.0
+author: ghost
+description: "Notally (F-Droid): a minimalist local notes app. Create notes with a title and body, list them, read one and delete one. Offline, no account, nothing leaves the phone."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [deletes_data]
+destructive: true
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.omgodse.notally
+  app_version: ">=6.2"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/notally-notes"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.omgodse.notally}
+      - {action: sleep, duration_s: 2.0}
+
+actions:
+  - name: open_notes
+    description: "Restart the app and read the note list."
+    ref_prompt: "Open my Notally notes"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_notes"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:notes_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open Notally"
+      expected_success: true
+
+  - name: create_note
+    description: "Create a note with a title and an optional body (plain ASCII)."
+    ref_prompt: "Create a note called Shopping idea saying Buy milk"
+    demo_params: {title: "Shopping idea", body: "Buy milk and eggs"}
+    params:
+      - {name: title, type: str, required: true, description: "Note title, ASCII"}
+      - {name: body, type: str, required: false, description: "Note body, ASCII"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:create_note"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:note_created"}
+    test_case:
+      ref_prompt_variants:
+        - "write a note: meeting at 5pm"
+        - "save a note titled Ideas"
+      expected_success: true
+
+  - name: list_notes
+    description: "Read all notes (title, body preview, date)."
+    ref_prompt: "What notes do I have?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:list_notes"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:notes_read"}
+    test_case:
+      ref_prompt_variants:
+        - "list my notes"
+      expected_success: true
+
+  - name: read_note
+    description: "Open a note by title and return its full title and body."
+    ref_prompt: "Read my note Shopping idea"
+    demo_params: {title: "Shopping idea"}
+    params:
+      - {name: title, type: str, required: true, description: "Note title"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:read_note"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:note_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what does my note Ideas say"
+      expected_success: true
+
+  - name: delete_note
+    description: "Delete a note by title (it moves to the app's trash). Needs confirm=yes."
+    ref_prompt: "Delete my note Shopping idea"
+    demo_params: {title: "Shopping idea", confirm: "yes"}
+    params:
+      - {name: title, type: str, required: true, description: "Note title"}
+      - {name: confirm, type: str, required: true, description: "Must be yes"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:delete_note"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:note_deleted"}
+    test_case:
+      ref_prompt_variants:
+        - "remove the note Ideas"
+      expected_success: true

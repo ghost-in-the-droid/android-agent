@@ -1,0 +1,118 @@
+name: myne
+version: 1.0.1
+author: ghost
+description: Search and read public Gutenberg catalog metadata in Myne without ebook
+  downloads, files or reader
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: com.starry.myne
+  app_version: '>=5.1.0'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/myne
+actions:
+- name: open
+  description: Open the Project Gutenberg catalog without downloading a book
+  ref_prompt: Open the Project Gutenberg catalog without downloading a book
+  params: []
+  steps:
+  - python_action: helpers:open_catalog
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:catalog_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the Project Gutenberg catalog without downloading a book in myne
+    expected_success: true
+- name: search_books
+  description: Search the public catalog by title
+  ref_prompt: Search the public catalog by title
+  params:
+  - name: query
+    type: str
+    required: true
+  steps:
+  - python_action: helpers:search_books
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Search the public catalog by title in myne
+    expected_success: true
+- name: read_results
+  description: Read the first two complete exposed catalog rows
+  ref_prompt: Read the first two complete exposed catalog rows
+  params: []
+  steps:
+  - python_action: helpers:read_results
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the first two complete exposed catalog rows in myne
+    expected_success: true
+- name: open_book
+  description: Open a complete catalog row as book metadata only
+  ref_prompt: Open a complete catalog row as book metadata only
+  params:
+  - name: index
+    type: int
+    required: true
+  steps:
+  - python_action: helpers:open_book
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:book_ok
+  test_case:
+    ref_prompt_variants:
+    - Open a complete catalog row as book metadata only in myne
+    expected_success: true
+- name: read_book
+  description: Read book title, author and literal metadata badges
+  ref_prompt: Read book title, author and literal metadata badges
+  params: []
+  steps:
+  - python_action: helpers:read_book
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:book_ok
+  test_case:
+    ref_prompt_variants:
+    - Read book title, author and literal metadata badges in myne
+    expected_success: true
+- name: back_to_catalog
+  description: Return from book metadata to All Books; the app clears the search
+  ref_prompt: Return from book metadata to All Books; the app clears the search
+  params: []
+  steps:
+  - python_action: helpers:back_to_catalog
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:catalog_ok
+  test_case:
+    ref_prompt_variants:
+    - Return from Book Details to All Books in Myne
+    expected_success: true

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/memory-game",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.secuso.privacyfriendlymemory",
+    "app_version": "1.1.3-google"
+  },
+  "fingerprint_hash": "d03b6433567b1bf5913422cfc11da815e98caa79f11b1d036395b995ec0094e3",
+  "app_version": "1.1.3-google",
+  "model": "deterministic",
+  "timestamp": "2026-11-06T01:28:54.793489+00:00",
+  "finished_at": "2026-11-06T01:28:54.793489+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_status",
+      "success": true,
+      "duration_ms": 4824.345073997392,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3943.1406619987683
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 362.50972600100795
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:6d9e5a6bcbeed84a5294d0ff0ed18de76295f08eeb61f1b417d0faca683456ca",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQEh02IdKesbQDenWQO5qcqaqx1cVjsIBwgN6dCmo7wG51vC9Pw\nxhER34Z9d6KOpfedenqWhoraIjVV1Rw7BTOwo=\n-----END SSH SIGNATURE-----\n"
+  }
+}

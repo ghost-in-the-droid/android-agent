@@ -1,0 +1,108 @@
+# Ghost in the Droid: Fossify Music Player (login-free seed skill)
+# Offline player for audio files on the device (org.fossify.musicplayer from
+# F-Droid, GPL-3.0 app; this skill is MIT). Playback state is verified through
+# the app's media session (dumpsys media_session), not pixels.
+
+name: music
+version: 1.0.0
+author: ghost
+description: "Fossify Music Player (offline, no account): list on-device tracks, play a track for a few seconds then pause, read what is playing, pause playback."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [files, notifications]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: org.fossify.musicplayer
+  app_version: ">=1.8.1"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/music"
+
+os_popup_policy:
+  allow_permissions: [storage, notifications]
+
+popup_detectors:
+  - {detect: "Allow Music Player to access music and audio", button: "Allow", label: "Audio library permission (required)"}
+  - {detect: "Allow Music Player to send you notifications?", button: "Allow", label: "Notification permission (required for playback service)"}
+
+actions:
+  - name: list_tracks
+    description: "List every track in the library: title, artist, album or folder, duration."
+    ref_prompt: "What songs do I have on my phone?"
+    params:
+      - {name: max_items, type: int, default: 200}
+    steps:
+      - python_action: "helpers:open_tracks"
+      - python_action: "helpers:list_tracks"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Tracks"}
+        - {kind: custom_python, function: "helpers:tracks_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "list my music"
+        - "how many tracks are in my library"
+        - "show my offline songs"
+      expected_success: true
+
+  - name: play_track
+    description: "Play a track by exact title for `seconds` (1 to 30), then pause it."
+    ref_prompt: "Play Ghost Tone A440 for a few seconds"
+    params:
+      - {name: title, type: str, required: true}
+      - {name: seconds, type: int, default: 3}
+    steps:
+      - python_action: "helpers:open_tracks"
+      - python_action: "helpers:play_track"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:played_and_paused"}
+    test_case:
+      ref_prompt_variants:
+        - "preview the song called Morning for 5 seconds"
+        - "play track X briefly"
+        - "give me a quick listen of my latest download"
+      expected_success: true
+
+  - name: get_now_playing
+    description: "Report the player's media session: state (playing, paused, stopped), title, artist, album, position. Opens no UI."
+    ref_prompt: "What song is playing?"
+    params: []
+    steps:
+      - python_action: "helpers:get_now_playing"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:now_playing_read"}
+    test_case:
+      ref_prompt_variants:
+        - "is music playing right now"
+        - "name of the current track"
+        - "where am I in this song"
+      expected_success: true
+
+  - name: pause_playback
+    description: "Pause whatever the player is playing (media key); no-op if nothing plays."
+    ref_prompt: "Pause the music"
+    params: []
+    steps:
+      - python_action: "helpers:pause"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:not_playing"}
+    test_case:
+      ref_prompt_variants:
+        - "stop the song"
+        - "pause playback"
+        - "silence the music player"
+      expected_success: true

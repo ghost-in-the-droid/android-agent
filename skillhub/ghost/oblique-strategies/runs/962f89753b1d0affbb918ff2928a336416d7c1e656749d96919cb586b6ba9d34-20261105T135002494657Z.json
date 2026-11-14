@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/oblique-strategies",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "garden.lina.oblique_strategies",
+    "app_version": "0.1.1"
+  },
+  "fingerprint_hash": "962f89753b1d0affbb918ff2928a336416d7c1e656749d96919cb586b6ba9d34",
+  "app_version": "0.1.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T13:50:02.494657+00:00",
+  "finished_at": "2026-11-05T13:50:02.494657+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "open_deck",
+      "success": true,
+      "duration_ms": 6462.7044789995125,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 876.90537600065
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 5143.578891998914
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 413.05747700243955
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:ee33861e9e5a249f569e876f59ed4a2b70243bdbc3ea80248cfd7b98e41bb005",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQADeKiaNwNO+nH0DgD0ZNaC7o3owYnP9RW4NUiSoDe3HY1PTCH\nn5pZs/g7zk4Dng9gSWIVVlzGyZE4fh3osFRwo=\n-----END SSH SIGNATURE-----\n"
+  }
+}

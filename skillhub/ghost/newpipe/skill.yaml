@@ -1,0 +1,80 @@
+name: newpipe
+version: 1.1.0
+author: ghost
+description: 'Search public YouTube in NewPipe without login; return visible titles,
+  channels, views, ages and durations. Search-only: never opens a video.'
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: medium
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: org.schabi.newpipe
+  app_version: '>=0.29.1,<0.30'
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/newpipe
+actions:
+- name: open
+  description: Open the public NewPipe home screen
+  ref_prompt: Open the public NewPipe home screen
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:home_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the public NewPipe home screen in NewPipe
+    expected_success: true
+- name: search_videos
+  description: Search YouTube and read visible video titles, channels, views and ages
+  ref_prompt: Search YouTube and read visible video titles, channels, views and ages
+  params:
+  - name: query
+    type: str
+    required: true
+    description: ASCII public search query
+  - name: limit
+    type: int
+    default: 5
+    description: 1 to 7 visible complete results
+  steps:
+  - python_action: helpers:search
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Search YouTube and read visible video titles, channels, views and ages in NewPipe
+    expected_success: true
+- name: read_results
+  description: Read the currently visible search results
+  ref_prompt: Read the currently visible search results
+  params:
+  - name: limit
+    type: int
+    default: 5
+    description: 1 to 7 visible results
+  steps:
+  - python_action: helpers:read_results
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the currently visible search results in NewPipe
+    expected_success: true

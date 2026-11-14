@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/freecell",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "io.github.d_rk.openpatience",
+    "app_version": "1.1.2"
+  },
+  "fingerprint_hash": "8d49d636e2209bc578d2ca2ba8f2a946179475274cd2c14fe0ed2e8c520fc207",
+  "app_version": "1.1.2",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T05:33:29.607770+00:00",
+  "finished_at": "2026-11-03T05:33:29.607770+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "tap_column",
+      "success": true,
+      "duration_ms": 7524.039957999776,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3057.4252480000723
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3012.0416179997846
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:6cc78412c28b08c0d5613333adf678a8f7740aab1df73bb0845927fb6b1fe013",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHOjEJSn77OcWjwoz4nsfUuxnA/2ad/YNmsyEsQ2V0dgVKh1/5\noSTUL3ciUwCETC8hXJDDt9Lc9L4Ex4a8qNXQY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

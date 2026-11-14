@@ -1,0 +1,105 @@
+# Ghost in the Droid: KFZ-A (login-free FOSS seed skill, installed from F-Droid)
+# KFZ-A (F-Droid): look up the district, federal state and type behind an Austrian licence plate code such as W or GU. Offline, no account.
+
+name: kfz-a
+version: 1.0.0
+author: ghost
+description: "KFZ-A (F-Droid): look up the district, federal state and type behind an Austrian licence plate code such as W or GU. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: de.herk.kfza
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/kfz-a"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: de.herk.kfza}
+      - {action: sleep, duration_s: 2.0}
+
+actions:
+  - name: open_lookup
+    description: "Restart the app and read the lookup screen."
+    ref_prompt: "Open the Austrian licence plate lookup"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_lookup"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:lookup_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open KFZ-A"
+      expected_success: true
+
+  - name: lookup
+    description: "Look up one Austrian plate code (1 to 3 letters) and return district, federal state and type."
+    ref_prompt: "Which Austrian city has the licence plate code W?"
+    demo_params: {code: "W"}
+    params:
+      - {name: code, type: str, required: true, description: "plate code of 1 to 3 letters, for example W or GU"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:lookup"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:looked_up"}
+    test_case:
+      ref_prompt_variants:
+        - "what does the Austrian plate GU stand for"
+        - "where is the Austrian car plate S from"
+      expected_success: true
+
+  - name: lookup_many
+    description: "Look up several plate codes in a row (comma separated, up to 15)."
+    ref_prompt: "Look up the Austrian plate codes W, G and S"
+    demo_params: {codes: "W,G,S"}
+    params:
+      - {name: codes, type: str, required: true, description: "codes separated by commas, for example W,G,S"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:lookup_many"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:looked_up_many"}
+    test_case:
+      ref_prompt_variants:
+        - "decode these Austrian car plates: K, L, I"
+      expected_success: true
+
+  - name: get_result
+    description: "Read the result currently shown."
+    ref_prompt: "What does the plate lookup show now?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_code"
+      - python_action: "helpers:get_result"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:result_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the lookup result"
+      expected_success: true

@@ -1,0 +1,93 @@
+# Ghost in the Droid: Logical Defence (login-free FOSS seed skill, installed from F-Droid)
+# Logical Defence (F-Droid): list the logical fallacies, read one with its definition and example, group them by category. Offline, no account.
+
+name: logical-fallacies
+version: 1.0.0
+author: ghost
+description: "Logical Defence (F-Droid): list the logical fallacies, read one with its definition and example, group them by category. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: za.co.lukestonehm.logicaldefence
+  app_version: ">=1.0"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/logical-fallacies"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: za.co.lukestonehm.logicaldefence}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: list_categories
+    description: "List the fallacy categories from the navigation drawer."
+    ref_prompt: "Which categories of logical fallacies are there?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:go_list"
+      - python_action: "helpers:list_categories"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:categories_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show the fallacy categories"
+      expected_success: true
+
+  - name: list_fallacies
+    description: "List the fallacies of a category (number and name); without a category the one on screen."
+    ref_prompt: "List the logical fallacies in a category"
+    demo_params: {category: "On the Attack", limit: 5}
+    params:
+      - {name: category, type: str, required: false, description: "Category name from list_categories, e.g. On the Attack"}
+      - {name: limit, type: int, required: false, description: "Maximum entries, default 30"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:go_list"
+      - python_action: "helpers:list_fallacies"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:listed"}
+    test_case:
+      ref_prompt_variants:
+        - "what fallacies are in Faulty Deduction"
+        - "show the first fallacies"
+      expected_success: true
+
+  - name: get_fallacy
+    description: "Read one fallacy by its exact name from any category: number, category, definition and example."
+    ref_prompt: "Explain the Appeal to Authority fallacy"
+    demo_params: {name: "Appeal to Authority"}
+    params:
+      - {name: name, type: str, required: true, description: "Exact fallacy name, e.g. Appeal to Authority"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:go_list"
+      - python_action: "helpers:get_fallacy"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:found"}
+    test_case:
+      ref_prompt_variants:
+        - "what is the Appeal to Ignorance fallacy"
+        - "define Appeal to Common Practice"
+      expected_success: true

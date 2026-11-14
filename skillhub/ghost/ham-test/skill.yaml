@@ -1,0 +1,105 @@
+# Ghost in the Droid: Ham Test (login-free FOSS seed skill, installed from F-Droid)
+# Ham Test (F-Droid): study for the US amateur radio exams. Open the Technician, General or Extra question pool, read a question, answer it and see the right answer. Offline, no account.
+
+name: ham-test
+version: 1.0.0
+author: ghost
+description: "Ham Test (F-Droid): study for the US amateur radio exams. Open the Technician, General or Extra question pool, read a question, answer it and see the right answer. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.hazelhope.dubster.hamtest
+  app_version: ">=1.2"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/ham-test"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.hazelhope.dubster.hamtest}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_quiz
+    description: "Restart the app and open a question pool: technician (default), general or extra."
+    ref_prompt: "Open the Technician ham radio quiz"
+    demo_params: {pool: "technician"}
+    params:
+      - {name: pool, type: str, required: false, description: "technician, general or extra; default technician"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_quiz"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:quiz_open"}
+    test_case:
+      ref_prompt_variants:
+        - "start the ham radio general quiz"
+        - "study for the Extra exam"
+      expected_success: true
+
+  - name: get_question
+    description: "Read the current question: id, text, options A-D, progress."
+    ref_prompt: "What is the current ham radio question?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_question"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:question_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read me the ham radio question"
+      expected_success: true
+
+  - name: answer
+    description: "Pick option A, B, C or D and submit; returns whether it was right and the right answer."
+    ref_prompt: "Answer B in the ham radio quiz"
+    demo_params: {choice: "B"}
+    params:
+      - {name: choice, type: str, required: true, description: "A, B, C or D"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:answer"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered"}
+    test_case:
+      ref_prompt_variants:
+        - "answer C"
+        - "submit D"
+      expected_success: true
+
+  - name: next_question
+    description: "Go to the next question."
+    ref_prompt: "Next ham radio question"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:next_question"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:moved_on"}
+    test_case:
+      ref_prompt_variants:
+        - "skip to the next question"
+      expected_success: true

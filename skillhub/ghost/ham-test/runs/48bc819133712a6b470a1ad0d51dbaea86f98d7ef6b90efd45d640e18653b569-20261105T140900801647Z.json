@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/ham-test",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.hazelhope.dubster.hamtest",
+    "app_version": "1.2.2"
+  },
+  "fingerprint_hash": "48bc819133712a6b470a1ad0d51dbaea86f98d7ef6b90efd45d640e18653b569",
+  "app_version": "1.2.2",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T14:09:00.801647+00:00",
+  "finished_at": "2026-11-05T14:09:00.801647+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "next_question",
+      "success": true,
+      "duration_ms": 7687.099300997943,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4635.566613000265
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 2906.235687001754
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:3e4b6553ca6c239121afa9e8a067a8444b55f4cb44df8df696779767d89a2d38",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQOgitG2KMX8j671Q9L+InIbkSZIEJo9xqpslJQJlFOSex7X6IK\npviKDN35dS1Ay6cjpFnkWxAJ+uG7mvcVjCYA8=\n-----END SSH SIGNATURE-----\n"
+  }
+}

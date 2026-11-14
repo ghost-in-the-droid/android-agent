@@ -1,0 +1,141 @@
+# Ghost in the Droid: FlashCards (login-free FOSS seed skill, installed from F-Droid)
+# FlashCards (F-Droid): built-in vocabulary quizzes (emoji, English, German, Spanish, Japanese, Chinese). Start a quiz, read each question, answer it and read the score. Offline, no account.
+
+name: flashcards-vocab
+version: 1.0.0
+author: ghost
+description: "FlashCards (F-Droid): built-in vocabulary quizzes (emoji, English, German, Spanish, Japanese, Chinese). Start a quiz, read each question, answer it and read the score. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.quchen.flashcard
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/flashcards-vocab"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.quchen.flashcard}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_decks
+    description: "Restart the app and read the folder list."
+    ref_prompt: "Open the FlashCards folders"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_decks"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:decks_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open FlashCards"
+      expected_success: true
+
+  - name: start_quiz
+    description: "Start a multiple choice quiz from a folder and deck with a given number of questions."
+    ref_prompt: "Start a 3 question emoji quiz in FlashCards"
+    demo_params: {folder: "English", deck: "Animal Emoji", count: "3"}
+    params:
+      - {name: folder, type: str, required: false, description: "folder name, default English"}
+      - {name: deck, type: str, required: false, description: "deck name, default the first deck (Animal Emoji in English)"}
+      - {name: count, type: str, required: false, description: "number of questions, default 5"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:start_quiz"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:quiz_started"}
+    test_case:
+      ref_prompt_variants:
+        - "quiz me on animal emojis"
+      expected_success: true
+
+  - name: get_question
+    description: "Read the question on screen (an emoji or a word) with its four options and the progress."
+    ref_prompt: "What is the current FlashCards question?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:ensure_quiz"
+      - python_action: "helpers:get_question"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:question_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the quiz question"
+      expected_success: true
+
+  - name: answer
+    description: "Answer the current question by option number (1-4, left to right and top to bottom) or by option text."
+    ref_prompt: "Answer option 2 in the FlashCards quiz"
+    demo_params: {option: "1"}
+    params:
+      - {name: option, type: str, required: true, description: "1-4 or the option text"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:ensure_quiz"
+      - python_action: "helpers:answer"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered"}
+    test_case:
+      ref_prompt_variants:
+        - "pick Lion in the quiz"
+      expected_success: true
+
+  - name: answer_many
+    description: "Answer several questions in a row from a comma separated list of options."
+    ref_prompt: "Answer the next FlashCards questions with options 1 and 2"
+    demo_params: {options: "1,2"}
+    params:
+      - {name: options, type: str, required: true, description: "choices separated by commas, for example 1,2,3"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:ensure_quiz"
+      - python_action: "helpers:answer_many"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered_many"}
+    test_case:
+      ref_prompt_variants:
+        - "answer the quiz questions 1 3"
+      expected_success: true
+
+  - name: get_results
+    description: "Read the results screen: score, comment and the wrongly answered questions with the correct and chosen answer."
+    ref_prompt: "What was my FlashCards quiz score?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:ensure_results"
+      - python_action: "helpers:get_results"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:results_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show my quiz results"
+      expected_success: true

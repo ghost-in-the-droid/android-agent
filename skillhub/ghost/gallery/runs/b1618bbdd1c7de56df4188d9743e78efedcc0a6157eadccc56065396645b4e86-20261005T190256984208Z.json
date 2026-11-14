@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/gallery",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "org.fossify.gallery",
+    "app_version": "1.13.1"
+  },
+  "fingerprint_hash": "b1618bbdd1c7de56df4188d9743e78efedcc0a6157eadccc56065396645b4e86",
+  "app_version": "1.13.1",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T19:02:56.984208+00:00",
+  "finished_at": "2026-10-05T19:02:56.984208+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_photo_properties",
+      "success": true,
+      "duration_ms": 10113.237397978082,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4326.800081005786
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 955.9888530056924
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 2004.6906960196793
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 20.959843008313328
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 2791.0833309870213
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQIQC0jC/WlpeDB18l7EqafaWpsgdS6yteQpKJ7E+S3pY3r9Afr\n9mn+Tz3OJoCo9G4H9ujebLtRmIyos+XTyUagc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

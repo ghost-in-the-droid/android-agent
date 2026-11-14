@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/maps",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.apps.maps",
+    "app_version": "11.71.0300"
+  },
+  "fingerprint_hash": "539219a8111fbd63d682bae1e140e05ae62aa0a88eaeddea2560380b96b56b48",
+  "app_version": "11.71.0300",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:10:36.874135+00:00",
+  "finished_at": "2026-10-05T18:10:36.874135+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_directions",
+      "success": true,
+      "duration_ms": 5493.096438003704,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3294.4678860076237
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 2177.2438299958594
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQC+5v8UIm4cRyUj4bpFrMSXJKh+pkA6IErlmdmrMGLusHLLM0r\nhjndhxNS4KYdLI/U3zFifQPym0/284BGaZyQM=\n-----END SSH SIGNATURE-----\n"
+  }
+}

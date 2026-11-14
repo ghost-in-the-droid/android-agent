@@ -1,0 +1,157 @@
+# Ghost in the Droid: 2048 Privacy Friendly (login-free FOSS seed skill, installed from F-Droid)
+# The classic 2048 sliding-tile puzzle. The board is readable (buttons with text) and moves are swipes.
+
+name: game-2048
+version: 1.0.0
+author: ghost
+description: "2048 (Privacy Friendly, F-Droid): start a new game, swipe left/right/up/down (single or a sequence), restart and read the 4x4 grid, points and record. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: org.secuso.privacyfriendly2048
+  app_version: ">=1.4.2"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/game-2048"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_menu
+    description: "Launch the app to its start screen (first launch shows a 4-slide welcome: SKIP it; a running game is left with BACK)."
+    steps:
+      - {action: launch_app, package: org.secuso.privacyfriendly2048}
+      - {action: sleep, duration_s: 2}
+      - if_visible:
+          selector: {id: "org.secuso.privacyfriendly2048:id/btn_skip"}
+          then:
+            - {action: tap_element, id: "org.secuso.privacyfriendly2048:id/btn_skip"}
+            - {action: sleep, duration_s: 1.5}
+      - if_visible:
+          selector: {id: "org.secuso.privacyfriendly2048:id/points"}
+          then:
+            - {action: press_key, key: BACK}
+            - {action: sleep, duration_s: 1.5}
+      - {action: wait_for_element, id: "org.secuso.privacyfriendly2048:id/button_newGame", timeout_s: 10}
+  - name: fresh_game
+    steps:
+      - subroutine: open_menu
+      - {action: tap_element, id: "org.secuso.privacyfriendly2048:id/button_newGame"}
+      - {action: wait_for_element, id: "org.secuso.privacyfriendly2048:id/points", timeout_s: 8}
+      - {action: sleep, duration_s: 1}
+  - name: running_game
+    description: "Reopen the app on the game in progress (Continue game)."
+    steps:
+      - subroutine: open_menu
+      - {action: tap_element, id: "org.secuso.privacyfriendly2048:id/button_continueGame"}
+      - {action: wait_for_element, id: "org.secuso.privacyfriendly2048:id/points", timeout_s: 8}
+      - {action: sleep, duration_s: 1}
+
+actions:
+  - name: new_game
+    description: "Start a new 4x4 game (two starting tiles, 0 points) and return the board."
+    ref_prompt: "Start a new 2048 game"
+    params: []
+    steps:
+      - subroutine: fresh_game
+      - python_action: "helpers:get_board"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.secuso.privacyfriendly2048:id/points"}
+        - {kind: element_present, id: "org.secuso.privacyfriendly2048:id/restartButton"}
+        - {kind: custom_python, function: "helpers:fresh_board"}
+    test_case:
+      ref_prompt_variants:
+        - "play 2048"
+        - "new game of 2048"
+        - "restart the 2048 board"
+      expected_success: true
+
+  - name: swipe
+    description: "Swipe the board once in a direction (left, right, up, down) on the game in progress; returns the board before and after."
+    ref_prompt: "Swipe left in 2048"
+    demo_params: {direction: left}
+    params:
+      - {name: direction, type: enum, values: [left, right, up, down], required: true}
+    steps:
+      - subroutine: running_game
+      - python_action: "helpers:swipe"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.secuso.privacyfriendly2048:id/points"}
+        - {kind: element_present, id: "org.secuso.privacyfriendly2048:id/record"}
+        - {kind: custom_python, function: "helpers:swiped"}
+    test_case:
+      ref_prompt_variants:
+        - "slide the tiles down"
+        - "move up in 2048"
+      expected_success: true
+
+  - name: play_moves
+    description: "Start a new game and play a sequence of swipes (e.g. left,up,left,down); returns points and tile sum after each."
+    ref_prompt: "Play 2048: swipe left, up, left, down, left, up"
+    demo_params: {directions: "left,up,left,down,left,up"}
+    params:
+      - {name: directions, type: str, required: true, description: "Comma separated: left, right, up, down"}
+    steps:
+      - subroutine: fresh_game
+      - python_action: "helpers:play_moves"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.secuso.privacyfriendly2048:id/points"}
+        - {kind: element_present, id: "org.secuso.privacyfriendly2048:id/record"}
+        - {kind: custom_python, function: "helpers:moves_played"}
+    test_case:
+      ref_prompt_variants:
+        - "play a few moves of 2048"
+        - "swipe left then up four times"
+      expected_success: true
+
+  - name: restart
+    description: "Restart the running game with the board's restart button."
+    ref_prompt: "Restart the 2048 game"
+    params: []
+    steps:
+      - subroutine: running_game
+      - python_action: "helpers:tap_restart"
+      - python_action: "helpers:get_board"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.secuso.privacyfriendly2048:id/points"}
+        - {kind: element_present, id: "org.secuso.privacyfriendly2048:id/restartButton"}
+        - {kind: custom_python, function: "helpers:fresh_board"}
+    test_case:
+      ref_prompt_variants:
+        - "start over"
+      expected_success: true
+
+  - name: get_board
+    description: "Read the 4x4 grid (0 = empty), points, record, tile sum, largest tile and whether the game is over."
+    ref_prompt: "What does my 2048 board look like?"
+    params: []
+    steps:
+      - subroutine: running_game
+      - python_action: "helpers:get_board"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.secuso.privacyfriendly2048:id/points"}
+        - {kind: element_present, id: "org.secuso.privacyfriendly2048:id/record"}
+        - {kind: custom_python, function: "helpers:board_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what is my 2048 score"
+        - "what is the biggest tile"
+      expected_success: true

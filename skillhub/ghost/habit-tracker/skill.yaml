@@ -1,0 +1,141 @@
+# Ghost in the Droid: Loop Habit Tracker (login-free FOSS seed skill, installed from F-Droid)
+# Create yes/no habits, tick days, read score and totals. Offline, no account.
+
+name: habit-tracker
+version: 1.0.0
+author: ghost
+description: "Loop Habit Tracker (F-Droid): create a yes/no habit, tick or untick a day, list habits and read a habit's score and total count. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: [notifications]
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: org.isoron.uhabits
+  app_version: ">=2.3.2"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/habit-tracker"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_list
+    description: "Launch the app on the habit list: SKIP the first-run welcome, BACK out of a habit detail, form or dialog."
+    steps:
+      - {action: launch_app, package: org.isoron.uhabits}
+      - {action: sleep, duration_s: 2}
+      - if_visible:
+          selector: {id: "org.isoron.uhabits:id/skip"}
+          then:
+            - {action: tap_element, id: "org.isoron.uhabits:id/skip"}
+            - {action: sleep, duration_s: 1.5}
+      - if_visible:
+          selector: {id: "org.isoron.uhabits:id/yesBtn"}
+          then:
+            - {action: press_key, key: BACK}
+            - {action: sleep, duration_s: 1}
+      - if_visible:
+          selector: {id: "org.isoron.uhabits:id/scoreLabel"}
+          then:
+            - {action: press_key, key: BACK}
+            - {action: sleep, duration_s: 1}
+      - if_visible:
+          selector: {id: "org.isoron.uhabits:id/buttonSave"}
+          then:
+            - {action: press_key, key: BACK}
+            - {action: sleep, duration_s: 1}
+      - {action: wait_for_element, id: "org.isoron.uhabits:id/actionCreateHabit", timeout_s: 10}
+
+actions:
+  - name: create_habit
+    description: "Create a yes/no habit with a name (and an optional question); returns the habit list."
+    ref_prompt: "Create a habit called Meditate"
+    demo_params: {name: Meditate}
+    params:
+      - {name: name, type: str, required: true, description: "Habit name"}
+      - {name: question, type: str, default: "", description: "Optional question, e.g. Did you meditate today?"}
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:create"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "{name}"}
+        - {kind: element_present, id: "org.isoron.uhabits:id/actionCreateHabit"}
+        - {kind: custom_python, function: "helpers:created"}
+    test_case:
+      ref_prompt_variants:
+        - "add a new habit: drink water"
+        - "track a habit called Read"
+        - "start tracking Exercise"
+      expected_success: true
+
+  - name: check_habit
+    description: "Mark done (result=done) or missed (result=missed) a habit for today (day=0) or the previous 3 days."
+    ref_prompt: "Mark Meditate as done today"
+    demo_params: {name: Meditate, day: "0", result: done}
+    params:
+      - {name: name, type: str, required: true, description: "Existing habit name"}
+      - {name: day, type: str, default: "0", description: "0 = today, 1 = yesterday, up to 3"}
+      - {name: result, type: str, default: done, description: "done (also yes/true/1) or missed (also no/false/0)"}
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:check"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "{name}"}
+        - {kind: element_present, id: "org.isoron.uhabits:id/actionCreateHabit"}
+        - {kind: custom_python, function: "helpers:checked"}
+    test_case:
+      ref_prompt_variants:
+        - "I meditated today"
+        - "tick off Read for yesterday"
+      expected_success: true
+
+  - name: get_habits
+    description: "List the names of all active habits."
+    ref_prompt: "Which habits am I tracking?"
+    params: []
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:list_habits"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.isoron.uhabits:id/actionCreateHabit"}
+        - {kind: element_present, id: "org.isoron.uhabits:id/action_filter"}
+        - {kind: custom_python, function: "helpers:listed"}
+    test_case:
+      ref_prompt_variants:
+        - "list my habits"
+        - "what am I tracking"
+      expected_success: true
+
+  - name: get_habit_stats
+    description: "Open a habit and read its score, month and year change, total count and frequency."
+    ref_prompt: "How is my Meditate habit going?"
+    demo_params: {name: Meditate}
+    params:
+      - {name: name, type: str, required: true, description: "Existing habit name"}
+    steps:
+      - subroutine: open_list
+      - python_action: "helpers:stats"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "org.isoron.uhabits:id/actionCreateHabit"}
+        - {kind: text_visible, text: "{name}"}
+        - {kind: custom_python, function: "helpers:stats_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what is my streak score for Read"
+        - "how many times did I do Exercise"
+      expected_success: true

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/flashcards",
+ "action": null,
+ "prompt": "Make a Spanish flashcard deck on my phone, add hola/hello and gato/cat, then study the cards and grade each one good.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": null,
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 152.99,
+  "tokens": 1761635,
+  "tool_calls": 61,
+  "ok": false
+ },
+ "after": {
+  "seconds": 101.41,
+  "tokens": 102984,
+  "tool_calls": 10,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

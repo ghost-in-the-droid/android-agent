@@ -1,0 +1,104 @@
+# Ghost in the Droid: Morse (login-free FOSS seed skill, installed from F-Droid)
+# Morse (F-Droid): translate text to Morse code and Morse back to text in real time. Offline, no account. The camera permission dialog of the app is denied.
+
+name: morse-translator
+version: 1.0.0
+author: ghost
+description: "Morse (F-Droid): translate text to Morse code and Morse back to text in real time. Offline, no account. The camera permission dialog of the app is denied."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: rocks.poopjournal.morse
+  app_version: ">=2.2"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/morse-translator"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: rocks.poopjournal.morse}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_translator
+    description: "Restart the app (denying its camera permission request) and read the translator."
+    ref_prompt: "Open the Morse code translator"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_translator"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:translator_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the Morse app"
+      expected_success: true
+
+  - name: translate
+    description: "Translate text to Morse (default) or Morse to text and return the output."
+    ref_prompt: "Translate Hello World to Morse code"
+    demo_params: {text: "Hello World", direction: "text_to_morse"}
+    params:
+      - {name: text, type: str, required: true, description: "Plain ASCII text, or Morse using . - / and spaces"}
+      - {name: direction, type: str, required: false, description: "text_to_morse (default) or morse_to_text"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:translate"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:translated"}
+    test_case:
+      ref_prompt_variants:
+        - "what is SOS in Morse code"
+        - "decode ... --- ... from Morse"
+        - "write my name in Morse"
+      expected_success: true
+
+  - name: get_translation
+    description: "Read the current direction, input and output."
+    ref_prompt: "What does the Morse translator show?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:get_translation"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:translation_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show the Morse output"
+      expected_success: true
+
+  - name: clear_input
+    description: "Clear the input field."
+    ref_prompt: "Clear the Morse translator"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:clear_input"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:cleared"}
+    test_case:
+      ref_prompt_variants:
+        - "clear the Morse input"
+      expected_success: true

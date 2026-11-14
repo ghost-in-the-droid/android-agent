@@ -1,0 +1,121 @@
+# Ghost in the Droid: Navy Fleet Battle (login-free FOSS seed skill, installed from F-Droid)
+# Navy Fleet Battle (F-Droid): classic sea battle against the computer. Start a game, fire at cells A1 to J10 and read the turn and the ships left. Offline, no account.
+
+name: navy-fleet-battle
+version: 1.0.0
+author: ghost
+description: "Navy Fleet Battle (F-Droid): classic sea battle against the computer. Start a game, fire at cells A1 to J10 and read the turn and the ships left. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: net.tigr.navyfleetbattle
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/navy-fleet-battle"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: net.tigr.navyfleetbattle}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_menu
+    description: "Restart the app and read the start menu."
+    ref_prompt: "Open the Navy Fleet Battle menu"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_menu"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:menu_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open Navy Fleet Battle"
+      expected_success: true
+
+  - name: new_game
+    description: "Start a new game against the computer with random ship placement."
+    ref_prompt: "Start a new Navy Fleet Battle game"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:new_game"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:game_started"}
+    test_case:
+      ref_prompt_variants:
+        - "play sea battle against the computer"
+      expected_success: true
+
+  - name: fire
+    description: "Fire at one cell (letter A-J and number 1-10) and return hit, sunk, miss or game over."
+    ref_prompt: "Fire at B5 in Navy Fleet Battle"
+    demo_params: {cell: "B5"}
+    params:
+      - {name: cell, type: str, required: true, description: "cell such as B5 (rows A-J, columns 1-10)"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:ensure_game"
+      - python_action: "helpers:fire"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:fired"}
+    test_case:
+      ref_prompt_variants:
+        - "shoot at cell C3 in sea battle"
+      expected_success: true
+
+  - name: fire_many
+    description: "Fire at several cells in a row (comma separated, up to 20) and return the result of each."
+    ref_prompt: "Fire at A1, C3 and E5 in Navy Fleet Battle"
+    demo_params: {cells: "A1,C3,E5"}
+    params:
+      - {name: cells, type: str, required: true, description: "cells such as A1,C3,E5"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:ensure_game"
+      - python_action: "helpers:fire_many"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:fired_many"}
+    test_case:
+      ref_prompt_variants:
+        - "fire a salvo in sea battle"
+      expected_success: true
+
+  - name: get_state
+    description: "Read the turn, the hint line and how many enemy and own ships of each size are left (battleship, cruiser, destroyer, boat)."
+    ref_prompt: "What is the Navy Fleet Battle status?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:ensure_game"
+      - python_action: "helpers:get_state"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:state_read"}
+    test_case:
+      ref_prompt_variants:
+        - "how many enemy ships are left"
+      expected_success: true

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/markor",
+ "action": "create_note",
+ "prompt": "Make a note called Shopping with milk and eggs",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 79.88,
+  "tokens": 1350202,
+  "tool_calls": 41,
+  "ok": true
+ },
+ "after": {
+  "seconds": 41.04,
+  "tokens": 57597,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "Same prompt and clean temporary app per side; 'ok' is an independent check of the final phone state.",
+ "source": "phone-b-before-after"
+}

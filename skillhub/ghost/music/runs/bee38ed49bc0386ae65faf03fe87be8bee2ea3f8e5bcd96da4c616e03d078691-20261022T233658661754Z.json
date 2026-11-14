@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/music",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "org.fossify.musicplayer",
+    "app_version": "1.8.1"
+  },
+  "fingerprint_hash": "bee38ed49bc0386ae65faf03fe87be8bee2ea3f8e5bcd96da4c616e03d078691",
+  "app_version": "1.8.1",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T23:36:58.661754+00:00",
+  "finished_at": "2026-10-22T23:36:58.661754+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": false,
+  "actions": [
+    {
+      "name": "list_tracks",
+      "success": false,
+      "duration_ms": 181897.0504309982,
+      "error_kind": "StepFailedError",
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": false,
+          "duration_ms": 181896.94277604576
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:c0533328fdb07f48f1d4a1b49ce5ea3540c4cb690d9c87f63ac35ea452c14891",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHF/gqPtQLSNcus1tbKXfnmaTQBP3fT8iPP1gzED8YSj51/sCI\nnYd+yxxcSumfT4mPXSy0u9eTL0W6YaRvrD4QQ=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/giggity",
+ "action": "read_catalog",
+ "prompt": "In Giggity, list the first three complete preconfigured conference names with their displayed date ranges, then briefly compare those ranges. Stay in the catalog: do not add schedules, open links, set reminders, create shortcuts or change settings.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 12.32,
+  "tokens": 13403,
+  "tool_calls": 3,
+  "ok": false
+ },
+ "after": {
+  "seconds": 21.0,
+  "tokens": 30230,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Both profiles copy the same first3 public conference names/date ranges; comparison reviewed against native dates. BEFORE12.32s/13403 tokens/3 calls copies dates correctly but fails the comparison; AFTER21.00s/30230/4 succeeds and costs more time/tokens due to discovery and guarded native hierarchy validation. This negative performance comparison is retained. BEFORE actual cap232809, lowered from the400k maximum solely to preserve cumulative AFTER/in-flight headroom; it completed far below cap. Both profiles had temporary-app notifications denied before launch, stayed in the catalog, no schedule Add, reminder, shortcut, bookmark, settings or external links. All7 toolkit actions separately passed3/3 final-digest default-key CLI runs, including public program and detail reads with reminder explicitly unchecked. Manual completion review corrected BEFORE success to false: copied names/date ranges are correct, but it claims IETF runs six days longer than Capitole. The displayed ranges differ by five days (7 versus2 calendar days); Nights also ties Capitole at2 days. AFTER comparison is accurate. No new take; original BEFORE and all costs retained, corrected FAILED label re-rendered and re-audited. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

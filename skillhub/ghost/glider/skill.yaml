@@ -1,0 +1,140 @@
+name: glider
+version: 1.0.0
+author: ghost
+description: Read public Hacker News stories and comments anonymously in Glider. Browse
+  categories, list story titles/points/comment counts and read visible discussion
+  text without accounts or engagement.
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: nl.viter.glider
+  app_version: '>=2.8.0,<2.9'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/glider
+actions:
+- name: open
+  description: Open the anonymous Hacker News frontpage
+  ref_prompt: Open the anonymous Hacker News frontpage
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:stories_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the anonymous Hacker News frontpage in glider
+    expected_success: true
+- name: read_stories
+  description: List complete visible stories with points and comment counts
+  ref_prompt: List complete visible stories with points and comment counts
+  params: []
+  steps:
+  - python_action: helpers:read_stories
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:stories_ok
+  test_case:
+    ref_prompt_variants:
+    - List complete visible stories with points and comment counts in glider
+    expected_success: true
+- name: select_category
+  description: Select a public frontpage story category
+  ref_prompt: Select a public frontpage story category
+  params:
+  - name: category
+    type: enum
+    values:
+    - Top
+    - New
+    - Best
+    - Ask
+    - Show
+    required: true
+  steps:
+  - python_action: helpers:select_category
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:stories_ok
+  test_case:
+    ref_prompt_variants:
+    - Select a public frontpage story category in glider
+    expected_success: true
+- name: open_comments
+  description: Open the internal discussion for a visible story
+  ref_prompt: Open the internal discussion for a visible story
+  params:
+  - name: index
+    type: int
+    description: Zero-based complete visible story index
+    required: true
+  steps:
+  - python_action: helpers:open_comments
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:comments_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the internal discussion for a visible story in glider
+    expected_success: true
+- name: read_comments
+  description: Read exposed comment bodies in the current discussion viewport
+  ref_prompt: Read exposed comment bodies in the current discussion viewport
+  params: []
+  steps:
+  - python_action: helpers:read_comments
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:comments_ok
+  test_case:
+    ref_prompt_variants:
+    - Read exposed comment bodies in the current discussion viewport in glider
+    expected_success: true
+- name: scroll
+  description: Scroll one public story or discussion viewport and read it
+  ref_prompt: Scroll one public story or discussion viewport and read it
+  params: []
+  steps:
+  - python_action: helpers:scroll
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Scroll one public story or discussion viewport and read it in glider
+    expected_success: true
+- name: back_to_stories
+  description: Return from a discussion to the story listing
+  ref_prompt: Return from a discussion to the story listing
+  params: []
+  steps:
+  - python_action: helpers:back_to_stories
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:stories_ok
+  test_case:
+    ref_prompt_variants:
+    - Return from a discussion to the story listing in glider
+    expected_success: true

@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/gpa-calculator",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.gpa.calculator.gpa_calculator",
+    "app_version": "1.0.5"
+  },
+  "fingerprint_hash": "e51135b931beac7d8d296e29add390a646343073c38ebe9f44b5cd60a57d2c8a",
+  "app_version": "1.0.5",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T06:35:50.325768+00:00",
+  "finished_at": "2026-11-03T06:35:50.325768+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "calculate",
+      "success": true,
+      "duration_ms": 6516.356692001864,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2794.622622001043
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 49.31127699819626
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 3624.779794998176
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:77f622a880f156f3a9545d86952b03b9da732d9840769a6385c8b26e01efbe90",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQIV7qmAKNbl7Q778kv6AiL6GJemw/YiNlWDefXmH1I4EeMB+jv\nRw1noWhGzZyJsg8Gkkrxe0bMYle+wlV5ZmaA8=\n-----END SSH SIGNATURE-----\n"
+  }
+}

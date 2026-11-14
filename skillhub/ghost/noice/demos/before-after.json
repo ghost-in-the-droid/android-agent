@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/noice",
+ "action": "list_presets",
+ "prompt": "List the available sound presets in Noice",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 15.09,
+  "tokens": 296293,
+  "tool_calls": 10,
+  "ok": true
+ },
+ "after": {
+  "seconds": 19.4,
+  "tokens": 20578,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "WITH skill was 4.31s slower despite fewer calls. Replay trace: open_presets 10.262s plus list_presets 5.662s (run_skill total 15.951s); discovery and final response add the remaining elapsed time. Both sides list the same four presets. Source inspection shows the list collector rechecks pages and performs four reset swipes after collecting rows; it trades thorough collection for elapsed time.",
+ "source": "phone-b-before-after"
+}

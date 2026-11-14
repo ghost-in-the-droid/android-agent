@@ -1,0 +1,34 @@
+# Google Maps UI elements (Android).
+# Verified 2026-07-19 on Maps 25.x / Android 11 (ASUS ROG Phone II, 1080x2340).
+#
+# NOTE: several key Maps controls have DYNAMIC content-descs
+# ("Directions to <place>", "Driving mode: 10 minutes"). Element's locator
+# chain is exact-match only, so those are located by prefix regex inside the
+# actions instead of here. Everything with a stable rid/desc lives below.
+
+search_box:
+  resource_id: com.google.android.apps.maps:id/search_omnibox_text_box
+
+search_clear:
+  resource_id: com.google.android.apps.maps:id/search_omnibox_text_clear
+
+close_card:
+  resource_id: com.google.android.apps.maps:id/terra_navigation_header_close_button
+
+trip_summary:
+  resource_id: com.google.android.apps.maps:id/trip_details_summary_header
+
+route_options:
+  resource_id: com.google.android.apps.maps:id/directions_header_preference_action_button
+
+mode_tabs:
+  resource_id: com.google.android.apps.maps:id/directions_mode_tabs
+
+start_navigation:
+  content_desc: Start
+
+swap_start_destination:
+  content_desc: Swap start and destination
+
+add_stops:
+  content_desc: Add stops

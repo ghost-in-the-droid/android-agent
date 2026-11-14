@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/geological-timescale",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.tengel.timescale",
+    "app_version": "0.7.1"
+  },
+  "fingerprint_hash": "b8b6aae4952594bb9c18acfdaa925893048d75fffe55cad872db0677f67d3097",
+  "app_version": "0.7.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T15:18:09.792282+00:00",
+  "finished_at": "2026-11-05T15:18:09.792282+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "zoom_in",
+      "success": true,
+      "duration_ms": 12167.402406001202,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 998.4877759998199
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 5015.4862480012525
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 4894.019262999791
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:385dd3023097ad342ad76662baae0186a8513de530055e7a0430984366de6dee",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQPdnmfuX3kbqlJqTJ+N7NVnFe/aMiM2vJXzfVfAkCb53Q7vZH/\n19shAP3G6ENl+Pb1KYHCMHuyOy4V3pz/AJqAY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

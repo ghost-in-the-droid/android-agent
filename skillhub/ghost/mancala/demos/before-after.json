@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/mancala",
+ "action": null,
+ "prompt": "Start a Mancala game on my phone and play pits 3, 1 and 5, then tell me the score. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 46.56,
+  "tokens": 354880,
+  "tool_calls": 17,
+  "ok": true
+ },
+ "after": {
+  "seconds": 51.77,
+  "tokens": 81677,
+  "tool_calls": 6,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

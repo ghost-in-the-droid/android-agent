@@ -1,0 +1,110 @@
+# Ghost in the Droid: Google Messages (login-free seed skill)
+# Drafts only. No step taps Send; conversations open via SENDTO intents and close with BACK.
+
+name: messages
+version: 1.0.0
+author: ghost
+description: "Google Messages without an account: save an SMS draft (never sends), list conversations, read a conversation."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]     # draft_message stores an unsent draft on the device
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [sms, contacts]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.google.android.apps.messaging
+  app_version: ">=20221208"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/messages"
+
+popup_detectors:
+  - {detect: "Use Messages without an account", button: "Use Messages without an account", label: "First-run Google sign-in screen"}
+  - {detect: "Allow Messages to send you notifications", button: "Don’t allow", label: "Notification permission prompt"}
+
+subroutines:
+  - name: open_inbox
+    description: "Fresh launch to the conversation list, skipping first-run sign-in."
+    steps:
+      - python_action: "helpers:close_messages"
+      - {action: launch_app, package: com.google.android.apps.messaging}
+      - {action: sleep, duration_s: 2}
+      - {action: dismiss_popups}
+      - {action: wait_for_element, id: "com.google.android.apps.messaging:id/start_chat_fab", timeout_s: 45}
+
+actions:
+  - name: draft_message
+    description: "Open the conversation with a number, put the text in the compose box and leave with BACK so it is saved as an unsent draft."
+    ref_prompt: "Draft a text to 555 0100 saying See you at 6, but don't send it"
+    params:
+      - {name: number, type: str, required: true, description: "Recipient phone number"}
+      - {name: text, type: str, required: true, description: "Draft body"}
+    steps:
+      - subroutine: open_inbox
+      - python_action: "helpers:open_conversation"
+      - {action: wait_for_element, id: "com.google.android.apps.messaging:id/compose_message_text", timeout_s: 20}
+      - {action: sleep, duration_s: 1}
+      - python_action: "helpers:check_compose"
+      # BACK (not the toolbar arrow, which sits under heads-up notifications) saves the draft.
+      - {action: press_key, key: BACK}
+      - {action: wait_for_element, id: "com.google.android.apps.messaging:id/start_chat_fab", timeout_s: 15}
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Draft"}
+        - {kind: custom_python, function: "helpers:draft_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "prepare an SMS to +1 555 123 4567: running late"
+        - "write a message to 5550100 but leave it as a draft"
+        - "start a text to my landlord's number 0800 123 456 saying rent is paid"
+      expected_success: true
+
+  - name: list_conversations
+    description: "Return the conversation list: name, last-message snippet, time, draft and unread flags."
+    ref_prompt: "Show my text message conversations"
+    params: []
+    steps:
+      - subroutine: open_inbox
+      - python_action: "helpers:read_conversation_list"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.apps.messaging:id/start_chat_fab"}
+        - {kind: custom_python, function: "helpers:conversations_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "do I have unread texts"
+        - "list my SMS threads"
+        - "who texted me last"
+      expected_success: true
+
+  - name: read_conversation
+    description: "Open the conversation with a number and return its visible messages (sender, text, time). Does not send."
+    ref_prompt: "Read my texts with 555 0100"
+    params:
+      - {name: number, type: str, required: true, description: "Phone number of the conversation"}
+    steps:
+      - subroutine: open_inbox
+      - python_action: "helpers:open_conversation"
+      - {action: wait_for_element, id: "com.google.android.apps.messaging:id/conversation_title", timeout_s: 20}
+      - {action: sleep, duration_s: 1}
+      - python_action: "helpers:read_messages"
+      - {action: press_key, key: BACK}
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.apps.messaging:id/start_chat_fab"}
+        - {kind: custom_python, function: "helpers:messages_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "what did +1 555 123 4567 text me"
+        - "open my SMS thread with 5550100"
+        - "show the last messages from that number"
+      expected_success: true

@@ -1,0 +1,108 @@
+# Ghost in the Droid: Noice (login-free seed skill)
+# Ambient sound generator from F-Droid (com.github.ashutoshgngwr.noice, GPL-3.0
+# app; this skill is MIT). The free sound library and the bundled presets work
+# without an account. Playback is verified through the app's media session.
+
+name: noice
+version: 1.0.0
+author: ghost
+description: "Noice ambient sounds (no account): list presets and sounds, play a preset for a few seconds then stop, stop playback."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [network]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.github.ashutoshgngwr.noice
+  app_version: ">=2.5.7"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/noice"
+
+os_popup_policy:
+  allow_permissions: [notifications]
+
+popup_detectors:
+  - {detect: "Allow Noice to send you notifications?", button: "Allow", label: "Notification permission (playback controls)"}
+
+actions:
+  - name: list_presets
+    description: "List the saved presets (bundled and user-made) with their authors."
+    ref_prompt: "What sound presets do I have in Noice?"
+    params: []
+    steps:
+      - python_action: "helpers:open_presets"
+      - python_action: "helpers:list_presets"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Presets"}
+        - {kind: custom_python, function: "helpers:presets_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "list my noice presets"
+        - "which ambient mixes are saved"
+        - "show sleep sound presets"
+      expected_success: true
+
+  - name: list_sounds
+    description: "List the individual sounds in the library with their category (Life, Nature, ...)."
+    ref_prompt: "Which ambient sounds can Noice play?"
+    params: []
+    steps:
+      - python_action: "helpers:open_library"
+      - python_action: "helpers:list_sounds"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, desc: "Library"}
+        - {kind: custom_python, function: "helpers:sounds_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "list noice sounds"
+        - "does noice have rain sounds"
+        - "what's in the sound library"
+      expected_success: true
+
+  - name: play_preset
+    description: "Play a preset by name (with or without the 'by @author' part) for `seconds` (1 to 30), then stop it."
+    ref_prompt: "Play the Beach preset for a few seconds"
+    params:
+      - {name: preset, type: str, required: true, description: "e.g. Beach or 'Beach by @eMPee584'"}
+      - {name: seconds, type: int, default: 3}
+    steps:
+      - python_action: "helpers:open_presets"
+      - python_action: "helpers:play_preset"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:played_then_stopped"}
+    test_case:
+      ref_prompt_variants:
+        - "play thunderstorm sounds briefly"
+        - "preview the camping preset"
+        - "start the womb simulator for 5 seconds"
+      expected_success: true
+
+  - name: stop_playback
+    description: "Stop Noice playback if anything plays (media STOP key); reports what was playing."
+    ref_prompt: "Stop the ambient sounds"
+    params: []
+    steps:
+      - python_action: "helpers:stop_playback"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:stopped"}
+    test_case:
+      ref_prompt_variants:
+        - "turn off noice"
+        - "silence the rain sounds"
+        - "stop sleep sounds"
+      expected_success: true

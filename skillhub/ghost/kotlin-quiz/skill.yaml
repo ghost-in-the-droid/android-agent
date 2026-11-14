@@ -1,0 +1,140 @@
+# Ghost in the Droid: Kotlin Quiz (login-free FOSS seed skill, installed from F-Droid)
+# Kotlin Quiz (F-Droid): a 10 question multiple choice quiz about the Kotlin language with a final score. Offline, only a display name, no account.
+
+name: kotlin-quiz
+version: 1.0.0
+author: ghost
+description: "Kotlin Quiz (F-Droid): a 10 question multiple choice quiz about the Kotlin language with a final score. Offline, only a display name, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.example.kotlinquiz
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/kotlin-quiz"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.example.kotlinquiz}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: start_quiz
+    description: "Restart the app, enter a display name and start the quiz; return the first question with its three options."
+    ref_prompt: "Start the Kotlin quiz"
+    demo_params: {name: "Ghost"}
+    params:
+      - {name: name, type: str, required: false, description: "display name, default Ghost"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:start_quiz"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:quiz_started"}
+    test_case:
+      ref_prompt_variants:
+        - "quiz me on Kotlin"
+      expected_success: true
+
+  - name: get_question
+    description: "Read the current question and its three options."
+    ref_prompt: "What is the Kotlin quiz question now?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_quiz"
+      - python_action: "helpers:get_question"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:question_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the quiz question"
+      expected_success: true
+
+  - name: answer
+    description: "Choose option 1, 2 or 3, submit it and move on to the next question (or the result after the last one)."
+    ref_prompt: "Answer the Kotlin quiz question with option 2"
+    demo_params: {option: 2}
+    params:
+      - {name: option, type: int, required: true, description: "1, 2 or 3"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_quiz"
+      - python_action: "helpers:answer"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered"}
+    test_case:
+      ref_prompt_variants:
+        - "pick the third answer"
+      expected_success: true
+
+  - name: answer_many
+    description: "Answer several questions in a row (up to 10 option numbers, comma separated), stopping at the result screen."
+    ref_prompt: "Answer the next three Kotlin quiz questions with 3, 1 and 2"
+    demo_params: {options: "3,1,2"}
+    params:
+      - {name: options, type: str, required: true, description: "option numbers separated by commas, for example 3,1,2"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_quiz"
+      - python_action: "helpers:answer_many"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered_many"}
+    test_case:
+      ref_prompt_variants:
+        - "answer the quiz questions 2,2,1"
+      expected_success: true
+
+  - name: get_result
+    description: "Read the final result screen: name and score (10 points per right answer)."
+    ref_prompt: "What is my Kotlin quiz score?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_result"
+      - python_action: "helpers:get_result"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:result_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show my quiz score"
+      expected_success: true
+
+  - name: finish_quiz
+    description: "Close the result screen and return to the welcome form."
+    ref_prompt: "Finish the Kotlin quiz"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_result"
+      - python_action: "helpers:finish_quiz"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:quiz_finished"}
+    test_case:
+      ref_prompt_variants:
+        - "close the quiz result"
+      expected_success: true

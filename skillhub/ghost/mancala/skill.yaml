@@ -1,0 +1,113 @@
+# Ghost in the Droid: Mancala (login-free FOSS seed skill, installed from F-Droid)
+# A text-console Kalah game for two players on one phone; the agent plays both sides.
+
+name: mancala
+version: 1.0.0
+author: ghost
+description: "Mancala (F-Droid): start a Kalah game, play pits for each player in turn, read the board, stores and winner. The whole game is a readable text console. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: com.willie.mancala
+  app_version: ">=1.2"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/mancala"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_console
+    description: "Launch the app (it opens on the console; state survives while the app is alive)."
+    steps:
+      - {action: launch_app, package: com.willie.mancala}
+      - {action: sleep, duration_s: 1.5}
+
+actions:
+  - name: new_game
+    description: "Restart the app and set up a game: pits per player (default 6) and seeds per pit (default 4). Player 1 moves first."
+    ref_prompt: "Start a Mancala game"
+    demo_params: {pits: 6, seeds: 4}
+    params:
+      - {name: pits, type: int, required: false, description: "Pits per player, default 6"}
+      - {name: seeds, type: int, required: false, description: "Seeds per pit, 1 to 166, default 4"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_console
+      - python_action: "helpers:new_game"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.willie.mancala:id/outputText"}
+        - {kind: custom_python, function: "helpers:game_ready"}
+    test_case:
+      ref_prompt_variants:
+        - "play mancala"
+        - "new mancala game with 6 pits"
+      expected_success: true
+
+  - name: move
+    description: "Play one pit (1 to N) for whoever is to move; returns the new board, stores and whose turn it is. Landing the last seed in your store gives you another turn."
+    ref_prompt: "Play pit 3 in Mancala"
+    demo_params: {pit: 3}
+    params:
+      - {name: pit, type: int, required: true, description: "Pit number, 1 is the leftmost of the mover's row"}
+    steps:
+      - subroutine: open_console
+      - python_action: "helpers:move"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.willie.mancala:id/outputText"}
+        - {kind: custom_python, function: "helpers:moved"}
+    test_case:
+      ref_prompt_variants:
+        - "mancala: sow pit 1"
+        - "pick pit 5"
+      expected_success: true
+
+  - name: play_moves
+    description: "Play several pits in a row, alternating players as the game dictates (e.g. 3,1,5)."
+    ref_prompt: "Play pits 3, 1 and 5 in Mancala"
+    demo_params: {pits: "3,1,5"}
+    params:
+      - {name: pits, type: str, required: true, description: "Pit numbers separated by commas"}
+    steps:
+      - subroutine: open_console
+      - python_action: "helpers:play_moves"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.willie.mancala:id/outputText"}
+        - {kind: custom_python, function: "helpers:played"}
+    test_case:
+      ref_prompt_variants:
+        - "play pits 2,4,6 in mancala"
+      expected_success: true
+
+  - name: get_state
+    description: "Read the board (both pit rows and both stores), whose turn it is and the result if the game is over."
+    ref_prompt: "What does the Mancala board look like?"
+    params: []
+    steps:
+      - subroutine: open_console
+      - python_action: "helpers:get_state"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.willie.mancala:id/outputText"}
+        - {kind: custom_python, function: "helpers:state_read"}
+    test_case:
+      ref_prompt_variants:
+        - "mancala score"
+        - "whose turn is it in mancala"
+      expected_success: true

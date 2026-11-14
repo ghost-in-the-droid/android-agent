@@ -1,0 +1,118 @@
+name: open-food-facts
+version: 1.0.0
+author: ghost
+description: Search public food products and read native Nutri-Score and nutrient
+  levels, without camera or account
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: openfoodfacts.github.scrachx.openfood
+  app_version: '>=4.23.0'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/open-food-facts
+actions:
+- name: open
+  description: Open anonymous product search with camera denied
+  ref_prompt: Open anonymous product search with camera denied
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:search_ok
+  test_case:
+    ref_prompt_variants:
+    - Open anonymous product search with camera denied in open-food-facts
+    expected_success: true
+- name: search
+  description: Search public food products by name
+  ref_prompt: Search public food products by name
+  params:
+  - name: query
+    type: str
+    required: true
+  steps:
+  - python_action: helpers:search
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Search public food products by name in open-food-facts
+    expected_success: true
+- name: read_results
+  description: Read complete visible product cards and Nutri-Scores
+  ref_prompt: Read complete visible product cards and Nutri-Scores
+  params: []
+  steps:
+  - python_action: helpers:read_results
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Read complete visible product cards and Nutri-Scores in open-food-facts
+    expected_success: true
+- name: open_product
+  description: Open a visible product card and read its Nutri-Score
+  ref_prompt: Open a visible product card and read its Nutri-Score
+  params:
+  - name: index
+    type: int
+    required: true
+  steps:
+  - python_action: helpers:open_product
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:product_ok
+  test_case:
+    ref_prompt_variants:
+    - Open a visible product card and read its Nutri-Score in open-food-facts
+    expected_success: true
+- name: read_nutrients
+  description: Read the visible product nutrient-level rows
+  ref_prompt: Read the visible product nutrient-level rows
+  params: []
+  steps:
+  - python_action: helpers:read_nutrients
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:nutrients_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the visible product nutrient-level rows in open-food-facts
+    expected_success: true
+- name: back_to_results
+  description: Return from nutrient levels or product to search results
+  ref_prompt: Return from nutrient levels or product to search results
+  params: []
+  steps:
+  - python_action: helpers:back_to_results
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Return from nutrient levels or product to search results in open-food-facts
+    expected_success: true

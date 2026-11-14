@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/markor",
+  "version": "1.0.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "net.gsantner.markor",
+    "app_version": "2.16.1"
+  },
+  "fingerprint_hash": "85b26b08f7131553dab7e3e37a111a9214f17d9a1130af6e235155666aad3c48",
+  "app_version": "2.16.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T13:09:58.227624+00:00",
+  "finished_at": "2026-11-05T13:09:58.227624+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "create_note",
+      "success": true,
+      "duration_ms": 42971.38250500211,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": -1,
+          "success": true,
+          "duration_ms": 196.68562700098846
+        },
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 14415.707386000577
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 378.5751479990722
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 1423.5874010009866
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 397.3892579997482
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 1355.923408002127
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 447.658818000491
+        },
+        {
+          "index": 6,
+          "success": true,
+          "duration_ms": 11225.439608002489
+        },
+        {
+          "index": 7,
+          "success": true,
+          "duration_ms": 1380.423773000075
+        },
+        {
+          "index": 8,
+          "success": true,
+          "duration_ms": 613.5103150008945
+        },
+        {
+          "index": 9,
+          "success": true,
+          "duration_ms": 1813.0444870002975
+        },
+        {
+          "index": 10,
+          "success": true,
+          "duration_ms": 1273.5748320010316
+        },
+        {
+          "index": 11,
+          "success": true,
+          "duration_ms": 1464.1454379998322
+        },
+        {
+          "index": 12,
+          "success": true,
+          "duration_ms": 1229.197226002725
+        },
+        {
+          "index": 13,
+          "success": true,
+          "duration_ms": 1538.564967999264
+        },
+        {
+          "index": 14,
+          "success": true,
+          "duration_ms": 1259.1665030013246
+        },
+        {
+          "index": 15,
+          "success": true,
+          "duration_ms": 2024.1084350018355
+        },
+        {
+          "index": 16,
+          "success": true,
+          "duration_ms": 379.55934799902025
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:eb6ceda47fed967b8169ad9e870687720e5dddee020aad40c7e6245431a5e134",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCnmCz9GWrLChUHgI2oOM+NL/YkjYzGuzWq8nCrDOqVWQOvn5f\nWt8cM9oTihzUwQ5VaTIXPUbX1icp/BhZpXfAo=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/futoshiki",
+ "action": null,
+ "prompt": "Start an easy Futoshiki puzzle on my phone, read the grid, then put a 3 in row 2 column 2. Do not use the Play Store, no installs, no sign-in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 52.84,
+  "tokens": 526587,
+  "tool_calls": 16,
+  "ok": true
+ },
+ "after": {
+  "seconds": 39.29,
+  "tokens": 31285,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

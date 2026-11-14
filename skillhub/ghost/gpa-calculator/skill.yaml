@@ -1,0 +1,130 @@
+# Ghost in the Droid: GPA Calculator (login-free FOSS seed skill, installed from F-Droid)
+# GPA Calculator (F-Droid): pick UG or MBA grading, add courses with credit and grade, read the semester GPA. Offline, no account.
+
+name: gpa-calculator
+version: 1.0.0
+author: ghost
+description: "GPA Calculator (F-Droid): pick UG or MBA grading, add courses with credit and grade, read the semester GPA. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [deletes_data]
+destructive: true
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.gpa.calculator.gpa_calculator
+  app_version: ">=1.0"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/gpa-calculator"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.gpa.calculator.gpa_calculator}
+      - {action: sleep, duration_s: 2.0}
+
+actions:
+  - name: set_scheme
+    description: "Choose the grading scheme: UG or MBA."
+    ref_prompt: "Use the MBA grading scheme in the GPA calculator"
+    demo_params: {scheme: "UG"}
+    params:
+      - {name: scheme, type: str, required: true, description: "UG or MBA"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:go_form"
+      - python_action: "helpers:set_scheme"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:scheme_set"}
+    test_case:
+      ref_prompt_variants:
+        - "switch to UG grading"
+        - "use MBA grades"
+      expected_success: true
+
+  - name: add_course
+    description: "Add a course: optional name, credit (1, 2, 3, 4 or 6) and grade (A to F); returns the form with the course rows."
+    ref_prompt: "Add a 3 credit course with grade A to the GPA calculator"
+    demo_params: {credit: "3", grade: "A", name: "Maths"}
+    params:
+      - {name: credit, type: str, required: true, description: "1, 2, 3, 4 or 6"}
+      - {name: grade, type: str, required: true, description: "A, A-, B+, B, B-, C+, C, C-, D+, D or F"}
+      - {name: name, type: str, required: false, description: "Course name, ASCII"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:go_form"
+      - python_action: "helpers:add_course"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:course_added"}
+    test_case:
+      ref_prompt_variants:
+        - "add a course with credit 4 and grade B"
+        - "new course, 2 credits, grade C+"
+      expected_success: true
+
+  - name: get_courses
+    description: "Read the scheme, every course row and the total quality points."
+    ref_prompt: "Show the courses in the GPA calculator"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:go_form"
+      - python_action: "helpers:get_courses"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:courses_read"}
+    test_case:
+      ref_prompt_variants:
+        - "what courses did I enter"
+        - "list my courses"
+      expected_success: true
+
+  - name: calculate
+    description: "Press Calculate and return the semester GPA (needs at least one complete course)."
+    ref_prompt: "Calculate my semester GPA"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:go_form"
+      - python_action: "helpers:calculate"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:gpa_shown"}
+    test_case:
+      ref_prompt_variants:
+        - "what is my GPA"
+        - "calculate the GPA"
+      expected_success: true
+
+  - name: clear_courses
+    description: "Remove all courses (needs confirm=yes)."
+    ref_prompt: "Clear all the courses in the GPA calculator"
+    demo_params: {confirm: "yes"}
+    params:
+      - {name: confirm, type: str, required: true, description: "Must be yes: this removes all courses"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:go_form"
+      - python_action: "helpers:clear_courses"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:cleared"}
+    test_case:
+      ref_prompt_variants:
+        - "start over with the GPA calculator"
+      expected_success: true

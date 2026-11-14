@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/newpipe",
+ "action": "search_videos",
+ "prompt": "Search NewPipe for how solar panels work and list the first three videos with channel, views and duration. Briefly compare their titles; do not play anything.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 113.4,
+  "tokens": 166524,
+  "tool_calls": 13,
+  "ok": true
+ },
+ "after": {
+  "seconds": 42.19,
+  "tokens": 21555,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Actual replay and independent final UI checked. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}
