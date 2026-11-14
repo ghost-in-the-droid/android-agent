@@ -1,0 +1,140 @@
+# Ghost in the Droid: Baby Name (login-free FOSS seed skill, installed from F-Droid)
+# Baby Name (F-Droid): search a database of about 46000 first names by gender and a regular expression, then flip through the matches with gender and origin. Offline, no account.
+
+name: baby-name
+version: 1.0.0
+author: ghost
+description: "Baby Name (F-Droid): search a database of about 46000 first names by gender and a regular expression, then flip through the matches with gender and origin. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: fr.hnit.babyname
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/baby-name"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: fr.hnit.babyname}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_filter
+    description: "Restart the app and open the New Baby preferences form; return the live name count."
+    ref_prompt: "Open the baby name search form"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_filter"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:filter_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the Baby Name app"
+      expected_success: true
+
+  - name: set_filter
+    description: "Search names by gender (male, female, neutral, all) and a regular expression such as ^Ma.+a$, save the search and return the match count and the first name."
+    ref_prompt: "Find female baby names starting with Ma and ending with a"
+    demo_params: {gender: "female", pattern: "^Ma.+a$"}
+    params:
+      - {name: gender, type: str, required: false, description: "male, female, neutral or all (default all)"}
+      - {name: pattern, type: str, required: false, description: "regular expression, default .*, for example ^Jo.+n$"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:set_filter"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:filter_set"}
+    test_case:
+      ref_prompt_variants:
+        - "suggest boy names that start with J"
+        - "baby names ending in a"
+      expected_success: true
+
+  - name: get_name
+    description: "Read the name on screen with its gender, origin and position (i of N)."
+    ref_prompt: "Which baby name is shown now?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_names"
+      - python_action: "helpers:get_name"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:name_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read the current baby name"
+      expected_success: true
+
+  - name: next_name
+    description: "Go to the next matching name and return it."
+    ref_prompt: "Show the next baby name"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_names"
+      - python_action: "helpers:next_name"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:name_moved"}
+    test_case:
+      ref_prompt_variants:
+        - "next name please"
+      expected_success: true
+
+  - name: previous_name
+    description: "Go back to the previous matching name and return it."
+    ref_prompt: "Show the previous baby name"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_second"
+      - python_action: "helpers:previous_name"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:name_moved"}
+    test_case:
+      ref_prompt_variants:
+        - "go back to the last name"
+      expected_success: true
+
+  - name: list_names
+    description: "Read the current name and the next ones (up to 20) with gender and origin."
+    ref_prompt: "List five baby names from my search"
+    demo_params: {count: 5}
+    params:
+      - {name: count, type: int, required: false, description: "how many names, 1 to 20 (default 5)"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_names"
+      - python_action: "helpers:list_names"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:names_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "give me 5 name ideas"
+      expected_success: true

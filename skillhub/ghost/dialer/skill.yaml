@@ -1,0 +1,104 @@
+# Ghost in the Droid: Google Phone / Dialer (login-free seed skill)
+# Never places a call: dial_number only pre-fills the dialpad via ACTION_DIAL.
+
+name: dialer
+version: 1.0.0
+author: ghost
+description: "Google Phone app: pre-fill a number on the dialpad (never calls), read the call log, list favorites."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [contacts]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.google.android.dialer
+  app_version: ">=100.0"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/dialer"
+
+popup_detectors:
+  - {detect: "Allow Phone to send you notifications", button: "Don’t allow", label: "Notification permission prompt"}
+
+subroutines:
+  - name: open_dialer_home
+    description: "Fresh launch of the dialer main screen with its bottom tabs."
+    steps:
+      - python_action: "helpers:close_dialer"
+      - {action: launch_app, package: com.google.android.dialer}
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "com.google.android.dialer:id/tab_call_history", timeout_s: 45}
+
+actions:
+  - name: dial_number
+    description: "Open the dialpad pre-filled with a number (ACTION_DIAL). Does not place the call."
+    ref_prompt: "Put 555 123 4567 on the dialer but don't call yet"
+    params:
+      - {name: number, type: str, required: true, description: "Phone number, digits with optional + and spaces"}
+    steps:
+      - python_action: "helpers:close_dialer"
+      - python_action: "helpers:open_dialpad"
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "com.google.android.dialer:id/digits", timeout_s: 45}
+      - python_action: "helpers:read_dialpad"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.dialer:id/dialpad_voice_call_button"}
+        - {kind: custom_python, function: "helpers:dialpad_has_number"}
+    test_case:
+      ref_prompt_variants:
+        - "open the keypad with 0800 123 456"
+        - "type +44 20 7946 0000 into the phone app"
+        - "get ready to call 911 but don't dial"
+      expected_success: true
+
+  - name: get_call_log
+    description: "Read recent calls from the Recents tab: name or number, detail line, and call type."
+    ref_prompt: "Who called me recently?"
+    params:
+      - {name: limit, type: int, default: 20, description: "Maximum entries to return"}
+    steps:
+      - subroutine: open_dialer_home
+      - {action: tap_element, id: "com.google.android.dialer:id/tab_call_history"}
+      - {action: sleep, duration_s: 2}
+      - python_action: "helpers:read_call_log"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.dialer:id/tab_call_history"}
+        - {kind: custom_python, function: "helpers:call_log_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "did I miss any calls"
+        - "show my call history"
+        - "list the last 5 calls"
+      expected_success: true
+
+  - name: list_favorites
+    description: "Read the Favorites tab and return the starred contacts shown there."
+    ref_prompt: "Who is in my phone favorites?"
+    params: []
+    steps:
+      - subroutine: open_dialer_home
+      - {action: tap_element, id: "com.google.android.dialer:id/tab_speed_dial"}
+      - {action: sleep, duration_s: 2}
+      - python_action: "helpers:read_favorites"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.dialer:id/tab_speed_dial"}
+        - {kind: custom_python, function: "helpers:favorites_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "show my speed dial contacts"
+        - "list favorite contacts in the phone app"
+        - "who did I star in the dialer"
+      expected_success: true

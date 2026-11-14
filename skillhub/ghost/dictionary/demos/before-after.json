@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/dictionary",
+ "action": "search_word",
+ "prompt": "In freeDictionaryApp, look up serendipity. Give its part of speech and a short two-sentence paraphrase of the visible meaning. Do not use audio, history or favourites.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 34.47,
+  "tokens": 85567,
+  "tool_calls": 11,
+  "ok": true
+ },
+ "after": {
+  "seconds": 32.61,
+  "tokens": 38016,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Both original takes succeeded: BEFORE 34.47s/85,567 tokens/11 calls, AFTER 32.61s/38,016 tokens/5 calls. Matching word, Noun and complete native definition rows were checked, together with the two-sentence meaning summary. This is a public online lookup, not an offline language pack. BEFORE TOKCAP=1.5M; identical wake/keep-awake preparation restored afterward. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

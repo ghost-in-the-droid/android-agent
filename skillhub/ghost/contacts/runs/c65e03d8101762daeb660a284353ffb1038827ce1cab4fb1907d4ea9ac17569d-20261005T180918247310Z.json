@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/contacts",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.contacts",
+    "app_version": "4.8.17.529259023"
+  },
+  "fingerprint_hash": "c65e03d8101762daeb660a284353ffb1038827ce1cab4fb1907d4ea9ac17569d",
+  "app_version": "4.8.17.529259023",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:09:18.247310+00:00",
+  "finished_at": "2026-10-05T18:09:18.247310+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "create_contact",
+      "success": true,
+      "duration_ms": 6121.752315986669,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2465.4375350219198
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 32.643709011608735
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 677.2515540069435
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 750.0963940110523
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 2009.456275991397
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 147.0240329799708
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQPf5y9x6rWRjnk52i4bjsg3PR1vyoqqkVVs8Ch4jKIKkvYrkrP\nSiaIZzt/4js9JqmgJfFpmdOpfRGVLjIi6fXA4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

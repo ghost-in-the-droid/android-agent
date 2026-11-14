@@ -1,0 +1,123 @@
+# Ghost in the Droid: Easy Dice (login-free FOSS seed skill, installed from F-Droid)
+# Easy Dice (F-Droid): roll any hand of d2, d4, d6, d8, d10, d100, d12, d20 and d30 dice for tabletop games and read the total. Offline, no account.
+
+name: easy-dice
+version: 1.0.0
+author: ghost
+description: "Easy Dice (F-Droid): roll any hand of d2, d4, d6, d8, d10, d100, d12, d20 and d30 dice for tabletop games and read the total. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: net.pejici.easydice
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/easy-dice"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: net.pejici.easydice}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_dice
+    description: "Restart the app and read the hand."
+    ref_prompt: "Open the Easy Dice app"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_dice"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:dice_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open the dice roller"
+      expected_success: true
+
+  - name: add_dice
+    description: "Add dice of one size to the hand."
+    ref_prompt: "Add two d20 dice to my hand"
+    demo_params: {sides: 20, count: 2}
+    params:
+      - {name: sides, type: int, required: false, description: "2, 4, 6, 8, 10, 100, 12, 20 or 30, default 6"}
+      - {name: count, type: int, required: false, description: "how many, 1 to 12, default 1"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:add_dice"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:dice_added"}
+    test_case:
+      ref_prompt_variants:
+        - "add three d6"
+      expected_success: true
+
+  - name: roll
+    description: "Roll the dice in the hand and return the total."
+    ref_prompt: "Roll the dice in my hand"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_hand"
+      - python_action: "helpers:roll"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:rolled"}
+    test_case:
+      ref_prompt_variants:
+        - "roll again"
+      expected_success: true
+
+  - name: reset_hand
+    description: "Remove all dice from the hand."
+    ref_prompt: "Clear my dice"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_hand"
+      - python_action: "helpers:reset_hand"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:hand_reset"}
+    test_case:
+      ref_prompt_variants:
+        - "reset the dice"
+      expected_success: true
+
+  - name: roll_dice
+    description: "Clear the hand, add the dice in a notation like 2d6+d20, roll and return the total."
+    ref_prompt: "Roll 2d6 and a d20"
+    demo_params: {spec: "2d6+d20"}
+    params:
+      - {name: spec, type: str, required: true, description: "dice notation such as 2d6+d20"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:roll_dice"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:hand_rolled"}
+    test_case:
+      ref_prompt_variants:
+        - "roll 3d8 for damage"
+      expected_success: true

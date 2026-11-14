@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/fdroid",
+  "version": "1.0.2",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.fdroid.fdroid",
+    "app_version": "2.0.0"
+  },
+  "fingerprint_hash": "243b04c272ebb6b3d4b167acf6c287a9403985efb4cb708a5d4dc8fcf71e0c98",
+  "app_version": "2.0.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T16:26:36.688807+00:00",
+  "finished_at": "2026-11-04T16:26:36.688807+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "browse_category",
+      "success": true,
+      "duration_ms": 15924.808874999144,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 10660.312072999659
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3134.853273000772
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 1486.5676970002824
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 392.1613629972853
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 192.2307210006693
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:214fa9e7ae9d61c52663b4e0e4299c7c4d62cfdfbde43c580ec8d4b3c15bd12d",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQFyAoDAO/GfOjV4DDh5C2qheea9ehRP0IxDnqAvM5pFf0FQe2t\nARPZAD/WBMDTZc7u6f5YKaFWhCjqb+HG6T8Ag=\n-----END SSH SIGNATURE-----\n"
+  }
+}

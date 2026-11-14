@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/antennapod",
+ "action": "search_podcasts",
+ "prompt": "Find the podcast LINUX Unplugged",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 20.2,
+  "tokens": 211349,
+  "tool_calls": 10,
+  "ok": true
+ },
+ "after": {
+  "seconds": 9.54,
+  "tokens": 20686,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "Same prompt and clean temporary app per side; 'ok' is an independent check of the final phone state.",
+ "source": "phone-b-before-after"
+}

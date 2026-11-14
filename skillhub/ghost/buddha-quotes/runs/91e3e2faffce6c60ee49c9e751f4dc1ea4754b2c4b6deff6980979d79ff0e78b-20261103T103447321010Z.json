@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/buddha-quotes",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.bandev.buddhaquotes",
+    "app_version": "v2.2.0"
+  },
+  "fingerprint_hash": "91e3e2faffce6c60ee49c9e751f4dc1ea4754b2c4b6deff6980979d79ff0e78b",
+  "app_version": "v2.2.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T10:34:47.321010+00:00",
+  "finished_at": "2026-11-03T10:34:47.321010+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "read_quote",
+      "success": true,
+      "duration_ms": 5661.480730006588,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2958.013943003607
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:6799ceca55e65b4f9c0b4bf13787a1adfb76ecfa9fa3f6e0c8863f7ab258b52e",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQC8yH7iBsuknFkjeaiAFm8FA57B/LQ//uYdd1bBG8jkWTOWo5N\nQIxSDjrEawCgH9pLej0LPQvqlDRr01E8uCYA4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

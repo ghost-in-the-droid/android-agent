@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/expense-tracker",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.totschnig.myexpenses",
+    "app_version": "4.1.3.1"
+  },
+  "fingerprint_hash": "50c013a079a4ae7b16564cae3fe8ae3da1a3a90531b7d8d11e5b187d838030cf",
+  "app_version": "4.1.3.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T05:50:42.828474+00:00",
+  "finished_at": "2026-11-03T05:50:42.828474+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "add_expense",
+      "success": true,
+      "duration_ms": 22544.381204003002,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 8768.354123996687
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 12945.0488759976
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:4c84c51ba6d851c6ae28d72399e6f2043df99cf27db7e1f25b1499b4e28dbc72",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCghT7iiJdsb/zWXdmDsMbZ6kpnW0bvUk2G473hvVhV2GL0YUM\nmgMeNtOIRjcTkJnuW9+/fUxe/fxa1BzcDIIgo=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,180 @@
+# Ghost in the Droid: Block Night (login-free FOSS seed skill, installed from F-Droid)
+# A falling-blocks puzzle: every floor is a fixed set of pieces and a goal. Offline, no account.
+
+name: block-night
+version: 1.0.0
+author: ghost
+description: "Block Night (F-Droid) falling-blocks puzzle: start the first floor, drop pieces by drag/rotate/swipe, read pieces left and lines cleared. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: pt.tiago.blocknight
+  app_version: ">=0.3.10"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/block-night"
+
+popup_detectors: []
+
+subroutines:
+  - name: begin_floor
+    description: "Get a fresh floor 1 whatever state the app is in: pause sheet > Restart, running floor > BACK > Restart, menu > Climb > Play. The floor starts falling at once."
+    steps:
+      - {action: launch_app, package: pt.tiago.blocknight}
+      - {action: sleep, duration_s: 2}
+      - if_visible:
+          selector: {text: "Restart"}
+          then:
+            - {action: tap_element, text: "Restart"}
+            - {action: sleep, duration_s: 1}
+            - if_visible:
+                selector: {text: "Restart this floor? The current match is lost."}
+                then:
+                  - {action: tap_element, text: "Restart"}
+          else:
+            - if_visible:
+                selector: {text: "left"}
+                then:
+                  # BACK on a running floor opens the pause sheet
+                  - {action: press_key, key: BACK}
+                  - {action: wait_for_text, text: "Restart", timeout_s: 5}
+                  - {action: tap_element, text: "Restart"}
+                  - {action: sleep, duration_s: 1}
+                  - if_visible:
+                      selector: {text: "Restart this floor? The current match is lost."}
+                      then:
+                        - {action: tap_element, text: "Restart"}
+                else:
+                  - {action: wait_for_text, text: "A city, floor by floor", timeout_s: 10}
+                  - {action: tap_element, text: "Climb to floor 1"}
+                  - {action: wait_for_text, text: "Play", timeout_s: 8}
+                  - {action: tap_element, text: "Play"}
+      - {action: wait_for_text, text: "left", timeout_s: 10}
+
+  - name: resume_floor
+    description: "Back to the running floor: reopening the app pauses it, Resume continues."
+    steps:
+      - {action: launch_app, package: pt.tiago.blocknight}
+      - {action: sleep, duration_s: 2}
+      - if_visible:
+          selector: {text: "Resume"}
+          then:
+            - {action: tap_element, text: "Resume"}
+      - {action: wait_for_text, text: "left", timeout_s: 8}
+
+actions:
+  - name: start_floor
+    description: "Start floor 1 (Alfama): clear 2 lines with 9 pieces. Returns the starting progress."
+    ref_prompt: "Start the first floor in Block Night"
+    params: []
+    steps:
+      - subroutine: begin_floor
+      - python_action: "helpers:pause_if_running"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Floor 1"}
+        - {kind: text_visible, text: "left"}
+        - {kind: custom_python, function: "helpers:floor_started"}
+    test_case:
+      ref_prompt_variants:
+        - "start a Block Night game"
+        - "begin floor 1 of Block Night"
+        - "play the falling blocks game"
+      expected_success: true
+
+  - name: play_pieces
+    description: "Start floor 1 and play pieces: each entry of `shifts` moves the falling piece that many cells (negative = left, `r1` rotates once) and drops it."
+    ref_prompt: "Start Block Night and drop three pieces"
+    demo_params: {shifts: "-3,3,0"}
+    params:
+      - {name: shifts, type: str, required: true, description: "Comma separated moves, e.g. -3,3,0 or 2r1,-2"}
+    steps:
+      - subroutine: begin_floor
+      - python_action: "helpers:play_pieces"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Floor 1"}
+        - {kind: element_present, text: "left"}
+        - {kind: custom_python, function: "helpers:pieces_played"}
+    test_case:
+      ref_prompt_variants:
+        - "drop two blocks in Block Night"
+        - "play a few pieces on the first floor"
+      expected_success: true
+
+  - name: drop_piece
+    description: "Move the falling piece (shift cells, negative = left), optionally rotate it, and drop it. Needs a running floor (start_floor first)."
+    ref_prompt: "Drop the current Block Night piece two cells to the right"
+    demo_params: {shift: "2", rotate: "0"}
+    params:
+      - {name: shift, type: str, default: "0", description: "Cells to move, e.g. -3 or 2"}
+      - {name: rotate, type: str, default: "0", description: "Rotations (0-3)"}
+    steps:
+      - subroutine: resume_floor
+      - python_action: "helpers:drop_piece"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "left"}
+        - {kind: element_present, text: "Floor 1"}
+        - {kind: custom_python, function: "helpers:pieces_played"}
+    test_case:
+      ref_prompt_variants:
+        - "drop this block on the left"
+        - "rotate the piece once and drop it"
+      expected_success: true
+
+  - name: hold_piece
+    description: "Swap the falling piece with the held piece (tap HOLD)."
+    ref_prompt: "Hold the current Block Night piece"
+    params: []
+    steps:
+      - subroutine: resume_floor
+      - python_action: "helpers:hold_piece"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "left"}
+        - {kind: text_visible, text: "HOLD"}
+        - {kind: custom_python, function: "helpers:held"}
+    test_case:
+      ref_prompt_variants:
+        - "save this piece for later"
+        - "use the hold slot"
+      expected_success: true
+
+  - name: get_progress
+    description: "Read the running floor: pieces left, lines cleared and the goal, points (the game must be on a floor)."
+    ref_prompt: "How is my Block Night floor going?"
+    params: []
+    steps:
+      - {action: launch_app, package: pt.tiago.blocknight}
+      - {action: sleep, duration_s: 2}
+      # reopening the app pauses a running floor: Resume brings the header back
+      - if_visible:
+          selector: {text: "Resume"}
+          then:
+            - {action: tap_element, text: "Resume"}
+      - {action: wait_for_text, text: "left", timeout_s: 8}
+      - python_action: "helpers:get_progress"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "left"}
+        - {kind: element_present, text: "Floor 1"}
+        - {kind: custom_python, function: "helpers:progress_read"}
+    test_case:
+      ref_prompt_variants:
+        - "how many pieces are left in Block Night"
+        - "what is my line count"
+      expected_success: true

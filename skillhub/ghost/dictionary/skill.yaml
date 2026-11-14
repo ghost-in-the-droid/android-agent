@@ -1,0 +1,89 @@
+name: dictionary
+version: 1.0.0
+author: ghost
+description: Look up English words in freeDictionaryApp without accounts. Return the
+  matching native word, parts of speech and complete visible definitions; clear only
+  the current query, never open history, favourites, sharing or audio.
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: io.github.yamin8000.owl
+  app_version: '>=1.8.4,<1.9'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/dictionary
+actions:
+- name: open
+  description: Open a clean dictionary query field without history or favourites
+  ref_prompt: Open a clean dictionary query field without history or favourites
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:search_ok
+  test_case:
+    ref_prompt_variants:
+    - Open a clean dictionary query field without history or favourites in dictionary
+    expected_success: true
+- name: search_word
+  description: Submit one public English word and read its visible definitions
+  ref_prompt: Submit one public English word and read its visible definitions
+  params:
+  - name: word
+    type: str
+    description: One English word of 2 to 35 ASCII letters
+    required: true
+  steps:
+  - python_action: helpers:search_word
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:entry_ok
+  test_case:
+    ref_prompt_variants:
+    - Submit one public English word and read its visible definitions in dictionary
+    expected_success: true
+- name: read_entry
+  description: Read the matching word, visible parts of speech and definitions
+  ref_prompt: Read the matching word, visible parts of speech and definitions
+  params: []
+  steps:
+  - python_action: helpers:read_entry
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:entry_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the matching word, visible parts of speech and definitions in dictionary
+    expected_success: true
+- name: clear_query
+  description: Clear only the current query field, without deleting saved history
+  ref_prompt: Clear only the current query field, without deleting saved history
+  params: []
+  steps:
+  - python_action: helpers:clear_query
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:search_ok
+  test_case:
+    ref_prompt_variants:
+    - Clear only the current query field, without deleting saved history in dictionary
+    expected_success: true

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/calculator",
+  "version": "1.0.2",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "org.fossify.math",
+    "app_version": "1.4.0",
+    "screen_wxh": "720x1600",
+    "density": 300,
+    "locale": "en-GB"
+  },
+  "fingerprint_hash": "85b18d3caa77eaf99c5cee2e9160fc33b12b844d6ee385d42537995520e3f293",
+  "app_version": "1.4.0",
+  "model": "deterministic",
+  "timestamp": "2026-10-23T21:51:13.719826+00:00",
+  "finished_at": "2026-10-23T21:51:13.719826+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "read_result",
+      "success": true,
+      "duration_ms": 2214.6576601080596,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 1820.172161096707
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 147.48118491843343
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 166.71442694496363
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:c46f24b65306970d5085f11d12a39db9c2d7834260e3c2d89473ecb7f76dd940",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQPE7V9igaiu7CN1C5o7vLaMf8V6zjEZv+X9+sIL5SrWLNmEFp8\n02ryEd2Wj57A14gVrVx6I+N6Bb8xU5ez5IzQ4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

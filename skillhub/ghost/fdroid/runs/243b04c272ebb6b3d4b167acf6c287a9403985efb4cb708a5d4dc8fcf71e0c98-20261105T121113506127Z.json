@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/fdroid",
+  "version": "1.0.2",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.fdroid.fdroid",
+    "app_version": "2.0.0"
+  },
+  "fingerprint_hash": "243b04c272ebb6b3d4b167acf6c287a9403985efb4cb708a5d4dc8fcf71e0c98",
+  "app_version": "2.0.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T12:11:13.506127+00:00",
+  "finished_at": "2026-11-05T12:11:13.506127+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "browse_category",
+      "success": true,
+      "duration_ms": 16873.804032000407,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 11326.605236999967
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3209.2632059993775
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 1552.2527190005349
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 445.5405319986312
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 261.1327530012204
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:9473ca51023d22294ad39673cf82d165b56474d0a13f77859505bf47881c16db",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQG8Uv93WaTT6WxCfjKV43/aREBRwUy43bPRxdyl7//JRUdUDa/\nLeITn8f1dXrgBfZ5luY3G3K6vf0SjSjntsPg0=\n-----END SSH SIGNATURE-----\n"
+  }
+}

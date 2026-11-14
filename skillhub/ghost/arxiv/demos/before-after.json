@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/arxiv",
+ "action": "search",
+ "prompt": "In arXiv eXplorer, search quantum. Give the first exposed paper’s title, authors and arXiv ID, then paraphrase its native abstract in two sentences. Do not download PDFs, use favourites, donate or open links.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 42.35,
+  "tokens": 160408,
+  "tool_calls": 14,
+  "ok": true
+ },
+ "after": {
+  "seconds": 41.74,
+  "tokens": 22048,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Both sides correctly copied the same title/authors/arXiv ID and faithfully paraphrased the native abstract (maintainer checked). AFTER used one successful search replay; native full-hierarchy input/result/validator reads account for roughly 35s of the 41.74s total, so time is close despite 7.28x fewer proxy tokens. Android compatibility-notice preparation is identical off camera on each clean profile, with no search/paper selection/download before filming. Cold launch separately covered in canonical recordings. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

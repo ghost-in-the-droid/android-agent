@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/africa-quiz",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.mufradat.africaquiz",
+    "app_version": "1.0"
+  },
+  "fingerprint_hash": "37691c2d19b400d4028b00f9fd9e8d1184c264e33e10d6820531c083c84afa56",
+  "app_version": "1.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T22:18:27.964836+00:00",
+  "finished_at": "2026-11-03T22:18:27.964836+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "start_quiz",
+      "success": true,
+      "duration_ms": 6019.666000007419,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 571.6002010012744
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 2802.984876005212
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 2532.8548780089477
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:128f9ec2b3e7e5093453db7e33d04e90c641cc6e571f473fd65d506d92b6c120",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCpxSwp+ftYgk2aGUyaYP4jbrb7wSv5IpGNv0D6nR+HFXP+Fqd\nomwAnmikV6sAiOto/Qzb98ZOhJaggyH+MUyAQ=\n-----END SSH SIGNATURE-----\n"
+  }
+}

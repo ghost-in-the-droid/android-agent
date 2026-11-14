@@ -1,0 +1,123 @@
+# Ghost in the Droid: Decisions (login-free FOSS seed skill, installed from F-Droid)
+# Decisions (F-Droid): weigh a decision on a balance. Create an issue, add pros and cons with a weight from -10 to 10 and watch the scale tip. Offline, no account.
+
+name: decisions
+version: 1.0.0
+author: ghost
+description: "Decisions (F-Droid): weigh a decision on a balance. Create an issue, add pros and cons with a weight from -10 to 10 and watch the scale tip. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: de.markusfisch.android.libra
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/decisions"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: de.markusfisch.android.libra}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_issues
+    description: "Restart the app and read the list of saved issues."
+    ref_prompt: "Open the Decisions pros and cons app"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_issues"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:issues_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open Decisions"
+      expected_success: true
+
+  - name: new_issue
+    description: "Create a new issue with a title, ready for arguments."
+    ref_prompt: "Start a pros and cons list called Buy a new phone"
+    demo_params: {title: "Buy a new phone"}
+    params:
+      - {name: title, type: str, required: true, description: "what the decision is about, up to 60 characters"}
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:new_issue"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:issue_created"}
+    test_case:
+      ref_prompt_variants:
+        - "new decision: should I move to Berlin"
+      expected_success: true
+
+  - name: add_argument
+    description: "Add an argument with a weight from -10 (against) to 10 (for) to the open issue and watch the scale tip."
+    ref_prompt: "Add the argument Cheaper with weight 5 to my decision"
+    demo_params: {text: "Cheaper", weight: 5}
+    params:
+      - {name: text, type: str, required: true, description: "the argument, up to 60 characters"}
+      - {name: weight, type: int, required: false, description: "-10 to 10, negative = con, positive = pro (default 1)"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_issue"
+      - python_action: "helpers:add_argument"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:argument_added"}
+    test_case:
+      ref_prompt_variants:
+        - "add a con: worse camera, weight -4"
+      expected_success: true
+
+  - name: get_issue
+    description: "Read the open issue: title and every argument with its side (pro, con or neutral)."
+    ref_prompt: "What arguments are on my decision?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_issue"
+      - python_action: "helpers:get_issue"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:issue_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show my pros and cons"
+      expected_success: true
+
+  - name: list_issues
+    description: "Go back to the issue list and read every saved issue with its age."
+    ref_prompt: "List my saved decisions"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_issue"
+      - python_action: "helpers:list_issues"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:issues_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "which decisions did I save"
+      expected_success: true

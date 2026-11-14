@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/calendar",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "org.fossify.calendar",
+    "app_version": "1.11.0"
+  },
+  "fingerprint_hash": "2a96e269afc3f7cd5f6e0a77cdfcefefeb324ac09780f76df34b29d53b2f0594",
+  "app_version": "1.11.0",
+  "model": "deterministic",
+  "timestamp": "2026-10-06T01:13:41.688411+00:00",
+  "finished_at": "2026-10-06T01:13:41.688411+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "create_event",
+      "success": true,
+      "duration_ms": 13518.533706985181,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4122.905152995372
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQKMKOvPK/f64c3YAC8AnlzdVdURzhWrCXS9TCFQHbsyp1CXX6a\njM9PQiQTsczMnEYlH1vEIfOqfunLVHH+aY6Ak=\n-----END SSH SIGNATURE-----\n"
+  }
+}

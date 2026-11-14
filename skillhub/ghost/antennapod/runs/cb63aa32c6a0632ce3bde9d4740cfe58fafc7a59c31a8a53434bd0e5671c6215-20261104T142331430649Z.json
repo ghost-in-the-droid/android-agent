@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/antennapod",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "de.danoeh.antennapod",
+    "app_version": "3.12.2"
+  },
+  "fingerprint_hash": "cb63aa32c6a0632ce3bde9d4740cfe58fafc7a59c31a8a53434bd0e5671c6215",
+  "app_version": "3.12.2",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T14:23:31.430649+00:00",
+  "finished_at": "2026-11-04T14:23:31.430649+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "preview_podcast",
+      "success": true,
+      "duration_ms": 15750.085258998297,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 8386.194528000487
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1246.0146829998848
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 3177.278090000982
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 436.64346399964415
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 2189.723073001005
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 224.69822300081432
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:d7c25fe61594e67e5d810ad544429d1041014f40a3ecc00a9fba7152f023bd57",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQC4C44+MnAc2NOkODMVQQep7dsGTyRgiy+HbBmrw/qAJQdCfo3\nIisOskau60PudrpxufUW74qKESGpgJbpo08gM=\n-----END SSH SIGNATURE-----\n"
+  }
+}

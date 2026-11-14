@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/fdroid",
+  "version": "1.0.2",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.fdroid.fdroid",
+    "app_version": "2.0.0"
+  },
+  "fingerprint_hash": "243b04c272ebb6b3d4b167acf6c287a9403985efb4cb708a5d4dc8fcf71e0c98",
+  "app_version": "2.0.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T12:01:29.177867+00:00",
+  "finished_at": "2026-11-05T12:01:29.177867+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "browse_category",
+      "success": true,
+      "duration_ms": 16587.190887999895,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 11180.045441999027
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3157.846164998773
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 1595.386889999645
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 403.33748100056255
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 195.17509099932795
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:9473ca51023d22294ad39673cf82d165b56474d0a13f77859505bf47881c16db",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQF9PM80P7D5mfw3f+a7R5z1TwU9Bt8c15++GhBu9hxSyk8Y68y\nVm2XF9W8ks5ppTmfBTTZAl4wvam0mfmfITbgQ=\n-----END SSH SIGNATURE-----\n"
+  }
+}

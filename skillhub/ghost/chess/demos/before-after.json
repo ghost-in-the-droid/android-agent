@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/chess",
+ "action": null,
+ "prompt": "Start a chess game as white and play the opening moves e2e4 and g1f3.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 57.5,
+  "tokens": 739454,
+  "tool_calls": 18,
+  "ok": true
+ },
+ "after": {
+  "seconds": 130.82,
+  "tokens": 29666,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

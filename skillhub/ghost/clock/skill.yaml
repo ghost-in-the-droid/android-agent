@@ -1,0 +1,164 @@
+# Ghost in the Droid: Samsung timers plus the Google Clock toolkit.
+# Samsung actions use only Timer. Google-only actions retain their existing workflows.
+
+name: clock
+version: 1.0.5
+author: ghost
+description: "Samsung Clock timer start/cancel/state and the Google Clock alarm/world-city/stopwatch toolkit. Timer app is auto-detected; Samsung actions never open alarms."
+skill_class: hard
+license: MIT
+generated_with: "Original Google toolkit: Claude Opus 5.5. Samsung timer extension: Codex, hand-explored and verified on physical Samsung Android 16."
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US, en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: com.sec.android.app.clockpackage
+  apps: [com.google.android.deskclock]
+  app_version: ">=12"
+  screen_wxh: 1080x2340
+  density: 450
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/clock"
+
+# No app-specific popups were observed on a fresh Android 14 emulator (Clock 7.4).
+popup_detectors: []
+
+subroutines:
+  - name: launch_clock
+    description: "Launch the Clock main activity and wait for the bottom tab bar."
+    steps:
+      - python_action: "helpers:open_alarms"
+
+actions:
+  - name: set_alarm
+    description: "Google Clock only. Create a one-off alarm at hour:minute (24 h) with an optional label, then show it on the Alarm tab."
+    ref_prompt: "Set an alarm for 7:30 tomorrow morning called Gym"
+    params:
+      - {name: hour, type: int, required: true, description: "0 to 23"}
+      - {name: minute, type: int, required: true, description: "0 to 59"}
+      - {name: label, type: str, default: "Alarm", description: "Alarm label shown on the card"}
+    steps:
+      - action: launch_intent
+        intent_action: android.intent.action.SET_ALARM
+        package: com.google.android.deskclock
+        extras:
+          android.intent.extra.alarm.HOUR: "{hour}"
+          android.intent.extra.alarm.MINUTES: "{minute}"
+          android.intent.extra.alarm.MESSAGE: "{label}"
+          android.intent.extra.alarm.SKIP_UI: true
+      - {action: sleep, duration_s: 1.5}
+      - subroutine: launch_clock
+    end_state_validator:
+      kind: custom_python
+      function: "helpers:alarm_exists"
+    test_case:
+      ref_prompt_variants:
+        - "wake me up at 6:45"
+        - "create an alarm at 22:00 labelled Meds"
+        - "set a 7am alarm"
+      expected_success: true
+
+  - name: list_alarms
+    description: "Google Clock only. Read every alarm on the Alarm tab: 24 h time, label, repeat days or next occurrence, on/off."
+    ref_prompt: "What alarms do I have set?"
+    params: []
+    steps:
+      - subroutine: launch_clock
+      - python_action: "helpers:list_alarms"
+    end_state_validator:
+      kind: custom_python
+      function: "helpers:alarms_listed"
+    test_case:
+      ref_prompt_variants:
+        - "list my alarms"
+        - "when is my next alarm"
+        - "show all alarms on the clock app"
+      expected_success: true
+
+  - name: start_timer
+    description: "Auto-detect Google or Samsung Clock and start a countdown. Custom labels are Google-only; Samsung uses the Timer picker without opening alarms."
+    ref_prompt: "Start a 5 minute timer for tea"
+    params:
+      - {name: seconds, type: int, required: true, description: "1 to 86399"}
+      - {name: label, type: str, default: "Timer", description: "Google label; Samsung supports only the default Timer label"}
+      - {name: app, type: enum, values: [auto, google, samsung], default: auto, description: "Timer app; auto prefers installed Samsung, then Google"}
+    steps:
+      - python_action: "helpers:start_timer"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:timer_running"}
+    test_case:
+      ref_prompt_variants:
+        - "set a timer for 10 minutes"
+        - "countdown 90 seconds labelled pasta"
+        - "start a 30 second timer"
+      expected_success: true
+
+  - name: start_stopwatch
+    description: "Google Clock only. Open the Stopwatch tab and start it (no-op if it is already running)."
+    ref_prompt: "Start the stopwatch"
+    params: []
+    steps:
+      - python_action: "helpers:start_stopwatch"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:stopwatch_running"}
+    test_case:
+      ref_prompt_variants:
+        - "start timing"
+        - "run the stopwatch"
+        - "begin a stopwatch"
+      expected_success: true
+
+  - name: add_world_city
+    description: "Google Clock only. Add a city to the world clock (first search result) and return the cities shown on the Clock tab."
+    ref_prompt: "Add Tokyo to my world clock"
+    params:
+      - {name: city, type: str, required: true, description: "City name as typed in the search box, e.g. Tokyo"}
+    steps:
+      - python_action: "helpers:add_world_city"
+    end_state_validator:
+      kind: custom_python
+      function: "helpers:city_listed"
+    test_case:
+      ref_prompt_variants:
+        - "show the time in New York on my clock"
+        - "add London to world clock"
+        - "track Sydney time"
+      expected_success: true
+
+  - name: cancel_timer
+    description: "Cancel the active Samsung Clock timer; does not open alarms. Samsung-only primitive."
+    ref_prompt: "Cancel my Samsung timer"
+    params:
+      - {name: app, type: enum, values: [auto, samsung], default: auto}
+    steps:
+      - python_action: "helpers:cancel_timer"
+    end_state_validator:
+      kind: custom_python
+      function: "helpers:timer_cancelled"
+    test_case:
+      ref_prompt_variants: ["stop the Samsung countdown", "cancel the Galaxy timer"]
+      expected_success: true
+
+  - name: get_timer_state
+    description: "Read whether a Samsung timer is active (including paused timers). Samsung-only; no alarm data read."
+    ref_prompt: "Is a Samsung timer active?"
+    params:
+      - {name: app, type: enum, values: [auto, samsung], default: auto}
+    steps:
+      - python_action: "helpers:get_timer_state"
+    end_state_validator:
+      kind: custom_python
+      function: "helpers:timer_state_matches"
+    test_case:
+      ref_prompt_variants: ["check my Galaxy countdown state", "did the Samsung timer stop?"]
+      expected_success: true

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/birdipedia",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "de.katzenmue.birdipedia",
+    "app_version": "1.1.3"
+  },
+  "fingerprint_hash": "040b17998ff187ed80c5f8c38bf223c765d9fcfceb331f48397c53cf6e7c6d18",
+  "app_version": "1.1.3",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T10:42:06.984708+00:00",
+  "finished_at": "2026-11-05T10:42:06.984708+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "clear_filter",
+      "success": true,
+      "duration_ms": 13348.379585999282,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 10782.406825999715
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:a278061197b36156da8c6c0540246b045ea76000578bed67c4285cb6bc270035",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQMgNuETPRxW8pYVHbJVkf9r6ybB1/5sqKGVpzYxMudvjF3yjhF\nT0liUFWyEGD6NUMOiFVFt6UTgZ3DNnnOZ5JgE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/contacts",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.contacts",
+    "app_version": "4.8.17.529259023"
+  },
+  "fingerprint_hash": "c65e03d8101762daeb660a284353ffb1038827ce1cab4fb1907d4ea9ac17569d",
+  "app_version": "4.8.17.529259023",
+  "model": "deterministic",
+  "timestamp": "2026-10-06T01:23:19.430996+00:00",
+  "finished_at": "2026-10-06T01:23:19.430996+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "create_contact",
+      "success": true,
+      "duration_ms": 6111.596347996965,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2483.5156880144496
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 24.389250989770517
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 658.235497015994
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 704.9702990043443
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 2009.9773030087817
+        },
+        {
+          "index": 5,
+          "success": true,
+          "duration_ms": 136.1168640141841
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQOx8gn27zj+Uj+4E64ZUFschC4UIk12YIC6Qz3RaebOVCw/ies\nplk2alw3aKfHRGg+HljuvWyc7f3Sn5MLbstg4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

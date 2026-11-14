@@ -1,0 +1,111 @@
+# Ghost in the Droid: AntennaPod (login-free FOSS seed skill, installed from F-Droid)
+# Browse only: online podcast search and feed preview through AntennaPod's own
+# search (Apple and Podcast Index directories). Never subscribes, downloads or plays.
+
+name: antennapod
+version: 1.0.0
+author: ghost
+description: "AntennaPod (F-Droid): search podcast directories, preview a podcast's episodes without subscribing, list subscriptions. No account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [network]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: de.danoeh.antennapod
+  app_version: ">=3.12.2"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/antennapod"
+
+popup_detectors:
+  - {detect: "Allow AntennaPod to send you notifications", button: "Don’t allow", label: "Notification permission prompt"}
+
+subroutines:
+  - name: search_directory
+    description: "Fresh launch into AntennaPod's search via its deep link, then run the online directory search."
+    steps:
+      - python_action: "helpers:close_app"
+      - python_action: "helpers:open_search"
+      - {action: sleep, duration_s: 3}
+      - {action: dismiss_popups}
+      - {action: wait_for_element, id: "de.danoeh.antennapod:id/search_src_text", timeout_s: 30}
+      - {action: wait_for_text, text: "Search online", timeout_s: 15}
+      - python_action: "helpers:search_online"
+
+actions:
+  - name: search_podcasts
+    description: "Search the online podcast directories and return matching podcast titles and authors."
+    ref_prompt: "Find podcasts about Linux"
+    params:
+      - {name: query, type: str, required: true, description: "Search words"}
+    steps:
+      - subroutine: search_directory
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "de.danoeh.antennapod:id/search_powered_by"}
+        - {kind: custom_python, function: "helpers:results_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "search for history podcasts"
+        - "are there podcasts about gardening"
+        - "look up the podcast Linux Unplugged"
+      expected_success: true
+
+  - name: preview_podcast
+    description: "Search, open one result and return its title, author, description and latest episodes, without subscribing."
+    ref_prompt: "What are the latest episodes of LINUX Unplugged?"
+    params:
+      - {name: query, type: str, required: true, description: "Search words"}
+      - {name: title, type: str, default: "", description: "Pick the first result whose title contains this; empty = first result"}
+    steps:
+      - subroutine: search_directory
+      - python_action: "helpers:open_result"
+      - {action: sleep, duration_s: 3}
+      - {action: wait_for_element, id: "de.danoeh.antennapod:id/butSubscribe", timeout_s: 30}
+      - {action: sleep, duration_s: 2}
+      - python_action: "helpers:read_preview"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "de.danoeh.antennapod:id/butSubscribe"}
+        - {kind: custom_python, function: "helpers:preview_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "show me what the Hardcore History podcast is about"
+        - "preview episodes of a podcast about space"
+        - "when was the last episode of Linux Matters"
+      expected_success: true
+
+  - name: list_subscriptions
+    description: "Open the Subscriptions tab and return subscribed podcast titles (empty on a fresh install)."
+    ref_prompt: "Which podcasts am I subscribed to?"
+    params: []
+    steps:
+      - python_action: "helpers:close_app"
+      - {action: launch_app, package: de.danoeh.antennapod}
+      - {action: sleep, duration_s: 3}
+      - {action: dismiss_popups}
+      - {action: wait_for_element, id: "de.danoeh.antennapod:id/bottom_navigation_subscriptions", timeout_s: 30}
+      - {action: tap_element, id: "de.danoeh.antennapod:id/bottom_navigation_subscriptions"}
+      - {action: sleep, duration_s: 2}
+      - python_action: "helpers:read_subscriptions"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "de.danoeh.antennapod:id/bottom_navigation_subscriptions"}
+        - {kind: custom_python, function: "helpers:subs_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "list my podcasts"
+        - "what shows do I follow in AntennaPod"
+        - "show my podcast subscriptions"
+      expected_success: true

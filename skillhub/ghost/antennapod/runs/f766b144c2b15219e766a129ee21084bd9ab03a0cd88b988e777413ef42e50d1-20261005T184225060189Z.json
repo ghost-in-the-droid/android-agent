@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/antennapod",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "de.danoeh.antennapod",
+    "app_version": "3.12.2"
+  },
+  "fingerprint_hash": "f766b144c2b15219e766a129ee21084bd9ab03a0cd88b988e777413ef42e50d1",
+  "app_version": "3.12.2",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:42:25.060189+00:00",
+  "finished_at": "2026-10-05T18:42:25.060189+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "search_podcasts",
+      "success": true,
+      "duration_ms": 5580.30547000817,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 5559.259995003231
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQK7lnCbRfrYsiGwbxUjXO2Jfx4+MzXi2DbsR2MOWteooOQJJpZ\nJcgQo0kiA4WqS8FWkrED6XSnq1eSFKBngAYgU=\n-----END SSH SIGNATURE-----\n"
+  }
+}

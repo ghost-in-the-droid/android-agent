@@ -1,0 +1,95 @@
+# Ghost in the Droid: Code Word (login-free FOSS seed skill, installed from F-Droid)
+# A Wordle-style game: guess the secret word; the per-letter feedback is only a tile colour.
+
+name: code-word
+version: 1.0.0
+author: ghost
+description: "Code Word (F-Droid) Wordle-style word game: start a new puzzle, type a guess, read the guesses made. The per-letter feedback is only a colour (not readable); an agent reads it from a screenshot. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.peaceray.codeword
+  app_version: ">=1.4.4"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/code-word"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_game
+    description: "Launch the app and close the first-run How to play dialog."
+    steps:
+      - {action: launch_app, package: com.peaceray.codeword}
+      - {action: sleep, duration_s: 2.5}
+      - python_action: "helpers:close_howto"
+
+actions:
+  - name: new_puzzle
+    description: "Start a fresh puzzle with the default settings (5-letter English word, 6 guesses); returns the board and the previous seed."
+    ref_prompt: "Start a new word puzzle"
+    params: []
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:new_puzzle"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Code Word"}
+        - {kind: element_present, id: "com.peaceray.codeword:id/keyTextView"}
+        - {kind: custom_python, function: "helpers:puzzle_ready"}
+    test_case:
+      ref_prompt_variants:
+        - "play a Wordle-style game"
+        - "new word guessing game"
+      expected_success: true
+
+  - name: guess
+    description: "Type a guess (the word must have the puzzle's letter count) and submit it; returns the board and whether a row was used. The letter feedback (colours) is not readable: take a screenshot."
+    ref_prompt: "Guess the word CRANE"
+    demo_params: {word: crane}
+    params:
+      - {name: word, type: str, required: true, description: "Your guess, letters only, e.g. crane"}
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:guess"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Code Word"}
+        - {kind: element_present, id: "com.peaceray.codeword:id/keyTextView"}
+        - {kind: custom_python, function: "helpers:guessed"}
+    test_case:
+      ref_prompt_variants:
+        - "try the word pound"
+        - "guess stone"
+      expected_success: true
+
+  - name: get_board
+    description: "Read the guesses made so far (letters per row), the word length and rows left."
+    ref_prompt: "What have I guessed so far?"
+    params: []
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:get_board"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "Code Word"}
+        - {kind: element_present, id: "com.peaceray.codeword:id/keyTextView"}
+        - {kind: custom_python, function: "helpers:board_read"}
+    test_case:
+      ref_prompt_variants:
+        - "show my guesses"
+        - "how many guesses are left"
+      expected_success: true

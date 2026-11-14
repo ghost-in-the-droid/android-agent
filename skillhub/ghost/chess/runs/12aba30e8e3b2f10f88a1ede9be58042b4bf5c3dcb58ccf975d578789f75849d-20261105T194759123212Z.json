@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/chess",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.dataespresso.squarechess",
+    "app_version": "1.4.1"
+  },
+  "fingerprint_hash": "12aba30e8e3b2f10f88a1ede9be58042b4bf5c3dcb58ccf975d578789f75849d",
+  "app_version": "1.4.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T19:47:59.123212+00:00",
+  "finished_at": "2026-11-05T19:47:59.123212+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "make_moves",
+      "success": true,
+      "duration_ms": 25009.077167000214,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 5199.791127000935
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 17226.96366600576
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:4122d887b01cbd87e43a534a616b77964eaf6d59d58395d7a9cb6113a3a48b38",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQI18wHrb9rp6VChQ1XXi2Qt5R31YgxA4Lm+DDRvzwIFMtLPtAY\nQ1meekGtkF5S2E6X9VOY8JoPpfOC0vvCDZigM=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,125 @@
+name: based-cooking
+version: 1.0.0
+author: ghost
+description: Search public Based Cooking recipe titles and tags with no accounts or
+  external links
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: np.com.binabh.basedcooking
+  app_version: '>=1.0.3'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/based-cooking
+actions:
+- name: open
+  description: Open the public recipe catalog with cleared temporary search/tag filters
+  ref_prompt: Open the public recipe catalog with cleared temporary search/tag filters
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the public recipe catalog with cleared temporary search/tag filters in
+      based-cooking
+    expected_success: true
+- name: search_recipes
+  description: Search recipe titles from a fresh catalog view; safely opens from HOME
+  ref_prompt: Search recipe titles from a fresh catalog view; safely opens from HOME
+  params:
+  - name: query
+    type: string
+    required: true
+    description: 2–60 character ASCII public recipe query
+  steps:
+  - python_action: helpers:search_recipes
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Search recipe titles from a fresh catalog view; safely opens from HOME in based-cooking
+    expected_success: true
+- name: read_results
+  description: Read the native query and first two complete recipe title/tag cards;
+    no parameters
+  ref_prompt: Read the native query and first two complete recipe title/tag cards;
+    no parameters
+  params: []
+  steps:
+  - python_action: helpers:read_results
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the native query and first two complete recipe title/tag cards; no parameters
+      in based-cooking
+    expected_success: true
+- name: open_recipe
+  description: Open only the header of one returned recipe, above all tag chips
+  ref_prompt: Open only the header of one returned recipe, above all tag chips
+  params:
+  - name: index
+    type: integer
+    required: false
+    default: 1
+    description: 1 or2 in complete returned recipe cards
+  steps:
+  - python_action: helpers:open_recipe
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:recipe_ok
+  test_case:
+    ref_prompt_variants:
+    - Open only the header of one returned recipe, above all tag chips in based-cooking
+    expected_success: true
+- name: read_recipe
+  description: Read native recipe title and public date/author metadata only
+  ref_prompt: Read native recipe title and public date/author metadata only
+  params: []
+  steps:
+  - python_action: helpers:read_recipe
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:recipe_ok
+  test_case:
+    ref_prompt_variants:
+    - Read native recipe title and public date/author metadata only in based-cooking
+    expected_success: true
+- name: back_to_results
+  description: Return from a proven recipe page to its native catalog query
+  ref_prompt: Return from a proven recipe page to its native catalog query
+  params: []
+  steps:
+  - python_action: helpers:back_to_results
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:results_ok
+  test_case:
+    ref_prompt_variants:
+    - Return from a proven recipe page to its native catalog query in based-cooking
+    expected_success: true

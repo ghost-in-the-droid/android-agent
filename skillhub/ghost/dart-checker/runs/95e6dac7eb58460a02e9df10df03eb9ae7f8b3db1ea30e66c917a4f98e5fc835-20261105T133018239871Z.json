@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/dart-checker",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.DartChecker",
+    "app_version": "0.9.1"
+  },
+  "fingerprint_hash": "95e6dac7eb58460a02e9df10df03eb9ae7f8b3db1ea30e66c917a4f98e5fc835",
+  "app_version": "0.9.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T13:30:18.239871+00:00",
+  "finished_at": "2026-11-05T13:30:18.239871+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "undo",
+      "success": true,
+      "duration_ms": 8510.285999000189,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4105.810197001119
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 4202.724189002765
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:bf29df5de2ecf969db06722c157793266b5944e71b20f06f0c4e144a86002c43",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQJeN0ciskt89qKJEZ5paSN64RDFzJSZpzVY2Q8r2RD6EWq2teM\nvLAxruD8IjKf4LiNIiITz7FSwVS6MZkPHN6QE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

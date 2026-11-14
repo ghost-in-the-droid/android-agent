@@ -1,0 +1,122 @@
+# Ghost in the Droid: Der Die Das (login-free FOSS seed skill, installed from F-Droid)
+# Der Die Das (F-Droid): practise the grammatical gender of about 10000 German nouns. Shows a noun with its English meaning, you answer der, die or das. Offline, no account.
+
+name: der-die-das
+version: 1.0.0
+author: ghost
+description: "Der Die Das (F-Droid): practise the grammatical gender of about 10000 German nouns. Shows a noun with its English meaning, you answer der, die or das. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.machiav3lli.derdiedas
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/der-die-das"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.machiav3lli.derdiedas}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_practice
+    description: "Restart the app, open the Practice screen and read the first noun."
+    ref_prompt: "Open the Der Die Das German noun practice"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_practice"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:practice_open"}
+    test_case:
+      ref_prompt_variants:
+        - "start the der die das trainer"
+      expected_success: true
+
+  - name: get_word
+    description: "Read the noun on screen, its English meaning and the Pending / Mastered counters."
+    ref_prompt: "What German noun is shown in Der Die Das now?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_practice"
+      - python_action: "helpers:get_word"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:word_read"}
+    test_case:
+      ref_prompt_variants:
+        - "which noun is on screen"
+      expected_success: true
+
+  - name: answer
+    description: "Answer the current noun with der, die or das and report whether it was right (a right answer shows the next noun, a wrong one keeps the same noun)."
+    ref_prompt: "Answer die for the German noun in the trainer"
+    demo_params: {article: "die"}
+    params:
+      - {name: article, type: str, required: true, description: "der, die or das"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_practice"
+      - python_action: "helpers:answer"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered"}
+    test_case:
+      ref_prompt_variants:
+        - "pick der for this noun"
+      expected_success: true
+
+  - name: answer_many
+    description: "Answer several nouns in a row (up to 10 articles, comma separated). A wrong answer keeps the same noun, so the next article is tried on it."
+    ref_prompt: "Answer der, die, das for the next German nouns"
+    demo_params: {articles: "die,der,das"}
+    params:
+      - {name: articles, type: str, required: true, description: "comma separated, for example die,der,das"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_practice"
+      - python_action: "helpers:answer_many"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:answered_many"}
+    test_case:
+      ref_prompt_variants:
+        - "play three nouns in a row"
+      expected_success: true
+
+  - name: get_stats
+    description: "Open the Stats screen and read the fully learned / all words figure."
+    ref_prompt: "How many German words have I learned in Der Die Das?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:seed_practice"
+      - python_action: "helpers:get_stats"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:stats_open"}
+    test_case:
+      ref_prompt_variants:
+        - "show der die das stats"
+      expected_success: true

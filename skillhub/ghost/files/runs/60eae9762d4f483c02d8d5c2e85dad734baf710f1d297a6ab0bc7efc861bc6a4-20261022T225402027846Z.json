@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/files",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.documentsui",
+    "app_version": "t_frc_doc_330543000"
+  },
+  "fingerprint_hash": "60eae9762d4f483c02d8d5c2e85dad734baf710f1d297a6ab0bc7efc861bc6a4",
+  "app_version": "t_frc_doc_330543000",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T22:54:02.027846+00:00",
+  "finished_at": "2026-10-22T22:54:02.027846+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "search_files",
+      "success": true,
+      "duration_ms": 22734.743867069483,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 421.6448259539902
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 2015.478667919524
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 7327.612609020434
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 10748.59815405216
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:746a766762a7581349625674de0bcce71aa4ea790845f3a1cf3c8921d1974f93",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQIEfYMa0iQDIPIBNMkRMPfdLZxBGXd2S1WCZgqz6s5CWf8AqVl\nXx++xUi42ATpEYOw5E6O3y5C9uqZ8CNhbeDAc=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/daily-diary",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.voklen.daily_diary",
+    "app_version": "1.4.5"
+  },
+  "fingerprint_hash": "e87567648a782946d6047706bd49f545e859cce5a4e83ef21762bbe8ca631406",
+  "app_version": "1.4.5",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T19:29:23.726826+00:00",
+  "finished_at": "2026-11-05T19:29:23.726826+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "append_entry",
+      "success": true,
+      "duration_ms": 11784.269361000042,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4735.400644000038
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 7017.34365199809
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:72e440c1ab154db8b328a243ba3b547abb198ebfe2ad31a9f027680472612d51",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCzyquVbynLTuS5PgXvfHpr0etTGZ4oCxt3svAoQmTnKDWJ9CV\nrDRWFBTk8Hy1PcWguomtrCg4bXFT/5w4iKBgY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

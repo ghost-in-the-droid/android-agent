@@ -1,0 +1,118 @@
+# Ghost in the Droid: Daily Diary (login-free FOSS seed skill, installed from F-Droid)
+# Daily Diary (F-Droid): write and read today's diary page, which starts blank every day. Offline, no account.
+
+name: daily-diary
+version: 1.0.0
+author: ghost
+description: "Daily Diary (F-Droid): write and read today's diary page, which starts blank every day. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "samsung/SM-A037F"
+  app_package: com.voklen.daily_diary
+  app_version: "*"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/daily-diary"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_app
+    description: "Launch the app."
+    steps:
+      - {action: launch_app, package: com.voklen.daily_diary}
+      - {action: sleep, duration_s: 2.5}
+
+actions:
+  - name: open_diary
+    description: "Restart the app and read today's entry."
+    ref_prompt: "Open my Daily Diary page"
+    params: []
+    steps:
+      - python_action: "helpers:restart_app"
+      - subroutine: open_app
+      - python_action: "helpers:open_diary"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:diary_open"}
+    test_case:
+      ref_prompt_variants:
+        - "open Daily Diary"
+      expected_success: true
+
+  - name: write_entry
+    description: "Replace today's diary entry with the given text."
+    ref_prompt: "Write in my diary: a calm day"
+    demo_params: {text: "Walked in the park and read a book"}
+    params:
+      - {name: text, type: str, required: true, description: "entry text, 1 to 300 characters"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:write_entry"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:written"}
+    test_case:
+      ref_prompt_variants:
+        - "add to my diary that today was good"
+      expected_success: true
+
+  - name: append_entry
+    description: "Add text to the end of today's diary entry."
+    ref_prompt: "Add to my diary: and cooked dinner"
+    demo_params: {text: "Cooked dinner in the evening"}
+    params:
+      - {name: text, type: str, required: true, description: "text to append, 1 to 300 characters"}
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:append_entry"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:appended"}
+    test_case:
+      ref_prompt_variants:
+        - "continue my diary entry with more text"
+      expected_success: true
+
+  - name: read_entry
+    description: "Read today's diary entry."
+    ref_prompt: "What did I write in my diary today?"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:read_entry"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:entry_read"}
+    test_case:
+      ref_prompt_variants:
+        - "read my diary"
+      expected_success: true
+
+  - name: list_previous
+    description: "Open the previous-entries screen, return its rows and come back."
+    ref_prompt: "Show my previous diary entries"
+    params: []
+    steps:
+      - subroutine: open_app
+      - python_action: "helpers:list_previous"
+    end_state_validator:
+      all_of:
+        - {kind: custom_python, function: "helpers:previous_listed"}
+    test_case:
+      ref_prompt_variants:
+        - "list older diary days"
+      expected_success: true

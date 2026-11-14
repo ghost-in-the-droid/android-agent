@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/antimine",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "dev.lucanlm.antimine",
+    "app_version": "17.6.3"
+  },
+  "fingerprint_hash": "b681fecf6c6bd2fe731aaecb25208145b88859f23a70d6225481321bec5f7588",
+  "app_version": "17.6.3",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T09:55:02.856284+00:00",
+  "finished_at": "2026-11-05T09:55:02.856284+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_stats",
+      "success": true,
+      "duration_ms": 6911.564097999872,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 3968.6682270003075
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 1197.446004000085
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 322.1307150006396
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 1220.7673550001346
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 183.03796000054717
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:53b49e10778522168ba397101d44b182b705210eb4f27c8ac54bfd5d1a7658ad",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQIzYv4ilfY1l9tL0nVySUXFtQGPC4kTkRYdRAw1Wj3WvWkzRMX\nn+t5lIisEkkQinpEOPmDSI4BUxi8c76XSK0AY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

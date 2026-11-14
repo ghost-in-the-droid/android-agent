@@ -1,0 +1,141 @@
+name: binary-eye
+version: 1.0.1
+author: ghost
+description: Generate your own QR codes and barcodes in Binary Eye without camera,
+  files, clipboard or sharing. Compose content, select format, generate, read UI state
+  and return to edit.
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access: []
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: de.markusfisch.android.binaryeye
+  app_version: '>=1.75.5,<1.76'
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/binary-eye
+actions:
+- name: open_generator
+  description: Open the barcode composer directly, bypassing the scanner
+  ref_prompt: Open the barcode composer directly, bypassing the scanner
+  params: []
+  steps:
+  - python_action: helpers:open_generator
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the barcode composer directly, bypassing the scanner in binary-eye
+    expected_success: true
+- name: set_content
+  description: Replace generator content exactly and disable escape-sequence expansion
+  ref_prompt: Replace generator content exactly and disable escape-sequence expansion
+  params:
+  - name: content
+    type: str
+    description: 1 to 512 printable ASCII characters
+    required: true
+  steps:
+  - python_action: helpers:set_content
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Replace generator content exactly and disable escape-sequence expansion in binary-eye
+    expected_success: true
+- name: set_format
+  description: Select and read back the barcode format
+  ref_prompt: Select and read back the barcode format
+  params:
+  - name: format
+    type: enum
+    values:
+    - Aztec
+    - Code 128
+    - QR Code
+    required: true
+    description: Supported generator format
+  steps:
+  - python_action: helpers:set_format
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Select and read back the barcode format in binary-eye
+    expected_success: true
+- name: generate
+  description: Generate a barcode from the current literal composer state
+  ref_prompt: Generate a barcode from the current literal composer state
+  params: []
+  steps:
+  - python_action: helpers:generate
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:generated_ok
+  test_case:
+    ref_prompt_variants:
+    - Generate a barcode from the current literal composer state in binary-eye
+    expected_success: true
+- name: read_state
+  description: Read composer controls or visible generated-image state without scanning
+  ref_prompt: Read composer controls or visible generated-image state without scanning
+  params: []
+  steps:
+  - python_action: helpers:read_state
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Read composer controls or visible generated-image state without scanning in
+      binary-eye
+    expected_success: true
+- name: edit_code
+  description: Return from a generator-created barcode viewer to the composer
+  ref_prompt: Return from a generator-created barcode viewer to the composer
+  params: []
+  steps:
+  - python_action: helpers:edit_code
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Return from a generator-created barcode viewer to the composer in binary-eye
+    expected_success: true
+- name: generate_qr
+  description: Compose literal content, select QR Code and generate it
+  ref_prompt: Compose literal content, select QR Code and generate it
+  params:
+  - name: content
+    type: str
+    description: 1 to 512 printable ASCII characters
+    required: true
+  steps:
+  - python_action: helpers:generate_qr
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:generated_ok
+  test_case:
+    ref_prompt_variants:
+    - Compose literal content, select QR Code and generate it in binary-eye
+    expected_success: true

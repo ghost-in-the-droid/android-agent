@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/apodroid",
+ "action": "read_explanation",
+ "prompt": "In APODroid, report the displayed picture’s title and date, then paraphrase its explanation in two short sentences. Do not tap the image, save, crop, set wallpaper or change automation.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 21.14,
+  "tokens": 245324,
+  "tool_calls": 7,
+  "ok": true
+ },
+ "after": {
+  "seconds": 26.62,
+  "tokens": 39463,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Both titles/dates and two-sentence paraphrases match the exposed NASA explanation. AFTER retained a safe read-before-open failure; full native hierarchy plus wallpaper/background app-op checks explain the slower 26.62s despite 6.22x fewer tokens. Both profiles denied wallpaper writes/background execution before launch, used explanation controls only, and the harness verified unchanged numeric wallpaper identities in RAM after uninstall. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

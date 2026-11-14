@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/dialer",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.dialer",
+    "app_version": "100.0.512999549"
+  },
+  "fingerprint_hash": "063cb6496480cf49c5c2129bb2c2575089f2d47af79f43a7bc54fce9aef68b8f",
+  "app_version": "100.0.512999549",
+  "model": "deterministic",
+  "timestamp": "2026-10-22T22:52:14.585416+00:00",
+  "finished_at": "2026-10-22T22:52:14.585416+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "dial_number",
+      "success": true,
+      "duration_ms": 16437.01461108867,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 190.9538690233603
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 233.82281104568392
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 2010.3787450352684
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 7192.655844031833
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 2275.9632889647037
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:0de0fdd4af1af1d68a1264bf69bce8f081251f05933c54431cbe200be08f315d",
+  "emulator": true,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQNBuu61Q7IawXb9MMVfZibPnhZ+VucEz9tMxNjIub+Gpv82vri\nGrLEh8rdMGgi3fyH1sggSrgsluAHE2BoVwCwQ=\n-----END SSH SIGNATURE-----\n"
+  }
+}

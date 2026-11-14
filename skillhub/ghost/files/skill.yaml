@@ -1,0 +1,97 @@
+# Ghost in the Droid: Files / DocumentsUI (login-free seed skill)
+# Folders open by content URI (VIEW + vnd.android.document/directory), never by tapping through roots.
+
+name: files
+version: 1.0.0
+author: ghost
+description: "Android Files (DocumentsUI): list a folder, search files by name, create a folder in internal storage. No account needed."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]     # create_folder adds an empty folder; nothing is deleted or moved
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [files, storage]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.google.android.documentsui
+  app_version: ">=14"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/files"
+
+# No popups observed on a fresh Android 14 emulator.
+popup_detectors: []
+
+actions:
+  - name: list_folder
+    description: "Open a folder in internal storage by path and return its items (name, size, date, is_folder)."
+    ref_prompt: "What's in my Download folder?"
+    params:
+      - {name: path, type: str, default: "Download", description: "Path under internal storage, e.g. Download, Documents, DCIM/Camera"}
+    steps:
+      - python_action: "helpers:open_folder"
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "com.google.android.documentsui:id/option_menu_search", timeout_s: 20}
+      - {action: sleep, duration_s: 1}
+      - python_action: "helpers:list_items"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.documentsui:id/option_menu_search"}
+        - {kind: custom_python, function: "helpers:listing_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "list files in Documents"
+        - "show me what I downloaded"
+        - "what photos are in DCIM/Camera"
+      expected_success: true
+
+  - name: search_files
+    description: "Search all storage for files whose name matches the query and return them."
+    ref_prompt: "Find the file called notes"
+    params:
+      - {name: query, type: str, required: true, description: "Part of the file name"}
+    steps:
+      - python_action: "helpers:open_folder"
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "com.google.android.documentsui:id/option_menu_search", timeout_s: 20}
+      - python_action: "helpers:search"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.documentsui:id/search_src_text"}
+        - {kind: custom_python, function: "helpers:search_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "search my files for report"
+        - "is there a pdf named invoice on the phone"
+        - "look for todo.txt"
+      expected_success: true
+
+  - name: create_folder
+    description: "Create an empty folder inside a parent folder (More options > New folder)."
+    ref_prompt: "Make a folder called Receipts in Documents"
+    params:
+      - {name: path, type: str, default: "Documents", description: "Parent folder path under internal storage"}
+      - {name: name, type: str, required: true, description: "New folder name"}
+    steps:
+      - python_action: "helpers:open_folder"
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_element, id: "com.google.android.documentsui:id/option_menu_search", timeout_s: 20}
+      - python_action: "helpers:new_folder"
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "{name}"}
+        - {kind: custom_python, function: "helpers:folder_exists"}
+    test_case:
+      ref_prompt_variants:
+        - "create a Taxes folder in Download"
+        - "new folder Projects under Documents"
+        - "add a folder named Scans"
+      expected_success: true

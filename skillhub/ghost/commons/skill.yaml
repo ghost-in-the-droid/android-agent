@@ -1,0 +1,76 @@
+name: commons
+version: 1.0.0
+author: ghost
+description: Browse public Wikimedia Commons Featured captions and credits anonymously
+  without opening images
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: fr.free.nrw.commons
+  app_version: '>=6.8.0'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/commons
+actions:
+- name: open
+  description: Open Commons anonymously on the Featured image list
+  ref_prompt: Open Commons anonymously on the Featured image list
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:featured_ok
+  test_case:
+    ref_prompt_variants:
+    - Open Commons anonymously on the Featured image list in commons
+    expected_success: true
+- name: read_featured
+  description: Read two exposed Featured captions and public upload credits
+  ref_prompt: Read two exposed Featured captions and public upload credits
+  params: []
+  steps:
+  - python_action: helpers:read_featured
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:featured_ok
+  test_case:
+    ref_prompt_variants:
+    - Read two exposed Featured captions and public upload credits in commons
+    expected_success: true
+- name: scroll_featured
+  description: Scroll the public Featured image list and read two exposed entries
+  ref_prompt: Scroll the public Featured image list and read two exposed entries
+  params:
+  - name: direction
+    type: enum
+    values:
+    - down
+    - up
+    required: true
+  steps:
+  - python_action: helpers:scroll_featured
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:featured_ok
+  test_case:
+    ref_prompt_variants:
+    - Scroll the public Featured image list and read two exposed entries in commons
+    expected_success: true

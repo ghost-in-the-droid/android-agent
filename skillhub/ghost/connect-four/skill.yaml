@@ -1,0 +1,140 @@
+# Ghost in the Droid: ConnectFour Studio (login-free FOSS seed skill, installed from F-Droid)
+# Connect Four against a perfect-play engine. The board is a canvas, so the skill reads the status
+# line and the move counter; moves are one tap in a column.
+
+name: connect-four
+version: 1.0.0
+author: ghost
+description: "ConnectFour Studio (F-Droid): start a new game, drop a disc in a column and read the engine's reply. Offline, no account."
+skill_class: hard
+license: MIT
+generated_with: "Claude Sonnet 5.5 via Claude Code, hand-explored on a real Samsung phone"
+side_effects: [none]
+destructive: false
+tos_risk: low
+locale: [en-GB]
+data_access: []
+
+fingerprint:
+  os: android
+  os_version: ">=13"
+  hardware: "*"
+  app_package: io.github.patrickric.connectfourstudio
+  app_version: ">=1.0.1"
+  screen_wxh: 720x1600
+  density: 300
+  locale: en-GB
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/connect-four"
+
+popup_detectors: []
+
+subroutines:
+  - name: open_game
+    description: "Launch ConnectFour Studio on the board screen."
+    steps:
+      - {action: launch_app, package: io.github.patrickric.connectfourstudio}
+      - {action: sleep, duration_s: 1.5}
+      - {action: wait_for_element, id: "io.github.patrickric.connectfourstudio:id/status", timeout_s: 10}
+  - name: fresh_board
+    steps:
+      - subroutine: open_game
+      - {action: tap_element, text: "New"}
+      - {action: sleep, duration_s: 1}
+
+actions:
+  - name: new_game
+    description: "Start a new game (empty board, you move first with the yellow discs)."
+    ref_prompt: "Start a new game of Connect Four"
+    params: []
+    steps:
+      - subroutine: fresh_board
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "New game."}
+        - {kind: element_present, id: "io.github.patrickric.connectfourstudio:id/turn_text"}
+        - {kind: custom_python, function: "helpers:fresh_game"}
+    test_case:
+      ref_prompt_variants:
+        - "new connect four game"
+        - "reset the connect 4 board"
+        - "start over in Connect Four"
+      expected_success: true
+
+  - name: play_column
+    description: "Drop a disc in column 1-7 of the running game and read the engine's reply."
+    ref_prompt: "Drop a disc in the middle column in Connect Four"
+    demo_params: {column: "4"}
+    params:
+      - {name: column, type: str, required: true, description: "Column 1 (left) to 7 (right)"}
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:play_column"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "io.github.patrickric.connectfourstudio:id/status"}
+        - {kind: text_visible, text: "Computer played"}
+        - {kind: custom_python, function: "helpers:column_played"}
+    test_case:
+      ref_prompt_variants:
+        - "play column 3 in connect four"
+        - "put my piece in the far left column"
+        - "make my move in the centre"
+      expected_success: true
+
+  - name: play_moves
+    description: "Play a sequence of columns (e.g. 4,4,3); returns the engine's reply after each."
+    ref_prompt: "Play columns 4, 4 and 3 in Connect Four"
+    demo_params: {columns: "4,4,3"}
+    params:
+      - {name: columns, type: str, required: true, description: "Columns 1-7, comma separated"}
+    steps:
+      - subroutine: fresh_board
+      - python_action: "helpers:play_moves"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "io.github.patrickric.connectfourstudio:id/status"}
+        - {kind: element_present, id: "io.github.patrickric.connectfourstudio:id/turn_text"}
+        - {kind: custom_python, function: "helpers:moves_played"}
+    test_case:
+      ref_prompt_variants:
+        - "play three moves in Connect Four"
+        - "try the opening 4 4 3"
+      expected_success: true
+
+  - name: get_state
+    description: "Read the move number, whose turn it is and the status line."
+    ref_prompt: "What is the Connect Four status?"
+    params: []
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:get_state"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "io.github.patrickric.connectfourstudio:id/status"}
+        - {kind: element_present, id: "io.github.patrickric.connectfourstudio:id/turn_text"}
+        - {kind: custom_python, function: "helpers:state_read"}
+    test_case:
+      ref_prompt_variants:
+        - "whose turn is it in connect four"
+        - "what move are we on"
+      expected_success: true
+
+  - name: undo_move
+    description: "Take back one move (the `<` button); returns the state afterwards."
+    ref_prompt: "Undo my last Connect Four move"
+    params: []
+    steps:
+      - subroutine: open_game
+      - python_action: "helpers:undo"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "io.github.patrickric.connectfourstudio:id/status"}
+        - {kind: element_present, id: "io.github.patrickric.connectfourstudio:id/turn_text"}
+        - {kind: custom_python, function: "helpers:undone"}
+    test_case:
+      ref_prompt_variants:
+        - "take back that move"
+        - "go back one move in connect four"
+      expected_success: true

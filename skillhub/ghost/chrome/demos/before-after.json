@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/chrome",
+ "action": "open_incognito_tab",
+ "prompt": "From this blank incognito tab, open another incognito tab and navigate to https://www.wikipedia.org.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 28.16,
+  "tokens": 130910,
+  "tool_calls": 16,
+  "ok": true
+ },
+ "after": {
+  "seconds": 35.16,
+  "tokens": 43767,
+  "tool_calls": 6,
+  "ok": true
+ },
+ "notes": "Fixed skill 6be28c93, 3/3 clean-reset phone B replays before AFTER retake. Original BEFORE retained. Original AFTER (36.8s/132650 tokens, success=True) preserved in originals/chrome.mp4. New AFTER 35.16s/43767 tokens/6 calls, actual run_skill success. Every-frame terminal OCR and source-cast gate passed.",
+ "source": "phone-b-before-after"
+}

@@ -1,0 +1,100 @@
+name: birdipedia
+version: 1.0.0
+author: ghost
+description: Filter and read Birdipedia’s offline public bird taxonomy catalog without
+  external links or location
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access: []
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: de.katzenmue.birdipedia
+  app_version: '>=1.1.3'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/birdipedia
+actions:
+- name: open
+  description: Open the offline Birdipedia catalog
+  ref_prompt: Open the offline Birdipedia catalog
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the offline Birdipedia catalog in birdipedia
+    expected_success: true
+- name: filter_birds
+  description: Filter public bird names without opening external species pages
+  ref_prompt: Filter public bird names without opening external species pages
+  params:
+  - name: query
+    type: str
+    required: true
+  steps:
+  - python_action: helpers:filter_birds
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Filter public bird names without opening external species pages in birdipedia
+    expected_success: true
+- name: read_results
+  description: Read the first two fully exposed common and scientific bird names
+  ref_prompt: Read the first two fully exposed common and scientific bird names
+  params: []
+  steps:
+  - python_action: helpers:read_results
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the first two fully exposed common and scientific bird names in birdipedia
+    expected_success: true
+- name: clear_filter
+  description: Clear the temporary bird name filter
+  ref_prompt: Clear the temporary bird name filter
+  params: []
+  steps:
+  - python_action: helpers:clear_filter
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Clear the temporary bird name filter in birdipedia
+    expected_success: true
+- name: scroll_results
+  description: Scroll the public bird catalog and read two complete rows
+  ref_prompt: Scroll the public bird catalog and read two complete rows
+  params: []
+  steps:
+  - python_action: helpers:scroll_results
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Scroll the public bird catalog and read two complete rows in birdipedia
+    expected_success: true

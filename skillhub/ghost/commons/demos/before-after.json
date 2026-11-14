@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/commons",
+ "action": "read_featured",
+ "prompt": "In Commons, browse anonymously and stay on Featured. Copy the first two exposed image captions and their full public upload-credit lines, then briefly compare the subjects described. Do not open images, search, use Map, bookmarks, uploads, downloads or sign in.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 37.33,
+  "tokens": 276511,
+  "tool_calls": 11,
+  "ok": true
+ },
+ "after": {
+  "seconds": 34.28,
+  "tokens": 40277,
+  "tool_calls": 5,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Both sides copied the same two captions and complete public credit lines, with faithful topic comparisons (maintainer checked). AFTER first called read_featured before open, failed safely, then a successful open returned the requested data; all work is retained in timing/tokens. Native selected Explore/Featured proof and full hierarchy validators account for most replay latency. No image detail, search, map, upload, bookmark or download was opened. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

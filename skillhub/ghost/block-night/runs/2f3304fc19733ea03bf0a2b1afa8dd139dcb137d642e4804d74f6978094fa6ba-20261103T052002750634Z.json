@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/block-night",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "pt.tiago.blocknight",
+    "app_version": "0.3.10"
+  },
+  "fingerprint_hash": "2f3304fc19733ea03bf0a2b1afa8dd139dcb137d642e4804d74f6978094fa6ba",
+  "app_version": "0.3.10",
+  "model": "deterministic",
+  "timestamp": "2026-11-03T05:20:02.750634+00:00",
+  "finished_at": "2026-11-03T05:20:02.750634+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_progress",
+      "success": true,
+      "duration_ms": 3975.7647210062714,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 736.6217879971373
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 2009.7887289957725
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 315.4417110054055
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 333.8313679996645
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 142.75532299507177
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:3eadb56eaafee6208d850baa988d8f96c6063f4119ef74032789746a75f27b16",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQBlukpds1hG/bC5n7BylkqDeiicxh/dtiY8S+8hSACqZyQ64ow\nrNAPVi9TVpmerxXwKO766MSG8S6O9X+vLn8gY=\n-----END SSH SIGNATURE-----\n"
+  }
+}

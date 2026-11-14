@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/contacts",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.contacts",
+    "app_version": "4.8.17.529259023"
+  },
+  "fingerprint_hash": "c65e03d8101762daeb660a284353ffb1038827ce1cab4fb1907d4ea9ac17569d",
+  "app_version": "4.8.17.529259023",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:10:00.820601+00:00",
+  "finished_at": "2026-10-05T18:10:00.820601+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "list_contacts",
+      "success": true,
+      "duration_ms": 3425.353842001641,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 2438.104665983701
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 928.3264340192545
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQAjm9Fk9aoRhd8UifvCAVMIRKBsPbySf3di4X1OmVgPBX0sSfR\ntdLz6ZkFUbJC21aPPEh8HgSKJw0CP+hkKfhAg=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/connect-four",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "io.github.patrickric.connectfourstudio",
+    "app_version": "1.0.1"
+  },
+  "fingerprint_hash": "34c4ec46e48f955004dd8e7b9fec7f55771a83a1b44607dd656f8270922e9b7d",
+  "app_version": "1.0.1",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T20:16:04.793885+00:00",
+  "finished_at": "2026-11-05T20:16:04.793885+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "get_state",
+      "success": true,
+      "duration_ms": 5458.34513099544,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 4229.111216001911
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 504.63252200279385
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:8a5954a85229ceeded4ad336cedc3a908ae7fea3e9f81d7f81a266c0f3209f07",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQErWRi0zxfqznUvybOEieCVnaVDJKQMMls0MGvn2bc6Yifg+jp\nWBdQ/oibpVCz86gTovPtvC1mbZRYHeIomz9A0=\n-----END SSH SIGNATURE-----\n"
+  }
+}

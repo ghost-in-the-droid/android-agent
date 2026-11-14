@@ -1,0 +1,87 @@
+name: arxiv
+version: 1.0.0
+author: ghost
+description: Search public arXiv papers and read native metadata and abstracts without
+  downloads or account
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: com.gbeatty.arxiv
+  app_version: '>=4.0.4'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/arxiv
+actions:
+- name: open
+  description: Open the anonymous arXiv dashboard without downloads or favourites
+  ref_prompt: Open the anonymous arXiv dashboard without downloads or favourites
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:dashboard_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the anonymous arXiv dashboard without downloads or favourites in arxiv
+    expected_success: true
+- name: prepare_search
+  description: Open the native public paper search field
+  ref_prompt: Open the native public paper search field
+  params: []
+  steps:
+  - python_action: helpers:prepare_search
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:search_field_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the native public paper search field in arxiv
+    expected_success: true
+- name: search
+  description: Submit a public arXiv paper search and read its first exposed paper
+  ref_prompt: Submit a public arXiv paper search and read its first exposed paper
+  params:
+  - name: query
+    type: str
+    required: true
+  steps:
+  - python_action: helpers:search
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:paper_ok
+  test_case:
+    ref_prompt_variants:
+    - Submit a public arXiv paper search and read its first exposed paper in arxiv
+    expected_success: true
+- name: read_paper
+  description: Read the first exposed paper metadata and native abstract text
+  ref_prompt: Read the first exposed paper metadata and native abstract text
+  params: []
+  steps:
+  - python_action: helpers:read_paper
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:paper_ok
+  test_case:
+    ref_prompt_variants:
+    - Read the first exposed paper metadata and native abstract text in arxiv
+    expected_success: true

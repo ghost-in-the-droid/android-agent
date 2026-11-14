@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/dialer",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.google.android.dialer",
+    "app_version": "100.0.512999549"
+  },
+  "fingerprint_hash": "0aca6ea07f216d9c8346031d68e1c95d47bd2ba80342860104a47c2cc77643d2",
+  "app_version": "100.0.512999549",
+  "model": "deterministic",
+  "timestamp": "2026-10-05T18:59:55.614752+00:00",
+  "finished_at": "2026-10-05T18:59:55.614752+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/14",
+  "success": true,
+  "actions": [
+    {
+      "name": "dial_number",
+      "success": true,
+      "duration_ms": 2320.720079005696,
+      "error_kind": null,
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 25.659033010015264
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 37.11192499031313
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 2010.0320060155354
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 214.4416450173594
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 11.09764599823393
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQHO/m0IBgk4X9zoYAHkzy2MgAEjbHhEiicdBMDcV9E/B4EsItb\nuRp1P1xluHYww/Z2M5svZvsTm6TjH913KRNQo=\n-----END SSH SIGNATURE-----\n"
+  }
+}

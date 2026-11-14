@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/fdroid",
+  "version": "1.0.2",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "16",
+    "hardware": "samsung/SM-A156B",
+    "app_package": "org.fdroid.fdroid",
+    "app_version": "2.0.0"
+  },
+  "fingerprint_hash": "243b04c272ebb6b3d4b167acf6c287a9403985efb4cb708a5d4dc8fcf71e0c98",
+  "app_version": "2.0.0",
+  "model": "deterministic",
+  "timestamp": "2026-11-04T16:25:01.938672+00:00",
+  "finished_at": "2026-11-04T16:25:01.938672+00:00",
+  "device_class": "samsung/SM-A156B/16",
+  "success": true,
+  "actions": [
+    {
+      "name": "browse_category",
+      "success": true,
+      "duration_ms": 15945.416508999187,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 10707.13454500219
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 3104.5607770029164
+        },
+        {
+          "index": 2,
+          "success": true,
+          "duration_ms": 1481.244634000177
+        },
+        {
+          "index": 3,
+          "success": true,
+          "duration_ms": 383.2609630007937
+        },
+        {
+          "index": 4,
+          "success": true,
+          "duration_ms": 199.50909099861747
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:214fa9e7ae9d61c52663b4e0e4299c7c4d62cfdfbde43c580ec8d4b3c15bd12d",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQOUj3cGa9OT0c5RbpmAuErLMPp56HDdCX5N8MNx1280SbOjrub\nwYuL0oVNZPa/zPDIDD5BnhYNLU9zJ8JHzK5QE=\n-----END SSH SIGNATURE-----\n"
+  }
+}

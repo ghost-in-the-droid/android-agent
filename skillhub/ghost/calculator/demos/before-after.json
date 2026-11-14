@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/calculator",
+ "action": "calculate",
+ "prompt": "Calculate 1234 times 5",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 29.44,
+  "tokens": 357211,
+  "tool_calls": 13,
+  "ok": true
+ },
+ "after": {
+  "seconds": 11.99,
+  "tokens": 29005,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "Final pair uses Fossify Math on BOTH sides; final foreground package org.fossify.math verified. BEFORE29.44s/357211 tokens/13 calls; AFTER11.99s/29005/4. Original stock-calculator pilot and earlier camera-shutdown takes superseded; all filmed token usage retained in proxy ledger.",
+ "source": "phone-b-before-after"
+}

@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/deufeitage",
+ "action": "select_year",
+ "prompt": "In DeuFeiTage, select Berlin and 2027. List the first three holidays with names, weekdays and dates in YYYY-MM-DD format, then briefly compare which months they fall in. Do not export calendars or change settings.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 22.33,
+  "tokens": 191888,
+  "tool_calls": 9,
+  "ok": false
+ },
+ "after": {
+  "seconds": 47.55,
+  "tokens": 69404,
+  "tool_calls": 7,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Both profiles correctly report Berlin2027 first3 holidays: New Year2027-01-01 Friday, International Womens Day2027-03-08 Monday, Good Friday2027-03-26 Friday; month comparison checked. AFTER47.55s/69404 tokens versus BEFORE22.33s/191888; native ownership, checked-year and date/weekday validation adds latency despite fewer tokens. Any safe out-of-order calls remain in the recorded total. First unshipped canonical draft caught CLI numeric-string parameters; corrected before all final18 signed runs. Both captures stayed in the public offline app with no calendar/files/network/location access. Manual completion review corrected BEFORE success to false: its dates/month counts are correct, but it added an incorrect claim that the March holidays were three weeks apart and either side of Easter. They are18 days apart and both precede Easter. AFTER month comparison is correct. No take was repeated; the entire first BEFORE remains visible with FAILED label. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

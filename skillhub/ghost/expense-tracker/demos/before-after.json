@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/expense-tracker",
+ "action": null,
+ "prompt": "Add an expense of 12.50 at the bakery for lunch, then show my totals.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-a03s",
+ "recorded": "2026-11",
+ "ok_means": "agent_finished_turn",
+ "before": {
+  "seconds": 55.7,
+  "tokens": 919520,
+  "tool_calls": 25,
+  "ok": true
+ },
+ "after": {
+  "seconds": 35.18,
+  "tokens": 30145,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "Same prompt, same phone, clean app state per side. Left: no skill, the agent drives the UI by hand. Right: find_skill + run_skill. 'ok' means the agent finished its turn; the result was not independently checked.",
+ "source": "phone-a-before-after"
+}

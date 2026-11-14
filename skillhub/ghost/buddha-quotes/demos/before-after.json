@@ -1,0 +1,24 @@
+{
+ "schema_version": 1,
+ "skill": "ghost/buddha-quotes",
+ "action": "read_quote",
+ "prompt": "In Buddha Quotes, read the current offline quote. Give only its first six words as a check, then paraphrase the idea in one short sentence. Do not like, save, create lists, share, use Meditate or open settings.",
+ "model": "claude-haiku-5-5",
+ "device": "samsung-demo",
+ "recorded": "2026-11",
+ "ok_means": "verified_task_check",
+ "before": {
+  "seconds": 11.01,
+  "tokens": 54215,
+  "tool_calls": 3,
+  "ok": true
+ },
+ "after": {
+  "seconds": 17.26,
+  "tokens": 29809,
+  "tool_calls": 4,
+  "ok": true
+ },
+ "notes": "New public-app toolkit; same prompt and clean temporary app per side. Maintainer-run actual replay and separate native final-state checks; not independent verification. Both prefix checks and short paraphrases verified against native source (maintainer checked). Bundled quote text differs between fresh profiles. AFTER first attempted read_quote before opening, failed safely, then succeeded through open. Full native hierarchy ownership/result checks explain 17.26s versus 11.01s BEFORE despite fewer proxy tokens; first attempts retained. Every-frame terminal OCR and both source casts passed; filmed agent B-only.",
+ "source": "phone-b-before-after"
+}

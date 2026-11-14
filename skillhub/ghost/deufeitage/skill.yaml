@@ -1,0 +1,133 @@
+name: deufeitage
+version: 1.0.0
+author: ghost
+description: Read public German holiday dates by state/year in DeuFeiTage without
+  personal calendar access
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access: []
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: de.micmun.android.deufeitage
+  app_version: '>=5.2.0'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/deufeitage
+actions:
+- name: open
+  description: Open the public German holiday table
+  ref_prompt: Open the public German holiday table
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the public German holiday table in deufeitage
+    expected_success: true
+- name: read_holidays
+  description: Read selected region/year and first three holidays; no parameters,
+    cold-safe from HOME
+  ref_prompt: Read selected region/year and first three holidays; no parameters, cold-safe
+    from HOME
+  params: []
+  steps:
+  - python_action: helpers:read_state
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Read selected region/year and first three holidays; no parameters, cold-safe
+      from HOME in deufeitage
+    expected_success: true
+- name: select_region
+  description: Select a supported public German state/filter
+  ref_prompt: Select a supported public German state/filter
+  params:
+  - name: region
+    type: string
+    required: true
+    enum:
+    - All holidays
+    - Common holidays
+    - Berlin
+    - Hamburg
+    - Bavaria
+    description: Exact English public region/filter label
+  steps:
+  - python_action: helpers:select_region
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Select a supported public German state/filter in deufeitage
+    expected_success: true
+- name: select_year
+  description: Select a currently visible year and verify the native checked year
+  ref_prompt: Select a currently visible year and verify the native checked year
+  params:
+  - name: year
+    type: integer
+    required: true
+    description: Four-digit year currently visible in the horizontal year strip
+  steps:
+  - python_action: helpers:select_year
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Select a currently visible year and verify the native checked year in deufeitage
+    expected_success: true
+- name: expand_holiday
+  description: Expand an inline public holiday description
+  ref_prompt: Expand an inline public holiday description
+  params: &id001
+  - name: index
+    type: integer
+    required: false
+    default: 1
+    description: Holiday index1–3 in the returned complete rows
+  steps:
+  - python_action: helpers:expand_holiday
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:details_ok
+  test_case:
+    ref_prompt_variants:
+    - Expand an inline public holiday description in deufeitage
+    expected_success: true
+- name: collapse_holiday
+  description: Collapse an already expanded inline holiday description
+  ref_prompt: Collapse an already expanded inline holiday description
+  params: *id001
+  steps:
+  - python_action: helpers:collapse_holiday
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Collapse an already expanded inline holiday description in deufeitage
+    expected_success: true

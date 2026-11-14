@@ -1,0 +1,126 @@
+name: currencies
+version: 1.0.0
+author: ghost
+description: Convert currency amounts in Currencies on Android without accounts or
+  transactions. Choose source/target, set a keypad amount, swap and return the app-displayed
+  rate with its literal date and provider.
+skill_class: hard
+license: MIT
+generated_with: Codex, explored and replayed on Samsung SM-A156B Android 16
+status: active
+side_effects:
+- none
+destructive: false
+tos_risk: low
+locale:
+- en-US
+data_access:
+- network
+fingerprint:
+  os: android
+  os_version: '16'
+  hardware: samsung/SM-A156B
+  app_package: de.salomax.currencies
+  app_version: '>=1.23.0,<1.24'
+  screen_wxh: 1080x2340
+  density: 450
+repo_url: https://github.com/ghost-in-the-droid/android-agent
+skill_path: skillhub/ghost/currencies
+actions:
+- name: open
+  description: Open the currency conversion keypad and read its dated displayed rate
+  ref_prompt: Open the currency conversion keypad and read its dated displayed rate
+  params: []
+  steps:
+  - python_action: helpers:open_app
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Open the currency conversion keypad and read its dated displayed rate in currencies
+    expected_success: true
+- name: select_source
+  description: Select the source currency by exact ISO code
+  ref_prompt: Select the source currency by exact ISO code
+  params:
+  - name: currency
+    type: str
+    description: Three uppercase ISO currency letters available from the current provider
+    required: true
+  steps:
+  - python_action: helpers:select_source
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Select the source currency by exact ISO code in currencies
+    expected_success: true
+- name: select_target
+  description: Select the target currency by exact ISO code
+  ref_prompt: Select the target currency by exact ISO code
+  params:
+  - name: currency
+    type: str
+    description: Three uppercase ISO currency letters available from the current provider
+    required: true
+  steps:
+  - python_action: helpers:select_target
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Select the target currency by exact ISO code in currencies
+    expected_success: true
+- name: set_amount
+  description: Replace the keypad amount and read the displayed conversion
+  ref_prompt: Replace the keypad amount and read the displayed conversion
+  params:
+  - name: amount
+    type: str
+    description: Nonnegative plain decimal, up to nine integer digits and two decimal
+      places
+    required: true
+  steps:
+  - python_action: helpers:set_amount
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Replace the keypad amount and read the displayed conversion in currencies
+    expected_success: true
+- name: swap
+  description: Swap source and target and verify both selected codes
+  ref_prompt: Swap source and target and verify both selected codes
+  params: []
+  steps:
+  - python_action: helpers:swap
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Swap source and target and verify both selected codes in currencies
+    expected_success: true
+- name: read_state
+  description: Read selected currencies, both amounts, rate, date and provider
+  ref_prompt: Read selected currencies, both amounts, rate, date and provider
+  params: []
+  steps:
+  - python_action: helpers:read_state
+  end_state_validator:
+    all_of:
+    - kind: custom_python
+      function: helpers:state_ok
+  test_case:
+    ref_prompt_variants:
+    - Read selected currencies, both amounts, rate, date and provider in currencies
+    expected_success: true

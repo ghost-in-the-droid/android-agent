@@ -1,0 +1,138 @@
+# Ghost in the Droid: Google Contacts (login-free seed skill)
+# Uses the on-device "Device" account only; the Google sign-in prompt is skipped.
+
+name: contacts
+version: 1.0.0
+author: ghost
+description: "Google Contacts on a device without a Google account: create, search, read and list local contacts."
+skill_class: hard
+license: MIT
+generated_with: "Claude Opus 5.5 via Claude Code, hand-explored on a headless emulator pool"
+side_effects: [none]     # create_contact writes a local device contact; nothing leaves the phone
+destructive: false
+tos_risk: low
+locale: [en-US]
+data_access: [contacts]
+
+fingerprint:
+  os: android
+  os_version: ">=14"
+  hardware: "*"
+  app_package: com.google.android.contacts
+  app_version: ">=4.1.17"
+  screen_wxh: 1080x2400
+  density: 420
+  locale: en-US
+
+repo_url: "https://github.com/ghost-in-the-droid/android-agent"
+skill_path: "skillhub/ghost/contacts"
+
+popup_detectors:
+  - {detect: "Contacts works best with a Google Account", button: "Skip", label: "First-run Google sign-in prompt"}
+  # Android 13+ runtime prompt; Ghost Portal cannot see this system dialog, the
+  # uiautomator fallback can. Button text uses a typographic apostrophe.
+  - {detect: "Allow Contacts to send you notifications", button: "Don’t allow", label: "Notification permission prompt"}
+
+subroutines:
+  - name: open_contact_list
+    description: "Fresh launch to the contact list; skip sign-in onboarding and the settings tooltip."
+    steps:
+      - python_action: "helpers:close_contacts"
+      - {action: launch_app, package: com.google.android.contacts}
+      - {action: sleep, duration_s: 2}
+      - {action: dismiss_popups}
+      # 45 s: while a system permission dialog is up, each tree read takes the
+      # slow uiautomator path, and the detector above needs one or two reads.
+      - {action: wait_for_element, id: "com.google.android.contacts:id/open_search_bar", timeout_s: 45}
+      # One-time "Now you can find Settings here" tooltip: a full-screen scrim
+      # with no text in the tree; tapping the empty lower half closes it.
+      - if_visible:
+          selector: {id: "com.google.android.contacts:id/og_tooltip_scrim_view"}
+          then:
+            - {action: tap, x: 540, y: 1700, note: "empty area under the tooltip scrim"}
+            - {action: sleep, duration_s: 1}
+
+actions:
+  - name: create_contact
+    description: "Create a local contact with a name and optional phone and email (ACTION_INSERT form, then Save)."
+    ref_prompt: "Add Ada Lovelace to my contacts with number +1 555 123 4567"
+    params:
+      - {name: name, type: str, required: true, description: "Full name, e.g. Ada Lovelace"}
+      - {name: phone, type: str, default: "", description: "Phone number, any format"}
+      - {name: email, type: str, default: "", description: "Email address"}
+    steps:
+      - subroutine: open_contact_list
+      - python_action: "helpers:open_insert_form"
+      - {action: wait_for_element, id: "com.google.android.contacts:id/save_button", timeout_s: 15}
+      - {action: tap_element, id: "com.google.android.contacts:id/save_button"}
+      - {action: sleep, duration_s: 2}
+      - {action: wait_for_text, text: "{name}", timeout_s: 15}
+    end_state_validator:
+      all_of:
+        - {kind: text_visible, text: "{name}"}
+        - {kind: custom_python, function: "helpers:contact_saved"}
+    test_case:
+      ref_prompt_variants:
+        - "save Grace Hopper's number 555 0100"
+        - "create a contact for Alan Turing with email alan@example.com"
+        - "new contact Linus, phone +44 20 7946 0000"
+      expected_success: true
+
+  - name: search_contacts
+    description: "Search contacts by name or number and return the matching names."
+    ref_prompt: "Find Ada in my contacts"
+    params:
+      - {name: query, type: str, required: true, description: "Name or number fragment"}
+    steps:
+      - subroutine: open_contact_list
+      - python_action: "helpers:search"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.contacts:id/open_search_view_edit_text"}
+        - {kind: custom_python, function: "helpers:search_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "do I have a contact called Grace"
+        - "search contacts for Turing"
+        - "look up Lovelace"
+      expected_success: true
+
+  - name: get_contact_details
+    description: "Open the first contact matching the query and return its name, phone numbers and emails."
+    ref_prompt: "What is Ada Lovelace's phone number?"
+    params:
+      - {name: query, type: str, required: true, description: "Name to look up; the first match is opened"}
+    steps:
+      - subroutine: open_contact_list
+      - python_action: "helpers:search"
+      - python_action: "helpers:open_first_result"
+      - {action: wait_for_element, id: "com.google.android.contacts:id/large_title", timeout_s: 15}
+      - python_action: "helpers:read_details"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.contacts:id/large_title"}
+        - {kind: custom_python, function: "helpers:details_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "get Grace Hopper's email"
+        - "show contact info for Alan"
+        - "what number do I have for Linus"
+      expected_success: true
+
+  - name: list_contacts
+    description: "Return the names of all contacts on the device, scrolling through the list."
+    ref_prompt: "List all my contacts"
+    params: []
+    steps:
+      - subroutine: open_contact_list
+      - python_action: "helpers:list_all"
+    end_state_validator:
+      all_of:
+        - {kind: element_present, id: "com.google.android.contacts:id/open_search_bar"}
+        - {kind: custom_python, function: "helpers:list_ok"}
+    test_case:
+      ref_prompt_variants:
+        - "who is in my address book"
+        - "how many contacts do I have"
+        - "show every contact"
+      expected_success: true

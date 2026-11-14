@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "ghost/block-night",
+  "version": "1.0.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "pt.tiago.blocknight",
+    "app_version": "0.3.10"
+  },
+  "fingerprint_hash": "2f3304fc19733ea03bf0a2b1afa8dd139dcb137d642e4804d74f6978094fa6ba",
+  "app_version": "0.3.10",
+  "model": "deterministic",
+  "timestamp": "2026-11-05T22:24:21.016316+00:00",
+  "finished_at": "2026-11-05T22:24:21.016316+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "hold_piece",
+      "success": true,
+      "duration_ms": 7915.501226998458,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 5426.343323997571
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 2098.336032999214
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:15f1440ef4ee873a7c29e02e7b8222f8b5b692fd1f32231f907b1d973e2fcbbc",
+  "emulator": false,
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQP6SzNptoHGokm1qb3/CAlX537JoCO9v5wEi0yczgpPCR27/Zl\nJzLQkXpp1AU3P3FWHBDH2SS+aJURaHVqsq+wg=\n-----END SSH SIGNATURE-----\n"
+  }
+}
