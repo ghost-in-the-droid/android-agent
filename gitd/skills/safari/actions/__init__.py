@@ -1,1 +1,0 @@
-"""Safari action package."""

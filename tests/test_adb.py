@@ -23,9 +23,7 @@ class _FakeCompleted:
 
 def test_adb_success_returns_stripped_stdout(monkeypatch):
     """Exit 0 → stripped stdout, contract unchanged from before the fix."""
-    monkeypatch.setattr(
-        subprocess, "run", lambda *a, **k: _FakeCompleted(0, "  hello\n", "")
-    )
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _FakeCompleted(0, "  hello\n", ""))
     assert Device("serial").adb("shell", "echo", "hello") == "hello"
 
 
@@ -45,9 +43,7 @@ def test_adb_nonzero_raises_adberror(monkeypatch):
 def test_adberror_is_runtimeerror(monkeypatch):
     """ADBError must subclass RuntimeError so existing `except Exception` /
     `except RuntimeError` call sites keep degrading gracefully."""
-    monkeypatch.setattr(
-        subprocess, "run", lambda *a, **k: _FakeCompleted(1, "", "boom")
-    )
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _FakeCompleted(1, "", "boom"))
     with pytest.raises(RuntimeError):
         Device("x").adb("shell", "whatever")
 
@@ -77,9 +73,7 @@ def test_adb_timeout_raises_adberror(monkeypatch):
 
 def test_adb_soft_does_not_raise_on_nonzero(monkeypatch):
     """adb_soft returns the result on a nonzero exit instead of raising."""
-    monkeypatch.setattr(
-        subprocess, "run", lambda *a, **k: _FakeCompleted(1, "out", "err")
-    )
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _FakeCompleted(1, "out", "err"))
     res = Device("x").adb_soft("shell", "cmd", "clipboard", "get-text")
     assert isinstance(res, ADBResult)
     assert res.returncode == 1
@@ -89,9 +83,7 @@ def test_adb_soft_does_not_raise_on_nonzero(monkeypatch):
 
 
 def test_adb_soft_ok_property(monkeypatch):
-    monkeypatch.setattr(
-        subprocess, "run", lambda *a, **k: _FakeCompleted(0, "x", "")
-    )
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _FakeCompleted(0, "x", ""))
     assert Device("x").adb_soft("shell", "true").ok is True
 
 
@@ -104,3 +96,46 @@ def test_adb_real_bad_serial_raises():
     """
     with pytest.raises(ADBError):
         Device("no-such-device-serial-xyz").adb("shell", "echo", "hi", timeout=5)
+
+
+def test_native_dump_bypasses_portal_without_losing_checked_or_package(monkeypatch):
+    device = Device("test-native")
+    monkeypatch.setattr(device, "dump_portal_xml", lambda: pytest.fail("native evidence must bypass Portal conversion"))
+    monkeypatch.setattr(device, "adb_soft", lambda *a: ADBResult(0, "UI hierchary dumped to: /sdcard/tt.xml", ""))
+    xml = '<?xml version="1.0"?><hierarchy><node package="demo" checked="true"/></hierarchy>'
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: _FakeCompleted(stdout=xml))
+    assert device.dump_xml(use_portal=False) == xml
+
+
+# ── find_bounds: XML entity handling ──────────────────────────────────────────
+
+_ENTITY_XML = (
+    '<?xml version="1.0" encoding="UTF-8"?><hierarchy rotation="0">'
+    '<node index="0" text="Battery &amp; charging" resource-id="android:id/title" bounds="[189,759][625,830]" />'
+    '<node index="1" text="Don&#x27;t allow" content-desc="Tom &amp; Jerry" bounds="[0,900][500,960]" />'
+    '<node index="2" text="Battery" resource-id="android:id/title" bounds="[189,1683][357,1754]" />'
+    "</hierarchy>"
+)
+
+
+def test_find_bounds_matches_label_with_ampersand():
+    dev = Device("emulator-5554")
+    assert dev.find_bounds(_ENTITY_XML, text="Battery & charging") == "[189,759][625,830]"
+    assert dev.find_bounds(_ENTITY_XML, content_desc="Tom & Jerry") == "[0,900][500,960]"
+
+
+def test_find_bounds_matches_portal_escaped_apostrophe():
+    # Portal XML is built with html.escape(), which writes "'" as "&#x27;".
+    assert Device("emulator-5554").find_bounds(_ENTITY_XML, text="Don't allow") == "[0,900][500,960]"
+
+
+def test_find_bounds_is_still_exact_match():
+    dev = Device("emulator-5554")
+    assert dev.find_bounds(_ENTITY_XML, text="Battery") == "[189,1683][357,1754]"
+    assert dev.find_bounds(_ENTITY_XML, text="Battery &amp; charging") is None  # needle is plain text
+    assert dev.find_bounds(_ENTITY_XML, text="charging") is None
+
+
+def test_find_bounds_does_not_match_attribute_name_suffix():
+    xml = '<node hint-text="Search" text="" bounds="[0,0][10,10]" /><node text="Search" bounds="[5,5][9,9]" />'
+    assert Device("emulator-5554").find_bounds(xml, text="Search") == "[5,5][9,9]"

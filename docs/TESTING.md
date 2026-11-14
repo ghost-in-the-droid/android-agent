@@ -72,6 +72,8 @@ The `.github/workflows/ci.yml` pipeline runs on every push and PR to `main`:
 4. **build-frontend** -- `npm ci` + `vue-tsc --noEmit` + `vite build`
 5. **type-check** -- verify all FastAPI routes load without import errors
 
+A separate `.github/workflows/phone-smoke.yml` boots an Android emulator and runs hard-skill smoke tests from `tests/phone/` (PRs touching phone code + manual dispatch). See [CI_PHONE_SETUP.md](CI_PHONE_SETUP.md).
+
 ---
 
 ## Dashboard Test Runner

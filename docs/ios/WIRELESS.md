@@ -5,7 +5,7 @@ wired bootstrap**, then **fully wireless** control over Tailscale — launch
 WebDriverAgent (WDA) over the air, reach it over Tailscale, and drive it from MCP
 tools / the `ghost` CLI / a Claude Code TUI with the **cable unplugged**.
 Companion to [DEMO_RECORDING.md](DEMO_RECORDING.md) and
-[REMOTE_DRIVE.md](REMOTE_DRIVE.md).
+[FLEET.md](FLEET.md).
 
 ## Recommended path at a glance
 

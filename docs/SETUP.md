@@ -195,7 +195,7 @@ DEVICE=SERIAL python3 -m pytest tests/ -v
 
 ## MCP Server (AI Agent Tools)
 
-The project includes an MCP server that exposes 61 Android/iOS automation tools
+The project includes an MCP server that exposes 64 Android/iOS automation tools
 — the full mobile automation tool catalog — to any AI client. If you cloned
 this repo, the `.mcp.json` is already configured.
 

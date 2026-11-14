@@ -131,7 +131,7 @@ ways to bridge, to pick + validate on-device:
 
 Browser-side is not the bottleneck: with the scaled (50%) low-latency encoder,
 the WebCodecs client measured ~19fps steady, render matching receive, **zero
-decoder-queue backlog** — no lag accumulates in decode/draw. The stream client
+decoder-queue queue** — no lag accumulates in decode/draw. The stream client
 also **bounds latency**: if the decoder falls >4 frames behind it drops until the
 next keyframe, so it stays live instead of drifting seconds behind. Live metrics
 (recv/render fps, queue depth, decode→paint latency, kbps, dropped) are shown in

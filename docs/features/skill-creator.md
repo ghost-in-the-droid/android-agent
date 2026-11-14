@@ -146,3 +146,13 @@ The LLM is instructed to produce structured JSON skill specs:
 ```
 
 Parameters use `{param_name}` placeholders in step text fields, filled at runtime by `_run_skill.py`.
+
+## Skill Creator agent guide
+
+The companion agent skill is `skillhub/_guides/skill-creation-guide/SKILL.md`
+(`ghost-skill-creation-guide`). Use it to turn explored actions or a trace into a
+versioned hub skill: scaffold, author steps and validators, write SOFT.md notes,
+validate, lint, analyze, run with signed evidence, record with `ghost skill demo`,
+then prepare `ghost skill submit`. Push and publish only when the user requests it.
+HARD is deterministic replay; SOFT is reference notes read through get_skill_notes;
+a captcha is a GATE. The general `ghost` guide handles everyday phone tasks.

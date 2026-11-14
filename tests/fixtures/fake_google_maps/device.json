@@ -1,0 +1,11 @@
+{
+  "fingerprint": {
+    "os": "android",
+    "os_version": "14",
+    "hardware": "Fixture/GoogleMaps",
+    "app_package": "com.google.android.apps.maps",
+    "app_version": "25.0.0"
+  },
+  "frames": ["search.xml", "place.xml"],
+  "transitions": [{"on": "press_enter", "frame": 1}]
+}

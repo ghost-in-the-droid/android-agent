@@ -139,7 +139,7 @@ Device.dismiss_popups(xml, popups=None)
 |------|---------|
 | `gitd/skills/base.py` | Skill, Action, Workflow, Element base classes |
 | `gitd/skills/_run_skill.py` | CLI entry point + DB tracking |
-| `gitd/skills/*/skill.yaml` | Per-skill popup detectors + default params |
+| `skillhub/*/*/skill.yaml` | Per-skill popup detectors + default params |
 | `gitd/models/skill_compat.py` | SkillRun + SkillCompat ORM models |
 | `gitd/routers/skills.py` | API endpoints (list, run, verify, compat) |
 | `frontend/src/views/SkillHubView.vue` | Skill management UI with compat + verify |

@@ -33,7 +33,9 @@ def platform_for_device_ref(device: str | None) -> str:
 
 
 def skill_android_package(metadata: dict[str, Any]) -> str:
-    return _clean(metadata.get("android_package") or metadata.get("app_package"))
+    fp = metadata.get("fingerprint") if isinstance(metadata.get("fingerprint"), dict) else {}
+    # v1: top-level android_package/app_package; v2 schema: fingerprint.app_package
+    return _clean(metadata.get("android_package") or metadata.get("app_package") or fp.get("app_package"))
 
 
 def skill_ios_bundle_id(metadata: dict[str, Any]) -> str:

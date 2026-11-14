@@ -65,7 +65,7 @@ def _h264_port(udid: str) -> int:
 
 def _candidate_urls(udid: str, port: int, force_localhost: bool = False) -> list[str]:
     urls = [f"ws://localhost:{port}/", f"ws://127.0.0.1:{port}/"]
-    # Remote-drive (Linux Ghost -> SSH -> Mac -> iPhone, docs/ios/REMOTE_DRIVE.md):
+    # Remote-drive (Linux Ghost -> SSH -> Mac -> iPhone, docs/ios/WIRELESS.md):
     # the RemoteXPC tunnel IPv6 (fdxx::) is only routable ON the Mac, so a remote
     # caller must use the SSH-forwarded localhost port and MUST NOT probe the tunnel
     # address. force_localhost is passed PER-DEVICE (is_remote_ref(ref)) — not a

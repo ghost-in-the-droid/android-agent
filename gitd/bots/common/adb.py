@@ -150,6 +150,9 @@ _DISMISS_WORDS = {"not now", "skip", "cancel", "dismiss", "later", "discard"}
 _DISMISS_EXACT = {"cancel", "dismiss", "discard", "save draft", "don\u2019t allow", "don't allow"}
 
 
+EMPTY_HIERARCHY = '<?xml version="1.0" encoding="UTF-8"?><hierarchy rotation="0"></hierarchy>'
+
+
 class Device:
     """Encapsulates ADB + XML primitives for one connected Android device."""
 
@@ -158,14 +161,25 @@ class Device:
 
     # ── ADB primitives ────────────────────────────────────────────────────────
 
-    def _run(self, args, timeout) -> subprocess.CompletedProcess:
+    def _run(self, args, timeout, *, text=True) -> subprocess.CompletedProcess:
+        from gitd.bots.common.package_policy import guard_device_command
+
+        return guard_device_command(
+            self.serial,
+            args,
+            lambda command: (
+                self._run_unchecked(command, timeout) if text else self._run_unchecked(command, timeout, text=False)
+            ),
+        )
+
+    def _run_unchecked(self, args, timeout, *, text=True) -> subprocess.CompletedProcess:
         """Invoke adb once. Raises ADBError if adb is missing or the call times
         out — both are hard failures no caller can recover from as a string."""
         try:
             return subprocess.run(
                 ["adb", "-s", self.serial, *args],
                 capture_output=True,
-                text=True,
+                text=text,
                 timeout=timeout,
             )
         except FileNotFoundError as e:
@@ -201,6 +215,46 @@ class Device:
         """
         r = self._run(args, timeout)
         return ADBResult(r.returncode, r.stdout.strip(), r.stderr.strip())
+
+    def screencap_png(self, *, timeout=30) -> bytes:
+        """Capture PNG bytes through the device transport and package policy.
+
+        Does not write to device storage. Checks the foreground at both ends
+        when a deny list is enabled, just like other policy-scoped reads.
+        """
+        from gitd.bots.common.package_policy import package_session
+
+        args = ("exec-out", "screencap", "-p")
+        with package_session(self.serial):
+            result = self._run(args, timeout, text=False)
+            if result.returncode:
+                stderr = result.stderr.decode(errors="replace")
+                raise ADBError(args, result.returncode, stderr)
+            if not result.stdout.startswith(b"\x89PNG\r\n\x1a\n"):
+                raise ADBError(args, -1, "screencap did not return PNG data")
+            return result.stdout
+
+    def foreground_package(self) -> str:
+        """Return the focused Android package, or empty if no owner is observable.
+
+        Probe via the read-only transport directly: policy itself uses this
+        method, so entering another package session here would recurse. Prefer
+        the window owner; activity state is only a fallback during transitions.
+        Transport failures propagate so policy callers can fail closed.
+        """
+        result = self._run_unchecked(
+            ("shell", "dumpsys", "window", "|", "grep", "-m1", "mCurrentFocus"),
+            5,
+        )
+        if result.returncode == 0:
+            match = re.search(r"mCurrentFocus[^\n]*?\s([\w.]+)/[^\s}]+", result.stdout)
+            if match:
+                return match[1]
+            if re.search(r"mCurrentFocus[^\n]*\bImmersiveModeConfirmation\b", result.stdout):
+                return "android"
+        result = self._run_unchecked(("shell", "dumpsys", "activity", "activities"), 5)
+        match = re.search(r"(?:topResumedActivity|mResumedActivity)[^\n]*?\s([\w.]+)/", result.stdout)
+        return match[1] if result.returncode == 0 and match else ""
 
     def adb_show(self, *args):
         """adb with live output (e.g. for push progress)."""
@@ -244,7 +298,6 @@ class Device:
 
     def pinch_in(self, cx, cy, start_dist=300, end_dist=50, duration_ms=500, delay=0.5):
         """Pinch-to-zoom in (two fingers moving inward)."""
-        steps = max(10, duration_ms // 20)
         self.adb(
             "shell", "input", "swipe", str(cx - start_dist), str(cy), str(cx - end_dist), str(cy), str(duration_ms)
         )
@@ -331,8 +384,8 @@ class Device:
 
         ms = ms or random.randint(300, 700)
         # Add slight curve (offset midpoint)
-        mid_offset_x = random.randint(-20, 20)
-        mid_offset_y = random.randint(-20, 20)
+        _mid_offset_x = random.randint(-20, 20)
+        _mid_offset_y = random.randint(-20, 20)
         # Just use standard swipe with variable duration (curved paths need sendevent)
         jx1 = x1 + random.gauss(0, 5)
         jy1 = y1 + random.gauss(0, 5)
@@ -353,12 +406,16 @@ class Device:
     # Per-device portal HTTP port (set up via adb forward)
     _portal_ports: dict = {}  # serial → local_port
     _portal_failed: set = set()  # serials where portal is unavailable
+    _portal_skip_until: dict = {}  # serial -> monotonic time; Portal not probed before then
+    PORTAL_RETRY_S = 300.0
+    _portal_answered: set = set()  # serials whose Portal answered on the last probe
 
     def _ensure_portal_forward(self, force=False) -> int | None:
         """Ensure ADB port forward for Portal HTTP. Returns local port or None."""
         if force:
             Device._portal_failed.discard(self.serial)
             Device._portal_ports.pop(self.serial, None)
+            Device._portal_skip_until.pop(self.serial, None)
         if self.serial in Device._portal_failed:
             return None
         if self.serial in Device._portal_ports:
@@ -378,7 +435,24 @@ class Device:
             return None
 
     def dump_portal_json(self) -> dict | list | None:
-        """Fast UI state via Droidrun Portal HTTP (33ms) or content provider (1.2s)."""
+        """Fast UI state via Droidrun Portal HTTP (33ms) or content provider (1.2s).
+
+        A device without Portal costs ~2.7 s per probe, so a miss is memoized per
+        serial for PORTAL_RETRY_S seconds; after that Portal is probed again.
+        """
+        if time.monotonic() < Device._portal_skip_until.get(self.serial, 0.0):
+            return None
+        Device._portal_answered.discard(self.serial)
+        tree = self._probe_portal_json()
+        if tree is None and self.serial not in Device._portal_answered:
+            # Unreachable, not merely empty: Portal answers with no tree for a moment
+            # after a window change ("No active window"); that must not disable it.
+            Device._portal_skip_until[self.serial] = time.monotonic() + Device.PORTAL_RETRY_S
+        else:
+            Device._portal_skip_until.pop(self.serial, None)
+        return tree
+
+    def _probe_portal_json(self) -> dict | list | None:
         import urllib.request
 
         # Try HTTP first (37x faster than content provider)
@@ -387,6 +461,7 @@ class Device:
             try:
                 req = urllib.request.urlopen(f"http://localhost:{port}/state", timeout=2)
                 data = json.loads(req.read())
+                Device._portal_answered.add(self.serial)
                 if data.get("status") == "success":
                     tree = json.loads(data["result"]).get("a11y_tree")
                     if tree:
@@ -437,30 +512,59 @@ class Device:
             text = ""  # Portal puts className as text for containers
         desc = html.escape(str(node.get("contentDescription", "") or ""))
         rid = html.escape(str(node.get("resourceId", "") or ""))
-        clickable = str(node.get("isClickable", False)).lower()
+        flags = " ".join(
+            f'{attr}="{str(node.get(key, default)).lower()}"'
+            for attr, key, default in (
+                ("clickable", "isClickable", False),
+                ("scrollable", "isScrollable", False),
+                ("enabled", "isEnabled", True),
+                ("checkable", "isCheckable", False),
+                ("checked", "isChecked", False),
+                ("focusable", "isFocusable", False),
+                ("focused", "isFocused", False),
+                ("selected", "isSelected", False),
+            )
+        )
         children = node.get("children", [])
         child_xml = "".join(self._portal_node_to_xml(c, depth + 1) for c in children)
         return (
             f'<node index="{depth}" text="{text}" resource-id="{rid}" '
-            f'class="{cls}" content-desc="{desc}" clickable="{clickable}" '
+            f'class="{cls}" content-desc="{desc}" {flags} '
             f'bounds="{b}">{child_xml}</node>'
         )
 
-    def dump_xml(self) -> str:
-        """Get UI tree. Tries Droidrun Portal (fast) first, falls back to uiautomator."""
+    def dump_portal_xml(self) -> str | None:
+        """UI tree from Portal as uiautomator-style XML, or None when Portal is unavailable."""
         tree = self.dump_portal_json()
-        if tree:
-            nodes = tree if isinstance(tree, list) else [tree]
-            inner = "".join(self._portal_node_to_xml(n) for n in nodes)
-            return f'<?xml version="1.0" encoding="UTF-8"?><hierarchy rotation="0">{inner}</hierarchy>'
+        if not tree:
+            return None
+        nodes = tree if isinstance(tree, list) else [tree]
+        inner = "".join(self._portal_node_to_xml(n) for n in nodes)
+        return f'<?xml version="1.0" encoding="UTF-8"?><hierarchy rotation="0">{inner}</hierarchy>'
+
+    def dump_xml(self, *, use_portal: bool = True) -> str:
+        """Get UI XML; Portal preserves accessibility state, including disabled nodes.
+
+        Native reads also retain package ownership. Validators requiring package
+        evidence can explicitly request the native hierarchy.
+        """
+        if use_portal:
+            xml = self.dump_portal_xml()
+            if xml:
+                return xml
         # Fallback: classic uiautomator dump
-        self.adb("shell", "uiautomator", "dump", "/sdcard/tt.xml")
-        r = subprocess.run(
-            ["adb", "-s", self.serial, "exec-out", "cat", "/sdcard/tt.xml"],
-            capture_output=True,
-            text=True,
-        )
-        return r.stdout
+        # rm first so a failed dump (no idle state) cannot return the previous screen,
+        # and never hand back adb/cat error text as if it were the screen.
+        d = self.adb_soft("shell", "rm -f /sdcard/tt.xml; uiautomator dump /sdcard/tt.xml")
+        if "dumped to" in (d.stdout or ""):
+            r = subprocess.run(
+                ["adb", "-s", self.serial, "exec-out", "cat", "/sdcard/tt.xml"],
+                capture_output=True,
+                text=True,
+            )
+            if r.returncode == 0 and r.stdout.lstrip().startswith("<?xml"):
+                return r.stdout
+        return EMPTY_HIERARCHY
 
     # ── XML parsing ───────────────────────────────────────────────────────────
 
@@ -481,10 +585,12 @@ class Device:
             key, val = "class", class_name
         else:
             return None
-        m = re.search(rf'<node[^>]*{key}="{re.escape(val)}"[^>]*>', xml)
-        if m:
-            bm = re.search(r'bounds="([^"]+)"', m.group())
-            return bm.group(1) if bm else None
+        # Attribute values are XML-escaped in both dump formats ("&" is "&amp;", and Portal
+        # writes "'" as "&#x27;"), so compare unescaped values, not the raw needle.
+        for m in re.finditer(rf'<node[^>]*\s{key}="([^"]*)"[^>]*>', xml):
+            if html.unescape(m.group(1)) == val:
+                bm = re.search(r'bounds="([^"]+)"', m.group())
+                return bm.group(1) if bm else None
         return None
 
     def tap_text(self, xml: str, text: str, fallback_xy=None, delay=0.8) -> bool:
@@ -687,8 +793,10 @@ class Device:
             time.sleep(1)
         return self.dump_xml()  # return whatever we have
 
-    def dismiss_popups(self, xml: str | None = None, popups: list[dict] | None = None) -> bool:
+    def dismiss_popups(self, xml: str | None = None, popups: list[dict] | None = None, generic: bool = True) -> bool:
         """Dismiss known popups. Pass skill-specific popups or uses global defaults.
+        generic=False disables the Cancel/Skip/Later fallback and the invisible-overlay
+        BACK (v2 engine runs of skills that declare their own popups).
         Returns True if something was dismissed."""
         if xml is None:
             xml = self.dump_xml()
@@ -711,6 +819,8 @@ class Device:
                 matches.sort(key=lambda x: x[0])
                 self.tap(*self.bounds_center(matches[0][1]), delay=1.0)
                 return True
+        if not generic:
+            return False
         # 2. Generic fallback — clickable buttons with dismiss-like text
         #    Filter out large nodes (video captions etc.) — popup buttons are small.
         for node in self.nodes(xml):
