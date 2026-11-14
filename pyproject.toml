@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ghost-in-the-droid"
 version = "1.6.0"
-description = "Give any AI agent an Android body. Open-source phone automation via ADB — tap, swipe, type, run skills, scale across devices."
+description = "Give any AI agent a real phone. Android over ADB, iPhone over WebDriverAgent: 66 MCP tools, a Skill Hub with 117 skills for 113 apps, and human-in-the-loop steps."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-keywords = ["android", "adb", "automation", "ghost", "agent", "mcp", "fastapi", "phone-farm"]
+keywords = ["android", "ios", "adb", "automation", "ghost", "agent", "mcp", "skills", "human-in-the-loop", "fastapi", "phone-farm"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Framework :: FastAPI",

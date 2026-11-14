@@ -1,0 +1,31 @@
+name: Publish to MCP Registry
+
+# Republishes server.json to the official MCP Registry. Runs after a release tag, or by hand.
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mcp-registry:
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-latest' }}
+    if: github.repository == 'ghost-in-the-droid/android-agent'
+    permissions:
+      contents: read
+      id-token: write # GitHub OIDC login for the io.github.ghost-in-the-droid namespace
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install mcp-publisher v1.8.9 (pinned, sha256-checked)
+        run: |
+          curl -sSfL -o mcp-publisher.tar.gz https://github.com/modelcontextprotocol/registry/releases/download/v1.8.9/mcp-publisher_linux_amd64.tar.gz
+          echo "4d527ca8f1ced0394c962dc925c2a4a4addef441cbefd62501c875e9481823a8  mcp-publisher.tar.gz" | sha256sum -c -
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+      - name: Log in with GitHub OIDC
+        run: ./mcp-publisher login github-oidc
+      - name: Publish server.json
+        run: ./mcp-publisher publish
