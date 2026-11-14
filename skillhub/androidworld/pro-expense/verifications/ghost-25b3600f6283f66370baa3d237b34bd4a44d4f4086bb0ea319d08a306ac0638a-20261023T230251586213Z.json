@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "kind": "verification",
+  "skill": "androidworld/pro-expense",
+  "version": "0.1.1",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "samsung/SM-A037F",
+    "app_package": "com.arduia.expense",
+    "app_version": "1.0.0-beta05",
+    "screen_wxh": "720x1600",
+    "density": 300,
+    "locale": "en-GB"
+  },
+  "fingerprint_hash": "25b3600f6283f66370baa3d237b34bd4a44d4f4086bb0ea319d08a306ac0638a",
+  "app_version": "1.0.0-beta05",
+  "model": "deterministic",
+  "timestamp": "2026-10-23T23:02:51.586213+00:00",
+  "finished_at": "2026-10-23T23:02:51.586213+00:00",
+  "device_class": "samsung/SM-A037F/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "expense_add_multiple_from_markor",
+      "success": true,
+      "duration_ms": 69094.04157602694,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 5405.119991977699
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 51137.15439196676
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "skill_sha256": "sha256:67a81a92573941c9dd68d854f1ec0de17a16400e62e8516769d5a6b3597b6808",
+  "emulator": false,
+  "github_login": "ghost",
+  "verifier": "ghost",
+  "verifier_tier": "novice",
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQLFK9YW8Q/rUr475DinQM2/r7BCIRWsS19VHhat3uDD3rxl3U3\nvaox0il1lostSJJ/Abwqldh7VfyxrfzgiJfQ4=\n-----END SSH SIGNATURE-----\n"
+  }
+}

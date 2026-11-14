@@ -14,8 +14,7 @@ from gitd.benchmarks.base import Task, TaskResult
 
 log = logging.getLogger(__name__)
 
-RESULTS_DIR = Path(__file__).parent / "results"
-RESULTS_DIR.mkdir(exist_ok=True)
+RESULTS_DIR = Path(__file__).parent / "results"  # created on first write, never at import
 
 # ── Event pub/sub for live SSE streaming ─────────────────────────────────
 
@@ -86,6 +85,7 @@ class BenchmarkRun:
         }
 
     def save(self) -> None:
+        RESULTS_DIR.mkdir(exist_ok=True)
         path = RESULTS_DIR / f"{self.id}.json"
         path.write_text(json.dumps(self.to_dict(), indent=2))
 

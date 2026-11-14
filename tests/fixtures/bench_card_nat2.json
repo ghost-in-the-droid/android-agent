@@ -1,0 +1,1337 @@
+{
+  "stats": {
+    "tasks": [
+      {
+        "task_id": "calc_3plus3",
+        "arms": {
+          "after_mcp": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 61837.0,
+              "q1": 61677.0,
+              "q3": 111942.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 59885.0,
+              "q1": 59728.0,
+              "q3": 61522.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 3.0,
+              "q1": 3.0,
+              "q3": 4.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 1.0,
+              "q1": 1.0,
+              "q3": 1.0,
+              "n": 5
+            },
+            "tool_errors": 5,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "after_replay": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": null,
+            "tokens": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 43074.0,
+              "q1": 40979.0,
+              "q3": 43191.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 0.0,
+              "q1": 0.0,
+              "q3": 0.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 6.0,
+              "q1": 6.0,
+              "q3": 6.0,
+              "n": 5
+            },
+            "tool_errors": 0,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "before": {
+            "passed": 5,
+            "total": 5,
+            "wilson95": [
+              0.5655,
+              1.0
+            ],
+            "model": [
+              "claude-haiku-5-5"
+            ],
+            "tokens": {
+              "median": 184681.0,
+              "q1": 132498.0,
+              "q3": 267125.0,
+              "n": 5
+            },
+            "wall_ms": {
+              "median": 41500.0,
+              "q1": 36939.0,
+              "q3": 45717.0,
+              "n": 5
+            },
+            "llm_calls": {
+              "median": 6.0,
+              "q1": 6.0,
+              "q3": 8.0,
+              "n": 5
+            },
+            "ui_actions": {
+              "median": 6.0,
+              "q1": 5.0,
+              "q3": 6.0,
+              "n": 5
+            },
+            "tool_errors": 3,
+            "seeds": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          }
+        },
+        "paired": {
+          "after_mcp_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 0,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 123150,
+            "break_even_reuses": null
+          },
+          "after_replay_vs_before": {
+            "pairs": 5,
+            "only_before_passed": 0,
+            "only_after_passed": 0,
+            "mcnemar_exact_p": 1.0,
+            "tokens_saved_median": 184681,
+            "break_even_reuses": null
+          }
+        }
+      }
+    ]
+  },
+  "episodes": {
+    "calc_3plus3": [
+      {
+        "arm": "after_mcp",
+        "seed": 0,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 61531,
+        "tokens_in": 6665,
+        "tokens_out": 616,
+        "tokens_cache_read": 54250,
+        "wall_ms": 59885,
+        "steps": 3,
+        "llm_calls": 3,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-after_mcp-0.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.calculator2"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "calculate"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3174,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1783,
+            "tokens_out": null,
+            "tokens_cache_read": 18547
+          },
+          {
+            "i": 3,
+            "tokens_in": 1708,
+            "tokens_out": null,
+            "tokens_cache_read": 20328
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 0,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 43352,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 0,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 184681,
+        "tokens_in": 14213,
+        "tokens_out": 1246,
+        "tokens_cache_read": 169222,
+        "wall_ms": 55410,
+        "steps": 12,
+        "llm_calls": 8,
+        "ui_actions": {
+          "tap": 5,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-before-0.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.calculator2"
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "6"
+          },
+          {
+            "i": 12,
+            "type": "read",
+            "tool": "ocr_region",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3051,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 4137,
+            "tokens_out": null,
+            "tokens_cache_read": 15334
+          },
+          {
+            "i": 3,
+            "tokens_in": 375,
+            "tokens_out": null,
+            "tokens_cache_read": 19469
+          },
+          {
+            "i": 4,
+            "tokens_in": 5233,
+            "tokens_out": null,
+            "tokens_cache_read": 19842
+          },
+          {
+            "i": 5,
+            "tokens_in": 332,
+            "tokens_out": null,
+            "tokens_cache_read": 25073
+          },
+          {
+            "i": 6,
+            "tokens_in": 409,
+            "tokens_out": null,
+            "tokens_cache_read": 25403
+          },
+          {
+            "i": 7,
+            "tokens_in": 198,
+            "tokens_out": null,
+            "tokens_cache_read": 25810
+          },
+          {
+            "i": 8,
+            "tokens_in": 478,
+            "tokens_out": null,
+            "tokens_cache_read": 26006
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 1,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 254189,
+        "tokens_in": 68635,
+        "tokens_out": 949,
+        "tokens_cache_read": 184605,
+        "wall_ms": 48897,
+        "steps": 7,
+        "llm_calls": 6,
+        "ui_actions": {
+          "tap": 1,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 2
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-after_mcp-1.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.google.android.calculator"
+          },
+          {
+            "i": 3,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "flow",
+            "tool": "run_flow",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "6"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3174,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1877,
+            "tokens_out": null,
+            "tokens_cache_read": 18547
+          },
+          {
+            "i": 3,
+            "tokens_in": 229,
+            "tokens_out": null,
+            "tokens_cache_read": 20422
+          },
+          {
+            "i": 4,
+            "tokens_in": 5233,
+            "tokens_out": null,
+            "tokens_cache_read": 20649
+          },
+          {
+            "i": 5,
+            "tokens_in": 57854,
+            "tokens_out": null,
+            "tokens_cache_read": 25880
+          },
+          {
+            "i": 6,
+            "tokens_in": 268,
+            "tokens_out": null,
+            "tokens_cache_read": 83732
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 1,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 40979,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 1,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 132498,
+        "tokens_in": 13632,
+        "tokens_out": 1007,
+        "tokens_cache_read": 117859,
+        "wall_ms": 45717,
+        "steps": 10,
+        "llm_calls": 6,
+        "ui_actions": {
+          "tap": 5,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-before-1.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.google.android.calculator"
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "6"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3051,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 4230,
+            "tokens_out": null,
+            "tokens_cache_read": 15334
+          },
+          {
+            "i": 3,
+            "tokens_in": 309,
+            "tokens_out": null,
+            "tokens_cache_read": 19562
+          },
+          {
+            "i": 4,
+            "tokens_in": 5233,
+            "tokens_out": null,
+            "tokens_cache_read": 19869
+          },
+          {
+            "i": 5,
+            "tokens_in": 611,
+            "tokens_out": null,
+            "tokens_cache_read": 25100
+          },
+          {
+            "i": 6,
+            "tokens_in": 198,
+            "tokens_out": null,
+            "tokens_cache_read": 25709
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 2,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 61837,
+        "tokens_in": 6817,
+        "tokens_out": 677,
+        "tokens_cache_read": 54343,
+        "wall_ms": 61522,
+        "steps": 3,
+        "llm_calls": 3,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-after_mcp-2.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.google.android.calculator"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "calculate"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3174,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1876,
+            "tokens_out": null,
+            "tokens_cache_read": 18547
+          },
+          {
+            "i": 3,
+            "tokens_in": 1767,
+            "tokens_out": null,
+            "tokens_cache_read": 20421
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 2,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 43074,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 2,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 114546,
+        "tokens_in": 10064,
+        "tokens_out": 878,
+        "tokens_cache_read": 103604,
+        "wall_ms": 41500,
+        "steps": 9,
+        "llm_calls": 6,
+        "ui_actions": {
+          "tap": 5,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-before-2.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.calculator2"
+          },
+          {
+            "i": 2,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "read",
+            "tool": "find_on_screen",
+            "ok": true,
+            "target": "6"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3053,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 665,
+            "tokens_out": null,
+            "tokens_cache_read": 15336
+          },
+          {
+            "i": 3,
+            "tokens_in": 309,
+            "tokens_out": null,
+            "tokens_cache_read": 15999
+          },
+          {
+            "i": 4,
+            "tokens_in": 5233,
+            "tokens_out": null,
+            "tokens_cache_read": 16306
+          },
+          {
+            "i": 5,
+            "tokens_in": 606,
+            "tokens_out": null,
+            "tokens_cache_read": 21537
+          },
+          {
+            "i": 6,
+            "tokens_in": 198,
+            "tokens_out": null,
+            "tokens_cache_read": 22141
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 3,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 61677,
+        "tokens_in": 6739,
+        "tokens_out": 604,
+        "tokens_cache_read": 54334,
+        "wall_ms": 59728,
+        "steps": 3,
+        "llm_calls": 3,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-after_mcp-3.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.google.android.calculator"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "calculate"
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3170,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1875,
+            "tokens_out": null,
+            "tokens_cache_read": 18543
+          },
+          {
+            "i": 3,
+            "tokens_in": 1694,
+            "tokens_out": null,
+            "tokens_cache_read": 20416
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 3,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 40814,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 3,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 288166,
+        "tokens_in": 32279,
+        "tokens_out": 1401,
+        "tokens_cache_read": 254486,
+        "wall_ms": 36891,
+        "steps": 11,
+        "llm_calls": 8,
+        "ui_actions": {
+          "tap": 4,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 5
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-before-3.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "read",
+            "tool": "search_apps",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "list_apps",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "org.fossify.math"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "get_elements",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "read",
+            "tool": "ocr_region",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "tap",
+            "tool": "tap",
+            "ok": true
+          },
+          {
+            "i": 10,
+            "type": "wait",
+            "tool": "wait",
+            "ok": true
+          },
+          {
+            "i": 11,
+            "type": "read",
+            "tool": "ocr_region",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3053,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 124,
+            "tokens_out": null,
+            "tokens_cache_read": 15336
+          },
+          {
+            "i": 3,
+            "tokens_in": 21258,
+            "tokens_out": null,
+            "tokens_cache_read": 15458
+          },
+          {
+            "i": 4,
+            "tokens_in": 6335,
+            "tokens_out": null,
+            "tokens_cache_read": 36714
+          },
+          {
+            "i": 5,
+            "tokens_in": 504,
+            "tokens_out": null,
+            "tokens_cache_read": 43047
+          },
+          {
+            "i": 6,
+            "tokens_in": 351,
+            "tokens_out": null,
+            "tokens_cache_read": 43549
+          },
+          {
+            "i": 7,
+            "tokens_in": 303,
+            "tokens_out": null,
+            "tokens_cache_read": 43898
+          },
+          {
+            "i": 8,
+            "tokens_in": 351,
+            "tokens_out": null,
+            "tokens_cache_read": 44199
+          }
+        ]
+      },
+      {
+        "arm": "after_mcp",
+        "seed": 4,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 111942,
+        "tokens_in": 34873,
+        "tokens_out": 687,
+        "tokens_cache_read": 76382,
+        "wall_ms": 67168,
+        "steps": 4,
+        "llm_calls": 4,
+        "ui_actions": {
+          "tap": 0,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 1
+        },
+        "skill_calls": 1,
+        "tool_errors": 1,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-after_mcp-4.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "skill",
+            "tool": "find_skill",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": false,
+            "target": "com.android.calculator2"
+          },
+          {
+            "i": 3,
+            "type": "skill",
+            "tool": "run_skill",
+            "ok": true,
+            "target": "calculate"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3176,
+            "tokens_out": null,
+            "tokens_cache_read": 15375
+          },
+          {
+            "i": 2,
+            "tokens_in": 1783,
+            "tokens_out": null,
+            "tokens_cache_read": 18549
+          },
+          {
+            "i": 3,
+            "tokens_in": 1800,
+            "tokens_out": null,
+            "tokens_cache_read": 20330
+          },
+          {
+            "i": 4,
+            "tokens_in": 28114,
+            "tokens_out": null,
+            "tokens_cache_read": 22128
+          }
+        ]
+      },
+      {
+        "arm": "after_replay",
+        "seed": 4,
+        "instance_seed": null,
+        "model": null,
+        "pass": true,
+        "tokens": 0,
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tokens_cache_read": 0,
+        "wall_ms": 43191,
+        "steps": 6,
+        "llm_calls": 0,
+        "ui_actions": {
+          "total": 6
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": null,
+        "actions": [],
+        "calls": []
+      },
+      {
+        "arm": "before",
+        "seed": 4,
+        "instance_seed": null,
+        "model": "claude-haiku-5-5",
+        "pass": true,
+        "tokens": 267125,
+        "tokens_in": 54486,
+        "tokens_out": 1130,
+        "tokens_cache_read": 211509,
+        "wall_ms": 36939,
+        "steps": 9,
+        "llm_calls": 6,
+        "ui_actions": {
+          "tap": 4,
+          "type": 0,
+          "swipe": 0,
+          "key": 0,
+          "launch": 1,
+          "total": 5
+        },
+        "skill_calls": 0,
+        "tool_errors": 0,
+        "valid": true,
+        "trace": "reports/native-ab/nat2/calc_3plus3-before-4.jsonl",
+        "actions": [
+          {
+            "i": 1,
+            "type": "read",
+            "tool": "search_apps",
+            "ok": true
+          },
+          {
+            "i": 2,
+            "type": "read",
+            "tool": "list_apps",
+            "ok": true
+          },
+          {
+            "i": 3,
+            "type": "launch",
+            "tool": "launch_app",
+            "ok": true,
+            "target": "org.fossify.math"
+          },
+          {
+            "i": 4,
+            "type": "read",
+            "tool": "screenshot",
+            "ok": true
+          },
+          {
+            "i": 5,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 6,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 7,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 8,
+            "type": "tap",
+            "tool": "tap_element",
+            "ok": true
+          },
+          {
+            "i": 9,
+            "type": "read",
+            "tool": "extract_visible_text",
+            "ok": true
+          }
+        ],
+        "calls": [
+          {
+            "i": 1,
+            "tokens_in": 3047,
+            "tokens_out": null,
+            "tokens_cache_read": 12285
+          },
+          {
+            "i": 2,
+            "tokens_in": 124,
+            "tokens_out": null,
+            "tokens_cache_read": 15330
+          },
+          {
+            "i": 3,
+            "tokens_in": 21258,
+            "tokens_out": null,
+            "tokens_cache_read": 15452
+          },
+          {
+            "i": 4,
+            "tokens_in": 28752,
+            "tokens_out": null,
+            "tokens_cache_read": 36708
+          },
+          {
+            "i": 5,
+            "tokens_in": 820,
+            "tokens_out": null,
+            "tokens_cache_read": 65458
+          },
+          {
+            "i": 6,
+            "tokens_in": 485,
+            "tokens_out": null,
+            "tokens_cache_read": 66276
+          }
+        ]
+      }
+    ]
+  }
+}

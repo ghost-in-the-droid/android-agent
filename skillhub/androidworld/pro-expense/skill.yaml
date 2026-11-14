@@ -1,0 +1,115 @@
+# Hand-authored from the app on the AndroidWorld Pixel 6 / API 33 image. Task names, goals and the
+# evaluator contract come from google-research/android_world (Apache-2.0, see LICENSE); the UI steps
+# were written from the running app, never from the evaluator internals.
+name: pro-expense
+version: 0.1.1
+author: androidworld
+description: Pro Expense bookkeeping as deterministic hard skills for the AndroidWorld Expense tasks; add expense rows from a list or from a Markor transactions file.
+skill_class: hard
+status: active
+license: Apache-2.0
+generated_with: hand-authored on the AndroidWorld emulator image; task list from `ghost skill import --androidworld`
+side_effects: [modifies_account]
+tos_risk: low
+data_access: [files, storage]
+fingerprint:
+  os: android
+  os_version: '*'
+  hardware: '*'
+  app_package: com.arduia.expense
+  app_version: '*'
+source:
+  upstream: https://github.com/google-research/android_world
+  commit: 2655e27cd090f97fbf2ccaecf759057bec0a8460
+  tasks:
+  - ExpenseAddSingle
+  - ExpenseAddMultiple
+  - ExpenseAddMultipleFromMarkor
+
+subroutines:
+- name: open_pro_expense
+  description: Launch Pro Expense and finish its first-run language and currency pages when they show.
+  steps:
+  - python_action: helpers:fresh_start
+  - retry:
+      max: 3
+      backoff_s: 2
+      steps:
+      - action: launch_app
+        package: com.arduia.expense
+      - action: sleep
+        duration_s: 2
+      - if_visible:
+          selector:
+            text: NEXT
+          then:
+          - action: tap_element
+            text: NEXT
+          - action: sleep
+            duration_s: 1
+      - if_visible:
+          selector:
+            text: CONTINUE
+          then:
+          - action: tap_element
+            text: CONTINUE
+          - action: sleep
+            duration_s: 1
+      - python_action: helpers:wait_for_home
+
+actions:
+- name: expense_add_multiple
+  description: Add each row (name, amount in dollars, category, note) as a new expense entry. AndroidWorld ExpenseAddMultiple (complexity 6).
+  ref_prompt: 'Add the following expenses into the pro expense: {rows}'
+  params:
+  - name: rows
+    type: json
+    required: true
+    description: 'List of objects {"name": str, "amount": "12.50", "category": one of Others/Income/Food/Housing/Social/Entertainment/Transportation/Clothes/Health Care/Education/Donation, "note": str}. The keys amount_dollars and category_name (AndroidWorld task wording) are accepted as aliases; a row without an amount or category is refused.'
+  steps:
+  - subroutine: open_pro_expense
+  - python_action: helpers:add_rows
+  end_state_validator:
+    kind: custom_python
+    function: helpers:validate_expense_add_multiple
+  test_case:
+    ref_prompt_variants:
+    - log these expenses in Pro Expense
+    - add the expenses from this list to pro expense
+    expected_success: true
+  demo_params:
+    rows: '[{"name": "Office coffee", "amount": "4.50", "category": "Food", "note": "Morning run"}]'
+
+- name: expense_add_single
+  description: Add one expense entry. AndroidWorld ExpenseAddSingle (complexity 1.2); same flow as expense_add_multiple with one row.
+  ref_prompt: 'Add the following expense into the pro expense: {rows}'
+  params:
+  - name: rows
+    type: json
+    required: true
+    description: 'One-element list, same shape as expense_add_multiple'
+  steps:
+  - subroutine: open_pro_expense
+  - python_action: helpers:add_rows
+  end_state_validator:
+    kind: custom_python
+    function: helpers:validate_expense_add_single
+  test_case:
+    ref_prompt_variants:
+    - add an expense to pro expense
+    expected_success: true
+
+- name: expense_add_multiple_from_markor
+  description: Read my_expenses.txt from the Markor notebook and log every transaction whose note says Reimbursable. AndroidWorld ExpenseAddMultipleFromMarkor (complexity 6).
+  ref_prompt: Go through the transactions in my_expenses.txt in Markor. Log the reimbursable transactions in the pro expense.
+  params: []
+  steps:
+  - subroutine: open_pro_expense
+  - python_action: helpers:add_reimbursable_from_markor
+  end_state_validator:
+    kind: custom_python
+    function: helpers:validate_expense_add_multiple_from_markor
+  test_case:
+    ref_prompt_variants:
+    - log the reimbursable transactions from my_expenses.txt in pro expense
+    expected_success: true

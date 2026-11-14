@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "kind": "self-run",
+  "skill": "androidworld/pro-expense",
+  "version": "0.1.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.arduia.expense",
+    "app_version": "1.0.0-beta05"
+  },
+  "fingerprint_hash": "91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8",
+  "app_version": "1.0.0-beta05",
+  "model": "claude-haiku-5-5",
+  "timestamp": "2026-10-22T16:34:12.896213+00:00",
+  "finished_at": "2026-10-22T16:34:12.896213+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": false,
+  "actions": [
+    {
+      "name": "expense_add_multiple_from_markor",
+      "success": false,
+      "duration_ms": 146527.0,
+      "error_kind": null,
+      "asks": [],
+      "steps": []
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "bench": {
+    "suite": "androidworld",
+    "task_id": "ExpenseAddMultipleFromMarkor",
+    "arm": "before",
+    "seed": 30,
+    "instance_seed": 3053860270,
+    "steps": 42,
+    "tokens": 1498998,
+    "wall_ms": 146527,
+    "is_successful": 0.0
+  },
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQCFyU3hmq0n5FayKqYE9/tRNCiKAvsHvXWuHbyHLwko2n4QHhm\n7O6aLGHtlCV/GH3/r72SDXPVvRbfJtPDk6ngw=\n-----END SSH SIGNATURE-----\n"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "kind": "verification",
+  "skill": "androidworld/pro-expense",
+  "version": "0.1.0",
+  "fingerprint": {
+    "os": "android",
+    "os_version": "13",
+    "hardware": "Google/sdk_gphone64_x86_64",
+    "app_package": "com.arduia.expense",
+    "app_version": "1.0.0-beta05"
+  },
+  "fingerprint_hash": "91e3eaffee263a1ec1efebe981a7876ad4538f344d129f21c3544a4eb59286e8",
+  "app_version": "1.0.0-beta05",
+  "model": "deterministic",
+  "timestamp": "2026-10-20T16:54:50.393330+00:00",
+  "finished_at": "2026-10-20T16:54:50.393330+00:00",
+  "device_class": "Google/sdk_gphone64_x86_64/13",
+  "success": true,
+  "actions": [
+    {
+      "name": "expense_add_multiple_from_markor",
+      "success": true,
+      "duration_ms": 80280.7646440342,
+      "error_kind": null,
+      "asks": [],
+      "steps": [
+        {
+          "index": 0,
+          "success": true,
+          "duration_ms": 13832.505653030239
+        },
+        {
+          "index": 1,
+          "success": true,
+          "duration_ms": 65916.23613500269
+        }
+      ]
+    }
+  ],
+  "device_backend": "device",
+  "simulation": false,
+  "github_login": "ghost-aw-replay",
+  "verifier": "ghost-aw-replay",
+  "verifier_tier": "novice",
+  "bench": {
+    "suite": "androidworld",
+    "task_id": "ExpenseAddMultipleFromMarkor",
+    "arm": "after_replay",
+    "seed": 30,
+    "instance_seed": 3053860270,
+    "steps": 2,
+    "tokens": 0,
+    "wall_ms": 87470,
+    "is_successful": 1.0
+  },
+  "signature": {
+    "algorithm": "ssh-ed25519",
+    "namespace": "ghost-skill-run",
+    "public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAxU9Y0FTq9jBoljIzypKW9h1G5J7hni5jynzAEWW4qU ghost-skill-run",
+    "value": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAADMAAAALc3NoLWVkMjU1MTkAAAAgDFT1jQVOr2MGiWMjPKkpb2HUbk\nnuGeLmPKfMARZbipQAAAAPZ2hvc3Qtc2tpbGwtcnVuAAAAAAAAAAZzaGE1MTIAAABTAAAA\nC3NzaC1lZDI1NTE5AAAAQLIY8i48uALp+KIrTiEE4908lsk/aqEa2GCLIeLrkRizw1fntg\nAfMt0u2PoebGYSA0uRA34QT6p1JsuBZ/s1ygM=\n-----END SSH SIGNATURE-----\n"
+  }
+}
