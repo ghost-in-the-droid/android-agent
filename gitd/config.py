@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     anthropic_api_key: str = ""
     openrouter_api_key: str = ""
+    martllm_api_key: str = ""
 
     # ── Ollama ──────────────────────────────────────────────────────────────
     ollama_base_url: str = "http://localhost:11434"

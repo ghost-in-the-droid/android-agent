@@ -6,6 +6,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · Versioning: 
 
 ## [Unreleased]
 
+### Added
+- **MartLLM provider** for Agent Chat and the `ghost` CLI (`martllm`, key in `MARTLLM_API_KEY`). It runs the same OpenAI-compatible tool-calling loop as OpenRouter against `https://api.martllm.com/v1`; `ghost setup`, `doctor` and backend detection pick up the key. The OpenRouter loop is now a shared helper, behavior unchanged.
+
 ## [1.6.0] - 2026-11-14
 
 _Skill System v2, the Ghost Skill Hub with 117 skills for 113 apps, AndroidWorld benchmark integration, and app showcases. See [release notes](docs/releases/v1.6.0.md)._

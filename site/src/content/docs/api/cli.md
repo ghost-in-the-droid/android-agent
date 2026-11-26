@@ -27,6 +27,7 @@ python3 -c "from gitd.server import app; app.run(host='0.0.0.0', port=5055, debu
 | `OPENAI_API_KEY` | For LLM features | OpenAI API key |
 | `ANTHROPIC_API_KEY` | For Claude backend | Anthropic API key |
 | `OPENROUTER_API_KEY` | For LLM features | OpenRouter API key |
+| `MARTLLM_API_KEY` | For the MartLLM agent chat provider | MartLLM API key |
 
 ## Bot Scripts
 

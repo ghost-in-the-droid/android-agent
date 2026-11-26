@@ -646,6 +646,7 @@ def collect_doctor_checks() -> list[dict]:
             "anthropic": bool(_s.anthropic_api_key),
             "openai": bool(_s.openai_api_key),
             "openrouter": bool(_s.openrouter_api_key),
+            "martllm": bool(_s.martllm_api_key),
         }
     except Exception:
         keys = {}
