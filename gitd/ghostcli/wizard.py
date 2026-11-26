@@ -79,7 +79,7 @@ def run_interactive() -> dict | None:
     model = ""
     if chosen["models"]:  # ollama — pick a local model
         model = _ask(f"Which model? ({', '.join(chosen['models'][:6])})", chosen["models"][0])
-    elif backend in ("claude-code", "anthropic", "openrouter", "openai"):
+    elif backend in ("claude-code", "anthropic", "openrouter", "martllm", "openai"):
         model = _ask("Default model (blank = backend default)", "")
 
     device_alias, device_serial = "", ""

@@ -4,6 +4,7 @@ Supports multiple LLM providers:
   - claude-code: Free, local, uses `claude` CLI (default)
   - anthropic: Claude API with native tool_use
   - openrouter: Any model via OpenRouter
+  - martllm: Any model via MartLLM (OpenAI-compatible)
   - ollama: Local models
 """
 
@@ -64,6 +65,11 @@ PROVIDERS = {
     "claude-code": {"label": "Claude Code (free)", "models": ["sonnet", "opus", "haiku"]},
     "anthropic": {"label": "Claude API", "models": ["claude-sonnet-4-20250514", "claude-opus-4-20250514"]},
     "openrouter": {"label": "OpenRouter", "models": ["anthropic/claude-sonnet-4", "google/gemini-2.5-pro"]},
+    # MartLLM — OpenAI-compatible gateway, same tool-calling loop as openrouter.
+    "martllm": {
+        "label": "MartLLM",
+        "models": ["anthropic/claude-sonnet-4.6", "google/gemini-3-flash", "deepseek/deepseek-v4-flash"],
+    },
     "ollama": {
         "label": "Ollama (local)",
         "models": [
@@ -427,6 +433,8 @@ def chat_turn(session: ChatSession, user_message: str):
         yield from chat_claude_code(session, user_message)
     elif provider == "openrouter":
         yield from _chat_openrouter(session, user_message)
+    elif provider == "martllm":
+        yield from _chat_martllm(session, user_message)
     elif provider == "vllm":
         yield from _chat_vllm(session, user_message)
     elif provider == "ollama":
@@ -577,25 +585,46 @@ def _chat_anthropic(session: ChatSession, user_message: str):
     yield {"type": "done"}
 
 
-# ── OpenRouter ───────────────────────────────────────────────────────────────
+# ── OpenRouter / MartLLM (OpenAI-compatible gateways) ──────────────────────────
 
 
 def _chat_openrouter(session: ChatSession, user_message: str):
-    """Use OpenRouter with OpenAI-compatible tool calling.
+    """Use OpenRouter with OpenAI-compatible tool calling."""
+    from gitd.config import settings
 
-    Multi-turn agent loop (same shape as _chat_vllm): feed each tool result
-    back to the model until it answers without tool calls or MAX_TURNS.
+    yield from _chat_openai_gateway(
+        session,
+        user_message,
+        api_key=os.environ.get("OPENROUTER_API_KEY", settings.openrouter_api_key or ""),
+        base_url="https://openrouter.ai/api/v1",
+        default_model="anthropic/claude-sonnet-4",
+    )
+
+
+def _chat_martllm(session: ChatSession, user_message: str):
+    """Use MartLLM (https://martllm.com) with OpenAI-compatible tool calling."""
+    from gitd.config import settings
+
+    yield from _chat_openai_gateway(
+        session,
+        user_message,
+        api_key=os.environ.get("MARTLLM_API_KEY", settings.martllm_api_key or ""),
+        base_url="https://api.martllm.com/v1",
+        default_model="anthropic/claude-sonnet-4.6",
+    )
+
+
+def _chat_openai_gateway(session: ChatSession, user_message: str, *, api_key: str, base_url: str, default_model: str):
+    """Multi-turn agent loop for hosted OpenAI-compatible gateways.
+
+    Same shape as _chat_vllm: feed each tool result back to the model until it
+    answers without tool calls or MAX_TURNS.
     """
     from openai import OpenAI
 
-    from gitd.config import settings
-
     session.messages.append(ChatMessage(role="user", content=user_message))
 
-    client = OpenAI(
-        api_key=os.environ.get("OPENROUTER_API_KEY", settings.openrouter_api_key or ""),
-        base_url="https://openrouter.ai/api/v1",
-    )
+    client = OpenAI(api_key=api_key, base_url=base_url)
 
     oai_tools = openai_tools_for_device(session.device)
 
@@ -612,7 +641,7 @@ def _chat_openrouter(session: ChatSession, user_message: str):
         {"role": "user", "content": f"{context}Device: {session.device}\n\n{user_message}"},
     ]
 
-    model = session.model or "anthropic/claude-sonnet-4"
+    model = session.model or default_model
 
     for _turn in range(MAX_TURNS):
         try:

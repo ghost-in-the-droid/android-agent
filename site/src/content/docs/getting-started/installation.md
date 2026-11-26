@@ -82,6 +82,7 @@ Add these to `.env` only if you need AI-powered features:
 OPENAI_API_KEY=your_key_here
 ANTHROPIC_API_KEY=your_key_here
 OPENROUTER_API_KEY=your_key_here
+MARTLLM_API_KEY=your_key_here   # Agent Chat only
 ```
 
 ### Optional: Skill Creator LLM Backends

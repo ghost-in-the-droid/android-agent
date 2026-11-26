@@ -51,6 +51,7 @@ def _api_key(*names: str) -> bool:
         field = {
             "ANTHROPIC_API_KEY": "anthropic_api_key",
             "OPENROUTER_API_KEY": "openrouter_api_key",
+            "MARTLLM_API_KEY": "martllm_api_key",
             "OPENAI_API_KEY": "openai_api_key",
         }
         for n in names:
@@ -83,6 +84,13 @@ def detect_backends() -> list[dict]:
             "label": "OpenRouter",
             "available": _api_key("OPENROUTER_API_KEY"),
             "detail": ("$OPENROUTER_API_KEY set" if _api_key("OPENROUTER_API_KEY") else "set $OPENROUTER_API_KEY"),
+            "models": [],
+        },
+        {
+            "key": "martllm",
+            "label": "MartLLM",
+            "available": _api_key("MARTLLM_API_KEY"),
+            "detail": ("$MARTLLM_API_KEY set" if _api_key("MARTLLM_API_KEY") else "set $MARTLLM_API_KEY"),
             "models": [],
         },
         {

@@ -79,6 +79,8 @@ def is_provider_usable(provider: str) -> bool:
             return bool(settings.anthropic_api_key or os.environ.get("ANTHROPIC_API_KEY"))
         if provider == "openrouter":
             return bool(settings.openrouter_api_key or os.environ.get("OPENROUTER_API_KEY"))
+        if provider == "martllm":
+            return bool(settings.martllm_api_key or os.environ.get("MARTLLM_API_KEY"))
         if provider in ("openai",):
             return bool(settings.openai_api_key or os.environ.get("OPENAI_API_KEY"))
     except Exception:

@@ -5,16 +5,17 @@ description: Ghost's agent-chat works with any LLM — Claude, GPT, Gemini, Llam
 
 Ghost's built-in agent loop is model-agnostic. Point it at a cloud API, run Ollama on your laptop, or run the model **on the phone itself**. Same tools, same skills, same interface — just swap the brain.
 
-## The 6 providers
+## The 7 providers
 
 | # | Provider | Where it runs | Best for | Setup |
 |---|---|---|---|---|
 | 1 | **[Claude Code](https://claude.com/claude-code)** | Your machine (via CLI) | Free daily driver, Sonnet/Opus/Haiku | `claude` CLI installed |
 | 2 | **[Anthropic API](https://docs.anthropic.com/)** | Anthropic cloud | Latest Claude 4 Sonnet + Opus with full control | `ANTHROPIC_API_KEY` |
 | 3 | **[OpenRouter](https://openrouter.ai/)** | Cloud multiplexer | Any model — GPT, Gemini, DeepSeek, Grok, Hermes... | `OPENROUTER_API_KEY` |
-| 4 | **[Ollama](https://ollama.com/)** | Your machine | Local models, no cloud, cheap iteration | Ollama installed |
-| 5 | **On-device** ⭐ | The phone itself | 100% offline, no data leaves the device | Ghost app installed |
-| 6 | **[vLLM](https://docs.vllm.ai/)** | Your GPU / self-hosted | Full-precision open-source models at speed | vLLM server URL |
+| 4 | **[MartLLM](https://martllm.com/)** | Cloud gateway | Claude, GPT, Gemini, DeepSeek, Qwen... on one prepaid key | `MARTLLM_API_KEY` |
+| 5 | **[Ollama](https://ollama.com/)** | Your machine | Local models, no cloud, cheap iteration | Ollama installed |
+| 6 | **On-device** ⭐ | The phone itself | 100% offline, no data leaves the device | Ghost app installed |
+| 7 | **[vLLM](https://docs.vllm.ai/)** | Your GPU / self-hosted | Full-precision open-source models at speed | vLLM server URL |
 
 ## Pick your brain
 
@@ -57,6 +58,24 @@ Bundled model list:
 - [`google/gemini-2.5-pro`](https://openrouter.ai/google/gemini-2.5-pro)
 
 Or type any [OpenRouter model ID](https://openrouter.ai/models) directly in the agent chat model selector.
+
+### One key, many models — [MartLLM](https://martllm.com/)
+
+[MartLLM](https://martllm.com/) (formerly UberLLM) is an OpenAI-compatible API for Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM and more, paid from prepaid credit with no subscription. Ghost uses the same tool-calling loop as OpenRouter, pointed at `https://api.martllm.com/v1`.
+
+Create a key at [martllm.com](https://martllm.com/signup).
+
+```bash
+export MARTLLM_API_KEY=your-martllm-key
+```
+
+Bundled model list:
+
+- `anthropic/claude-sonnet-4.6` (default)
+- `google/gemini-3-flash`
+- `deepseek/deepseek-v4-flash`
+
+Any other model ID from [martllm.com/models](https://martllm.com/models) can be typed into the agent chat model selector, or passed with `ghost --backend martllm --model <id>`.
 
 ### 🏠 Fully local — [Ollama](https://ollama.com/)
 
@@ -111,6 +130,8 @@ Great combo: **Ghost on your phone** → SSH tunnel to your workstation → **vL
 
 **"I'm evaluating models"** → OpenRouter (hundreds of models, one key)
 
+**"I want many models on one prepaid key"** → MartLLM (OpenAI-compatible, no subscription)
+
 **"I don't want to pay per call"** → Ollama (unlimited, local)
 
 **"I don't want data leaving the phone"** → On-device (100% offline)
@@ -126,6 +147,7 @@ Great combo: **Ghost on your phone** → SSH tunnel to your workstation → **vL
 | Claude Code | Anthropic | Free* | Fast | ⭐⭐⭐⭐⭐ | ⚠️ prompts leave device | ❌ |
 | Anthropic API | Anthropic | Pay-per-token | Fast | ⭐⭐⭐⭐⭐ | ⚠️ prompts leave device | ❌ |
 | OpenRouter | Router + upstream | Pay-per-token | Fast | ⭐⭐⭐⭐ (varies) | ⚠️ prompts leave device | ❌ |
+| MartLLM | Gateway + upstream | Pay-per-token | Fast | ⭐⭐⭐⭐ (varies) | ⚠️ prompts leave device | ❌ |
 | Ollama | None | Free | Medium | ⭐⭐⭐ | 🟢 local | ✅ |
 | **On-device** | **None** | **Free** | **Slow-medium** | **⭐⭐⭐** | **🟢 phone-only** | **✅** |
 | vLLM | Your GPU box | Electricity | Fast | ⭐⭐⭐⭐ | 🟢 self-hosted | ✅ (LAN) |
@@ -162,6 +184,7 @@ Environment variables:
 # Cloud APIs
 ANTHROPIC_API_KEY=sk-ant-...
 OPENROUTER_API_KEY=sk-or-v1-...
+MARTLLM_API_KEY=...
 
 # Local runtimes
 VLLM_BASE_URL=http://gpu-host:8000/v1

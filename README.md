@@ -272,6 +272,7 @@ Copy `.env.example` to `.env` (if provided) or create a `.env` file in the proje
 | `OPENAI_API_KEY` | LLM features (Skill Creator, Agent Chat) |
 | `ANTHROPIC_API_KEY` | Alternative LLM provider |
 | `OPENROUTER_API_KEY` | OpenRouter LLM provider |
+| `MARTLLM_API_KEY` | MartLLM LLM provider (Agent Chat, `ghost` CLI) |
 | `DEFAULT_DEVICE` | ADB serial (auto-detected if empty) |
 | `IOS_DEVICE_UDID` | iPhone or simulator UDID; devices are addressed as `ios:<udid>` |
 | `IOS_APPIUM_URL` | Appium server URL, default `http://127.0.0.1:4723` |
